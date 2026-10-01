@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The `screenshot` step's visual-regression comparison matched a fresh capture against a
-prior local image (the previously-saved file at `path`). There was no way to compare against
-a canonical reference image hosted remotely — a baseline served from a URL — so teams
+prior local image, the previously-saved file at `path`. There was no way to compare against
+a canonical reference image hosted remotely, a baseline served from a URL. Teams
 keeping golden images in object storage or a CDN could not use them directly. The audit
 needed `screenshot` to accept a URL as a read-only reference image to diff against. How
 should a remote reference image be supplied and consumed?
@@ -18,7 +18,7 @@ should a remote reference image be supplied and consumed?
 ## Decision Drivers
 
 * Reference/baseline images are often hosted remotely (object storage, CDN, docs site).
-* A URL reference must be read-only — the run compares against it but never overwrites it.
+* A URL reference must be read-only, so the run compares against it but never overwrites it.
 * Remote images are binary; the file loader must fetch binary content, not text.
 * The behavior should fit the existing `screenshot_v3` path/maxVariation comparison model.
 
@@ -32,15 +32,15 @@ should a remote reference image be supplied and consumed?
 
 Chosen option: **A**, because reusing the existing `path`/comparison surface keeps the
 contract small and treats a URL as just another source of the baseline. `screenshot` now
-accepts URL paths as **read-only reference images** for visual regression: the runner
-fetches the remote image as binary (`fetchFile` binary support) and diffs the fresh capture
-against it under the existing `maxVariation` model, never writing back to the URL. The
+accepts URL paths as **read-only reference images** for visual regression. The runner
+fetches the remote image as binary (`fetchFile` binary support). It diffs the fresh capture
+against that under the existing `maxVariation` model, never writing back to the URL. The
 `screenshot_v3` schema was updated to permit a URL in the relevant path field.
 
 ### Consequences
 
 * Good: remotely-hosted golden images can be used directly as baselines.
-* Good: URL references are inherently read-only — no accidental overwrite of a baseline.
+* Good: URL references are inherently read-only, with no accidental overwrite of a baseline.
 * Good: reuses the existing `maxVariation` comparison contract.
 * Neutral: comparison now depends on network availability of the reference URL.
 * Bad: a transient fetch failure for the reference image affects the comparison.

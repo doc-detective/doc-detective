@@ -88,7 +88,7 @@ doc-detective install browsers chrome chromedriver
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
 <Note>
-An asset with no installable build for the current platform/architecture (for example, Chrome and ChromeDriver on `linux/arm64`, which Google's Chrome for Testing doesn't publish natively) is skipped rather than failing the whole command—the report shows it as `skipped`. Run `doc-detective install status` to see what actually installed.
+Some assets have no installable build for the current platform and architecture. Chrome and ChromeDriver on `linux/arm64` are one example, since Google's Chrome for Testing doesn't publish them natively. Doc Detective skips those rather than failing the whole command, and the report shows them as `skipped`. Run `doc-detective install status` to see what actually installed.
 </Note>
 
 ### `install bash`
@@ -99,27 +99,27 @@ Install Git Bash on Windows hosts. [`runShell`](/docs/actions/runshell) runs com
 doc-detective install bash [options]
 ```
 
-If Git for Windows is already installed, the command reports it and downloads nothing. Otherwise it downloads a portable MinGit (about 40 MB, checksum-verified) into `<cacheDir>/tools/git-bash`. On macOS and Linux the command is a no-op—those platforms use the `bash` on your `PATH`.
+If Git for Windows is already installed, the command reports it and downloads nothing. Otherwise it downloads a portable MinGit (about 40 MB, checksum-verified) into `<cacheDir>/tools/git-bash`. On macOS and Linux the command is a no-op, because those platforms use the `bash` on your `PATH`.
 
-**Running this ahead of time is optional.** The first test run that needs bash on a Git-less Windows host installs it lazily, so this command just pre-warms the cache (ideal for CI images). Doc Detective verifies the install by running `bash --version` and repairs a corrupted copy automatically. Use `--force` to reinstall manually.
+**Running this ahead of time is optional.** The first test run that needs bash on a Git-less Windows host installs it lazily. This command only pre-warms the cache, which suits CI images. Doc Detective verifies the install by running `bash --version` and repairs a corrupted copy automatically. Use `--force` to reinstall manually.
 
 ### `install android`
 
-Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD, so tests that target the `android` platform can run — both native Android app tests (native app phase A3) and mobile web tests in the device's Chrome (phase A5). The system images it installs are the `google_apis` kind, which include Chrome; an emulator created from an image without Chrome skips mobile web tests with a pointer back to this command.
+Install the Android SDK toolchain (platform-tools, emulator, a system image) and create Doc Detective's default AVD. Tests that target the `android` platform can then run. That covers both native Android app tests (native app phase A3) and mobile web tests in the device's Chrome (phase A5). The system images it installs are the `google_apis` kind, which include Chrome. An emulator created from an image without Chrome skips mobile web tests with a pointer back to this command.
 
 ```bash
 doc-detective install android --yes
 ```
 
-This command **augments an existing SDK** when one is found (via `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`): it runs `sdkmanager` and `avdmanager` from that SDK to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's command-line tools into `<cacheDir>/android-sdk` first.
+This command **augments an existing SDK** when it finds one through `ANDROID_HOME`, `ANDROID_SDK_ROOT`, or `adb` on your `PATH`. It runs `sdkmanager` and `avdmanager` from that SDK to add only the missing pieces and create the default AVD. When no SDK exists, it bootstraps Google's command-line tools into `<cacheDir>/android-sdk` first.
 
-Because the system image is multi-GB, this command **never downloads without `--yes`** — run it with `--dry-run` first to preview the plan:
+Because the system image is multi-GB, this command **never downloads without `--yes`**. Run it with `--dry-run` first to preview the plan:
 
 ```bash
 doc-detective install android --dry-run
 ```
 
-Google's SDK repository occasionally serves a corrupt or truncated package. `install android` **self-heals** these transient download failures: it retries the affected `sdkmanager` download a few times, and if a system image lands incomplete it re-downloads it once before continuing, so a momentary flake no longer fails the whole install. A genuine failure (an unavailable image, a rejected license) still stops with a clear message. If a freshly downloaded system image is still incomplete after that one repair, `install android` logs an error, records it in the report as `[android] system-image — corrupt`, and stops before creating the AVD rather than building on a bad image. This outcome doesn't set a non-zero exit code, so scripts should watch the report or logs for `corrupt` instead of the exit status. Re-run the command to fetch a clean copy. The integrity check covers only images from the current run, so `install android` never touches a system image you already had.
+Google's SDK repository occasionally serves a corrupt or truncated package. `install android` **self-heals** these transient download failures. It retries the affected `sdkmanager` download a few times. If a system image lands incomplete, it re-downloads that image once before continuing, so a momentary flake no longer fails the whole install. A genuine failure, such as an unavailable image or a rejected license, still stops with a clear message. Suppose a freshly downloaded system image is still incomplete after that one repair. `install android` logs an error, records it in the report as `[android] system-image — corrupt`, and stops before creating the AVD rather than building on a bad image. This outcome doesn't set a non-zero exit code. Scripts should therefore watch the report or logs for `corrupt` instead of the exit status. Re-run the command to fetch a clean copy. The integrity check covers only images from the current run, so `install android` never touches a system image you already had.
 
 | Option | Description |
 |--------|-------------|
@@ -128,25 +128,25 @@ Google's SDK repository occasionally serves a corrupt or truncated package. `ins
 
 <Note>
 
-`sdkmanager`/`avdmanager` need a **Java runtime (JRE 17+)**. If your host already has one, `install android` uses it; if not, Doc Detective downloads a portable Temurin JRE into its cache as part of the (confirmed) install, so Java is not a prerequisite you have to set up yourself. `install android` is **not** part of `install all` — the multi-GB downloads are opt-in, so you install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
+`sdkmanager` and `avdmanager` need a **Java runtime (JRE 17+)**. `install android` uses the one your host already has. Otherwise Doc Detective downloads a portable Temurin JRE into its cache as part of the confirmed install. Java isn't a prerequisite you set up yourself. `install android` is **not** part of `install all`, because the multi-GB downloads are opt-in. You install the Android toolchain deliberately, not as a side effect of preparing a general test environment.
 
-**Running this ahead of time is optional but recommended.** A test run that targets `android` on a **capable** host (one that can run the emulator) will **lazily install** the toolchain itself the first time it needs it, printing a clear warning to the terminal and the output report. Running `install android` beforehand simply pre-warms the cache so that cost isn't paid mid-run — ideal for CI images and containers. To forbid the lazy install entirely (e.g. an air-gapped host that must never auto-download), set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`; the context then SKIPs with a pointer back to this command. A host that *can't* run the emulator (no hardware acceleration) always SKIPs without downloading anything.
+**Running this ahead of time is optional but recommended.** A test run that targets `android` on a **capable** host **lazily installs** the toolchain the first time it needs it. A capable host is one that can run the emulator. The run prints a clear warning to the terminal and the output report. Running `install android` beforehand pre-warms the cache so that cost isn't paid mid-run, which suits CI images and containers. To forbid the lazy install entirely, set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`. The context then SKIPs with a pointer back to this command, which suits an air-gapped host that must never auto-download. A host that *can't* run the emulator, lacking hardware acceleration, always SKIPs without downloading anything.
 
 </Note>
 
 ### `install ios`
 
-Prepare a macOS host for tests that target the `ios` platform: verify the simulator prerequisites, install the XCUITest driver, and **prebuild WebDriverAgent** so your first iOS test session doesn't spend ~10 minutes compiling it.
+Prepare a macOS host for tests that target the `ios` platform. The command verifies the simulator prerequisites, installs the XCUITest driver, and **prebuilds WebDriverAgent**. Your first iOS test session then doesn't spend ~10 minutes compiling it.
 
 ```bash
 doc-detective install ios --yes
 ```
 
-The command runs these steps and reports each individually. None of them fail the command—a step that can't run reports `skipped` with guidance:
+The command runs these steps and reports each individually. None of them fail the command. A step that can't run reports `skipped` with guidance:
 
-1. **Prerequisite checks**—verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`), with actionable guidance when either is missing.
-2. **Driver install**—installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present (the same install a first test run performs lazily).
-3. **WebDriverAgent prebuild**—when full Xcode 14+ is present, compiles the WebDriverAgent that ships inside the driver once for the iOS Simulator and stores it in the cache, keyed by your Xcode version and driver version (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only—concurrent runs can safely share one cache—and any session that finds no matching products just builds WebDriverAgent itself, exactly as before.
+1. **Prerequisite checks.** Verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`). It gives actionable guidance when either is missing.
+2. **Driver install.** Installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present. That's the same install a first test run performs lazily.
+3. **WebDriverAgent prebuild.** When full Xcode 14+ is present, this compiles the WebDriverAgent that ships inside the driver once for the iOS Simulator. It stores the result in the cache, keyed by your Xcode and driver versions (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only, so concurrent runs can safely share one cache. A session that finds no matching products builds WebDriverAgent itself, exactly as before.
 
 Preview the plan on any host (including Windows/Linux, where it reports that iOS is macOS-only) with `--dry-run`:
 
@@ -156,9 +156,9 @@ doc-detective install ios --dry-run
 
 <Note>
 
-The simulator itself is provisioned automatically at test time: a run that targets `ios` on a capable macOS host resolves and boots a simulator via `simctl` (the newest installed iPhone by default, or a device named in your `device` descriptor, creating it if needed). `install ios` is **not** part of `install all`—iOS preparation is macOS-only. On a non-macOS host, or a macOS host without Xcode/`simctl`, an `ios` context SKIPs with a pointer back to this command rather than failing.
+The simulator itself is provisioned automatically at test time. A run that targets `ios` on a capable macOS host resolves and boots a simulator through `simctl`. It uses the newest installed iPhone by default, or a device named in your `device` descriptor, creating it if needed. `install ios` is **not** part of `install all`, because iOS preparation is macOS-only. On a non-macOS host, or a macOS host without Xcode or `simctl`, an `ios` context SKIPs with a pointer back to this command rather than failing.
 
-**Running this ahead of time is optional but recommended for CI.** Persist the cache directory across runs (see [Cache directory](#cache-directory)) and run `install ios --yes` when preparing the environment: the first run pays the WebDriverAgent build once, and every later run—and every parallel job sharing the cache—skips it. A driver or Xcode update produces a new key: the next `install ios` builds it, and in the meantime sessions fall back to building in-session. If you manage WebDriverAgent build products yourself, setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` still overrides everything, unchanged.
+**Running this ahead of time is optional but recommended for CI.** Persist the cache directory across runs (see [Cache directory](#cache-directory)) and run `install ios --yes` when preparing the environment. The first run pays the WebDriverAgent build once. Every later run skips it, as does every parallel job sharing the cache. A driver or Xcode update produces a new key. The next `install ios` builds it, and in the meantime sessions fall back to building in-session. If you manage WebDriverAgent build products yourself, setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` still overrides everything, unchanged.
 
 </Note>
 
@@ -187,7 +187,7 @@ Every `install` subcommand takes these options:
 
 ## Install log
 
-During `install all` and `install runtime`, Doc Detective writes the full npm output to `<cacheDir>/runtime/install.log`. The terminal shows only filtered progress, but the log file captures everything—including deprecation warnings and dependency resolution details.
+During `install all` and `install runtime`, Doc Detective writes the full npm output to `<cacheDir>/runtime/install.log`. The terminal shows only filtered progress. The log file captures everything, including deprecation warnings and dependency resolution details.
 
 If installation fails, the error message includes the log path:
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   viewportMismatchWarning,
   resolveViewportTarget,
+  isViewportFloored,
 } from "../dist/core/utils.js";
 
 // A browser/OS enforces a minimum window size, so a requested viewport can be
@@ -58,6 +59,44 @@ describe("viewportMismatchWarning", function () {
 
   it("returns null when nothing was requested", function () {
     assert.equal(viewportMismatchWarning({}, { width: 500, height: 500 }), null);
+  });
+});
+
+// `isViewportFloored` is the narrower "the browser refused to shrink" signal
+// (rendered LARGER than requested), distinct from viewportMismatchWarning's
+// any-divergence check. It powers the context stamp the useMobilePlatforms
+// hint reads.
+describe("isViewportFloored", function () {
+  it("is true when the rendered width exceeds the request beyond tolerance", function () {
+    assert.equal(isViewportFloored({ width: 375 }, { width: 501 }), true);
+  });
+
+  it("is false when the viewport was realized exactly", function () {
+    assert.equal(
+      isViewportFloored({ width: 375, height: 812 }, { width: 375, height: 812 }),
+      false
+    );
+  });
+
+  it("is false for a within-tolerance overshoot (scrollbar)", function () {
+    assert.equal(isViewportFloored({ width: 375 }, { width: 385 }), false);
+  });
+
+  it("is false when the render came back SMALLER than requested", function () {
+    // Smaller isn't a floor — the window shrank fine.
+    assert.equal(isViewportFloored({ width: 375 }, { width: 300 }), false);
+  });
+
+  it("only considers requested dimensions", function () {
+    assert.equal(isViewportFloored({ width: 375 }, { width: 375, height: 900 }), false);
+  });
+
+  it("is false when the rendered dimension is unreadable", function () {
+    assert.equal(isViewportFloored({ width: 375 }, { width: NaN }), false);
+  });
+
+  it("detects a floored height", function () {
+    assert.equal(isViewportFloored({ height: 200 }, { height: 400 }), true);
   });
 });
 

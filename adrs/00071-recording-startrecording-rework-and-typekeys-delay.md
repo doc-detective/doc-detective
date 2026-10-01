@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 Recording had accumulated a payload-shaped contract: `startRecording` carried an `fps` field, paths
 could vary in case, and `find.moveTo`/`find.click` had no settled default. Meanwhile, when a
-recording was active, `typeKeys` dumped the whole string at once, so the captured video showed text
-appear instantaneously rather than being typed — useless for a "watch the user type" demo. How
+recording was active, `typeKeys` dumped the whole string at once. The captured video showed text
+appear instantaneously rather than being typed. That's useless for a "watch the user type" demo. How
 should the `startRecording` schema be cleaned up, and how should `typeKeys` behave differently while
 a recording is running?
 
@@ -39,9 +39,10 @@ meaningful when something is capturing it. The contract decided:
 1. **`startRecording` schema** (`common`, commits `1560a01`, `b16347b`, `2a6ac4c`, `dcbe568`,
    `91590cb`): `fps` removed; `directory` added; `overwrite` defaults `false`; `path` restricted to a
    lowercase extension only. `find.moveTo` and `find.click` default `false`.
-2. **`typeKeys` runtime** (`core`, commit `1ac361`): a `delay` field (default 100ms, **recording-only**)
-   is honored — when a recording is active, the string is split into single characters typed with a
-   `setTimeout(step.delay)` between each; otherwise the whole string is sent at once.
+2. **`typeKeys` runtime** (`core`, commit `1ac361`): a `delay` field (default 100ms,
+   **recording-only**) is honored. When a recording is active, the string is split into single
+   characters, typed with a `setTimeout(step.delay)` between each. Otherwise the whole string is
+   sent at once.
 
 ## Pros and Cons of the Options
 
@@ -55,7 +56,7 @@ meaningful when something is capturing it. The contract decided:
 
 ### C. Instantaneous typeKeys
 * Good: nothing to build.
-* Bad: recordings show text materializing instantly — poor demo quality.
+* Bad: recordings show text materializing instantly, giving poor demo quality.
 
 ### Consequences
 

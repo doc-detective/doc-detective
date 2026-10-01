@@ -274,7 +274,10 @@ async function findElementBySelectorAndText({
     return { element: null, foundBy: null }; // No selector or text
   }
   const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
+  // do/while so `timeout: 0` means "check once, now" rather than "never check
+  // at all". For any positive timeout this is unchanged: the first iteration
+  // always ran anyway.
+  do {
     const candidates = await driver.$$(selector);
     elements = [];
     for (const el of candidates) {
@@ -298,9 +301,12 @@ async function findElementBySelectorAndText({
     if (elements.length > 0) {
       break;
     }
+    // Budget already spent — return now rather than sleeping first, or
+    // `timeout: 0` would mean "in 100ms" instead of "now".
+    if (Date.now() - startTime >= timeout) break;
     // Wait 100ms before trying again
     await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  } while (Date.now() - startTime < timeout);
   if (elements.length === 0) {
     return { element: null, foundBy: null }; // No matching elements
   }
@@ -419,6 +425,7 @@ async function findElementByCriteria({
   elementAria,
   timeout = 5000,
   driver,
+  all = false,
 }: {
   selector?: any;
   elementText?: any;
@@ -429,6 +436,12 @@ async function findElementByCriteria({
   elementAria?: any;
   timeout?: number;
   driver: any;
+  // Collect EVERY matching element instead of stopping at the first. Used by
+  // annotations' `all` option, where redacting only the first match would
+  // leave the rest of the sensitive content visible. Callers that don't pass
+  // it keep the original first-match-and-stop behavior; `elements` is always
+  // populated, so `element` stays the first match either way.
+  all?: boolean;
 }) {
   // Validate at least one criterion is provided
   if (
@@ -450,8 +463,10 @@ async function findElementByCriteria({
   const startTime = Date.now();
   const pollingInterval = 100; // Check every 100ms
 
-  // Poll for elements until timeout
-  while (Date.now() - startTime < timeout) {
+  // Poll for elements until timeout. do/while so `timeout: 0` means "check
+  // once, now" rather than "never check at all"; for any positive timeout the
+  // first iteration always ran anyway, so behavior there is unchanged.
+  do {
     let candidates: any[] = [];
 
     try {
@@ -557,20 +572,24 @@ async function findElementByCriteria({
 
       // Skip if no candidates found
       if (candidates.length === 0) {
+        // Same immediate-return rule as the tail of the loop: don't sleep out
+        // a budget that's already gone.
+        if (Date.now() - startTime >= timeout) break;
         await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         continue;
       }
 
       // Filter candidates by all criteria - check elements sequentially to avoid hangs
-      let matchedElement: any = null;
+      const matchedElements: any[] = [];
       let matchedCriteria: string[] = [];
 
       for (const element of candidates) {
         if (!elementText && !elementId && !elementTestId && !elementClass && !elementAttribute && !elementAria) {
           // No criteria to check, should happen if only selector was used
-          matchedElement = element;
+          matchedElements.push(element);
           matchedCriteria = ["selector"];
-          break;
+          if (!all) break;
+          continue;
         }
         try {
           // Check if element is valid and exists in DOM
@@ -671,9 +690,11 @@ async function findElementByCriteria({
 
           // If all checks passed, we found our element
           if (allChecksPassed) {
-            matchedElement = element;
-            matchedCriteria = elementCriteriaUsed;
-            break; // Found a match, stop searching
+            matchedElements.push(element);
+            // `foundBy` describes the FIRST match, so it means the same thing
+            // whether or not `all` was set — later matches must not rewrite it.
+            if (matchedElements.length === 1) matchedCriteria = elementCriteriaUsed;
+            if (!all) break; // Found a match, stop searching
           }
         } catch {
           // Element might have become stale, skip it
@@ -682,12 +703,13 @@ async function findElementByCriteria({
       }
 
       // Check if we found a match
-      if (matchedElement) {
+      if (matchedElements.length > 0) {
         const allCriteria = selector
           ? ["selector", ...matchedCriteria]
           : matchedCriteria;
         return {
-          element: matchedElement,
+          element: matchedElements[0],
+          elements: matchedElements,
           foundBy: allCriteria,
           error: null,
         };
@@ -696,13 +718,17 @@ async function findElementByCriteria({
       console.error("Error finding elements:", error);
     }
 
-    // No matching elements found, wait before retrying
+    // No matching elements found. Return now if the budget is spent, so
+    // `timeout: 0` is a genuine immediate check.
+    if (Date.now() - startTime >= timeout) break;
+    // Wait before retrying
     await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-  }
+  } while (Date.now() - startTime < timeout);
 
   // Timeout reached, return error
   return {
     element: null,
+    elements: [],
     foundBy: null,
     error: "Element not found within timeout",
   };

@@ -1,0 +1,85 @@
+{
+  "specId": "app-annotations",
+  "description": "Screenshot annotations on a native app surface. Element anchoring works here the same way it does in a browser: app rects come from getElementRect, and the geometry provider scales them by capturedImageWidth/windowWidth — so no devicePixelRatio query is needed and display scaling falls out for free. On Windows the session is rooted at the app window, so getElementRect is already window-relative and no origin is subtracted (rebasing here would shift every annotation by the window's desktop position — proven against Character Map, where the error was exactly the window origin). macOS differs and DOES rebase onto the window origin; see appWindowOrigin in src/core/annotations/geometry.ts and app-annotations-macos.spec.json. Character Map is the target for the same reason as app-surfaces.spec.json: it's a real Win32 binary present on every Windows edition including Server CI runners. Gated to Windows hosts with the binary present; elsewhere the app preflight lands the context as SKIPPED, which is asserted behavior rather than a gap. The criteria restriction (selector/elementClass have no native equivalent) is pinned in test/annotations-geometry.test.js, since a spec can't assert FAIL.",
+  "tests": [
+    {
+      "testId": "app-annotations-element-anchored",
+      "description": "Annotate a native element by its display text, and a fixed position in the window.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "app-annotation-element",
+          "description": "Outline and badge a native element found by display text.",
+          "screenshot": {
+            "path": "app-annotation-element.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            },
+            "annotations": [
+              {
+                "outline": {
+                  "elementText": "Select"
+                }
+              },
+              {
+                "badge": {
+                  "elementText": "Copy"
+                },
+                "label": "1"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "app-annotation-position",
+          "description": "Position-anchored annotations need no element lookup, so they work on every surface.",
+          "screenshot": {
+            "path": "app-annotation-position.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "surface": {
+              "app": "charmap"
+            },
+            "annotations": [
+              {
+                "text": {
+                  "position": "top-left"
+                },
+                "label": "Character Map"
+              }
+            ]
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    }
+  ]
+}

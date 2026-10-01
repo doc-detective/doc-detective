@@ -27,7 +27,8 @@ export type Step =
   | (Common16 & DragAndDrop)
   | (Common17 & LoadCookie)
   | (Common18 & Swipe)
-  | (Common19 & Wait);
+  | (Common19 & Wait)
+  | (Common20 & Annotate);
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -41,25 +42,117 @@ export type Condition1 = string | [string, ...string[]];
  */
 export type Routing = {
   [k: string]: unknown;
+} & {
+  if?: Condition2;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition2 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing1 = {
   [k: string]: unknown;
+} & {
+  if?: Condition3;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry1;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition3 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing2 = {
   [k: string]: unknown;
+} & {
+  if?: Condition4;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry2;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition4 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing3 = {
   [k: string]: unknown;
+} & {
+  if?: Condition5;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry3;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition5 = string | [string, ...string[]];
 export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
@@ -73,35 +166,127 @@ export type RequestHeadersString = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition2 = string | [string, ...string[]];
+export type Condition6 = string | [string, ...string[]];
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition3 = string | [string, ...string[]];
+export type Condition7 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing4 = {
   [k: string]: unknown;
+} & {
+  if?: Condition8;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry4;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition8 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing5 = {
   [k: string]: unknown;
+} & {
+  if?: Condition9;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry5;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition9 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing6 = {
   [k: string]: unknown;
+} & {
+  if?: Condition10;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry6;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition10 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing7 = {
   [k: string]: unknown;
+} & {
+  if?: Condition11;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry7;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition11 = string | [string, ...string[]];
 /**
  * Click or tap an element.
  */
@@ -112,163 +297,51 @@ export type Click1 = ClickElementSimple | ClickElementDetailed | boolean;
 export type ClickElementSimple = string;
 export type ClickElementDetailed = {
   [k: string]: unknown;
-};
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition4 = string | [string, ...string[]];
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition5 = string | [string, ...string[]];
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing8 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing9 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing10 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing11 = {
-  [k: string]: unknown;
-};
-/**
- * Find an element based on display text or a selector, then optionally interact with it.
- */
-export type Find1 = FindElementSimple | FindElementDetailed;
-/**
- * Identifier for the element to find. Can be a selector, element text, ARIA name, ID, or test ID.
- */
-export type FindElementSimple = string;
-export type FindElementDetailed = {
-  [k: string]: unknown;
-};
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition6 = string | [string, ...string[]];
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition7 = string | [string, ...string[]];
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing12 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing13 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing14 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing15 = {
-  [k: string]: unknown;
-};
-export type GoTo1 = GoToURLSimple | GoToURLDetailed;
-/**
- * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
- */
-export type GoToURLSimple = string;
-/**
- * Navigate to an HTTP or HTTPS URL.
- */
-export type GoToURLDetailed = {
+} & {
   /**
-   * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
+   * Kind of click to perform.
    */
-  surface?: SurfaceByBrowserEngine | BrowserSurface;
+  button?: "left" | "right" | "middle";
   /**
-   * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
+   * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
-  newTab?:
-    | boolean
-    | string
-    | {
-        /**
-         * Name for the new tab.
-         */
-        name?: string;
-      };
+  duration?: number;
   /**
-   * Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
-  newWindow?:
-    | boolean
-    | string
-    | {
-        /**
-         * Name for the new window.
-         */
-        name?: string;
-        /**
-         * Name for the new window's first tab.
-         */
-        tab?: string;
-      };
+  surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   * Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria.
    */
-  url: string;
+  elementText?: string;
   /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria.
    */
-  origin?: string;
+  selector?: string;
   /**
-   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   * ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  params?: {
-    [k: string]: string;
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
-  timeout?: number;
-  /**
-   * Configuration for waiting conditions after navigation.
-   */
-  waitUntil?: {
-    /**
-     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).
-     */
-    networkIdleTime?: number | null;
-    /**
-     * Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).
-     */
-    domIdleTime?: number | null;
-    /**
-     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
-     */
-    find?: {
-      [k: string]: unknown;
-    };
-  };
-} & NewTabAndNewWindowAreMutuallyExclusive &
-  NewTabConflictsWithASurfaceTabSelector &
-  NewWindowConflictsWithASurfaceWindowOrTabSelector;
+  elementAria?: string;
+  [k: string]: unknown;
+};
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -298,88 +371,17 @@ export type ByIndex1 = number;
  */
 export type ByName1 = string;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
  */
-export type Condition8 = string | [string, ...string[]];
+export type AppWindowSelector = ByIndex2 | ByName2 | ByCriteria2;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
  */
-export type Condition9 = string | [string, ...string[]];
+export type ByIndex2 = number;
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type Routing16 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing17 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing18 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing19 = {
-  [k: string]: unknown;
-};
-/**
- * Perform a generic HTTP request, for example to an API.
- */
-export type HttpRequest1 = HTTPRequestSimple | HTTPRequestDetailed;
-/**
- * URL for the HTTP request.
- */
-export type HTTPRequestSimple = string;
-export type HTTPRequestDetailed = {
-  [k: string]: unknown;
-};
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition10 = string | [string, ...string[]];
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition11 = string | [string, ...string[]];
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing20 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing21 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing22 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing23 = {
-  [k: string]: unknown;
-};
-/**
- * Perform a native shell command.
- */
-export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
-/**
- * Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).
- */
-export type RunShellCommandSimple = string;
+export type ByName2 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -391,35 +393,57 @@ export type Condition13 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing24 = {
+export type Routing8 = {
   [k: string]: unknown;
+} & {
+  if?: Condition14;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry8;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing25 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing26 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing27 = {
-  [k: string]: unknown;
-};
-/**
- * Assemble and run code.
- */
-export type RunCode1 = RunCodeDetailed;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition14 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing9 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition15;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry9;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -427,35 +451,123 @@ export type Condition15 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing28 = {
+export type Routing10 = {
   [k: string]: unknown;
+} & {
+  if?: Condition16;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry10;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition16 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing29 = {
+export type Routing11 = {
   [k: string]: unknown;
+} & {
+  if?: Condition17;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry11;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Routing30 = {
+export type Condition17 = string | [string, ...string[]];
+/**
+ * Find an element based on display text or a selector, then optionally interact with it.
+ */
+export type Find1 = FindElementSimple | FindElementDetailed;
+/**
+ * Identifier for the element to find. Can be a selector, element text, ARIA name, ID, or test ID.
+ */
+export type FindElementSimple = string;
+export type FindElementDetailed = {
   [k: string]: unknown;
+} & {
+  /**
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
+   */
+  surface?: SurfaceByBrowserEngine1 | BrowserSurface1 | AppSurface1;
+  /**
+   * Display text of the element to find. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed to single spaces), so text a framework splits across several nodes still matches and a driver's surrounding whitespace doesn't cause a miss. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element to find. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
+   * Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
+   */
+  moveTo?: boolean;
+  /**
+   * Click the element.
+   */
+  click?: Click2 | FindElementAndClick;
+  /**
+   * Type keys after finding the element. Either a string or an object with a `keys` field as defined in [`type`](type). To type in the element, make the element active with the `click` parameter.
+   */
+  type?: TypeKeys;
 };
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing31 = {
-  [k: string]: unknown;
-};
-/**
- * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
- */
-export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetailed;
-/**
- * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
- */
-export type RunBrowserScriptSimple = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -463,19 +575,7 @@ export type SurfaceByBrowserEngine1 = "chrome" | "firefox" | "safari" | "webkit"
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector2 = ByIndex2 | ByName2 | ByCriteria2;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex2 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName2 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector3 = ByIndex3 | ByName3 | ByCriteria3;
+export type WindowTabSelector2 = ByIndex3 | ByName3 | ByCriteria3;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
@@ -485,37 +585,124 @@ export type ByIndex3 = number;
  */
 export type ByName3 = string;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type Condition16 = string | [string, ...string[]];
+export type WindowTabSelector3 = ByIndex4 | ByName4 | ByCriteria4;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type Condition17 = string | [string, ...string[]];
+export type ByIndex4 = number;
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type Routing32 = {
+export type ByName4 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector1 = ByIndex5 | ByName5 | ByCriteria5;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex5 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName5 = string;
+/**
+ * Click or tap an element.
+ */
+export type Click2 = ClickElementSimple1 | ClickElementDetailed1 | boolean;
+/**
+ * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
+ */
+export type ClickElementSimple1 = string;
+export type ClickElementDetailed1 = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Kind of click to perform.
+   */
+  button?: "left" | "right" | "middle";
+  /**
+   * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
+   */
+  duration?: number;
+  /**
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
+   */
+  surface?: SurfaceByBrowserEngine2 | BrowserSurface2 | AppSurface2;
+  /**
+   * Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
   [k: string]: unknown;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type Routing33 = {
-  [k: string]: unknown;
-};
+export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Which window to act on. Omit to use the active window.
  */
-export type Routing34 = {
-  [k: string]: unknown;
-};
+export type WindowTabSelector4 = ByIndex6 | ByName6 | ByCriteria6;
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type Routing35 = {
-  [k: string]: unknown;
-};
+export type ByIndex6 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName6 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector5 = ByIndex7 | ByName7 | ByCriteria7;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex7 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName7 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector2 = ByIndex8 | ByName8 | ByCriteria8;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex8 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName8 = string;
 /**
  * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
  */
@@ -580,9 +767,9 @@ export type TypeKeysDetailed = {
  */
 export type TypeKeysSimple1 = string | string[];
 /**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
-export type Surface = SurfaceByName | ProcessSurface | BrowserSurface2 | AppSurface;
+export type Surface = SurfaceByName | ProcessSurface | BrowserSurface3 | AppSurface3;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
@@ -590,50 +777,112 @@ export type SurfaceByName = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector4 = ByIndex4 | ByName4 | ByCriteria4;
+export type WindowTabSelector6 = ByIndex9 | ByName9 | ByCriteria9;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex4 = number;
+export type ByIndex9 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName4 = string;
+export type ByName9 = string;
 /**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector5 = ByIndex5 | ByName5 | ByCriteria5;
+export type WindowTabSelector7 = ByIndex10 | ByName10 | ByCriteria10;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex5 = number;
+export type ByIndex10 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName5 = string;
+export type ByName10 = string;
 /**
  * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
  */
-export type AppWindowSelector = ByIndex6 | ByName6 | ByCriteria6;
+export type AppWindowSelector3 = ByIndex11 | ByName11 | ByCriteria11;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
  */
-export type ByIndex6 = number;
+export type ByIndex11 = number;
 /**
  * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName6 = string;
+export type ByName11 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
 export type ElementCriteria = {
   [k: string]: unknown;
+} & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
 };
 /**
- * Wait for a specific element to be present. At least one finding field must be specified.
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
 export type ElementCriteria1 = {
   [k: string]: unknown;
+} & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -646,98 +895,57 @@ export type Condition19 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing36 = {
+export type Routing12 = {
   [k: string]: unknown;
+} & {
+  if?: Condition20;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry12;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing37 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing38 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing39 = {
-  [k: string]: unknown;
-};
-/**
- * Takes a screenshot in PNG format.
- */
-export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
-/**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
- */
-export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
-/**
- * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
- */
-export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
-/**
- * Which window to act on. Omit to use the active window.
- */
-export type WindowTabSelector6 = ByIndex7 | ByName7 | ByCriteria7;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex7 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName7 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector7 = ByIndex8 | ByName8 | ByCriteria8;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex8 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName8 = string;
-/**
- * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
- */
-export type AppWindowSelector1 = ByIndex9 | ByName9 | ByCriteria9;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
- */
-export type ByIndex9 = number;
-/**
- * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName9 = string;
-/**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
- */
-export type ScreenshotSimple1 = string;
-/**
- * Display text or selector of the element to screenshot.
- */
-export type CropByElementSimple = string;
-/**
- * Crop the screenshot to a specific element.
- */
-export type CropByElementDetailed = {
-  [k: string]: unknown;
-};
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition20 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing13 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition21;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry13;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -745,78 +953,173 @@ export type Condition21 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing40 = {
+export type Routing14 = {
   [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing41 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing42 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing43 = {
-  [k: string]: unknown;
-};
-/**
- * Save a specific browser cookie to a file or environment variable for later reuse.
- */
-export type SaveCookie1 = CookieName | SaveCookieDetailed;
-/**
- * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
- */
-export type CookieName = string;
-export type SaveCookieDetailed = {
-  [k: string]: unknown;
+} & {
+  if?: Condition22;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry14;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition22 = string | [string, ...string[]];
 /**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing15 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition23;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry15;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition23 = string | [string, ...string[]];
+export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
  */
-export type Routing44 = {
-  [k: string]: unknown;
-};
+export type GoToURLSimple = string;
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Navigate to an HTTP or HTTPS URL.
  */
-export type Routing45 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing46 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing47 = {
-  [k: string]: unknown;
-};
-/**
- * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
- */
-export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
-/**
- * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
- */
-export type RecordSimple = string;
+export type GoToURLDetailed = {
+  /**
+   * The browser window/tab to navigate. Omit to navigate the active tab. With `newTab`, selects the window the tab opens in.
+   */
+  surface?: SurfaceByBrowserEngine3 | BrowserSurface4;
+  /**
+   * Open the URL in a new tab of the target window and make it active. `true` opens an anonymous tab; a string (or `{ name }`) names the tab so later steps can select it with a `tab` selector. `false` disables. Mutually exclusive with `newWindow`.
+   */
+  newTab?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new tab.
+         */
+        name?: string;
+      };
+  /**
+   * Open the URL in a new window and make it active. `true` opens an anonymous window; a string (or `{ name, tab }`) names the window — `tab` names the window's first tab. `false` disables. Mutually exclusive with `newTab`.
+   */
+  newWindow?:
+    | boolean
+    | string
+    | {
+        /**
+         * Name for the new window.
+         */
+        name?: string;
+        /**
+         * Name for the new window's first tab.
+         */
+        tab?: string;
+      };
+  /**
+   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
+   */
+  url: string;
+  /**
+   * Protocol and domain to navigate to. Prepended to `url`.
+   */
+  origin?: string;
+  /**
+   * Query parameters to append to the resolved URL. Merged on top of `originParams` from config; step keys win on collision. If `url` already contains a colliding query key, the value here replaces it. Values support environment variable substitution via `$VAR` syntax. WARNING: values are embedded in the request URL and appear in test results, logs, and reports.
+   */
+  params?: {
+    [k: string]: string;
+  };
+  /**
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   */
+  timeout?: number;
+  /**
+   * Configuration for waiting conditions after navigation.
+   */
+  waitUntil?: {
+    /**
+     * Wait for network activity to be idle (no new requests) for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes (default: 500).
+     */
+    networkIdleTime?: number | null;
+    /**
+     * Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes (default: 1000).
+     */
+    domIdleTime?: number | null;
+    /**
+     * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
+     */
+    find?: {
+      [k: string]: unknown;
+    } & {
+      /**
+       * CSS selector for the element to wait for.
+       */
+      selector?: string;
+      /**
+       * Display text of the element to wait for. Matched against the element's full visible text with whitespace normalized (leading/trailing trimmed, internal runs collapsed), so framework-fragmented text still matches. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression instead of the whole normalized text.
+       */
+      elementText?: string;
+      /**
+       * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementId?: string;
+      /**
+       * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementTestId?: string;
+      /**
+       * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+       */
+      elementClass?: string | string[];
+      /**
+       * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+       */
+      elementAttribute?: {
+        [k: string]: string | number | boolean;
+      };
+      /**
+       * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+       */
+      elementAria?: string;
+    };
+  };
+} & NewTabAndNewWindowAreMutuallyExclusive &
+  NewTabConflictsWithASurfaceTabSelector &
+  NewWindowConflictsWithASurfaceWindowOrTabSelector;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -824,60 +1127,27 @@ export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit"
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector8 = ByIndex10 | ByName10 | ByCriteria10;
+export type WindowTabSelector8 = ByIndex12 | ByName12 | ByCriteria12;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex10 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName10 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector9 = ByIndex11 | ByName11 | ByCriteria11;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex11 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName11 = string;
-/**
- * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
- */
-export type AppWindowSelector2 = ByIndex12 | ByName12 | ByCriteria12;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
  */
 export type ByIndex12 = number;
 /**
- * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
 export type ByName12 = string;
 /**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
+export type WindowTabSelector9 = ByIndex13 | ByName13 | ByCriteria13;
 /**
- * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type RecordingEngineSimple = "browser" | "ffmpeg";
-export type VerifyResolutionBoolean = boolean;
+export type ByIndex13 = number;
 /**
- * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckpointsDetailed;
-/**
- * If `true`, enables checkpoints with default settings.
- */
-export type RecordingCheckpointsBoolean = boolean;
-/**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean = boolean;
+export type ByName13 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -889,47 +1159,57 @@ export type Condition25 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing48 = {
+export type Routing16 = {
   [k: string]: unknown;
+} & {
+  if?: Condition26;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry16;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing49 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing50 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing51 = {
-  [k: string]: unknown;
-};
-/**
- * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
- */
-export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
-/**
- * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
- */
-export type StopRecordBoolean = boolean;
-/**
- * Stops the most recently started active recording (LIFO).
- */
-export type StopRecordNull = null;
-/**
- * Name of the recording to stop. Matches the `name` given to a `record` step.
- */
-export type StopRecordName = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition26 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing17 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition27;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry17;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -937,55 +1217,580 @@ export type Condition27 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing52 = {
+export type Routing18 = {
   [k: string]: unknown;
+} & {
+  if?: Condition28;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry18;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition28 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing53 = {
+export type Routing19 = {
   [k: string]: unknown;
+} & {
+  if?: Condition29;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry19;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition29 = string | [string, ...string[]];
+/**
+ * Perform a generic HTTP request, for example to an API.
+ */
+export type HttpRequest1 = HTTPRequestSimple | HTTPRequestDetailed;
+/**
+ * URL for the HTTP request.
+ */
+export type HTTPRequestSimple = string;
+export type HTTPRequestDetailed = {
+  [k: string]: unknown;
+} & {
+  url?: HTTPRequestSimple1;
+  openApi?: (string & OperationID) | (OpenApi & OpenAPIDefinitionHttpRequest);
+  /**
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   */
+  statusCodes?: number[];
+  /**
+   * Method of the HTTP request
+   */
+  method?: "get" | "put" | "post" | "patch" | "delete";
+  /**
+   * Timeout for the HTTP request, in milliseconds.
+   */
+  timeout?: number;
+  request?: Request;
+  response?: Response;
+  /**
+   * If `false`, the step fails when the response data contains fields not specified in the response body.
+   */
+  allowAdditionalFields?: boolean;
+  /**
+   * File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings.
+   */
+  path?: string;
+  /**
+   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   */
+  directory?: string;
+  /**
+   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   */
+  maxVariation?: number;
+  /**
+   * If `true`, overwrites the existing output at `path` if it exists.
+   * If `aboveVariation`, overwrites the existing output at `path` if the difference between the new output and the existing output is greater than `maxVariation`.
+   */
+  overwrite?: "true" | "false" | "aboveVariation";
+};
+/**
+ * URL for the HTTP request.
+ */
+export type HTTPRequestSimple1 = string;
+/**
+ * OpenAPI description and configuration.
+ */
+export type OpenApi = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Name of the OpenAPI description, as defined in your configuration.
+   */
+  name?: string;
+  /**
+   * URL or local path to the OpenAPI description.
+   */
+  descriptionPath?: string;
+  definition?: OpenAPIDefinition;
+  /**
+   * ID of the operation to use for the request.
+   */
+  operationId?: string;
+  /**
+   * Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description.
+   */
+  server?: string;
+  /**
+   * Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.
+   */
+  validateAgainstSchema?: "request" | "response" | "both" | "none";
+  /**
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   */
+  mockResponse?: boolean;
+  /**
+   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified.
+   */
+  statusCode?: number;
+  /**
+   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.
+   */
+  useExample?: "request" | "response" | "both" | "none";
+  /**
+   * Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used.
+   */
+  exampleKey?: string;
+  headers?: OpenAPIRequestHeaders;
+};
+/**
+ * Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json
+ * Authorization: Bearer token`.
+ */
+export type RequestHeadersString1 = string;
+/**
+ * JSON array to include as the body of the HTTP request.
+ */
+export type RequestBodyArray = unknown[];
+/**
+ * String to include as the body of the HTTP request.
+ */
+export type RequestBodyString = string;
+/**
+ * JSON array expected in the response.
+ */
+export type ResponseBodyArray = unknown[];
+/**
+ * String expected in the response.
+ */
+export type ResponseBodyString = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition30 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition31 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing54 = {
+export type Routing20 = {
   [k: string]: unknown;
+} & {
+  if?: Condition32;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry20;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition32 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing55 = {
+export type Routing21 = {
   [k: string]: unknown;
+} & {
+  if?: Condition33;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry21;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
 /**
- * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * A condition expression, or an array of expressions combined with logical AND.
  */
-export type CloseSurface1 = Surface1 | [Surface2, ...Surface2[]];
+export type Condition33 = string | [string, ...string[]];
 /**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5 | AppSurface3;
+export type Routing22 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition34;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry22;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * A condition expression, or an array of expressions combined with logical AND.
  */
-export type SurfaceByName1 = string;
+export type Condition34 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing23 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition35;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry23;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition35 = string | [string, ...string[]];
+/**
+ * Perform a native shell command.
+ */
+export type RunShell1 = RunShellCommandSimple | RunShellCommandDetailed;
+/**
+ * Command to perform in the default shell (`bash` on every platform, unless the config-level `shell` setting changes it).
+ */
+export type RunShellCommandSimple = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition36 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition37 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing24 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition38;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry24;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition38 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing25 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition39;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry25;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition39 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing26 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition40;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry26;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition40 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing27 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition41;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry27;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition41 = string | [string, ...string[]];
+/**
+ * Assemble and run code.
+ */
+export type RunCode1 = RunCodeDetailed;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition42 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition43 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing28 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition44;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry28;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition44 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing29 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition45;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry29;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition45 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing30 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition46;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry30;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition46 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing31 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition47;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry31;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition47 = string | [string, ...string[]];
+/**
+ * Execute arbitrary JavaScript in the browser page context. Runs via the WebDriver `executeScript` endpoint, so it has access to the page's `document`, `window`, and DOM. Doc Detective captures the script's return value in the step's `outputs.result`. Distinct from `runCode`, which runs Node/Python/bash on the host machine.
+ */
+export type RunBrowserScript1 = RunBrowserScriptSimple | RunBrowserScriptDetailed;
+/**
+ * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`.
+ */
+export type RunBrowserScriptSimple = string;
+/**
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
+ */
+export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector10 = ByIndex13 | ByName13 | ByCriteria13;
-/**
- * Index in creation order. Negative counts from the end; `-1` is the newest.
- */
-export type ByIndex13 = number;
-/**
- * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
- */
-export type ByName13 = string;
-/**
- * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
- */
-export type WindowTabSelector11 = ByIndex14 | ByName14 | ByCriteria14;
+export type WindowTabSelector10 = ByIndex14 | ByName14 | ByCriteria14;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
@@ -995,25 +1800,212 @@ export type ByIndex14 = number;
  */
 export type ByName14 = string;
 /**
- * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type AppWindowSelector3 = ByIndex15 | ByName15 | ByCriteria15;
+export type WindowTabSelector11 = ByIndex15 | ByName15 | ByCriteria15;
 /**
- * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
 export type ByIndex15 = number;
 /**
- * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
 export type ByName15 = string;
 /**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface6 | AppSurface4;
+export type Condition48 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition49 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing32 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition50;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry32;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition50 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing33 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition51;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry33;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition51 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing34 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition52;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry34;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition52 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing35 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition53;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry35;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition53 = string | [string, ...string[]];
+/**
+ * Type keys. To type special keys, begin and end the string with `$` and use the special key's keyword. For example, to type the Escape key, enter `$ESCAPE$`.
+ */
+export type TypeKeys1 = TypeKeysSimple2 | TypeKeysDetailed1;
+/**
+ * Sequence of keys to enter.
+ */
+export type TypeKeysSimple2 = string | string[];
+export type TypeKeysDetailed1 = {
+  keys: TypeKeysSimple3;
+  /**
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   */
+  inputDelay?: number;
+  surface?: Surface1;
+  /**
+   * After sending the keys, wait until the surface is ready. Requires a `surface`; the allowed conditions depend on the surface kind: a process surface accepts `stdio`/`delayMs`, a browser surface accepts `networkIdleTime`/`domIdleTime`/`find`, an app surface accepts `delayMs`/`find`. No condition applies by default.
+   */
+  waitUntil?: ProcessReadiness1 | BrowserReadiness1 | AppReadiness1;
+  /**
+   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
+   */
+  timeout?: number;
+  /**
+   * Selector for the element to type into. If not specified, the typing occurs in the active element.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to type into. If combined with other element finding fields, the element must match all specified criteria.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+} & WaitUntilRequiresASurface1 &
+  AProcessSurfaceForbidsElementTargeting1 &
+  AProcessSurfaceTakesProcessReadiness1 &
+  ABrowserSurfaceTakesBrowserReadiness1 &
+  AnAppSurfaceTakesAppReadiness1 &
+  ABrowserEngineStringSurfaceTakesBrowserReadiness1;
+/**
+ * Sequence of keys to enter.
+ */
+export type TypeKeysSimple3 = string | string[];
+/**
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
+ */
+export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface6 | AppSurface4;
 /**
  * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
-export type SurfaceByName2 = string;
+export type SurfaceByName1 = string;
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -1051,169 +2043,216 @@ export type ByIndex18 = number;
  */
 export type ByName18 = string;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition28 = string | [string, ...string[]];
-/**
- * A condition expression, or an array of expressions combined with logical AND.
- */
-export type Condition29 = string | [string, ...string[]];
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing56 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing57 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing58 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing59 = {
-  [k: string]: unknown;
-};
-/**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
- */
-export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
-export type DeviceByName = string;
-/**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
 export type ElementCriteria2 = {
   [k: string]: unknown;
+} & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
 };
 /**
- * Open several surfaces concurrently (any mix of kinds). All descriptors launch in parallel; the step completes when every one is ready. Names must be unique within the array and across the context's open surfaces (checked at runtime). Device boots overlap — worth real wall-clock on 30–60s emulator starts.
- *
- * @minItems 1
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
-export type ParallelSurfaces = [
-  AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1,
-  ...(AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1)[],
-];
-export type DeviceByName1 = string;
-/**
- * Wait for a specific element to be present. At least one finding field must be specified.
- */
-export type ElementCriteria3 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type ElementCriteria3 = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition30 = string | [string, ...string[]];
+export type Condition54 = string | [string, ...string[]];
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition31 = string | [string, ...string[]];
+export type Condition55 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing60 = {
+export type Routing36 = {
   [k: string]: unknown;
+} & {
+  if?: Condition56;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry36;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing61 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing62 = {
-  [k: string]: unknown;
-};
-/**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
- */
-export type Routing63 = {
-  [k: string]: unknown;
-};
-/**
- * Load environment variables from the specified `.env` file.
- */
-export type LoadVariables1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition32 = string | [string, ...string[]];
+export type Condition56 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing37 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition57;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry37;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition33 = string | [string, ...string[]];
+export type Condition57 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing64 = {
+export type Routing38 = {
   [k: string]: unknown;
+} & {
+  if?: Condition58;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry38;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition58 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
-export type Routing65 = {
+export type Routing39 = {
   [k: string]: unknown;
+} & {
+  if?: Condition59;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry39;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Routing66 = {
-  [k: string]: unknown;
-};
+export type Condition59 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * Takes a screenshot in PNG format.
  */
-export type Routing67 = {
-  [k: string]: unknown;
-};
+export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
 /**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
-export type ElementSimple = string;
-export type ElementDetailed = {
-  [k: string]: unknown;
-};
-/**
- * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
- */
-export type ElementSimple1 = string;
-export type ElementDetailed1 = {
-  [k: string]: unknown;
-};
+export type ScreenshotSimple = string;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine5 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -1239,37 +2278,1621 @@ export type ByIndex20 = number;
  */
 export type ByName20 = string;
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
  */
-export type Condition34 = string | [string, ...string[]];
+export type AppWindowSelector5 = ByIndex21 | ByName21 | ByCriteria21;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex21 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName21 = string;
+/**
+ * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ */
+export type ScreenshotSimple1 = string;
+/**
+ * Display text or selector of the element to screenshot.
+ */
+export type CropByElementSimple = string;
+/**
+ * Crop the screenshot to a specific element.
+ */
+export type CropByElementDetailed = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Display text of the element to screenshot.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element to screenshot.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  padding?: PaddingSimple | PaddingDetailed;
+};
+/**
+ * Padding in pixels to add to the bounds of the element.
+ */
+export type PaddingSimple = number;
+/**
+ * A visual annotation drawn onto a screenshot or recording. Each annotation names exactly one type (`outline`, `arrow`, `badge`, `callout`, `blur`, or `text`), and the type's value is the target it points at: an element (a selector/display-text string or a detailed find object) or a fixed `position` in the capture. `id`, `track`, `transition`, and `duration` describe behavior over time — they apply to recordings and are inert in still screenshots, so the same annotation means the same thing in both.
+ */
+export type Annotation = AnnotationFields & ExactlyOneAnnotationType;
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed = ElementFindingFields & AtLeastOneElementFindingField;
+export type AtLeastOneElementFindingField = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple1 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed1 = ElementFindingFields1 & AtLeastOneElementFindingField1;
+export type AtLeastOneElementFindingField1 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion1 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple2 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed2 = ElementFindingFields2 & AtLeastOneElementFindingField2;
+export type AtLeastOneElementFindingField2 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion2 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple3 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed3 = ElementFindingFields3 & AtLeastOneElementFindingField3;
+export type AtLeastOneElementFindingField3 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion3 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple4 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed4 = ElementFindingFields4 & AtLeastOneElementFindingField4;
+export type AtLeastOneElementFindingField4 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion4 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple5 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed5 = ElementFindingFields5 & AtLeastOneElementFindingField5;
+export type AtLeastOneElementFindingField5 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion5 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion6 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type ExactlyOneAnnotationType = {
+  [k: string]: unknown;
+};
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition35 = string | [string, ...string[]];
+export type Condition60 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition61 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing40 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition62;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry40;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition62 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing41 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition63;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry41;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition63 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing42 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition64;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry42;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition64 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing43 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition65;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry43;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition65 = string | [string, ...string[]];
+/**
+ * Save a specific browser cookie to a file or environment variable for later reuse.
+ */
+export type SaveCookie1 = CookieName | SaveCookieDetailed;
+/**
+ * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
+ */
+export type CookieName = string;
+export type SaveCookieDetailed = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Optional self-describing schema URI for linters
+   */
+  $schema?: string;
+  name: CookieName1;
+  variable?: EnvironmentVariableName;
+  path?: CookieFilePath;
+  directory?: DirectoryPath;
+  overwrite?: OverwriteExistingFile;
+  domain?: CookieDomain;
+};
+/**
+ * Name of the specific cookie to save.
+ */
+export type CookieName1 = string;
+/**
+ * Environment variable name to store the cookie as JSON string.
+ */
+export type EnvironmentVariableName = string;
+/**
+ * File path to save the cookie, relative to directory. Uses Netscape cookie format.
+ */
+export type CookieFilePath = string;
+/**
+ * Directory to save the cookie file. If not specified, uses output directory.
+ */
+export type DirectoryPath = string;
+/**
+ * Whether to overwrite existing cookie file.
+ */
+export type OverwriteExistingFile = boolean;
+/**
+ * Specific domain to filter the cookie by (optional).
+ */
+export type CookieDomain = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition66 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition67 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing44 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition68;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry44;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition68 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing45 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition69;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry45;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition69 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing46 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition70;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry46;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition70 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing47 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition71;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry47;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition71 = string | [string, ...string[]];
+/**
+ * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
+ */
+export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
+/**
+ * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
+ */
+export type RecordSimple = string;
+/**
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
+ */
+export type SurfaceByBrowserEngine6 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector16 = ByIndex22 | ByName22 | ByCriteria22;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex22 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName22 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector17 = ByIndex23 | ByName23 | ByCriteria23;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex23 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName23 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector6 = ByIndex24 | ByName24 | ByCriteria24;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex24 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName24 = string;
+/**
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ */
+export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
+/**
+ * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
+ */
+export type RecordingEngineSimple = "browser" | "ffmpeg";
+export type VerifyResolutionBoolean = boolean;
+/**
+ * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
+ */
+export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckpointsDetailed;
+/**
+ * If `true`, enables checkpoints with default settings.
+ */
+export type RecordingCheckpointsBoolean = boolean;
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean = boolean;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition72 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition73 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing48 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition74;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry48;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition74 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing49 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition75;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry49;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition75 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing50 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition76;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry50;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition76 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing51 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition77;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry51;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition77 = string | [string, ...string[]];
+/**
+ * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
+ */
+export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
+/**
+ * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
+ */
+export type StopRecordBoolean = boolean;
+/**
+ * Stops the most recently started active recording (LIFO).
+ */
+export type StopRecordNull = null;
+/**
+ * Name of the recording to stop. Matches the `name` given to a `record` step.
+ */
+export type StopRecordName = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition78 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition79 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing52 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition80;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry52;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition80 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing53 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition81;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry53;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition81 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing54 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition82;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry54;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition82 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing55 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition83;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry55;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition83 = string | [string, ...string[]];
+/**
+ * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ */
+export type CloseSurface1 = Surface2 | [Surface3, ...Surface3[]];
+/**
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
+ */
+export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface9 | AppSurface7;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ */
+export type SurfaceByName2 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector18 = ByIndex25 | ByName25 | ByCriteria25;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex25 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName25 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector19 = ByIndex26 | ByName26 | ByCriteria26;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex26 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName26 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector7 = ByIndex27 | ByName27 | ByCriteria27;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex27 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName27 = string;
+/**
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
+ */
+export type Surface3 = SurfaceByName3 | ProcessSurface3 | BrowserSurface10 | AppSurface8;
+/**
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ */
+export type SurfaceByName3 = string;
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector20 = ByIndex28 | ByName28 | ByCriteria28;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex28 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName28 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector21 = ByIndex29 | ByName29 | ByCriteria29;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex29 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName29 = string;
+/**
+ * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
+ */
+export type AppWindowSelector8 = ByIndex30 | ByName30 | ByCriteria30;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
+ */
+export type ByIndex30 = number;
+/**
+ * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName30 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition84 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition85 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing56 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition86;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry56;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition86 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing57 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition87;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry57;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition87 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing58 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition88;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry58;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition88 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing59 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition89;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry59;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition89 = string | [string, ...string[]];
+/**
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ */
+export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
+export type DeviceByName = string;
+/**
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
+ */
+export type ElementCriteria4 = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+};
+/**
+ * Open several surfaces concurrently (any mix of kinds). All descriptors launch in parallel; the step completes when every one is ready. Names must be unique within the array and across the context's open surfaces (checked at runtime). Device boots overlap — worth real wall-clock on 30–60s emulator starts.
+ *
+ * @minItems 1
+ */
+export type ParallelSurfaces = [
+  AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1,
+  ...(AppDescriptor1 | BrowserDescriptor1 | ProcessDescriptor1)[],
+];
+export type DeviceByName1 = string;
+/**
+ * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
+ */
+export type ElementCriteria5 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
+   */
+  selector?: string;
+  /**
+   * Text content the element must contain. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition90 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition91 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing60 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition92;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry60;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition92 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing61 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition93;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry61;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition93 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing62 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition94;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry62;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition94 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing63 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition95;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry63;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition95 = string | [string, ...string[]];
+/**
+ * Load environment variables from the specified `.env` file.
+ */
+export type LoadVariables1 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition96 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition97 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing64 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition98;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry64;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition98 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing65 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition99;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry65;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition99 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing66 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition100;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry66;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition100 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing67 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition101;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry67;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition101 = string | [string, ...string[]];
+/**
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ */
+export type ElementSimple = string;
+export type ElementDetailed = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element. If combined with `elementText`, the element must match both the text and the selector.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  [k: string]: unknown;
+};
+/**
+ * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
+ */
+export type ElementSimple1 = string;
+export type ElementDetailed1 = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
+   */
+  elementText?: string;
+  /**
+   * Selector of the element. If combined with `elementText`, the element must match both the text and the selector.
+   */
+  selector?: string;
+  /**
+   * ID attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: string | number | boolean;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  [k: string]: unknown;
+};
+/**
+ * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
+ */
+export type SurfaceByBrowserEngine7 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+/**
+ * Which window to act on. Omit to use the active window.
+ */
+export type WindowTabSelector22 = ByIndex31 | ByName31 | ByCriteria31;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex31 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName31 = string;
+/**
+ * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
+ */
+export type WindowTabSelector23 = ByIndex32 | ByName32 | ByCriteria32;
+/**
+ * Index in creation order. Negative counts from the end; `-1` is the newest.
+ */
+export type ByIndex32 = number;
+/**
+ * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
+ */
+export type ByName32 = string;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition102 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition103 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing68 = {
   [k: string]: unknown;
+} & {
+  if?: Condition104;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry68;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition104 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing69 = {
   [k: string]: unknown;
+} & {
+  if?: Condition105;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry69;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition105 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing70 = {
   [k: string]: unknown;
+} & {
+  if?: Condition106;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry70;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition106 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing71 = {
   [k: string]: unknown;
+} & {
+  if?: Condition107;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry71;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition107 = string | [string, ...string[]];
 /**
  * Load a specific cookie from a file or environment variable into the browser.
  */
@@ -1280,39 +3903,161 @@ export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
 export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed = {
   [k: string]: unknown;
+} & {
+  /**
+   * Optional self-describing schema URI for linters
+   */
+  $schema?: string;
+  name: CookieName2;
+  variable?: EnvironmentVariableName1;
+  path?: CookieFilePath1;
+  directory?: DirectoryPath1;
+  domain?: CookieDomain1;
 };
 /**
- * A condition expression, or an array of expressions combined with logical AND.
+ * Name of the specific cookie to load.
  */
-export type Condition36 = string | [string, ...string[]];
+export type CookieName2 = string;
+/**
+ * Environment variable name containing the cookie as JSON string.
+ */
+export type EnvironmentVariableName1 = string;
+/**
+ * File path to cookie file, relative to directory. Supports Netscape cookie format.
+ */
+export type CookieFilePath1 = string;
+/**
+ * Directory containing the cookie file.
+ */
+export type DirectoryPath1 = string;
+/**
+ * Specific domain to filter the cookie by when loading from multi-cookie file (optional).
+ */
+export type CookieDomain1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition37 = string | [string, ...string[]];
+export type Condition108 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition109 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing72 = {
   [k: string]: unknown;
+} & {
+  if?: Condition110;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry72;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition110 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing73 = {
   [k: string]: unknown;
+} & {
+  if?: Condition111;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry73;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition111 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing74 = {
   [k: string]: unknown;
+} & {
+  if?: Condition112;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry74;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition112 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing75 = {
   [k: string]: unknown;
+} & {
+  if?: Condition113;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry75;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition113 = string | [string, ...string[]];
 /**
  * Swipe (or scroll) a surface in a direction or between two points. The direction is the virtual finger's motion: swiping up moves content up, revealing content further down the page. Works on app and browser surfaces.
  */
@@ -1328,115 +4073,207 @@ export type SwipeSimple1 = "up" | "down" | "left" | "right";
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine5 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine8 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector16 = ByIndex21 | ByName21 | ByCriteria21;
+export type WindowTabSelector24 = ByIndex33 | ByName33 | ByCriteria33;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex21 = number;
+export type ByIndex33 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName21 = string;
+export type ByName33 = string;
 /**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector17 = ByIndex22 | ByName22 | ByCriteria22;
+export type WindowTabSelector25 = ByIndex34 | ByName34 | ByCriteria34;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex22 = number;
+export type ByIndex34 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName22 = string;
+export type ByName34 = string;
 /**
  * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
  */
-export type AppWindowSelector5 = ByIndex23 | ByName23 | ByCriteria23;
+export type AppWindowSelector9 = ByIndex35 | ByName35 | ByCriteria35;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
  */
-export type ByIndex23 = number;
+export type ByIndex35 = number;
 /**
  * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName23 = string;
+export type ByName35 = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine6 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine9 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
 /**
  * Which window to act on. Omit to use the active window.
  */
-export type WindowTabSelector18 = ByIndex24 | ByName24 | ByCriteria24;
+export type WindowTabSelector26 = ByIndex36 | ByName36 | ByCriteria36;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex24 = number;
+export type ByIndex36 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName24 = string;
+export type ByName36 = string;
 /**
  * Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.
  */
-export type WindowTabSelector19 = ByIndex25 | ByName25 | ByCriteria25;
+export type WindowTabSelector27 = ByIndex37 | ByName37 | ByCriteria37;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest.
  */
-export type ByIndex25 = number;
+export type ByIndex37 = number;
 /**
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName25 = string;
+export type ByName37 = string;
 /**
  * Which app window to act on. Omit to use the active window. Apps have windows, no tabs.
  */
-export type AppWindowSelector6 = ByIndex26 | ByName26 | ByCriteria26;
+export type AppWindowSelector10 = ByIndex38 | ByName38 | ByCriteria38;
 /**
  * Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened).
  */
-export type ByIndex26 = number;
+export type ByIndex38 = number;
 /**
  * Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
-export type ByName26 = string;
+export type ByName38 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition38 = string | [string, ...string[]];
+export type Condition114 = string | [string, ...string[]];
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
-export type Condition39 = string | [string, ...string[]];
+export type Condition115 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing76 = {
   [k: string]: unknown;
+} & {
+  if?: Condition116;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry76;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition116 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing77 = {
   [k: string]: unknown;
+} & {
+  if?: Condition117;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry77;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition117 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing78 = {
   [k: string]: unknown;
+} & {
+  if?: Condition118;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry78;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition118 = string | [string, ...string[]];
 /**
  * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
  */
 export type Routing79 = {
   [k: string]: unknown;
+} & {
+  if?: Condition119;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry79;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
 };
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition119 = string | [string, ...string[]];
 /**
  * Pause (in milliseconds) before performing the next action.
  */
@@ -1444,6 +4281,365 @@ export type Wait1 = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
 export type WaitSimple = number;
 export type WaitEnvironmentVariable = string;
 export type WaitBoolean = boolean;
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition120 = string | [string, ...string[]];
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition121 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing80 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition122;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry80;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition122 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing81 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition123;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry81;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition123 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing82 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition124;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry82;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition124 = string | [string, ...string[]];
+/**
+ * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ */
+export type Routing83 = {
+  [k: string]: unknown;
+} & {
+  if?: Condition125;
+  /**
+   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   */
+  continue?: true;
+  /**
+   * Stop execution at the given scope.
+   */
+  stop?: "test" | "spec" | "run";
+  retry?: Retry83;
+  /**
+   * Identifier of the step to jump to.
+   */
+  goToStep?: string;
+  /**
+   * Identifier of the test to jump to.
+   */
+  goToTest?: string;
+};
+/**
+ * A condition expression, or an array of expressions combined with logical AND.
+ */
+export type Condition125 = string | [string, ...string[]];
+/**
+ * Adds, updates, or clears annotations that stay on screen until something clears them. Unlike a screenshot's own `annotations` — which live only for that capture — these are drawn into the page, so they appear in recordings and in any screenshot taken while they're up. Annotations added here persist across steps and across navigation until an `annotate` step clears them, their `duration` elapses, or the context ends.
+ */
+export type Annotate1 = AnnotateFields & AtLeastOneOfAddUpdateOrClear;
+/**
+ * A visual annotation drawn onto a screenshot or recording. Each annotation names exactly one type (`outline`, `arrow`, `badge`, `callout`, `blur`, or `text`), and the type's value is the target it points at: an element (a selector/display-text string or a detailed find object) or a fixed `position` in the capture. `id`, `track`, `transition`, and `duration` describe behavior over time — they apply to recordings and are inert in still screenshots, so the same annotation means the same thing in both.
+ */
+export type Annotation1 = AnnotationFields1 & ExactlyOneAnnotationType1;
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple6 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
+export type AtLeastOneElementFindingField6 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion7 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple7 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed7 = ElementFindingFields7 & AtLeastOneElementFindingField7;
+export type AtLeastOneElementFindingField7 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion8 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple8 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed8 = ElementFindingFields8 & AtLeastOneElementFindingField8;
+export type AtLeastOneElementFindingField8 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion9 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple9 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed9 = ElementFindingFields9 & AtLeastOneElementFindingField9;
+export type AtLeastOneElementFindingField9 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion10 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple10 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed10 = ElementFindingFields10 & AtLeastOneElementFindingField10;
+export type AtLeastOneElementFindingField10 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion11 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple11 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed11 = ElementFindingFields11 & AtLeastOneElementFindingField11;
+export type AtLeastOneElementFindingField11 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion12 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion13 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type ExactlyOneAnnotationType1 = {
+  [k: string]: unknown;
+};
+/**
+ * An annotation that names the `id` of the annotation to replace.
+ */
+export type IdentifiedAnnotation = Annotation2 & IdIsRequiredForUpdates;
+/**
+ * A visual annotation drawn onto a screenshot or recording. Each annotation names exactly one type (`outline`, `arrow`, `badge`, `callout`, `blur`, or `text`), and the type's value is the target it points at: an element (a selector/display-text string or a detailed find object) or a fixed `position` in the capture. `id`, `track`, `transition`, and `duration` describe behavior over time — they apply to recordings and are inert in still screenshots, so the same annotation means the same thing in both.
+ */
+export type Annotation2 = AnnotationFields2 & ExactlyOneAnnotationType2;
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple12 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed12 = ElementFindingFields12 & AtLeastOneElementFindingField12;
+export type AtLeastOneElementFindingField12 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion14 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple13 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed13 = ElementFindingFields13 & AtLeastOneElementFindingField13;
+export type AtLeastOneElementFindingField13 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion15 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple14 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed14 = ElementFindingFields14 & AtLeastOneElementFindingField14;
+export type AtLeastOneElementFindingField14 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion16 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple15 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed15 = ElementFindingFields15 & AtLeastOneElementFindingField15;
+export type AtLeastOneElementFindingField15 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion17 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple16 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed16 = ElementFindingFields16 & AtLeastOneElementFindingField16;
+export type AtLeastOneElementFindingField16 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion18 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple17 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed17 = ElementFindingFields17 & AtLeastOneElementFindingField17;
+export type AtLeastOneElementFindingField17 = {
+  [k: string]: unknown;
+};
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion19 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion20 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type ExactlyOneAnnotationType2 = {
+  [k: string]: unknown;
+};
+/**
+ * If `true`, clears every annotation currently on screen. If `false`, clears nothing.
+ */
+export type ClearAll = boolean;
+/**
+ * Ids of the annotations to clear. Ids that aren't on screen are ignored.
+ */
+export type ClearById = string[];
+export type AtLeastOneOfAddUpdateOrClear = {
+  [k: string]: unknown;
+};
 
 export interface Common {
   /**
@@ -1502,6 +4698,10 @@ export interface Common {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -1572,6 +4772,74 @@ export interface Assertion {
    * Human-readable explanation of the outcome. Optional.
    */
   description?: string;
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry1 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry2 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry3 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -1650,11 +4918,11 @@ export interface Common1 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition2;
+  if?: Condition6;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition3 | Assertion1[];
+  assertions?: Condition7 | Assertion1[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -1684,6 +4952,10 @@ export interface Common1 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -1756,6 +5028,74 @@ export interface Assertion1 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry4 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry5 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry6 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry7 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation1 {
@@ -1775,6 +5115,75 @@ export interface SourceLocation1 {
 export interface Click {
   click: Click1;
   [k: string]: unknown;
+}
+export interface BrowserSurface {
+  /**
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
+   */
+  name?: string;
+  window?: WindowTabSelector;
+  tab?: WindowTabSelector1;
+}
+export interface ByCriteria {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria1 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface AppSurface {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector;
+}
+export interface ByCriteria2 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
 }
 export interface Common2 {
   /**
@@ -1799,11 +5208,11 @@ export interface Common2 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition4;
+  if?: Condition12;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition5 | Assertion2[];
+  assertions?: Condition13 | Assertion2[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -1833,6 +5242,10 @@ export interface Common2 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -1905,6 +5318,74 @@ export interface Assertion2 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry8 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry9 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry10 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry11 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation2 {
@@ -1923,6 +5404,276 @@ export interface SourceLocation2 {
 }
 export interface Find {
   find: Find1;
+  [k: string]: unknown;
+}
+export interface BrowserSurface1 {
+  /**
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
+   */
+  name?: string;
+  window?: WindowTabSelector2;
+  tab?: WindowTabSelector3;
+}
+export interface ByCriteria3 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria4 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface AppSurface1 {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector1;
+}
+export interface ByCriteria5 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
+}
+export interface BrowserSurface2 {
+  /**
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
+   */
+  name?: string;
+  window?: WindowTabSelector4;
+  tab?: WindowTabSelector5;
+}
+export interface ByCriteria6 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria7 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface AppSurface2 {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector2;
+}
+export interface ByCriteria8 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
+}
+export interface FindElementAndClick {
+  /**
+   * Kind of click to perform.
+   */
+  button?: "left" | "right" | "middle";
+  /**
+   * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
+   */
+  duration?: number;
+  [k: string]: unknown;
+}
+export interface ProcessSurface {
+  /**
+   * Name of a background process started by a runShell/runCode `background` step.
+   */
+  process: string;
+}
+export interface BrowserSurface3 {
+  /**
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   */
+  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  /**
+   * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
+   */
+  name?: string;
+  window?: WindowTabSelector6;
+  tab?: WindowTabSelector7;
+}
+export interface ByCriteria9 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface ByCriteria10 {
+  /**
+   * Name assigned when the window/tab was opened.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Page title to match. Substring, or /regex/.
+   */
+  title?: string;
+  /**
+   * Page URL to match. Substring, or /regex/.
+   */
+  url?: string;
+}
+export interface AppSurface3 {
+  /**
+   * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
+   */
+  app: string;
+  window?: AppWindowSelector3;
+}
+export interface ByCriteria11 {
+  /**
+   * Assigned window name.
+   */
+  name?: string;
+  /**
+   * Index in creation order. Negative counts from the end.
+   */
+  index?: number;
+  /**
+   * Window title to match. Substring, or /regex/.
+   */
+  title?: string;
+}
+export interface ProcessReadiness {
+  /**
+   * Wait until combined stdout+stderr matches. Substring, or /regex/.
+   */
+  stdio?: string;
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+}
+export interface BrowserReadiness {
+  /**
+   * Wait for network activity to be idle (no new requests) for this duration in milliseconds.
+   */
+  networkIdleTime?: number;
+  /**
+   * Wait for DOM mutations to stop for this duration in milliseconds.
+   */
+  domIdleTime?: number;
+  find?: ElementCriteria;
+}
+export interface AppReadiness {
+  /**
+   * Fixed delay (ms).
+   */
+  delayMs?: number;
+  find?: ElementCriteria1;
+}
+export interface WaitUntilRequiresASurface {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceForbidsElementTargeting {
+  [k: string]: unknown;
+}
+export interface AProcessSurfaceTakesProcessReadiness {
+  [k: string]: unknown;
+}
+export interface ABrowserSurfaceTakesBrowserReadiness {
+  [k: string]: unknown;
+}
+export interface AnAppSurfaceTakesAppReadiness {
+  [k: string]: unknown;
+}
+export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
   [k: string]: unknown;
 }
 export interface Common3 {
@@ -1948,11 +5699,11 @@ export interface Common3 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition6;
+  if?: Condition18;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition7 | Assertion3[];
+  assertions?: Condition19 | Assertion3[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -1982,6 +5733,10 @@ export interface Common3 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2054,6 +5809,74 @@ export interface Assertion3 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry12 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry13 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry14 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry15 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation3 {
@@ -2074,7 +5897,7 @@ export interface GoTo {
   goTo: GoTo1;
   [k: string]: unknown;
 }
-export interface BrowserSurface {
+export interface BrowserSurface4 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -2083,10 +5906,10 @@ export interface BrowserSurface {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector;
-  tab?: WindowTabSelector1;
+  window?: WindowTabSelector8;
+  tab?: WindowTabSelector9;
 }
-export interface ByCriteria {
+export interface ByCriteria12 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -2104,7 +5927,7 @@ export interface ByCriteria {
    */
   url?: string;
 }
-export interface ByCriteria1 {
+export interface ByCriteria13 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -2154,11 +5977,11 @@ export interface Common4 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition8;
+  if?: Condition24;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition9 | Assertion4[];
+  assertions?: Condition25 | Assertion4[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -2188,6 +6011,10 @@ export interface Common4 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2260,6 +6087,74 @@ export interface Assertion4 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry16 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry17 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry18 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry19 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation4 {
@@ -2278,6 +6173,79 @@ export interface SourceLocation4 {
 }
 export interface HttpRequest {
   httpRequest: HttpRequest1;
+  [k: string]: unknown;
+}
+/**
+ * Operation ID from the OpenAPI schema. Only valid if the OpenAPI description path is specified elsewhere and the operation ID is unique among all specified OpenAPI descriptions.
+ */
+export interface OperationID {
+  [k: string]: unknown;
+}
+/**
+ * OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.
+ */
+export interface OpenAPIDefinition {
+  [k: string]: unknown;
+}
+/**
+ * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.
+ */
+export interface OpenAPIRequestHeaders {
+  [k: string]: string;
+}
+export interface OpenAPIDefinitionHttpRequest {
+  [k: string]: unknown;
+}
+export interface Request {
+  /**
+   * Headers to include in the HTTP request.
+   */
+  headers?: RequestHeadersObject1 | RequestHeadersString1;
+  parameters?: RequestParameters;
+  /**
+   * The body of the HTTP request.
+   */
+  body?: RequestBodyObject | RequestBodyArray | RequestBodyString;
+}
+/**
+ * Headers to include in the HTTP request, in key/value format.
+ */
+export interface RequestHeadersObject1 {
+  [k: string]: unknown;
+}
+/**
+ * URL parameters to include in the HTTP request, in key/value format.
+ */
+export interface RequestParameters {
+  [k: string]: unknown;
+}
+/**
+ * JSON object to include as the body of the HTTP request.
+ */
+export interface RequestBodyObject {
+  [k: string]: unknown;
+}
+export interface Response {
+  headers?: ResponseHeaders;
+  /**
+   * JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.
+   */
+  body?: ResponseBodyObject | ResponseBodyArray | ResponseBodyString;
+  /**
+   * Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.
+   */
+  required?: string[];
+}
+/**
+ * Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.
+ */
+export interface ResponseHeaders {
+  [k: string]: unknown;
+}
+/**
+ * JSON key/value pairs expected in the response.
+ */
+export interface ResponseBodyObject {
   [k: string]: unknown;
 }
 export interface Common5 {
@@ -2303,11 +6271,11 @@ export interface Common5 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition10;
+  if?: Condition30;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition11 | Assertion5[];
+  assertions?: Condition31 | Assertion5[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -2337,6 +6305,10 @@ export interface Common5 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2407,6 +6379,74 @@ export interface Assertion5 {
    * Human-readable explanation of the outcome. Optional.
    */
   description?: string;
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry20 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry21 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry22 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry23 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -2533,11 +6573,11 @@ export interface Common6 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition12;
+  if?: Condition36;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition13 | Assertion6[];
+  assertions?: Condition37 | Assertion6[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -2567,6 +6607,10 @@ export interface Common6 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2637,6 +6681,74 @@ export interface Assertion6 {
    * Human-readable explanation of the outcome. Optional.
    */
   description?: string;
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry24 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry25 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry26 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry27 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
 }
 /**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
@@ -2764,11 +6876,11 @@ export interface Common7 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition14;
+  if?: Condition42;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition15 | Assertion7[];
+  assertions?: Condition43 | Assertion7[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -2798,6 +6910,10 @@ export interface Common7 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -2870,6 +6986,74 @@ export interface Assertion7 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry28 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry29 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry30 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry31 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation7 {
@@ -2894,7 +7078,7 @@ export interface RunBrowserScriptDetailed {
   /**
    * The browser window/tab the script runs in. Omit to run in the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByBrowserEngine1 | BrowserSurface1;
+  surface?: SurfaceByBrowserEngine4 | BrowserSurface5;
   /**
    * JavaScript to evaluate in the browser page context. Supports `return` to capture a value into `outputs.result`. The script reads arguments supplied in `args` through the `arguments` object (`arguments[0]`, `arguments[1]`, and so on).
    */
@@ -2929,7 +7113,7 @@ export interface RunBrowserScriptDetailed {
    */
   timeout?: number;
 }
-export interface BrowserSurface1 {
+export interface BrowserSurface5 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -2938,10 +7122,10 @@ export interface BrowserSurface1 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector2;
-  tab?: WindowTabSelector3;
+  window?: WindowTabSelector10;
+  tab?: WindowTabSelector11;
 }
-export interface ByCriteria2 {
+export interface ByCriteria14 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -2959,7 +7143,7 @@ export interface ByCriteria2 {
    */
   url?: string;
 }
-export interface ByCriteria3 {
+export interface ByCriteria15 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3000,11 +7184,11 @@ export interface Common8 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition16;
+  if?: Condition48;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition17 | Assertion8[];
+  assertions?: Condition49 | Assertion8[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -3034,6 +7218,10 @@ export interface Common8 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3106,6 +7294,74 @@ export interface Assertion8 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry32 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry33 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry34 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry35 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation8 {
@@ -3123,16 +7379,16 @@ export interface SourceLocation8 {
   endIndex: number;
 }
 export interface Type {
-  type: TypeKeys;
+  type: TypeKeys1;
   [k: string]: unknown;
 }
-export interface ProcessSurface {
+export interface ProcessSurface1 {
   /**
    * Name of a background process started by a runShell/runCode `background` step.
    */
   process: string;
 }
-export interface BrowserSurface2 {
+export interface BrowserSurface6 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -3141,10 +7397,10 @@ export interface BrowserSurface2 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector4;
-  tab?: WindowTabSelector5;
+  window?: WindowTabSelector12;
+  tab?: WindowTabSelector13;
 }
-export interface ByCriteria4 {
+export interface ByCriteria16 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3162,7 +7418,7 @@ export interface ByCriteria4 {
    */
   url?: string;
 }
-export interface ByCriteria5 {
+export interface ByCriteria17 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3180,14 +7436,14 @@ export interface ByCriteria5 {
    */
   url?: string;
 }
-export interface AppSurface {
+export interface AppSurface4 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector;
+  window?: AppWindowSelector4;
 }
-export interface ByCriteria6 {
+export interface ByCriteria18 {
   /**
    * Assigned window name.
    */
@@ -3201,7 +7457,7 @@ export interface ByCriteria6 {
    */
   title?: string;
 }
-export interface ProcessReadiness {
+export interface ProcessReadiness1 {
   /**
    * Wait until combined stdout+stderr matches. Substring, or /regex/.
    */
@@ -3211,7 +7467,7 @@ export interface ProcessReadiness {
    */
   delayMs?: number;
 }
-export interface BrowserReadiness {
+export interface BrowserReadiness1 {
   /**
    * Wait for network activity to be idle (no new requests) for this duration in milliseconds.
    */
@@ -3220,31 +7476,31 @@ export interface BrowserReadiness {
    * Wait for DOM mutations to stop for this duration in milliseconds.
    */
   domIdleTime?: number;
-  find?: ElementCriteria;
+  find?: ElementCriteria2;
 }
-export interface AppReadiness {
+export interface AppReadiness1 {
   /**
    * Fixed delay (ms).
    */
   delayMs?: number;
-  find?: ElementCriteria1;
+  find?: ElementCriteria3;
 }
-export interface WaitUntilRequiresASurface {
+export interface WaitUntilRequiresASurface1 {
   [k: string]: unknown;
 }
-export interface AProcessSurfaceForbidsElementTargeting {
+export interface AProcessSurfaceForbidsElementTargeting1 {
   [k: string]: unknown;
 }
-export interface AProcessSurfaceTakesProcessReadiness {
+export interface AProcessSurfaceTakesProcessReadiness1 {
   [k: string]: unknown;
 }
-export interface ABrowserSurfaceTakesBrowserReadiness {
+export interface ABrowserSurfaceTakesBrowserReadiness1 {
   [k: string]: unknown;
 }
-export interface AnAppSurfaceTakesAppReadiness {
+export interface AnAppSurfaceTakesAppReadiness1 {
   [k: string]: unknown;
 }
-export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
+export interface ABrowserEngineStringSurfaceTakesBrowserReadiness1 {
   [k: string]: unknown;
 }
 export interface Common9 {
@@ -3270,11 +7526,11 @@ export interface Common9 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition18;
+  if?: Condition54;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition19 | Assertion9[];
+  assertions?: Condition55 | Assertion9[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -3304,6 +7560,10 @@ export interface Common9 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3376,6 +7636,74 @@ export interface Assertion9 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry36 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry37 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry38 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry39 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation9 {
@@ -3398,9 +7726,9 @@ export interface Screenshot {
 }
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
    */
-  surface?: SurfaceByBrowserEngine2 | BrowserSurface3 | AppSurface1;
+  surface?: SurfaceByBrowserEngine5 | BrowserSurface7 | AppSurface5;
   path?: ScreenshotSimple1;
   /**
    * Directory of the PNG file. If the directory doesn't exist, creates the directory.
@@ -3416,9 +7744,13 @@ export interface CaptureScreenshotFields {
    */
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple | CropByElementDetailed;
+  /**
+   * Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.
+   */
+  annotations?: Annotation[];
   sourceIntegration?: SourceIntegration;
 }
-export interface BrowserSurface3 {
+export interface BrowserSurface7 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -3427,10 +7759,10 @@ export interface BrowserSurface3 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector6;
-  tab?: WindowTabSelector7;
+  window?: WindowTabSelector14;
+  tab?: WindowTabSelector15;
 }
-export interface ByCriteria7 {
+export interface ByCriteria19 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3448,7 +7780,7 @@ export interface ByCriteria7 {
    */
   url?: string;
 }
-export interface ByCriteria8 {
+export interface ByCriteria20 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3466,14 +7798,14 @@ export interface ByCriteria8 {
    */
   url?: string;
 }
-export interface AppSurface1 {
+export interface AppSurface5 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector1;
+  window?: AppWindowSelector5;
 }
-export interface ByCriteria9 {
+export interface ByCriteria21 {
   /**
    * Assigned window name.
    */
@@ -3486,6 +7818,490 @@ export interface ByCriteria9 {
    * Window title to match. Substring, or /regex/.
    */
   title?: string;
+}
+/**
+ * Padding in pixels to add to the bounds of the element.
+ */
+export interface PaddingDetailed {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+export interface AnnotationFields {
+  /**
+   * Draw a box around the target.
+   */
+  outline?: TargetByElementSimple | TargetByElementDetailed | TargetByPosition;
+  /**
+   * Point an arrow at the target.
+   */
+  arrow?: TargetByElementSimple1 | TargetByElementDetailed1 | TargetByPosition1;
+  /**
+   * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
+   */
+  badge?: TargetByElementSimple2 | TargetByElementDetailed2 | TargetByPosition2;
+  /**
+   * Label the target with a text box and a leader line. Set the text with `label`.
+   */
+  callout?: TargetByElementSimple3 | TargetByElementDetailed3 | TargetByPosition3;
+  /**
+   * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
+   */
+  blur?: TargetByElementSimple4 | TargetByElementDetailed4 | TargetByPosition4;
+  /**
+   * Place a standalone text box. Set the text with `label`.
+   */
+  text?: TargetByElementSimple5 | TargetByElementDetailed5 | TargetByPosition5;
+  /**
+   * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
+   */
+  label?: string;
+  /**
+   * Handle for this annotation, so a later `annotate` step can update or clear it. Only meaningful for annotations added by an `annotate` step; ignored on screenshot annotations, which live only for the capture.
+   */
+  id?: string;
+  style?: AnnotationStyle;
+  /**
+   * Where to place the annotation relative to its target. Accepts a named region, an absolute point, or an offset that nudges the default placement.
+   */
+  position?: NamedRegion6 | AnnotationPoint6 | AnnotationOffset;
+  /**
+   * If `true`, the annotation follows its element as the page scrolls or reflows. Applies to recordings; inert in still screenshots, which capture a single moment.
+   */
+  track?: boolean;
+  transition?: AnnotationTransition;
+  /**
+   * Milliseconds to display the annotation before it clears itself. Omit to display it until an `annotate` step clears it. Applies to recordings; inert in still screenshots.
+   */
+  duration?: number;
+  /**
+   * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
+   */
+  all?: boolean;
+}
+export interface ElementFindingFields {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition {
+  position: NamedRegion | AnnotationPoint;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields1 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition1 {
+  position: NamedRegion1 | AnnotationPoint1;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint1 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields2 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition2 {
+  position: NamedRegion2 | AnnotationPoint2;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint2 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields3 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition3 {
+  position: NamedRegion3 | AnnotationPoint3;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint3 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields4 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition4 {
+  position: NamedRegion4 | AnnotationPoint4;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint4 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields5 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition5 {
+  position: NamedRegion5 | AnnotationPoint5;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint5 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * Visual overrides for this annotation. Anything unset falls back to the resolved `annotationDefaults` theme (test, then spec, then config), then to the built-in theme.
+ */
+export interface AnnotationStyle {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint6 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * A nudge in pixels from the annotation's default placement.
+ */
+export interface AnnotationOffset {
+  /**
+   * Pixels to shift the annotation by.
+   */
+  offset: {
+    /**
+     * Pixels to shift right. Negative values shift left.
+     */
+    x: number;
+    /**
+     * Pixels to shift down. Negative values shift up.
+     */
+    y: number;
+  };
+}
+/**
+ * How the annotation enters and leaves. Applies to recordings; inert in still screenshots, which render the settled state.
+ */
+export interface AnnotationTransition {
+  /**
+   * How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.
+   */
+  enter?: "none" | "fade" | "pop" | "draw";
+  /**
+   * How the annotation disappears.
+   */
+  exit?: "none" | "fade";
+  /**
+   * Length of the enter and exit animations, in milliseconds.
+   */
+  durationMs?: number;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
@@ -3538,11 +8354,11 @@ export interface Common10 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition20;
+  if?: Condition60;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition21 | Assertion10[];
+  assertions?: Condition61 | Assertion10[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -3572,6 +8388,10 @@ export interface Common10 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3644,6 +8464,74 @@ export interface Assertion10 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry40 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry41 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry42 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry43 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation10 {
@@ -3687,11 +8575,11 @@ export interface Common11 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition22;
+  if?: Condition66;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition23 | Assertion11[];
+  assertions?: Condition67 | Assertion11[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -3721,6 +8609,10 @@ export interface Common11 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -3793,6 +8685,74 @@ export interface Assertion11 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry44 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry45 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry46 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry47 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation11 {
@@ -3817,7 +8777,7 @@ export interface RecordDetailed {
   /**
    * The browser window/tab or app window to record. Omit to record the active surface. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }) and are captured via the `ffmpeg` engine, cropped to the app window by default.
    */
-  surface?: SurfaceByBrowserEngine3 | BrowserSurface4 | AppSurface2;
+  surface?: SurfaceByBrowserEngine6 | BrowserSurface8 | AppSurface6;
   /**
    * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
    */
@@ -3839,7 +8799,7 @@ export interface RecordDetailed {
   checkpoints?: RecordingCheckpoints;
   [k: string]: unknown;
 }
-export interface BrowserSurface4 {
+export interface BrowserSurface8 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -3848,10 +8808,10 @@ export interface BrowserSurface4 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector8;
-  tab?: WindowTabSelector9;
+  window?: WindowTabSelector16;
+  tab?: WindowTabSelector17;
 }
-export interface ByCriteria10 {
+export interface ByCriteria22 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3869,7 +8829,7 @@ export interface ByCriteria10 {
    */
   url?: string;
 }
-export interface ByCriteria11 {
+export interface ByCriteria23 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -3887,14 +8847,14 @@ export interface ByCriteria11 {
    */
   url?: string;
 }
-export interface AppSurface2 {
+export interface AppSurface6 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector2;
+  window?: AppWindowSelector6;
 }
-export interface ByCriteria12 {
+export interface ByCriteria24 {
   /**
    * Assigned window name.
    */
@@ -3980,11 +8940,11 @@ export interface Common12 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition24;
+  if?: Condition72;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition25 | Assertion12[];
+  assertions?: Condition73 | Assertion12[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -4014,6 +8974,10 @@ export interface Common12 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -4086,6 +9050,74 @@ export interface Assertion12 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry48 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry49 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry50 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry51 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation12 {
@@ -4135,11 +9167,11 @@ export interface Common13 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition26;
+  if?: Condition78;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition27 | Assertion13[];
+  assertions?: Condition79 | Assertion13[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -4169,6 +9201,10 @@ export interface Common13 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -4241,6 +9277,74 @@ export interface Assertion13 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry52 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry53 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry54 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry55 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation13 {
@@ -4261,13 +9365,13 @@ export interface CloseSurface {
   closeSurface: CloseSurface1;
   [k: string]: unknown;
 }
-export interface ProcessSurface1 {
+export interface ProcessSurface2 {
   /**
    * Name of a background process started by a runShell/runCode `background` step.
    */
   process: string;
 }
-export interface BrowserSurface5 {
+export interface BrowserSurface9 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -4276,10 +9380,10 @@ export interface BrowserSurface5 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector10;
-  tab?: WindowTabSelector11;
+  window?: WindowTabSelector18;
+  tab?: WindowTabSelector19;
 }
-export interface ByCriteria13 {
+export interface ByCriteria25 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4297,7 +9401,7 @@ export interface ByCriteria13 {
    */
   url?: string;
 }
-export interface ByCriteria14 {
+export interface ByCriteria26 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4315,14 +9419,14 @@ export interface ByCriteria14 {
    */
   url?: string;
 }
-export interface AppSurface3 {
+export interface AppSurface7 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector3;
+  window?: AppWindowSelector7;
 }
-export interface ByCriteria15 {
+export interface ByCriteria27 {
   /**
    * Assigned window name.
    */
@@ -4336,13 +9440,13 @@ export interface ByCriteria15 {
    */
   title?: string;
 }
-export interface ProcessSurface2 {
+export interface ProcessSurface3 {
   /**
    * Name of a background process started by a runShell/runCode `background` step.
    */
   process: string;
 }
-export interface BrowserSurface6 {
+export interface BrowserSurface10 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -4351,10 +9455,10 @@ export interface BrowserSurface6 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector12;
-  tab?: WindowTabSelector13;
+  window?: WindowTabSelector20;
+  tab?: WindowTabSelector21;
 }
-export interface ByCriteria16 {
+export interface ByCriteria28 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4372,7 +9476,7 @@ export interface ByCriteria16 {
    */
   url?: string;
 }
-export interface ByCriteria17 {
+export interface ByCriteria29 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -4390,14 +9494,14 @@ export interface ByCriteria17 {
    */
   url?: string;
 }
-export interface AppSurface4 {
+export interface AppSurface8 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector4;
+  window?: AppWindowSelector8;
 }
-export interface ByCriteria18 {
+export interface ByCriteria30 {
   /**
    * Assigned window name.
    */
@@ -4434,11 +9538,11 @@ export interface Common14 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition28;
+  if?: Condition84;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition29 | Assertion14[];
+  assertions?: Condition85 | Assertion14[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -4468,6 +9572,10 @@ export interface Common14 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -4540,6 +9648,74 @@ export interface Assertion14 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry56 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry57 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry58 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry59 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation14 {
@@ -4605,7 +9781,7 @@ export interface AppDescriptor {
   driverOptions?: {
     [k: string]: unknown;
   };
-  waitUntil?: AppReadiness1;
+  waitUntil?: AppReadiness2;
   /**
    * Startup ceiling in milliseconds (launch + install + readiness).
    */
@@ -4650,12 +9826,12 @@ export interface DeviceDescriptor {
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
-export interface AppReadiness1 {
+export interface AppReadiness2 {
   /**
    * Fixed delay (ms).
    */
   delayMs?: number;
-  find?: ElementCriteria2;
+  find?: ElementCriteria4;
 }
 export interface BrowserDescriptor {
   /**
@@ -4797,7 +9973,7 @@ export interface AppDescriptor1 {
   driverOptions?: {
     [k: string]: unknown;
   };
-  waitUntil?: AppReadiness2;
+  waitUntil?: AppReadiness3;
   /**
    * Startup ceiling in milliseconds (launch + install + readiness).
    */
@@ -4842,12 +10018,12 @@ export interface DeviceDescriptor1 {
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
-export interface AppReadiness2 {
+export interface AppReadiness3 {
   /**
    * Fixed delay (ms).
    */
   delayMs?: number;
-  find?: ElementCriteria3;
+  find?: ElementCriteria5;
 }
 export interface BrowserDescriptor1 {
   /**
@@ -4967,11 +10143,11 @@ export interface Common15 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition30;
+  if?: Condition90;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition31 | Assertion15[];
+  assertions?: Condition91 | Assertion15[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -5001,6 +10177,10 @@ export interface Common15 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5073,6 +10253,74 @@ export interface Assertion15 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry60 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry61 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry62 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry63 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation15 {
@@ -5116,11 +10364,11 @@ export interface Common16 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition32;
+  if?: Condition96;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition33 | Assertion16[];
+  assertions?: Condition97 | Assertion16[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -5150,6 +10398,10 @@ export interface Common16 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5222,6 +10474,74 @@ export interface Assertion16 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry64 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry65 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry66 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry67 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation16 {
@@ -5261,10 +10581,10 @@ export interface DragAndDrop1 {
   /**
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
-  surface?: SurfaceByBrowserEngine4 | BrowserSurface7;
+  surface?: SurfaceByBrowserEngine7 | BrowserSurface11;
   [k: string]: unknown;
 }
-export interface BrowserSurface7 {
+export interface BrowserSurface11 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -5273,10 +10593,10 @@ export interface BrowserSurface7 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector14;
-  tab?: WindowTabSelector15;
+  window?: WindowTabSelector22;
+  tab?: WindowTabSelector23;
 }
-export interface ByCriteria19 {
+export interface ByCriteria31 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5294,7 +10614,7 @@ export interface ByCriteria19 {
    */
   url?: string;
 }
-export interface ByCriteria20 {
+export interface ByCriteria32 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5335,11 +10655,11 @@ export interface Common17 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition34;
+  if?: Condition102;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition35 | Assertion17[];
+  assertions?: Condition103 | Assertion17[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -5369,6 +10689,10 @@ export interface Common17 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5441,6 +10765,74 @@ export interface Assertion17 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry68 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry69 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry70 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry71 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation17 {
@@ -5484,11 +10876,11 @@ export interface Common18 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition36;
+  if?: Condition108;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition37 | Assertion18[];
+  assertions?: Condition109 | Assertion18[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -5518,6 +10910,10 @@ export interface Common18 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5590,6 +10986,74 @@ export interface Assertion18 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry72 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry73 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry74 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry75 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation18 {
@@ -5621,11 +11085,11 @@ export interface SwipeDirectional {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
-  surface?: SurfaceByBrowserEngine5 | BrowserSurface8 | AppSurface5;
+  surface?: SurfaceByBrowserEngine8 | BrowserSurface12 | AppSurface9;
 }
-export interface BrowserSurface8 {
+export interface BrowserSurface12 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -5634,10 +11098,10 @@ export interface BrowserSurface8 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector16;
-  tab?: WindowTabSelector17;
+  window?: WindowTabSelector24;
+  tab?: WindowTabSelector25;
 }
-export interface ByCriteria21 {
+export interface ByCriteria33 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5655,7 +11119,7 @@ export interface ByCriteria21 {
    */
   url?: string;
 }
-export interface ByCriteria22 {
+export interface ByCriteria34 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5673,14 +11137,14 @@ export interface ByCriteria22 {
    */
   url?: string;
 }
-export interface AppSurface5 {
+export interface AppSurface9 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector5;
+  window?: AppWindowSelector9;
 }
-export interface ByCriteria23 {
+export interface ByCriteria35 {
   /**
    * Assigned window name.
    */
@@ -5702,9 +11166,9 @@ export interface SwipePointToPoint {
    */
   duration?: number;
   /**
-   * The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ "app": … }).
+   * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be swiped). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
-  surface?: SurfaceByBrowserEngine6 | BrowserSurface9 | AppSurface6;
+  surface?: SurfaceByBrowserEngine9 | BrowserSurface13 | AppSurface10;
 }
 /**
  * A pixel coordinate on the surface, measured from its top-left corner (0, 0).
@@ -5732,7 +11196,7 @@ export interface Point1 {
    */
   y: number;
 }
-export interface BrowserSurface9 {
+export interface BrowserSurface13 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
@@ -5741,10 +11205,10 @@ export interface BrowserSurface9 {
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
   name?: string;
-  window?: WindowTabSelector18;
-  tab?: WindowTabSelector19;
+  window?: WindowTabSelector26;
+  tab?: WindowTabSelector27;
 }
-export interface ByCriteria24 {
+export interface ByCriteria36 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5762,7 +11226,7 @@ export interface ByCriteria24 {
    */
   url?: string;
 }
-export interface ByCriteria25 {
+export interface ByCriteria37 {
   /**
    * Name assigned when the window/tab was opened.
    */
@@ -5780,14 +11244,14 @@ export interface ByCriteria25 {
    */
   url?: string;
 }
-export interface AppSurface6 {
+export interface AppSurface10 {
   /**
    * Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier).
    */
   app: string;
-  window?: AppWindowSelector6;
+  window?: AppWindowSelector10;
 }
-export interface ByCriteria26 {
+export interface ByCriteria38 {
   /**
    * Assigned window name.
    */
@@ -5824,11 +11288,11 @@ export interface Common19 {
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
    */
   breakpoint?: boolean;
-  if?: Condition38;
+  if?: Condition114;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
    */
-  assertions?: Condition39 | Assertion19[];
+  assertions?: Condition115 | Assertion19[];
   /**
    * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
    */
@@ -5858,6 +11322,10 @@ export interface Common19 {
    * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
    */
   visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
   [k: string]: unknown;
 }
 /**
@@ -5930,6 +11398,74 @@ export interface Assertion19 {
   description?: string;
 }
 /**
+ * Retry the current step.
+ */
+export interface Retry76 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry77 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry78 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry79 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
  * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
  */
 export interface SourceLocation19 {
@@ -5948,5 +11484,1193 @@ export interface SourceLocation19 {
 }
 export interface Wait {
   wait: Wait1;
+  [k: string]: unknown;
+}
+export interface Common20 {
+  /**
+   * JSON Schema for this object.
+   */
+  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  /**
+   * ID of the step.
+   */
+  stepId?: string;
+  /**
+   * Description of the step.
+   */
+  description?: string;
+  /**
+   * Whether or not the step may be unsafe. Unsafe steps may perform actions that could modify the system or environment in unexpected ways. Unsafe steps are only performed within Docker containers or if unsafe steps are enabled with the `allowUnsafeSteps` config property or the `--allow-unsafe` flag.
+   */
+  unsafe?: boolean;
+  outputs?: OutputsStep20;
+  variables?: VariablesStep20;
+  /**
+   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   */
+  breakpoint?: boolean;
+  if?: Condition120;
+  /**
+   * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
+   */
+  assertions?: Condition121 | Assertion20[];
+  /**
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onPass?: Routing80[];
+  /**
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onFail?: Routing81[];
+  /**
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   */
+  onWarning?: Routing82[];
+  /**
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   */
+  onSkip?: Routing83[];
+  location?: SourceLocation20;
+  /**
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   */
+  autoScreenshot?: string;
+  /**
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   */
+  attempts?: number;
+  /**
+   * Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.
+   */
+  visit?: number;
+  /**
+   * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
+   */
+  durationMs?: number;
+  [k: string]: unknown;
+}
+/**
+ * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ */
+export interface OutputsStep20 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * Environment variables to set from user-defined expressions.
+ */
+export interface VariablesStep20 {
+  /**
+   * Runtime expression for a user-defined output value.
+   *
+   * This interface was referenced by `VariablesStep20`'s JSON-Schema definition
+   * via the `patternProperty` "^[A-Za-z0-9_]+$".
+   */
+  [k: string]: string;
+}
+/**
+ * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
+ */
+export interface Assertion20 {
+  /**
+   * Human-readable articulation of the check, e.g. `exitCode in [0]`.
+   */
+  statement: string;
+  /**
+   * Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).
+   */
+  source: "implicit" | "custom";
+  /**
+   * Outcome of evaluating the assertion.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * The value (or values) the assertion expected. Optional.
+   */
+  expected?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * The value actually observed. Optional.
+   */
+  actual?:
+    | unknown[]
+    | boolean
+    | number
+    | null
+    | {
+        [k: string]: unknown;
+      }
+    | string;
+  /**
+   * Human-readable explanation of the outcome. Optional.
+   */
+  description?: string;
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry80 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry81 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry82 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Retry the current step.
+ */
+export interface Retry83 {
+  /**
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   */
+  limit: number;
+  /**
+   * Delay in milliseconds before each retry.
+   */
+  delay?: number;
+  /**
+   * Backoff strategy applied to the delay between retries.
+   */
+  backoff?: "fixed" | "exponential";
+}
+/**
+ * Source location where this step was detected in the original file. This is system-populated metadata and should not be set manually.
+ */
+export interface SourceLocation20 {
+  /**
+   * 1-indexed line number in the source file where the step was detected.
+   */
+  line: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step begins.
+   */
+  startIndex: number;
+  /**
+   * 0-indexed character offset from the start of the source file where the step ends (exclusive).
+   */
+  endIndex: number;
+}
+export interface Annotate {
+  annotate: Annotate1;
+  [k: string]: unknown;
+}
+export interface AnnotateFields {
+  /**
+   * Annotations to draw. Give an annotation an `id` to update or clear it later.
+   */
+  add?: Annotation1[];
+  /**
+   * Changes to annotations that are already on screen, matched by `id`. Each entry replaces the annotation with that id.
+   */
+  update?: IdentifiedAnnotation[];
+  /**
+   * Annotations to remove. `true` clears every annotation; a list of ids clears just those.
+   */
+  clear?: ClearAll | ClearById;
+}
+export interface AnnotationFields1 {
+  /**
+   * Draw a box around the target.
+   */
+  outline?: TargetByElementSimple6 | TargetByElementDetailed6 | TargetByPosition6;
+  /**
+   * Point an arrow at the target.
+   */
+  arrow?: TargetByElementSimple7 | TargetByElementDetailed7 | TargetByPosition7;
+  /**
+   * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
+   */
+  badge?: TargetByElementSimple8 | TargetByElementDetailed8 | TargetByPosition8;
+  /**
+   * Label the target with a text box and a leader line. Set the text with `label`.
+   */
+  callout?: TargetByElementSimple9 | TargetByElementDetailed9 | TargetByPosition9;
+  /**
+   * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
+   */
+  blur?: TargetByElementSimple10 | TargetByElementDetailed10 | TargetByPosition10;
+  /**
+   * Place a standalone text box. Set the text with `label`.
+   */
+  text?: TargetByElementSimple11 | TargetByElementDetailed11 | TargetByPosition11;
+  /**
+   * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
+   */
+  label?: string;
+  /**
+   * Handle for this annotation, so a later `annotate` step can update or clear it. Only meaningful for annotations added by an `annotate` step; ignored on screenshot annotations, which live only for the capture.
+   */
+  id?: string;
+  style?: AnnotationStyle1;
+  /**
+   * Where to place the annotation relative to its target. Accepts a named region, an absolute point, or an offset that nudges the default placement.
+   */
+  position?: NamedRegion13 | AnnotationPoint13 | AnnotationOffset1;
+  /**
+   * If `true`, the annotation follows its element as the page scrolls or reflows. Applies to recordings; inert in still screenshots, which capture a single moment.
+   */
+  track?: boolean;
+  transition?: AnnotationTransition1;
+  /**
+   * Milliseconds to display the annotation before it clears itself. Omit to display it until an `annotate` step clears it. Applies to recordings; inert in still screenshots.
+   */
+  duration?: number;
+  /**
+   * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
+   */
+  all?: boolean;
+}
+export interface ElementFindingFields6 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition6 {
+  position: NamedRegion7 | AnnotationPoint7;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint7 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields7 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition7 {
+  position: NamedRegion8 | AnnotationPoint8;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint8 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields8 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition8 {
+  position: NamedRegion9 | AnnotationPoint9;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint9 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields9 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition9 {
+  position: NamedRegion10 | AnnotationPoint10;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint10 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields10 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition10 {
+  position: NamedRegion11 | AnnotationPoint11;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint11 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields11 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition11 {
+  position: NamedRegion12 | AnnotationPoint12;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint12 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * Visual overrides for this annotation. Anything unset falls back to the resolved `annotationDefaults` theme (test, then spec, then config), then to the built-in theme.
+ */
+export interface AnnotationStyle1 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint13 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * A nudge in pixels from the annotation's default placement.
+ */
+export interface AnnotationOffset1 {
+  /**
+   * Pixels to shift the annotation by.
+   */
+  offset: {
+    /**
+     * Pixels to shift right. Negative values shift left.
+     */
+    x: number;
+    /**
+     * Pixels to shift down. Negative values shift up.
+     */
+    y: number;
+  };
+}
+/**
+ * How the annotation enters and leaves. Applies to recordings; inert in still screenshots, which render the settled state.
+ */
+export interface AnnotationTransition1 {
+  /**
+   * How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.
+   */
+  enter?: "none" | "fade" | "pop" | "draw";
+  /**
+   * How the annotation disappears.
+   */
+  exit?: "none" | "fade";
+  /**
+   * Length of the enter and exit animations, in milliseconds.
+   */
+  durationMs?: number;
+}
+export interface AnnotationFields2 {
+  /**
+   * Draw a box around the target.
+   */
+  outline?: TargetByElementSimple12 | TargetByElementDetailed12 | TargetByPosition12;
+  /**
+   * Point an arrow at the target.
+   */
+  arrow?: TargetByElementSimple13 | TargetByElementDetailed13 | TargetByPosition13;
+  /**
+   * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
+   */
+  badge?: TargetByElementSimple14 | TargetByElementDetailed14 | TargetByPosition14;
+  /**
+   * Label the target with a text box and a leader line. Set the text with `label`.
+   */
+  callout?: TargetByElementSimple15 | TargetByElementDetailed15 | TargetByPosition15;
+  /**
+   * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
+   */
+  blur?: TargetByElementSimple16 | TargetByElementDetailed16 | TargetByPosition16;
+  /**
+   * Place a standalone text box. Set the text with `label`.
+   */
+  text?: TargetByElementSimple17 | TargetByElementDetailed17 | TargetByPosition17;
+  /**
+   * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
+   */
+  label?: string;
+  /**
+   * Handle for this annotation, so a later `annotate` step can update or clear it. Only meaningful for annotations added by an `annotate` step; ignored on screenshot annotations, which live only for the capture.
+   */
+  id?: string;
+  style?: AnnotationStyle2;
+  /**
+   * Where to place the annotation relative to its target. Accepts a named region, an absolute point, or an offset that nudges the default placement.
+   */
+  position?: NamedRegion20 | AnnotationPoint20 | AnnotationOffset2;
+  /**
+   * If `true`, the annotation follows its element as the page scrolls or reflows. Applies to recordings; inert in still screenshots, which capture a single moment.
+   */
+  track?: boolean;
+  transition?: AnnotationTransition2;
+  /**
+   * Milliseconds to display the annotation before it clears itself. Omit to display it until an `annotate` step clears it. Applies to recordings; inert in still screenshots.
+   */
+  duration?: number;
+  /**
+   * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
+   */
+  all?: boolean;
+}
+export interface ElementFindingFields12 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition12 {
+  position: NamedRegion14 | AnnotationPoint14;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint14 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields13 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition13 {
+  position: NamedRegion15 | AnnotationPoint15;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint15 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields14 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition14 {
+  position: NamedRegion16 | AnnotationPoint16;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint16 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields15 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition15 {
+  position: NamedRegion17 | AnnotationPoint17;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint17 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields16 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition16 {
+  position: NamedRegion18 | AnnotationPoint18;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint18 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields17 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: number | boolean | string;
+  };
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition17 {
+  position: NamedRegion19 | AnnotationPoint19;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint19 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * Visual overrides for this annotation. Anything unset falls back to the resolved `annotationDefaults` theme (test, then spec, then config), then to the built-in theme.
+ */
+export interface AnnotationStyle2 {
+  /**
+   * Foreground color — strokes, arrowheads, and text (hex, rgb, or named color).
+   */
+  color?: string;
+  /**
+   * Background color for text-bearing annotations (hex, rgb, or named color). Use `transparent` for none.
+   */
+  background?: string;
+  /**
+   * Line width in pixels.
+   */
+  strokeWidth?: number;
+  /**
+   * Font size in pixels.
+   */
+  fontSize?: number;
+  /**
+   * Font family. Falls back through the list as in CSS.
+   */
+  fontFamily?: string;
+  /**
+   * Opacity, from 0 (invisible) to 1 (opaque).
+   */
+  opacity?: number;
+  /**
+   * Corner radius in pixels, for boxes and text backgrounds.
+   */
+  radius?: number;
+  /**
+   * Padding in pixels inside text boxes, and between an outline and its element.
+   */
+  padding?: number;
+  /**
+   * Maximum width in pixels for text before it wraps.
+   */
+  maxWidth?: number;
+  /**
+   * Blur strength. Higher values obscure more.
+   */
+  intensity?: number;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint20 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+/**
+ * A nudge in pixels from the annotation's default placement.
+ */
+export interface AnnotationOffset2 {
+  /**
+   * Pixels to shift the annotation by.
+   */
+  offset: {
+    /**
+     * Pixels to shift right. Negative values shift left.
+     */
+    x: number;
+    /**
+     * Pixels to shift down. Negative values shift up.
+     */
+    y: number;
+  };
+}
+/**
+ * How the annotation enters and leaves. Applies to recordings; inert in still screenshots, which render the settled state.
+ */
+export interface AnnotationTransition2 {
+  /**
+   * How the annotation appears. Use `none` for annotations that must never reveal what they cover — a `blur` that fades in shows the sensitive content underneath while it does.
+   */
+  enter?: "none" | "fade" | "pop" | "draw";
+  /**
+   * How the annotation disappears.
+   */
+  exit?: "none" | "fade";
+  /**
+   * Length of the enter and exit animations, in milliseconds.
+   */
+  durationMs?: number;
+}
+export interface IdIsRequiredForUpdates {
   [k: string]: unknown;
 }

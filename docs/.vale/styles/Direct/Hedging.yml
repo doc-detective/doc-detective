@@ -1,0 +1,10 @@
+extends: existence
+message: "Hedge: '%s'. State it, or say why you're unsure."
+level: error
+ignorecase: true
+tokens:
+  - '(?:you )?may want to(?: consider)?'
+  - is likely because
+  - "it(?:'s| is) worth noting"
+  - "it(?:'s| is) important to note"
+  - "one could argue"

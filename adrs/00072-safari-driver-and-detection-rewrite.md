@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Doc Detective drove Chrome and Firefox through Appium/WebdriverIO, but had no macOS Safari path, and
-its browser-binary detection relied on `@eyeo/get-browser-binary`. Two questions came together: how
-do we add Safari as a first-class engine on macOS, and what library should locate installed browser
+its browser-binary detection relied on `@eyeo/get-browser-binary`. Two questions came together. How
+do we add Safari as a first-class engine on macOS? And what library should locate installed browser
 binaries now that the runner is committed to Appium drivers? The lingering OBS recording code was
 also dead weight from the abandoned OBS experiment. What is the supported browser set and detection
 mechanism going forward?
@@ -19,7 +19,7 @@ mechanism going forward?
 
 * macOS users need a native Safari engine, not a Chromium stand-in.
 * Browser-binary detection must be reliable and maintained across platforms.
-* The browser enum should be a closed, supported set — not "whatever is on PATH".
+* The browser enum should be a closed, supported set, not "whatever is on PATH".
 * Dead OBS recording code should be removed now that FFmpeg is the recording engine (`00069`).
 
 ## Considered Options

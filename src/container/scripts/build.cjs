@@ -11,6 +11,10 @@
 const { execFileSync, execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const {
+  clearLocalPackage,
+  stageLocalPackage,
+} = require("./localPackage.cjs");
 
 const containerDir = path.resolve(__dirname, "..");
 
@@ -46,6 +50,12 @@ if (target !== "app" && target !== "base") {
   console.error(`Invalid --target: ${target} (expected 'app' or 'base')`);
   process.exit(1);
 }
+
+// `--local-package=<path/to/doc-detective-X.Y.Z.tgz>` builds the image around a
+// locally packed tarball instead of the published npm package, so a CI build can
+// test the tree it was invoked from (ADR 01097). Absent, any previously staged
+// tarball is cleared so the build genuinely uses the registry.
+const localPackage = readFlagValue("--local-package");
 
 const shouldPush = args.includes("--push");
 const noCache = args.includes("--no-cache");
@@ -234,6 +244,15 @@ try {
   if (target === "base") {
     buildBaseImage();
   } else {
+    // Stage (or deliberately un-stage) the local package BEFORE the build, so
+    // what lands in the Docker context is exactly what this invocation asked
+    // for — never a leftover from a previous one.
+    if (localPackage) {
+      const staged = stageLocalPackage(containerDir, localPackage);
+      console.log(`Building from the local package ${staged} (not the npm registry)`);
+    } else {
+      clearLocalPackage(containerDir);
+    }
     console.log(`Building Docker image with version: ${version}`);
     buildAppImage();
   }

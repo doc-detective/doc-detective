@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A single test suite often targets different browsers and operating systems, but not every test can
-run everywhere — a test that drives Firefox can't run where Firefox isn't installed, and a
-macOS-only flow shouldn't fail on Linux. With the Appium/WebdriverIO engine (`00042`) able to drive
-several browsers, the core needed a declarative way to say "run this test only in these
-environments" and to skip — not fail — elsewhere. How should specs and tests declare where they
+A single test suite often targets different browsers and operating systems. But not every test can
+run everywhere. A test that drives Firefox can't run where Firefox isn't installed, and a
+macOS-only flow shouldn't fail on Linux. The Appium/WebdriverIO engine (`00042`) can drive
+several browsers. The core needed a declarative way to say "run this test only in these
+environments", and to skip elsewhere rather than fail. How should specs and tests declare where they
 apply, and how should the runner decide whether to run?
 
 ## Decision Drivers
@@ -32,8 +32,8 @@ apply, and how should the runner decide whether to run?
 
 Chosen option: **A**, because authors need explicit control and the non-matching case must be a
 *skip*, so a cross-platform suite stays green. Each spec/test carries `contexts`, an array of
-`{application, platforms[]}` entries. The runner computes the host's platform and architecture,
-then for each test checks whether any context matches: an application is supported only if it is
+`{application, platforms[]}` entries. The runner computes the host's platform and architecture.
+For each test it then checks whether any context matches. An application is supported only if it is
 **installed AND its platform matches**. If no context matches, the test is skipped rather than run
 or failed. This becomes the engine's environment-gating contract that later evolves into
 `context_v2` (`00049`) and `context_v3` browsers (`00098`), and pairs with driver gating (`00062`)
@@ -41,14 +41,14 @@ and headless retry (`00085`).
 
 ### Consequences
 
-* Good: cross-platform suites stay green — unsupported environments skip cleanly.
+* Good: cross-platform suites stay green, since unsupported environments skip cleanly.
 * Good: targeting is explicit and authored, not guessed.
 * Bad: authors must enumerate contexts; an over-narrow context silently skips a test everywhere.
 * Neutral: "installed AND platform matches" couples gating to app-detection accuracy (`00058`).
 
 ### Confirmation
 
-Context computation and the skip-on-no-match path live in `doc-detective-core`; observable as
+Context computation and the skip-on-no-match path live in `doc-detective-core`. It's observable as
 SKIPPED verdicts when a host matches none of a test's declared contexts.
 
 ## Pros and Cons of the Options

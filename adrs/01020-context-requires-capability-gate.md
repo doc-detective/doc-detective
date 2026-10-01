@@ -9,20 +9,22 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 A `runOn` context can gate on platform (`platforms`) and browser availability, but nothing else.
-Tests that depend on other host capabilities — a CLI on the PATH (`node`, `adb`, `claude`), a file
-(an app binary, a config), an environment variable (an API key) — either fail confusingly at the
-step that first touches the missing dependency, or authors wrap steps in ad-hoc shell probes.
-Native app support (design: [docs/design/native-app-surfaces.md](../docs/design/native-app-surfaces.md),
-phase A1) makes this acute: app and CLI tests must land as SKIPPED on hosts that can't run them,
-exactly as a `platforms` mismatch does, so the "no spec FAILs" fixture gate and multi-OS CI
-matrices stay honest.
+Tests can depend on other host capabilities. Those include a CLI on the PATH (`node`, `adb`,
+`claude`). They also include a file, such as an app binary or config, or an environment variable
+such as an API key.
+Those tests either fail confusingly at the step that first touches the missing dependency, or
+authors wrap steps in ad-hoc shell probes.
+Native app support makes this acute; see the design in
+[docs/design/native-app-surfaces.md](../docs/design/native-app-surfaces.md), phase A1. App and CLI
+tests must land as SKIPPED on hosts that can't run them, exactly as a `platforms` mismatch does.
+The "no spec FAILs" fixture gate and multi-OS CI matrices then stay honest.
 
 The multi-surface design ([docs/design/multi-surface-targeting.md](../docs/design/multi-surface-targeting.md),
 "`requires` gate") reserved the field; this ADR ships it.
 
 ## Decision Drivers
 
-* An unmet environment dependency is a gating fact, not a test failure — the outcome must be
+* An unmet environment dependency is a gating fact, not a test failure. The outcome must be
   SKIPPED with a reason naming what's missing, never FAIL.
 * Progressive disclosure, matching the house style: scalar → array → object, no required fields.
 * Additive only: existing specs must validate and run byte-identically.
@@ -32,18 +34,18 @@ The multi-surface design ([docs/design/multi-surface-targeting.md](../docs/desig
 
 ## Considered Options
 
-* **`requires` on `context_v3`** — progressive `"cmd"` → `["cmd", …]` → `{ commands, files, env }`,
-  evaluated at run time on the targeted host; any miss → SKIPPED.
-* **Per-step guards only** — extend the existing step-level `if` guard vocabulary with
-  command/file/env probes; no context-level gate.
-* **Author-managed probes** — document a `runShell`-probe pattern; add nothing.
+* **`requires` on `context_v3`.** Progressive `"cmd"` → `["cmd", …]` → `{ commands, files, env }`,
+  evaluated at run time on the targeted host, where any miss → SKIPPED.
+* **Per-step guards only.** Extend the existing step-level `if` guard vocabulary with
+  command, file, and env probes, with no context-level gate.
+* **Author-managed probes.** Document a `runShell`-probe pattern, and add nothing.
 
 ## Decision Outcome
 
-Chosen option: **`requires` on `context_v3`**, because the unit that must be skipped is the
-*context* (the whole run of a test on a host), not an individual step — per-step guards would skip
-steps one at a time and still report the context as run, and author-managed probes reinvent the
-gate per spec with FAIL-shaped failure modes.
+Chosen option: **`requires` on `context_v3`**. The unit that must be skipped is the
+*context*, the whole run of a test on a host, not an individual step. Per-step guards would skip
+steps one at a time, and still report the context as run. Author-managed probes reinvent the
+gate per spec, with FAIL-shaped failure modes.
 
 Shape and semantics:
 
@@ -52,23 +54,23 @@ Shape and semantics:
 * `commands` resolve on the PATH without spawning a shell (PATHEXT honored on Windows); `files`
   exist after `$VAR` expansion (`$HOME` falls back to `USERPROFILE`); `env` vars must be set
   non-empty. Unknown `$VAR`s stay literal so the miss is visible in the skip reason.
-* Evaluated in `runContext` only when the context targets the current platform — requirements are
-  host facts; a different-platform context keeps its platform skip reason.
+* Evaluated in `runContext` only when the context targets the current platform. Requirements are
+  host facts, and a different-platform context keeps its platform skip reason.
 * Any miss → context result SKIPPED with
   `Skipping context on '<platform>': unmet requirements — command "adb", …` naming every miss.
-* A `runOn` entry may now omit `platforms`/`browsers` (e.g. a pure `requires` gate); it expands to
-  a static context without those keys, and `runContext` fills the current platform / default
-  browser at run time — the same semantics as a test with no `runOn` at all.
+* A `runOn` entry may now omit `platforms` and `browsers`, such as a pure `requires` gate. It
+  expands to a static context without those keys, and `runContext` fills the current platform and
+  default browser at run time. That's the same semantics as a test with no `runOn` at all.
 
 ### Consequences
 
-* Good, because app/CLI/native tests can express their host dependencies declaratively and land as
-  SKIPPED (with an actionable reason) wherever they can't run — the fixture policy's PASS/SKIPPED
-  invariant extends to phase A1 fixtures unchanged.
+* Good, because app, CLI, and native tests can express their host dependencies declaratively. They
+  land as SKIPPED, with an actionable reason, wherever they can't run. The fixture policy's
+  PASS/SKIPPED invariant extends to phase A1 fixtures unchanged.
 * Good, because the evaluation helper (`evaluateContextRequirements`) is pure with injectable
   deps, so the gate is unit-tested without touching the real PATH/fs/env.
-* Bad, because a command/file/env probe is a point-in-time check: a dependency that disappears
-  mid-run still fails at the step that uses it. Accepted — the gate is for gating, not for
+* Bad, because a command, file, or env probe is a point-in-time check. A dependency that disappears
+  mid-run still fails at the step that uses it. That's accepted: the gate is for gating, not for
   transactional environment pinning.
 * Neutral: driver availability is deliberately *not* a `requires` concern; the runner's own
   preflight/install machinery owns that.
@@ -80,8 +82,8 @@ Shape and semantics:
 * Helper: hermetic unit tests in `test/core-utils-coverage.test.js`
   (`evaluateContextRequirements`) and `test/context-resolution.test.js`
   (`contextRequirementsSkipMessage`, platform-less `runOn` expansion).
-* End-to-end: `test/core-artifacts/requires.spec.json` exercises every form (met → PASS,
-  unmet → SKIPPED) in the combined core pass; a focused `it()` in `test/core-core.test.js` pins
+* End-to-end: `test/core-artifacts/requires.spec.json` exercises every form in the combined core
+  pass, where met → PASS and unmet → SKIPPED. A focused `it()` in `test/core-core.test.js` pins
   the SKIPPED result and the unmet-requirements reason text.
 
 ## Pros and Cons of the Options

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective was about to add DITA support (`00126`), which processes `.ditamap` files through the `dita` CLI — and that CLI is DITA-OT, a Java toolchain not present in the container images. Running DITA tests in the official Linux and Windows images would otherwise fail at the toolchain-missing step. Should DITA-OT (and its Java/unzip prerequisites) be baked into the images?
+Doc Detective was about to add DITA support (`00126`), which processes `.ditamap` files through the `dita` CLI. That CLI is DITA-OT, a Java toolchain not present in the container images. Running DITA tests in the official Linux and Windows images would otherwise fail at the toolchain-missing step. Should DITA-OT, and its Java and unzip prerequisites, be baked into the images?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ Doc Detective was about to add DITA support (`00126`), which processes `.ditamap
 
 ## Decision Outcome
 
-Chosen option: **A**, because DITA support is only useful if the toolchain is present, and baking a pinned version into both images gives reproducible, zero-setup DITA runs. A runtime install would add first-run latency and a network dependency inside the container.
+Chosen option: **A**. DITA support is only useful if the toolchain is present. Baking a pinned version into both images gives reproducible, zero-setup DITA runs. A runtime install would add first-run latency and a network dependency inside the container.
 
 Contract decided:
 

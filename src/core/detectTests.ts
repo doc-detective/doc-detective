@@ -453,9 +453,28 @@ async function qualifyFiles({ config }: { config: any }) {
           // One statSync, reused for both predicates (same value per path).
           // statSync (not the Dirent from readdirSync withFileTypes) is kept
           // deliberately so symlink following is unchanged from before.
-          const stat = fs.statSync(content);
-          const isFile = stat.isFile();
-          const isDir = stat.isDirectory();
+          //
+          // Guarded because readdir listing an entry does NOT guarantee it can
+          // be stat'd: a dangling symlink, a permissions hole, a file removed
+          // mid-scan, or — the case that motivated this (ADR 01096) — a name
+          // whose raw bytes aren't valid UTF-8, which readdir decodes lossily
+          // into U+FFFD so the re-resolved path no longer exists on disk. An
+          // unguarded throw here aborts the ENTIRE run before a single spec is
+          // parsed; one unreadable neighbor must only cost that entry.
+          let isFile = false;
+          let isDir = false;
+          try {
+            const stat = fs.statSync(content);
+            isFile = stat.isFile();
+            isDir = stat.isDirectory();
+          } catch (err: any) {
+            log(
+              config,
+              "debug",
+              `Skipping unreadable directory entry ${content}: ${err?.message ?? err}`
+            );
+            continue;
+          }
           if (
             isFile &&
             (await isValidSourceFile({ config, files, allowedExtensions, source: content }))

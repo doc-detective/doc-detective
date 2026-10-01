@@ -51,7 +51,7 @@
       "additionalProperties": false,
       "properties": {
         "surface": {
-          "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+          "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
           "anyOf": [
             {
               "title": "Surface (by browser engine)",
@@ -327,9 +327,10 @@
           "default": 5000
         },
         "moveTo": {
-          "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+          "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
           "type": "boolean",
-          "default": true
+          "default": false,
+          "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
         },
         "click": {
           "description": "Click the element.",
@@ -400,7 +401,7 @@
                       "minimum": 1
                     },
                     "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                       "anyOf": [
                         {
                           "title": "Surface (by browser engine)",
@@ -753,7 +754,7 @@
                         "minimum": 1
                       },
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -1123,7 +1124,7 @@
                         "surface": {
                           "$schema": "http://json-schema.org/draft-07/schema#",
                           "title": "surface",
-                          "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                          "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                           "anyOf": [
                             {
                               "title": "Surface (by name)",
@@ -1888,9 +1889,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -2324,9 +2325,9 @@
                                 "description": "Fixed delay (ms)."
                               },
                               "find": {
+                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                 "title": "Element criteria",
                                 "type": "object",
-                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                 "additionalProperties": false,
                                 "anyOf": [
                                   {
@@ -2620,7 +2621,7 @@
                           "surface": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "surface",
-                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                            "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                             "anyOf": [
                               {
                                 "title": "Surface (by name)",
@@ -3385,9 +3386,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -3821,9 +3822,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -4197,7 +4198,7 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+            "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
             "anyOf": [
               {
                 "title": "Surface (by browser engine)",
@@ -4473,9 +4474,10 @@
             "default": 5000
           },
           "moveTo": {
-            "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+            "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
             "type": "boolean",
-            "default": true
+            "default": false,
+            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
           },
           "click": {
             "description": "Click the element.",
@@ -4546,7 +4548,7 @@
                         "minimum": 1
                       },
                       "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                         "anyOf": [
                           {
                             "title": "Surface (by browser engine)",
@@ -4899,7 +4901,7 @@
                           "minimum": 1
                         },
                         "surface": {
-                          "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+                          "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
                           "anyOf": [
                             {
                               "title": "Surface (by browser engine)",
@@ -5269,7 +5271,7 @@
                           "surface": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "surface",
-                            "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                            "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                             "anyOf": [
                               {
                                 "title": "Surface (by name)",
@@ -6034,9 +6036,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -6470,9 +6472,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -6766,7 +6768,7 @@
                             "surface": {
                               "$schema": "http://json-schema.org/draft-07/schema#",
                               "title": "surface",
-                              "description": "The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.",
+                              "description": "The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.",
                               "anyOf": [
                                 {
                                   "title": "Surface (by name)",
@@ -7531,9 +7533,9 @@
                                       "description": "Fixed delay (ms)."
                                     },
                                     "find": {
+                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                       "title": "Element criteria",
                                       "type": "object",
-                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                       "additionalProperties": false,
                                       "anyOf": [
                                         {
@@ -7967,9 +7969,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {

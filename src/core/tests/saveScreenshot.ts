@@ -1,8 +1,24 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
-import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
-import { resolveAppWindow, appWindowScreenshot } from "./appWindows.js";
+import { ensureAppForeground } from "./appSurface.js";
+import {
+  resolveTargetSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
+import {
+  resolveAppWindow,
+  appWindowScreenshot,
+  appWindowRect,
+} from "./appWindows.js";
+import { resolveTheme, resolveAnnotation } from "../annotations/model.js";
+import { annotationsToSvg } from "../annotations/svg.js";
+import {
+  computeScale,
+  appWindowOrigin,
+  resolveAnnotationRects,
+} from "../annotations/geometry.js";
+import { compositeAnnotations } from "../annotations/composite.js";
 import {
   log,
   fetchFile,
@@ -108,13 +124,23 @@ async function saveScreenshot({
   step,
   driver,
   appSession,
+  processRegistry,
+  surfaceTracker,
   internal,
+  annotationTheme,
 }: {
   config: any;
   step: any;
   driver: any;
   appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
   internal?: { compareOnly: true; capturePath: string };
+  // The resolved annotation theme (test > spec > config > built-in). The
+  // runner resolves it where spec/test are in scope and passes it down; when
+  // absent (direct callers, unit tests) we fall back to the config level so a
+  // config-only theme still applies.
+  annotationTheme?: any;
 }) {
   let result: any = {
     status: "PASS",
@@ -138,10 +164,12 @@ async function saveScreenshot({
   // FAIL > WARNING > SKIPPED > PASS roll-up.
   //
   // Applicable verification specs, IN ORDER:
-  //   (1) crop element found      `$$outputs.cropElementFound == true`  (fail)    — only when `crop` is set
-  //   (2) element fits viewport   `$$outputs.fitsViewport == true`      (fail)    — only when `crop` is set
-  //   (3) aspect ratios match     `$$outputs.aspectRatioMatch == true`  (fail)    — only when comparing against an existing/URL reference
-  //   (4) variation <= max        `$$outputs.variation <= <max>`        (warning) — only when comparing against an existing/URL reference
+  //   (1) crop element found      `$$outputs.cropElementFound == true`      (fail)    — only when `crop` is set
+  //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
+  //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
+  //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
+  //   (5) aspect ratios match     `$$outputs.aspectRatioMatch == true`      (fail)    — only when comparing against an existing/URL reference
+  //   (6) variation <= max        `$$outputs.variation <= <max>`            (warning) — only when comparing against an existing/URL reference
   //
   // EXECUTION errors (NOT assertions) still return FAIL with NO assertion
   // records, preserving the prior early returns + messages exactly:
@@ -205,69 +233,83 @@ async function saveScreenshot({
   let isAppCapture = false;
   let appEntry: any = null;
   let appWindowTarget: any = null;
-  if (
-    typeof step.screenshot === "object" &&
-    step.screenshot !== null &&
-    step.screenshot.surface !== undefined
-  ) {
-    const appRef = resolveAppSurfaceRef(step.screenshot.surface, appSession);
-    if (appRef) {
-      if (appRef.error) {
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — then
+  // capture through that surface's driver.
+  const target = resolveTargetSurface({
+    surface:
+      typeof step.screenshot === "object" && step.screenshot !== null
+        ? step.screenshot.surface
+        : undefined,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  if (target.kind === "process") {
+    // A background process has no screen to capture — a capability gap, not
+    // a reroute.
+    result.status = "FAIL";
+    result.description = `The resolved surface is the background process "${target.name}", which doesn't support screenshot steps. Target a browser or app surface with \`surface\`.`;
+    return result;
+  }
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
+    // Window selectors (ADR 01036): resolve to a real window. Selector-less
+    // app captures use the sticky/default window — on macOS that's the
+    // window ELEMENT (Mac2's driver screenshot is the whole display).
+    if (appRef.window !== undefined) {
+      const resolvedWindow = await resolveAppWindow({
+        entry: appRef.entry!,
+        selector: appRef.window,
+        timeoutMs: 5000,
+      });
+      if (!resolvedWindow.ok) {
         result.status = "FAIL";
-        result.description = appRef.error;
+        result.description = resolvedWindow.message;
         return result;
       }
-      // Window selectors (ADR 01036): resolve to a real window. Selector-less
-      // app captures use the sticky/default window — on macOS that's the
-      // window ELEMENT (Mac2's driver screenshot is the whole display).
-      if (appRef.window !== undefined) {
-        const resolvedWindow = await resolveAppWindow({
-          entry: appRef.entry!,
-          selector: appRef.window,
-          timeoutMs: 5000,
-        });
-        if (!resolvedWindow.ok) {
-          result.status = "FAIL";
-          result.description = resolvedWindow.message;
-          return result;
-        }
-        appWindowTarget = resolvedWindow.target;
-      }
-      if (step.screenshot.crop) {
-        result.status = "FAIL";
-        result.description =
-          "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
-        return result;
-      }
-      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
-      if (switchedApp.error) {
-        result.status = "FAIL";
-        result.description = switchedApp.error;
-        return result;
-      }
-      captureDriver = appRef.entry!.driver;
-      appEntry = appRef.entry!;
-      isAppCapture = true;
-    } else {
-      const switched = await switchToSurface(driver, step.screenshot.surface);
-      if (!switched.ok) {
-        result.status = "FAIL";
-        result.description = switched.message;
-        return result;
-      }
-      driver = switched.driver ?? driver;
-      captureDriver = driver;
+      appWindowTarget = resolvedWindow.target;
     }
+    if (typeof step.screenshot === "object" && step.screenshot?.crop) {
+      result.status = "FAIL";
+      result.description =
+        "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+      return result;
+    }
+    const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+    if (switchedApp.error) {
+      result.status = "FAIL";
+      result.description = switchedApp.error;
+      return result;
+    }
+    captureDriver = appRef.entry!.driver;
+    appEntry = appRef.entry!;
+    isAppCapture = true;
+  } else if (target.surface !== undefined) {
+    const switched = await switchToSurface(driver, target.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+    captureDriver = driver;
   }
 
-  // In an app-only context (no browser driver), a screenshot step that omits
-  // `surface` has nothing to capture — fail with the fix named instead of a
-  // TypeError on the missing driver. Checked BEFORE the path/crop handling
-  // below, which dereferences `driver` for crop geometry.
+  // Defense-in-depth: the resolver should never route here without a driver,
+  // but a missing one must be a clean FAIL, not a TypeError. Checked BEFORE
+  // the path/crop handling below, which dereferences `driver` for crop
+  // geometry.
   if (!captureDriver) {
     result.status = "FAIL";
     result.description =
-      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
+      "No active surface to act on. Open one first with a startSurface step (or a goTo step for a browser), or target a surface explicitly with `surface`.";
     return result;
   }
 
@@ -592,6 +634,10 @@ async function saveScreenshot({
   // memory (no temp file, no re-read, no rename). `finalBuffer` carries the
   // bytes we ultimately write.
   let finalBuffer: Buffer = captureBuffer;
+  // Where the final canvas starts within the capture, in image pixels.
+  // Annotations resolve against the capture (that's the space element rects
+  // live in) but draw onto the cropped canvas, so their rects shift by this.
+  let cropOrigin = { x: 0, y: 0 };
   if (step.screenshot.crop) {
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
     if (typeof step.screenshot.crop.padding === "number") {
@@ -645,6 +691,7 @@ async function saveScreenshot({
     rect.height = clamped.height;
 
     log(config, "debug", { padded_rect: rect });
+    cropOrigin = { x: rect.x, y: rect.y };
 
     // Extract the cropped region straight to a PNG buffer. This matches the
     // prior sharp(...).extract(...).toFile("….png") encoding (PNG output),
@@ -666,11 +713,136 @@ async function saveScreenshot({
     }
   }
 
+  // Burn annotations into the buffer, after any crop and before the single
+  // write. Annotations are composited in image space rather than injected into
+  // the page: that keeps the page under test untouched, works identically on
+  // app surfaces, and can't flash into a recording that's running concurrently.
+  const annotationSpecs = Array.isArray(step.screenshot.annotations)
+    ? step.screenshot.annotations
+    : [];
+  if (annotationSpecs.length > 0) {
+    try {
+      // Without a crop these are the same buffer, so read metadata once.
+      const captureMeta = await sharp(captureBuffer).metadata();
+      const canvasMeta =
+        finalBuffer === captureBuffer
+          ? captureMeta
+          : await sharp(finalBuffer).metadata();
+      const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
+
+      // Scale comes from the CAPTURE, not the cropped canvas: it relates the
+      // capture's pixels to the logical units element rects are reported in,
+      // and cropping changes the canvas but not that relationship.
+      let logicalWidth: unknown;
+      let windowOrigin = { x: 0, y: 0 };
+      if (isAppCapture) {
+        const windowRect = await appWindowRect(appEntry, appWindowTarget);
+        if (windowRect) {
+          logicalWidth = windowRect.w;
+          // Whether native rects need rebasing onto the window is
+          // platform-specific — see appWindowOrigin for the evidence.
+          windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
+        }
+      } else {
+        logicalWidth = await driver.execute(() => window.innerWidth);
+      }
+      const scale = computeScale(captureMeta.width!, logicalWidth);
+
+      const theme = annotationTheme ?? resolveTheme([config?.annotationDefaults]);
+      const resolved = annotationSpecs.map((annotation: any) =>
+        resolveAnnotation(annotation, theme)
+      );
+      const { placed, errors } = await resolveAnnotationRects({
+        config,
+        annotations: resolved,
+        driver,
+        surface: step.screenshot.surface,
+        appSession,
+        isAppCapture,
+        appDriver: captureDriver,
+        windowOrigin,
+        canvas,
+        scale,
+        cropOrigin,
+      });
+
+      // (3) Annotation targets resolved is a VERIFICATION ASSERTION, and a
+      // FAILING one: an annotation that silently vanishes is a documentation
+      // bug, and for `blur` it's a disclosure — the shot looks redacted but
+      // isn't. Better a failed step than a false sense of safety.
+      result.outputs.annotationTargetsFound = errors.length === 0;
+      specs.push({
+        statement: `$$outputs.annotationTargetsFound == true`,
+        severity: "fail",
+      });
+      if (errors.length > 0) {
+        result.description = `Couldn't resolve every annotation target. ${errors.join(" ")}`;
+        return await evaluateApplicable();
+      }
+
+      log(config, "debug", {
+        annotations: {
+          canvas,
+          scale,
+          cropOrigin,
+          windowOrigin,
+          logicalWidth,
+          placed: placed.map((item) => ({ type: item.type, rect: item.rect })),
+        },
+      });
+
+      const { svg, blurRegions } = annotationsToSvg(placed, canvas);
+
+      // (4) Annotations landing inside the canvas is a WARNING-level check: an
+      // annotation cropped out of frame still produced a valid image, so don't
+      // fail the run — but it's almost always a mistake worth surfacing.
+      //
+      // Two carve-outs:
+      //   - Bounds are edge-INCLUSIVE. A position target like "top-right"
+      //     resolves to exactly (width, 0); that's a legitimate placement the
+      //     renderer slides back on-canvas, not an escape.
+      //   - `all` annotations are exempt. Matching every element and finding
+      //     some below the fold is expected, and nothing outside the frame is
+      //     in the image to leak — only a TARGETED annotation missing the
+      //     frame suggests a mistake.
+      const inBounds = placed.every(
+        (item) =>
+          item.all ||
+          (item.rect.x <= canvas.width &&
+            item.rect.y <= canvas.height &&
+            item.rect.x + item.rect.width >= 0 &&
+            item.rect.y + item.rect.height >= 0)
+      );
+      result.outputs.annotationsInBounds = inBounds;
+      specs.push({
+        statement: `$$outputs.annotationsInBounds == true`,
+        severity: "warning",
+      });
+
+      finalBuffer = await compositeAnnotations({
+        sharp,
+        buffer: finalBuffer,
+        svg,
+        blurRegions,
+      });
+    } catch (error) {
+      // Compositing failures are EXECUTION errors, not assertions — same
+      // contract as the crop extract above.
+      result.status = "FAIL";
+      result.description = `Couldn't annotate image. ${error}`;
+      return result;
+    }
+  }
+
   // Record the saved image's actual pixel dimensions — the size the page really
   // rendered (or was cropped to), which can differ from the requested viewport
   // when the browser/OS floors it. Surfacing it here makes the report and any
   // caption reflect ground truth rather than the requested size. Best-effort:
   // never fail the step over a metadata read.
+  //
+  // Read AFTER annotating so this describes the bytes actually written. The
+  // overlay composites at the canvas size and so shouldn't change dimensions,
+  // but reporting the pre-annotation size would be a lie waiting to happen.
   try {
     const savedMeta = await sharp(finalBuffer).metadata();
     if (savedMeta.width && savedMeta.height) {
