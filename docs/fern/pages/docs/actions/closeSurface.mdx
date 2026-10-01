@@ -6,7 +6,7 @@ description: Close one or more surfaces, such as background processes or browser
 
 The `closeSurface` action closes one or more surfaces. A surface is anything a step can target: a background process, a browser window or tab, or a [native app surface](/docs/actions/startsurface). `closeSurface` replaces the earlier `stopProcess` action.
 
-For native apps, `{ "closeSurface": { "app": "notepad" } }` ends the app surface, terminating the app if Doc Detective launched it. `{ "closeSurface": { "app": "notepad", "window": -1 } }` closes just one window, a dialog say, and keeps the app open. Window selectors use the shared grammar of title, `/regex/`, and `-1` for the newest window. See [App windows](find#app-windows). Doc Detective refuses to close an app's **last** window and points at the bare form instead. A selector that matches nothing is a no-op.
+For native apps, `{ "closeSurface": { "app": "notepad" } }` ends the app surface, terminating the app if Doc Detective launched it. `{ "closeSurface": { "app": "notepad", "window": -1 } }` closes just one window, a dialog say, and keeps the app open. Window selectors use the shared grammar of title, `/regex/`, and `-1` for the newest window. See [App windows](find#app-windows). Doc Detective won't close an app's **last** window. The step fails, and its message points at the bare form instead. A selector that matches nothing is a no-op.
 
 Provide a surface as the value for the `closeSurface` key. You can identify a surface in any of these ways:
 
@@ -210,7 +210,7 @@ Reference an [app surface](/docs/actions/startsurface) with `{ "app": … }` to 
 }
 ```
 
-To close a single window, such as a dialog, without ending the app, add a `window` selector. It accepts a window name, an index in creation order (`-1` is the newest), or `{ title }` criteria matched as a substring or `/regex/`:
+To close a single window, such as a dialog, without ending the app, add a `window` selector. It accepts a window name, an index in creation order (`-1` is the newest, and Windows takes only negative indexes), or `{ title }` criteria matched as a substring or `/regex/`:
 
 ```json
 {
@@ -218,15 +218,21 @@ To close a single window, such as a dialog, without ending the app, add a `windo
     {
       "steps": [
         {
-          "description": "Close the newest window, keeping the app open.",
+          "description": "Close the newest window, such as a dialog that just opened.",
           "closeSurface": { "app": "notepad", "window": -1 }
         },
         {
-          "description": "Close the Find dialog by its title.",
-          "closeSurface": { "app": "notepad", "window": { "title": "Find" } }
+          "description": "Close the Replace dialog by its title.",
+          "closeSurface": { "app": "notepad", "window": { "title": "Replace" } }
         }
       ]
     }
   ]
 }
 ```
+
+Doc Detective won't close an app's last open window this way, because that would end the app. If the selector matches the only window, the step fails. To close the whole app, omit `window`.
+
+Window-scoped app closes work on Windows and macOS app surfaces. Android and iOS surfaces are single-window, so a `window` selector fails there. Omit it to close the app.
+
+On Windows, non-negative index selectors such as `0` or `1` fail, because the Windows driver can't enumerate an app's windows in creation order. Negative indexes such as `-1` work. Otherwise, select by title or `/regex/`.
