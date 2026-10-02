@@ -548,7 +548,7 @@ function buildPage(data) {
     "You can also parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or set the [GitHub Action](/docs/ci/github-action)'s `exit_on_fail` input. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for examples.",
     "</Note>",
     "",
-    "The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract—`1` covers both test failures and crashes. Treat any non-zero exit as a failure rather than branching on the exact code. If you need to tell a test failure apart from a crash, parse the results `summary`.",
+    "The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The CLI currently exits `1` on both test failures and crashes, but the specific non-zero value isn't a stable contract. Treat any non-zero exit as a failure rather than branching on the exact code. If you need to tell a test failure apart from a crash, parse the results `summary`.",
     ""
   );
 
