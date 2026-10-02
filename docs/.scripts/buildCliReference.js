@@ -543,7 +543,7 @@ function buildPage(data) {
     "<Note>",
     "By default, the standalone `doc-detective` CLI exits `0` even when tests fail. It exits non-zero only on a crash or invalid configuration.",
     "",
-    "To fail the build when a spec fails, pass `--exit-on-fail` (or set `exitOnFail: true` in your config). It's the least-setup option, and it works on any CI: the CLI exits `1` whenever a spec's result is FAIL. `WARNING` and `SKIPPED` results stay non-fatal. A run that matches no specs also exits `0`. For example, a mistyped `--test` or `--spec` filter matches nothing, so it can pass a gated build.",
+    "To fail the build when a spec fails, pass `--exit-on-fail` (or set `exitOnFail: true` in your config). It's the easiest option to configure, and it works on any CI: the CLI exits `1` whenever a spec's result is FAIL. `WARNING` and `SKIPPED` results stay non-fatal. A run that matches no specs also exits `0`. For example, a mistyped `--test` or `--spec` filter matches nothing, so it can pass a gated build.",
     "",
     "You can also parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or set the [GitHub Action](/docs/ci/github-action)'s `exit_on_fail` input. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for examples.",
     "</Note>",
