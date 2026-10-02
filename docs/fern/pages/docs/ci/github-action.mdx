@@ -196,7 +196,7 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective install ios --yes  # Requires v4.28 or later, which prebuilds WebDriverAgent
+      - run: npx doc-detective install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
       - uses: doc-detective/github-action@v1
 ```
 
