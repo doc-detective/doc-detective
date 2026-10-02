@@ -56,14 +56,16 @@ For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-actio
 
 ## Step 4: Run headless in CI
 
-Put the pieces together in a generic, platform-agnostic pipeline step. Because the CLI doesn't fail on test failures on its own, gate the build explicitly (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail)):
+Put the pieces together in a generic, platform-agnostic pipeline step. By default, the CLI exits `0` even when tests fail, so pass `--exit-on-fail` to make a failing spec fail the step:
 
 ```bash
 docker run -v .:/app \
   -e DOC_DETECTIVE_AUTOINSTALL=0 \
   docdetective/docdetective:linux \
-  --input /app/docs --reporters json --output /app/results.json
+  --input /app/docs --reporters json --output /app/results.json --exit-on-fail
 ```
+
+`docker run` returns the container's exit code, so the step fails whenever any spec's result is `FAIL`. For which results count as failures and other ways to gate the build, such as parsing the JSON `summary`, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail).
 
 ## Verify it works
 
