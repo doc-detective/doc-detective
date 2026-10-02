@@ -7,7 +7,7 @@ description: Open native apps, browsers, or background processes as named surfac
 The `startSurface` action opens (provisions) a surface and registers it by name so later steps can target it with `surface`. It handles three kinds of surface, told apart by which key the descriptor carries:
 
 - **App** (`app`): launch a native application. This covers a Windows or macOS desktop app, an Android app on a managed emulator, and an iOS app on a managed simulator.
-- **Browser** (`browser`): open a browser session explicitly, with per-session launch options. The session opens blank and ready. Navigate it with [`goTo`](goTo).
+- **Browser** (`browser`): open a browser session explicitly, with per-session launch options. The session opens blank and ready. Navigate it with [`goTo`](goto).
 - **Process** (`process`): start a long-running background process. This is first-class sugar over [`runShell`](/docs/actions/runshell) with a `background` object, and both forms share one launcher.
 
 Pass a single descriptor to open one surface, or an **array of descriptors to open several concurrently**. Browser and process descriptors launch in parallel, and app descriptors boot their devices in parallel (the sessions themselves open in authored order). One step can boot two emulators for a two-phone conversation instead of waiting out two serial boots.
@@ -15,9 +15,9 @@ Pass a single descriptor to open one surface, or an **array of descriptors to op
 <Note>
 Doc Detective drives native apps through a platform-specific automation driver and installs it on demand the first time an app surface starts. On Windows and macOS there's no separate pre-install step. The desktop driver installs automatically on that first run. A machine that can't reach the network to fetch it skips the context with guidance rather than failing. Android and iOS need more preparation, covered below.
 
-Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
+Android needs more than a driver: it also needs the Android SDK toolchain and a system image. A run that targets `android` on a capable host installs those lazily on first use, or you can pre-install them with [`doc-detective install android`](/reference/reference/cli/install#install-android). See [Run on an Android emulator](#run-on-an-android-emulator).
 
-iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
+iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detective manages with `simctl`. The simulator tooling ships with Xcode rather than as a download; prepare the host ahead of time with [`doc-detective install ios`](/reference/reference/cli/install#install-ios). See [Run on an iOS simulator](#run-on-an-ios-simulator).
 </Note>
 
 ## App descriptors
@@ -54,7 +54,7 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width applies (in headless mode too). A smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`. Trust the rendered size over the request. To render content at true sub-500px widths, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
 
-The browser descriptor deliberately has no `url`, because [`goTo`](goTo) stays the navigation step. It has no `waitUntil` either, since a browser session is ready the moment it opens.
+The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays the navigation step. It has no `waitUntil` either, since a browser session is ready the moment it opens.
 
 ## Process descriptors
 
@@ -189,7 +189,7 @@ On a capable host, the toolchain (the SDK, a system image, and the emulator) ins
 doc-detective install android --yes
 ```
 
-See [`install android`](/reference/cli/install#install-android) for the command's options and how it bootstraps the toolchain from nothing. That includes the portable Temurin JRE it downloads when the host has no Java 17+. To forbid the lazy install entirely, set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`. This suits an air-gapped host that must never auto-download. The context then skips with a pointer back to that command instead of downloading anything.
+See [`install android`](/reference/reference/cli/install#install-android) for the command's options and how it bootstraps the toolchain from nothing. That includes the portable Temurin JRE it downloads when the host has no Java 17+. To forbid the lazy install entirely, set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`. This suits an air-gapped host that must never auto-download. The context then skips with a pointer back to that command instead of downloading anything.
 
 ### Choose the emulator
 
@@ -231,9 +231,9 @@ Check those prerequisites ahead of a run:
 doc-detective install ios --yes
 ```
 
-See [`install ios`](/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
+See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
 
-On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator. That can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache, and sessions consume it automatically. That build cost then disappears from the run. It's especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
+On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator. That can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache, and sessions consume it automatically. That build cost then disappears from the run. It's especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
 
 ### Choose the simulator
 
@@ -582,6 +582,6 @@ Kinds mix freely in one array, such as a browser and the server it talks to:
 
 ## Related actions
 
-- [`goTo`](goTo): Navigate a browser surface (and open one implicitly).
+- [`goTo`](goto): Navigate a browser surface (and open one implicitly).
 - [`runShell`](/docs/actions/runshell): Run a command, or start a background process with `background`.
-- [`closeSurface`](closeSurface): Close any surface by name.
+- [`closeSurface`](closesurface): Close any surface by name.
