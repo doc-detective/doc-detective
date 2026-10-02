@@ -4,7 +4,7 @@ sidebar-title: GitHub Action
 description: Add the Doc Detective GitHub Action to a workflow, gate pull requests on the results, and open PRs or issues automatically.
 ---
 
-The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you and fails the job when tests fail. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
+The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you, and it fails the job when tests fail if you set `exit_on_fail` to `true`. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
 
 For the full list of inputs and outputs, see the [action's README](https://github.com/doc-detective/github-action).
 

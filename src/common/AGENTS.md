@@ -112,6 +112,17 @@ fixtures) still validates against the stale schema. A fixture using a newly-adde
 with `/<field> must NOT be valid`, even though the source schema allows it.
 
 Related notes:
+- **A stale `node_modules` makes `build:common` gut the committed types, and the build still exits
+  0.** `generate:types` prints `✓ … → ….ts` for every schema either way. The symptom is `git
+  status` after a build: ~17 modified files under `src/common/src/types/generated/` with a huge
+  deletion count (one observation: 142k deletions, every `allOf` member dropped, leaving only
+  `{ [k: string]: unknown }`). The cause is a long-lived worktree whose install predates a
+  `json-schema-to-typescript` major bump on `main` (15.x installed against a lockfile wanting
+  `^16.0.0`). Check with `npm ls json-schema-to-typescript`, which flags it as `invalid`, then
+  `npm ci`. **Never commit that churn**: `git checkout -- src/common/src/types/generated/`, reinstall,
+  and rebuild, which then leaves the tree clean. That reset is a blunt instrument, so check what it
+  would discard first. A schema edit in the same branch SHOULD regenerate types, and those are the
+  one change in that directory worth keeping. Nothing else there is hand-written.
 - `output_schemas/*` regeneration on Windows produces large CRLF-only diffs. That's harmless build
   churn, not content changes.
 - `spec_v3` has no `additionalProperties: false`, so unknown root keys on a spec are silently

@@ -23,7 +23,7 @@ Use dot notation to reach nested fields, and bracket notation for array indexes:
 - `$$response.body.items[0].name`
 - `$$stdio.stdout`
 
-The references you can use depend on the action that produced them. For example, `httpRequest` exposes `$$response.body`, `$$response.headers`, and `$$response.status`, while `runCode` and `runShell` expose `$$stdio.stdout`, `$$stdio.stderr`, and `$$exitCode`. To see the values an action produces, see its [action reference](/docs/actions).
+The references you can use depend on the action that produced them. For example, `httpRequest` exposes `$$response.body`, `$$response.headers`, and `$$response.status`, while `runCode` and `runShell` expose `$$stdio.stdout`, `$$stdio.stderr`, and `$$exitCode`. To see the values an action produces, find that action in [How testing works](/docs/get-started/how-testing-works) and open its page.
 
 ### JSON pointer
 
@@ -49,7 +49,7 @@ Doc Detective sometimes can't resolve an embedded expression, such as one contai
 
 ## Operators
 
-Use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate operators. Operator-like text in a captured value therefore stays untouched.
+Use operators wherever Doc Detective evaluates a condition, such as a step or test `if` guard or a custom assertion. In a plain variable assignment, Doc Detective resolves meta-value references but doesn't evaluate comparison or word operators. Operator-like text in a captured value therefore stays untouched. The two [function operators](#function-operators) are the exception, and they run everywhere.
 
 ### Comparison operators
 

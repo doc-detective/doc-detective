@@ -32,6 +32,9 @@ import {
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  guardBlankDocumentNavigation,
   classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
@@ -192,6 +195,32 @@ describe("core/utils coverage", function () {
     });
     it("falls back to manual stripping for non-URL strings", function () {
       assert.equal(redactUrlForOutput("not a url?token=x#y"), "not a url");
+    });
+    it("strips basic-auth credentials from a valid URL", function () {
+      // `new URL(...).toString()` preserves userinfo, so dropping only the
+      // query and fragment would publish the password: these strings land in
+      // step descriptions, warnings, reports and CI logs.
+      assert.equal(
+        redactUrlForOutput("https://user:s3cret@host/path?token=x"),
+        "https://host/path"
+      );
+    });
+    it("strips a username-only userinfo segment", function () {
+      assert.equal(
+        redactUrlForOutput("https://user@host/path"),
+        "https://host/path"
+      );
+    });
+    it("strips credentials on the non-URL fallback path too", function () {
+      // The fallback sees anything `new URL` rejects (here: no scheme), so it
+      // cannot lean on URL parsing.
+      assert.equal(
+        redactUrlForOutput("//user:s3cret@host/path?token=x"),
+        "//host/path"
+      );
+      // Only the authority segment carries credentials. An `@` after the host
+      // is part of the path, and a port is not a password.
+      assert.equal(redactUrlForOutput("//host:8080/a:b@c"), "//host:8080/a:b@c");
     });
   });
 
@@ -1118,6 +1147,219 @@ describe("core/utils coverage", function () {
         }),
         false
       );
+    });
+  });
+
+  describe("issueNavigation / probeStuckOnBlankDocument", function () {
+    // The two halves of the ADR 01088 verify-left-the-blank-document guard,
+    // factored out of goTo so getRunner can reuse them (ADR 01102).
+    //
+    // `session` is the sequence of URLs the browser reports after each
+    // successive `url()` call, so a fake can act out "parked, then recovered"
+    // and "parked, stayed parked" without a real driver.
+    const fakeDriver = (session) => {
+      const calls = [];
+      let index = -1;
+      return {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+      };
+    };
+
+    it("issues the navigation once when the page actually loaded", async function () {
+      const driver = fakeDriver(["http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        false
+      );
+      assert.deepEqual(driver.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("re-issues the navigation when the browser is still on data:,", async function () {
+      const driver = fakeDriver(["data:,", "http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        true
+      );
+      assert.deepEqual(driver.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("probes nothing when no retry fired", async function () {
+      // The healthy path must not pay an extra round trip: a first attempt
+      // that landed on a real page proves nothing by being re-read.
+      let probed = false;
+      const driver = {
+        async getUrl() {
+          probed = true;
+          return "data:,";
+        },
+      };
+      assert.equal(await probeStuckOnBlankDocument(driver, false), null);
+      assert.equal(probed, false);
+    });
+
+    it("reports the blank document the browser is stuck on", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument({ getUrl: async () => " data:, " }, true),
+        "data:,"
+      );
+    });
+
+    it("reports null once the retried navigation took", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          { getUrl: async () => "http://localhost:8092/index.html" },
+          true
+        ),
+        null
+      );
+    });
+
+    it("treats an unreadable URL as not stuck", async function () {
+      // Matches isPageUnnavigated's own swallow: a thrown getUrl is evidence
+      // of a dead session, which other probes own, not of a blank page.
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          {
+            getUrl: async () => {
+              throw new Error("invalid session id");
+            },
+          },
+          true
+        ),
+        null
+      );
+    });
+  });
+
+  describe("guardBlankDocumentNavigation", function () {
+    // getRunner hands callers a raw WebdriverIO session, so `runner.url(...)`
+    // never passed through goTo's guard. This wraps it (ADR 01102).
+    const fakeRunner = (session) => {
+      const calls = [];
+      let index = -1;
+      const runner = {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+          return "navigated";
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+        overwriteCommand(name, wrapper) {
+          const original = runner[name].bind(runner);
+          runner[name] = (...args) => wrapper.call(runner, original, ...args);
+        },
+      };
+      return runner;
+    };
+
+    it("leaves a healthy navigation at one url() call", async function () {
+      const runner = fakeRunner(["http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(
+        await runner.url("http://localhost:8092/index.html"),
+        "navigated"
+      );
+      assert.deepEqual(runner.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("recovers a navigation that parked on the blank document", async function () {
+      const runner = fakeRunner(["data:,", "http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("http://localhost:8092/index.html");
+      assert.deepEqual(runner.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("throws naming the blank document when the navigation never takes", async function () {
+      // The failure mode this guard exists for: without it the session stays
+      // on data:, and the caller's next getTitle() returns "" with nothing
+      // pointing at the navigation.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await assert.rejects(
+        () => runner.url("http://localhost:8092/index.html?token=secret"),
+        (error) => {
+          assert.match(error.message, /never left its initial blank document/);
+          assert.match(error.message, /data:,/);
+          assert.match(error.message, /localhost:8092\/index\.html/);
+          // Query strings can carry tokens; step descriptions and logs are
+          // shared artifacts, so the reported URL is redacted.
+          assert.ok(
+            !error.message.includes("secret"),
+            `query string must be redacted, got: ${error.message}`
+          );
+          return true;
+        }
+      );
+    });
+
+    it("keeps basic-auth credentials out of the warning and the error", async function () {
+      // Both diagnostics print the target, and the warning fires at the default
+      // log level, so a credentialed URL would publish its password to anyone
+      // reading the output or the CI log.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      const written = [];
+      const originalLog = console.log;
+      console.log = (...args) => written.push(args.join(" "));
+      try {
+        await assert.rejects(
+          () => runner.url("https://admin:hunter2@localhost:8092/index.html"),
+          (error) => {
+            assert.match(error.message, /never left its initial blank document/);
+            assert.ok(
+              !error.message.includes("hunter2"),
+              `error must redact credentials, got: ${error.message}`
+            );
+            return true;
+          }
+        );
+      } finally {
+        console.log = originalLog;
+      }
+      const warning = written.join("\n");
+      assert.match(warning, /still on its initial blank document/);
+      assert.ok(
+        !warning.includes("hunter2"),
+        `warning must redact credentials, got: ${warning}`
+      );
+    });
+
+    it("passes a deliberate blank-document target straight through", async function () {
+      // Asking for data:, itself would otherwise read as stuck forever.
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("data:,");
+      assert.deepEqual(runner.calls, ["data:,"]);
+    });
+
+    it("passes a non-string target through to WebdriverIO's own validation", async function () {
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url(undefined);
+      await runner.url("");
+      assert.deepEqual(runner.calls, [undefined, ""]);
+    });
+
+    it("is a no-op on a runner with no overwriteCommand", async function () {
+      const runner = { url: async () => "navigated" };
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(await runner.url("http://localhost:8092/index.html"), "navigated");
     });
   });
 
