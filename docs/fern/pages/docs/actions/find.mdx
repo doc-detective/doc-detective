@@ -49,7 +49,7 @@ On Windows and macOS app surfaces, `window` selects which of the app's windows t
 - A plain string or `{ "name": … }` matches the window title exactly.
 - On macOS, a non-negative `"window": 2` selects by position; on Windows, positional indexes aren't supported (select by title or `-1` instead).
 
-Window selection is **sticky**. Later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closeSurface) all accept the same selector. Android and iOS app surfaces are single-window, so a `window` selector there fails with guidance to omit it.
+Window selection is **sticky**. Later steps on the same app surface act in the selected window until another selector changes it. [`click`](click), [`type`](type), [`screenshot`](screenshot), [`record`](record), [`swipe`](swipe), and [`closeSurface`](closesurface) all accept the same selector. Android and iOS app surfaces are single-window, so a `window` selector there fails with guidance to omit it.
 
 On Windows, resolving a selector probes the app's candidate windows to read their titles, which can briefly bring each probed window to the foreground. This matters for recordings: if a `record` is running, a probe can flash another window into a frame or two of the capture. Select the window *before* starting the recording (selection is sticky) to avoid it.
 

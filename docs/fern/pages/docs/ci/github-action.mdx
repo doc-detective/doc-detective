@@ -4,7 +4,7 @@ sidebar-title: GitHub Action
 description: Add the Doc Detective GitHub Action to a workflow, gate pull requests on the results, and open PRs or issues automatically.
 ---
 
-The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you and fails the job when tests fail. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
+The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you, and it fails the job when tests fail if you set `exit_on_fail` to `true`. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
 
 For the full list of inputs and outputs, see the [action's README](https://github.com/doc-detective/github-action).
 
@@ -208,7 +208,7 @@ iOS simulators run only on macOS, so this input has no effect on Linux or Window
 
 ### Alternative: prebuild WebDriverAgent into a persisted cache
 
-Your workflow might already persist Doc Detective's [cache directory](/reference/cli/install#cache-directory) between runs, for example with `actions/cache`. You can then skip the action's WDA cache and let Doc Detective manage the build itself. Run [`doc-detective install ios --yes`](/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions. Test sessions consume the products automatically and read-only, which is safe to share across parallel jobs. Set `ios: 'false'` on the action in that case. The two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
+Your workflow might already persist Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory) between runs, for example with `actions/cache`. You can then skip the action's WDA cache and let Doc Detective manage the build itself. Run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions. Test sessions consume the products automatically and read-only, which is safe to share across parallel jobs. Set `ios: 'false'` on the action in that case. The two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
 
 ```yaml
 jobs:

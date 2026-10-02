@@ -57,6 +57,9 @@ export {
   isPageBroken,
   isPageUnnavigated,
   isInitialBlankDocument,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  guardBlankDocumentNavigation,
   classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
@@ -938,6 +941,95 @@ function isInitialBlankDocument(url: unknown): boolean {
   return INITIAL_BLANK_DOCUMENT.test(String(url ?? "").trim());
 }
 
+// Issue a navigation, then re-issue it once if the browser is still parked on
+// its initial blank document. Chromium's `url()` can resolve with the session
+// never having left `data:,`, so the navigation silently did not take while
+// every later check passes trivially against the blank page (ADR 01084, ADR
+// 01088). Returns whether the retry fired, which is what gates
+// probeStuckOnBlankDocument below: a first attempt that landed on a real page
+// proves nothing by being re-read, so the healthy path pays no extra round trip.
+async function issueNavigation(driver: any, url: string): Promise<boolean> {
+  await driver.url(url);
+  if (!(await isPageUnnavigated(driver))) return false;
+  await driver.url(url);
+  return true;
+}
+
+// The companion verdict. Reads the URL ONCE and returns it when the browser is
+// still on the initial blank document, else null, so a caller decides and
+// reports from a single observation. Probing twice can decide on one URL and
+// print another if the page moves in between, which reads as the tool
+// contradicting itself. An unreadable URL is not evidence of anything, so it
+// reads as not stuck, matching isPageUnnavigated's own swallow.
+async function probeStuckOnBlankDocument(
+  driver: any,
+  retried: boolean
+): Promise<string | null> {
+  if (!retried) return null;
+  let observedUrl: string;
+  try {
+    observedUrl = String((await driver.getUrl()) ?? "").trim();
+  } catch {
+    return null;
+  }
+  return isInitialBlankDocument(observedUrl) ? observedUrl : null;
+}
+
+// Wrap a WebdriverIO session's `url` command with the guard above, so a caller
+// holding a raw runner gets the same protection a `goTo` step has. getRunner
+// hands out such a runner and its documented usage is `await runner.url(...)`,
+// which bypassed the guard entirely: a session parked on `data:,` returned an
+// empty title and the failure surfaced with nothing pointing at the navigation.
+// See adrs/01102-getrunner-verifies-it-left-the-blank-document.md.
+//
+// Uses WebdriverIO's own `overwriteCommand` rather than assigning to `url`,
+// because the browser object is a proxy. A runner without it (a stub in a unit
+// test) is left alone rather than failing.
+function guardBlankDocumentNavigation(runner: any, config: any): void {
+  if (typeof runner?.overwriteCommand !== "function") return;
+  runner.overwriteCommand(
+    "url",
+    async function (this: any, originalUrl: any, url?: string, ...rest: any[]) {
+      // Nothing to verify: WebdriverIO owns rejecting a missing or non-string
+      // target, and a caller deliberately asking for the blank document itself
+      // would otherwise read as stuck forever.
+      if (
+        typeof url !== "string" ||
+        url.length === 0 ||
+        isInitialBlankDocument(url)
+      ) {
+        return originalUrl.call(this, url as any, ...rest);
+      }
+      // Re-implements issueNavigation's two steps rather than calling it, for
+      // two reasons. It would recurse: `this.url` IS this wrapper, and
+      // issueNavigation navigates through the driver it is handed. And the
+      // warning has to sit BETWEEN the two navigations, so a reader of the log
+      // can see the re-issue was a response to the blank page.
+      const result = await originalUrl.call(this, url, ...rest);
+      if (!(await isPageUnnavigated(this))) return result;
+      log(
+        config,
+        "warning",
+        `Browser was still on its initial blank document after navigating to ${redactUrlForOutput(
+          url
+        )}. Re-issuing the navigation.`
+      );
+      const retriedResult = await originalUrl.call(this, url, ...rest);
+      const stuckOn = await probeStuckOnBlankDocument(this, true);
+      if (stuckOn !== null) {
+        throw new Error(
+          `The browser never left its initial blank document (${redactUrlForOutput(
+            stuckOn
+          )}): navigation to ${redactUrlForOutput(
+            url
+          )} didn't take, even after a retry. The session is alive; the page was never loaded.`
+        );
+      }
+      return retriedResult;
+    }
+  );
+}
+
 export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 
 // The retry DECISION for a FAILed context, composed from the three probes above.
@@ -1244,9 +1336,22 @@ function redactUrlForOutput(value: string): string {
     const url = new URL(value);
     url.search = "";
     url.hash = "";
+    // `toString()` re-serializes userinfo, so a basic-auth URL would publish
+    // its password alongside the host. These strings land in step descriptions,
+    // warnings, reports and CI logs, so clear both before serializing.
+    url.password = "";
+    url.username = "";
     return url.toString();
   } catch {
-    return value.split("?")[0].split("#")[0];
+    const stripped = value.split("?")[0].split("#")[0];
+    // Nothing parsed this, so match the authority textually: userinfo sits
+    // between `//` and the first `/`. `[^/]*` cannot cross that boundary, so it
+    // stops at the last `@` of the authority and leaves a later `@` in the path
+    // alone.
+    return stripped.replace(
+      /^((?:[a-zA-Z][a-zA-Z0-9+.-]*:)?\/\/)[^/]*@/,
+      "$1"
+    );
   }
 }
 

@@ -44,7 +44,7 @@ This lets tests continue executing while flagging output changes that exceed you
 Commands run in `bash` on every platform by default. POSIX syntax such as quoting, pipes, `&&`, and `$()` therefore works identically on Windows, macOS, and Linux.
 
 - **On macOS and Linux**, Doc Detective uses the `bash` on your `PATH`.
-- **On Windows**, Doc Detective uses Git Bash. It uses your [Git for Windows](https://gitforwindows.org/) install when you have one. Otherwise it downloads a portable copy (MinGit, about 40 MB) into its cache the first time a test needs it. You can pre-install it with [`doc-detective install bash`](/reference/cli/install). The bundled toolbox covers common utilities such as `grep`, `sed`, `awk`, and `find`. If your commands need more, install the full Git for Windows.
+- **On Windows**, Doc Detective uses Git Bash. It uses your [Git for Windows](https://gitforwindows.org/) install when you have one. Otherwise it downloads a portable copy (MinGit, about 40 MB) into its cache the first time a test needs it. You can pre-install it with [`doc-detective install bash`](/reference/reference/cli/install). The bundled toolbox covers common utilities such as `grep`, `sed`, `awk`, and `find`. If your commands need more, install the full Git for Windows.
 
 To run a command in a Windows shell instead, set `shell` to `cmd` or `powershell` on the step:
 

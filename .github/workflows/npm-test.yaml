@@ -12,32 +12,11 @@ on:
       - opened
       - reopened
       - synchronize
-    # Run the full matrix when product code, tests, or the build/dependency
-    # inputs change. `test/**` is included so a PR that only adds or edits tests
-    # (e.g. coverage tests, fixtures) is actually exercised on every OS before
-    # merge — previously those PRs silently skipped the matrix and the
-    # coverage-merge ratchet, and had to be verified via `workflow_dispatch`.
-    # `coverage-thresholds.json` is included so a ratchet re-baseline is verified
-    # against the union too. `src/**` also covers the doc-detective-common
-    # workspace (src/common). Docs-only / samples-only PRs still skip; use
-    # `workflow_dispatch` on demand for those.
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'coverage-thresholds.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'bin/**'
-      - 'scripts/**'
-      # Mocha runner config governs how the whole suite executes (timeouts,
-      # hooks), so a change to it must re-run the matrix — otherwise a
-      # test-behavior change like the default-timeout bump ships unexercised.
-      - '.mocharc.yml'
-      - '.github/workflows/npm-test.yaml'
-      - '.github/workflows/test.yml'
-      # The fixture matrix is half the PR gate; a change to it must run it.
-      # Without this entry a fixtures.yml-only PR merges unexercised.
-      - '.github/workflows/fixtures.yml'
+    # NO `paths:` filter, deliberately. Four of this workflow's checks are
+    # REQUIRED by the `main` ruleset, and a path-filtered workflow never reports
+    # them at all — so a docs-only PR sat at "blocked" with nothing failing and
+    # no way to satisfy the gate. The filter moved into the `changes` job below,
+    # which decides whether there is anything to exercise. See ADR 01103.
   workflow_dispatch:
 
 concurrency:
@@ -52,10 +31,93 @@ permissions:
   pull-requests: read
 
 jobs:
+  # Does this change set need the matrix at all? Replaces the `paths:` filter
+  # this workflow used to carry (ADR 01103). The decision list lives in
+  # scripts/select-test-matrix.cjs, which is unit-tested.
+  #
+  # Fails safe exactly like the fixture selector: no PR context, a `gh api`
+  # blip, or an unreadable list all mean RUN the matrix. Under-running is a
+  # correctness risk; over-running only costs time.
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.decide.outputs.code }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Decide whether the matrix has anything to exercise
+        id: decide
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          code=true
+          # One LINE PER API RECORD, tab-separating the new path from the old one
+          # (`@tsv`, with an empty second field when there was no rename). The
+          # record count and the path list are different things and both matter:
+          #
+          #  - Both paths of a rename are needed. The API reports a move as
+          #    `filename` plus `previous_filename`, so reading only `filename`
+          #    would see `docs/utils.ts` for a move out of src/** and skip the
+          #    matrix while a source file was deleted.
+          #  - Truncation has to be measured in RECORDS. The files API caps at
+          #    3000, and a rename emits two paths, so counting paths lets a rename
+          #    mask a lost record: 3000 records including one rename emit 3001
+          #    paths, which matches a `changed_files` of 3001 exactly and reads as
+          #    complete.
+          #
+          # `if records=$(...)` tolerates a non-zero gh api without tripping
+          # `set -e`, and `timeout 120` makes a hang fail-safe too.
+          if [ -n "$PR" ] && records=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[] | [.filename, (.previous_filename // "")] | @tsv'); then
+            # `|| true` keeps grep's no-match exit out of `set -e`.
+            got=$(printf '%s\n' "$records" | grep -c '[^[:space:]]' || true)
+            files=$(printf '%s\n' "$records" | tr '\t' '\n' | grep '[^[:space:]]' || true)
+            printf 'changed files:\n%s\n' "$files"
+            # The count must be TRUSTWORTHY before the list can be. A failed or
+            # non-numeric metadata call must not read as "zero changed files":
+            # that would skip the check below and hand a possibly-truncated list
+            # to the selector. `[ x -gt 0 ]` on a non-number exits non-zero, and
+            # this `if` treats that as untrusted.
+            if expected=$(timeout 60 gh api "repos/${{ github.repository }}/pulls/$PR" --jq '.changed_files') \
+              && [ "$expected" -gt 0 ] 2>/dev/null; then
+              echo "file records: $got for $expected changed file(s)"
+              if [ "${got:-0}" -lt "$expected" ]; then
+                echo "list looks truncated; running the matrix"
+              else
+                code=$(printf '%s\n' "$files" | node scripts/select-test-matrix.cjs || echo true)
+              fi
+            else
+              echo "could not read changed_files; running the matrix"
+            fi
+          fi
+          # Only an explicit "false" skips. Anything else (crash, empty,
+          # unexpected) coerces to true so the matrix stays on.
+          [ "$code" = "false" ] || code=true
+          echo "code paths changed: $code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   # Smoke + unit/integration matrix (mocha) and the coverage ratchets. The bulk
   # of the *.spec.json fixtures no longer run here — see the `fixtures` job.
+  #
+  # Always called, never `if:`-gated: a skipped caller job produces NO nested
+  # check runs, which is the failure mode ADR 01103 fixes. `run-matrix` tells the
+  # reusable workflow whether to do the work or just report the required
+  # contexts.
+  # `!cancelled()` rather than a bare `needs:`, because a FAILED `changes` job
+  # would otherwise skip this one, and a skipped caller emits no nested check
+  # runs at all. That is the same permanent block ADR 01103 exists to fix, so the
+  # fix must not reintroduce it through its own new dependency. When `changes`
+  # did not succeed we cannot know what the PR touched, so the matrix runs.
   test:
+    needs: changes
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/test.yml
+    with:
+      run-matrix: ${{ needs.changes.result != 'success' || needs.changes.outputs.code == 'true' }}
     secrets:
       # Only forward HERETTO_* on trusted contexts (manual dispatch). PR
       # runs — especially from forks — receive empty strings, so the
@@ -68,5 +130,12 @@ jobs:
   # OS) so no single job is a 90-minute monolith. Runs the PR's own build. The
   # reusable workflow computes its own matrix (its `select` job), narrowed to
   # the bundles the PR's change set can affect (ADR 01055).
+  #
+  # Gated, unlike `test`: none of the fixture contexts are required, so skipping
+  # the caller is safe here. The guard is load-bearing. fixtures.yml's selector
+  # fails safe to the FULL bundle matrix when nothing relevant matched, so
+  # without it a docs typo would fan out every bundle, Android and iOS included.
   fixtures:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     uses: ./.github/workflows/fixtures.yml

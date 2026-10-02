@@ -1,3 +1,11 @@
+## [4.38.6](https://github.com/doc-detective/doc-detective/compare/v4.38.5...v4.38.6) (2026-10-01)
+
+
+### Bug Fixes
+
+* **core:** strip credentials from redacted URLs ([0220386](https://github.com/doc-detective/doc-detective/commit/02203864250975eeaa406b4a1892e3830c1f3d71)), closes [#727](https://github.com/doc-detective/doc-detective/issues/727)
+* **core:** verify getRunner navigations left the blank document ([f65ec08](https://github.com/doc-detective/doc-detective/commit/f65ec0815c15b4988413e9cd3fc88e5c1ab5923a))
+
 ## [4.38.5](https://github.com/doc-detective/doc-detective/compare/v4.38.4...v4.38.5) (2026-09-30)
 
 

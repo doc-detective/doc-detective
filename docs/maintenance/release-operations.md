@@ -8,10 +8,26 @@ realities around them.
 
 ## Merge gating on `main`
 
-- `main` has no classic branch protection. The gate is a repository **ruleset** ("main"). Its
-  real blockers are `code_quality`, meaning CodeQL code scanning at severity=errors, plus a
-  `pull_request` rule requiring 1 approving review. `require_code_owner_review` is vacuous, because
-  there's no CODEOWNERS file. **CodeQL is the only CI signal that truly blocks merge.**
+- `main` has no classic branch protection. The gate is a repository **ruleset** ("main"), so
+  `gh api repos/:owner/:repo/branches/main/protection` answers "Branch not protected" and tells you
+  nothing. Read `gh api repos/:owner/:repo/rulesets/13338220` instead. Its blockers are
+  `code_quality` (CodeQL at severity=errors), a `pull_request` rule requiring 1 approving review,
+  and a `required_status_checks` rule naming five contexts: `lint`,
+  `test / Test (ubuntu-latest, node 22, shard 1)`,
+  `test / Test (ubuntu-latest, node 22, shard 2)`,
+  `test / Coverage ratchet (src/common)`, and
+  `test / Coverage ratchet (root, cross-platform)`.
+  `require_code_owner_review` is vacuous, because there's no CODEOWNERS file.
+- **A required check that never reports blocks the PR with nothing failing.** `mergeStateStatus`
+  reads `BLOCKED` while every check shown is green, `mergeable` is `MERGEABLE`, and
+  `gh pr merge` refuses with "the base branch policy prohibits the merge". That is not a flake and
+  not a stale review. It means one of the five contexts above is absent, not red. PR #729, a
+  documentation-only change, hit this because `npm-test.yaml` was path-filtered to `src/**` and
+  friends, so the four `test / …` contexts never existed.
+  [ADR 01103](../../adrs/01103-required-test-contexts-report-on-every-pull-request.md) fixed it.
+  The workflow now always runs. When the change set has no code in it, placeholder jobs report
+  those four names. If this signature returns, compare the names the ruleset requires against
+  `gh pr checks <n> --json name,state` before reaching for `--admin`.
 - Some checks look scary but don't block. The `review` check is the "Claude PR Review - Auto"
   workflow. A red `review` never blocks merge. Treat it as a real signal anyway. It fails
   deterministically once a PR collects a large automated-comment history. The run reports

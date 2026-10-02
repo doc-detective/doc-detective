@@ -392,7 +392,7 @@ function installSummary(subcommands) {
     "",
     "The `install` command group manages Doc Detective's lazy-installed runtime assets—npm packages, browser binaries, ffmpeg, agent tools, and mobile toolchains. Its subcommands are " +
       names +
-      ". For every subcommand, option, and example, see the [install reference](/reference/cli/install).",
+      ". For every subcommand, option, and example, see the [install reference](/reference/reference/cli/install).",
     "",
   ];
   return lines.join("\n");
@@ -465,7 +465,7 @@ function buildPage(data) {
     "Notes on individual flags:",
     "",
     "- `--reporters`: see [reporters and artifacts](/docs/ci/reporters-and-artifacts) for the `runFolder` reporter and the built-in output formats.",
-    "- `--cache-dir`: see the [cache directory guidance](/reference/cli/install#cache-directory).",
+    "- `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).",
     "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
     "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
     "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
@@ -504,7 +504,7 @@ function buildPage(data) {
     (lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.") +
       " It also ships as a standalone command, `doc-detective-lsp`.",
     "",
-    "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/overview).",
+    "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).",
     ""
   );
   if (lsp.options.length > 0) {

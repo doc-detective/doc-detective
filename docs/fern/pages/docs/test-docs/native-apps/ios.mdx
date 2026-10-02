@@ -26,7 +26,7 @@ Prepare the host ahead of time:
 doc-detective install ios --yes
 ```
 
-This installs the automation driver and prebuilds WebDriverAgent. It's macOS-only and isn't part of `install all`. If you skip it, the driver still installs on demand the first time an iOS app surface starts. See [`install ios`](/reference/cli/install#install-ios).
+This installs the automation driver and prebuilds WebDriverAgent. It's macOS-only and isn't part of `install all`. If you skip it, the driver still installs on demand the first time an iOS app surface starts. See [`install ios`](/reference/reference/cli/install#install-ios).
 
 ## Run your first iOS test
 
@@ -122,7 +122,7 @@ On a host that isn't macOS, the test skips with a reason rather than failing. Se
 **The first app launch is slow**
 
 - **Cause:** The first app surface of a run builds WebDriverAgent for the simulator, which can take several minutes on a cold machine.
-- **Solution:** Give the first surface a generous `timeout`. Running [`doc-detective install ios`](/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent so that cost disappears from the run.
+- **Solution:** Give the first surface a generous `timeout`. Running [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent so that cost disappears from the run.
 
 **Element not found**
 

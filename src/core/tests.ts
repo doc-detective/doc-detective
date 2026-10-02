@@ -44,6 +44,7 @@ import {
   evaluateContextRequirements,
   isRetryableSessionError,
   classifyContextRetry,
+  guardBlankDocumentNavigation,
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
@@ -6258,6 +6259,16 @@ async function getRunner(options: any = {}) {
       throw new Error(`Failed to start Chrome runner: ${error.message}`);
     }
   }
+
+  // A fresh Chromium session starts parked on its initial blank document
+  // (`data:,`) and sometimes stays there even though `url()` resolved, so the
+  // navigation silently didn't take (ADR 01084, ADR 01088). Steps run through
+  // `runStep` are covered by goTo's guard, but the documented way to drive this
+  // runner is `await runner.url(...)` straight through WebdriverIO, which was
+  // not: the caller got a blank page, and the failure surfaced later as an empty
+  // title or a missing element with nothing pointing at the navigation. Guard
+  // the session's own `url` command so every caller gets the same verification.
+  guardBlankDocumentNavigation(runner, config);
 
   // Set window size
   try {

@@ -16,7 +16,7 @@ Doc Detective can open and drive native macOS apps as part of a test. This exper
 
 macOS app tests run only on a **macOS host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
 
-Doc Detective drives macOS apps through an automation driver. It installs automatically the first time a macOS app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/cli/install) reference for the runtime packages that do support pre-installation.
+Doc Detective drives macOS apps through an automation driver. It installs automatically the first time a macOS app surface starts, so you don't have to prepare anything for a first run. There's no separate pre-install command for this driver. See the [`install` command](/reference/reference/cli/install) reference for the runtime packages that do support pre-installation.
 
 One requirement matters before your first run. The process that runs Doc Detective needs macOS **Accessibility (TCC) permission**. That process is your terminal, IDE, or CI runner. Without it the driver can't drive apps, and the test skips with a walkthrough. Grant it under **System Settings** before you run. For the step-by-step walkthrough, see [Grant Accessibility permission on macOS](/docs/actions/startsurface#grant-accessibility-permission-on-macos).
 
