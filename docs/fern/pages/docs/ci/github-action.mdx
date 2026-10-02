@@ -68,7 +68,7 @@ By default, the action doesn't fail the job when tests fail. It reports the resu
 <Note>
 The action's advantage is convenience. Instead of passing `--exit-on-fail` on every `doc-detective` CLI call, you set `exit_on_fail: true` once in your workflow YAML.
 
-By default, the standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid, not because a test failed. A script that relies on its exit code therefore reports success even when documentation tests failed. `--exit-on-fail` opts the CLI in, and the action's `exit_on_fail` input is the equivalent for GitHub Actions. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the CLI behavior in detail.
+By default, the standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid, not because a test failed. A script that relies on its exit code therefore reports success even when documentation tests failed. `--exit-on-fail` enables the same gate for the standalone CLI. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the CLI behavior in detail.
 </Note>
 
 ## Step 4: Open a pull request when files change
