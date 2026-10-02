@@ -150,6 +150,9 @@ navigation:
           - page: Standalone tests
             path: pages/docs/tests/standalone.mdx
             slug: standalone
+          - page: Last verified on
+            path: pages/docs/test-docs/last-verified-on.mdx
+            slug: last-verified-on
           # Surface sub-sections are visual groupers only (skip-slug keeps page
           # URLs flat under /docs/test-docs/…). See docs/content-strategy/
           # information-architecture.md — one "Test your docs" track, split by
