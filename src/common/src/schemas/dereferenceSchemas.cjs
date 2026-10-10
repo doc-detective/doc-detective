@@ -150,6 +150,15 @@ async function dereferenceSchemas() {
     JSON.stringify(schemas, null, 2)
   );
 
+  // Build schemasReferenced.json: the same schemas with `$ref`s intact, for the
+  // validator. Ajv compiles a shared subschema once instead of once per inlined
+  // copy, which cuts first-validation compile time several-fold.
+  console.log("Building schemasReferenced.json file...");
+  fs.writeFileSync(
+    `${__dirname}/schemasReferenced.json`,
+    JSON.stringify(buildReferencedSchemas(inputDir, files), null, 2)
+  );
+
   // Clean up build dir
   // fs.rm(buildDir, { recursive: true }, (err) => {
   //   if (err) throw err;
@@ -175,6 +184,118 @@ async function dereferenceSchemas() {
       console.error(`Error publishing ${file}:`, err);
     }
   });
+}
+
+/**
+ * Builds the `$ref`-intact schema set the validator compiles, shaped so Ajv
+ * validates exactly as it does against the dereferenced schemas.json:
+ *
+ * - `schemas`: the listed schemas plus everything they reference, keyed like
+ *   schemas.json, each with `$id` = its file name so the relative cross-file
+ *   `$ref`s resolve.
+ * - `noDefaults`: a copy of each with every `default`/`dynamicDefaults`
+ *   removed, under a `.nodefaults.schema.json` `$id`.
+ *
+ * Two Ajv behaviors differ between the forms and are compensated here:
+ *
+ * 1. Ajv ignores defaults under composite keywords (anyOf, oneOf, not, if,
+ *    contains, propertyNames). Dereferenced, everything below one is inline so
+ *    the rule reaches it; but a `$ref` target compiled as its own function
+ *    forgets it and applies its defaults. So every `$ref` under a composite
+ *    keyword points at the `noDefaults` copy of its target.
+ * 2. Ajv assigns a property's default from the property's own schema, never
+ *    through `$ref`. Dereferencing inlines a target's root `default` there, so
+ *    it's copied onto each referencing `$ref` that lacks one.
+ */
+function buildReferencedSchemas(inputDir, files) {
+  const sources = {};
+  const pending = [...files];
+  while (pending.length) {
+    const file = pending.pop();
+    if (sources[file]) continue;
+    sources[file] = JSON.parse(fs.readFileSync(path.join(inputDir, file)));
+    walkSchema(sources[file], (node) => {
+      const refFile = typeof node.$ref === "string" && node.$ref.split("#")[0];
+      if (refFile) pending.push(refFile);
+    });
+  }
+
+  // (2) Hoist target root defaults. Repeat until stable: a target can itself be
+  // a `$ref` that just gained one.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [file, schema] of Object.entries(sources)) {
+      walkSchema(schema, (node) => {
+        if (typeof node.$ref !== "string" || "default" in node) return;
+        const [refFile, pointer = ""] = node.$ref.split("#");
+        const target = resolvePointer(sources[refFile || file], pointer);
+        if (target && typeof target === "object" && "default" in target) {
+          node.default = target.default;
+          changed = true;
+        }
+      });
+    }
+  }
+
+  // (1) Composite-context `$ref`s → defaults-free copies.
+  const noDefaultsId = (file) => file.replace(/\.schema\.json$/, ".nodefaults.schema.json");
+  const toNoDefaults = (ref, file) => {
+    const [refFile, pointer = ""] = ref.split("#");
+    return `${noDefaultsId(refFile || file)}#${pointer}`;
+  };
+  const result = { schemas: {}, noDefaults: [] };
+  for (const [file, source] of Object.entries(sources)) {
+    const schema = structuredClone(source);
+    walkSchema(schema, (node, inComposite) => {
+      if (inComposite && typeof node.$ref === "string") node.$ref = toNoDefaults(node.$ref, file);
+    });
+    result.schemas[file.replace(".schema.json", "")] = { ...schema, $id: file };
+
+    const stripped = structuredClone(source);
+    walkSchema(stripped, (node) => {
+      delete node.default;
+      delete node.dynamicDefaults;
+      if (typeof node.$ref === "string") node.$ref = toNoDefaults(node.$ref, file);
+    });
+    result.noDefaults.push({ ...stripped, $id: noDefaultsId(file) });
+  }
+  return result;
+}
+
+// Keywords whose subschemas Ajv validates with defaults switched off.
+const COMPOSITE_KEYWORDS = new Set(["anyOf", "oneOf", "not", "if", "contains", "propertyNames"]);
+// Keywords whose values are maps of name → schema (incl. OpenAPI-style
+// `components.schemas`), so their keys are names, not keywords.
+const SCHEMA_MAP_KEYWORDS = new Set(["properties", "patternProperties", "definitions", "$defs", "dependencies", "schemas"]);
+// Keywords holding data, not schemas (examples may contain `$ref` or `default` keys).
+const DATA_KEYWORDS = new Set(["default", "examples", "example", "const", "enum"]);
+
+/**
+ * Calls fn(node, inComposite) on every schema object in a schema document,
+ * skipping data-valued keywords and treating schema-map keys as names.
+ */
+function walkSchema(node, fn, inComposite = false) {
+  if (Array.isArray(node)) return node.forEach((item) => walkSchema(item, fn, inComposite));
+  if (node === null || typeof node !== "object") return;
+  fn(node, inComposite);
+  for (const [key, value] of Object.entries(node)) {
+    if (DATA_KEYWORDS.has(key) || value === null || typeof value !== "object") continue;
+    const childComposite = inComposite || COMPOSITE_KEYWORDS.has(key);
+    if (SCHEMA_MAP_KEYWORDS.has(key) && !Array.isArray(value)) {
+      for (const sub of Object.values(value)) walkSchema(sub, fn, childComposite);
+    } else {
+      walkSchema(value, fn, childComposite);
+    }
+  }
+}
+
+function resolvePointer(root, pointer) {
+  return pointer
+    .split("/")
+    .slice(1)
+    .map((part) => decodeURIComponent(part).replace(/~1/g, "/").replace(/~0/g, "~"))
+    .reduce((node, part) => (node == null ? undefined : node[part]), root);
 }
 
 // Prepend app-root path to referenced relative paths

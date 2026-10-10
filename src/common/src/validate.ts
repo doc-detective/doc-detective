@@ -1,4 +1,4 @@
-import { schemas, SchemaKey } from "./schemas/index.js";
+import { schemasReferenced } from "./schemas/referenced.js";
 import Ajv, { ValidateFunction, ErrorObject } from "ajv";
 // Ajv extra formats: https://ajv.js.org/packages/ajv-formats.html
 import addFormats from "ajv-formats";
@@ -32,6 +32,10 @@ const ajv = new Ajv({
   allErrors: true,
   allowUnionTypes: true,
   coerceTypes: true,
+  // Skip codegen optimization: on the large v3 schemas the optimizer passes
+  // dominate first-compile time, while the validated objects are tiny, so the
+  // faster generated code buys nothing.
+  code: { optimize: false },
 });
 
 // A second, NON-mutating Ajv used only to *probe* which compatible schema an
@@ -57,6 +61,7 @@ const ajvCheck = new Ajv({
   allErrors: true,
   allowUnionTypes: true,
   coerceTypes: false,
+  code: { optimize: false },
 });
 
 // Enable `uuid` dynamic default
@@ -80,10 +85,27 @@ addKeywords(ajvCheck);
 // @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
 addErrors(ajvCheck);
 
-// Add all schemas from `schema` object to both instances.
-for (const [key, value] of Object.entries(schemas)) {
-  ajv.addSchema(value, key);
-  ajvCheck.addSchema(value, key);
+/**
+ * Look up a schema's validator. Compiles from `schemasReferenced` ($refs
+ * intact) rather than the dereferenced `schemas`, so a subschema shared by
+ * several schemas (step_v3 inside test_v3, spec_v3, config_v3, ...) compiles
+ * once instead of once per inlined copy. `schemasReferenced` is built to
+ * validate identically (test/schemasReferenced.test.js). The set is registered
+ * on first use, not at import. Unknown keys return undefined without reaching
+ * Ajv, whose plain-object lookup throws on inherited names like `constructor`.
+ */
+function getValidator(
+  instance: typeof ajv,
+  key: string,
+): ValidateFunction | undefined {
+  if (!Object.hasOwn(schemasReferenced.schemas, key)) return undefined;
+  if (!instance.schemas[key]) {
+    for (const [name, schema] of Object.entries(schemasReferenced.schemas)) {
+      instance.addSchema(schema, name);
+    }
+    instance.addSchema(schemasReferenced.noDefaults);
+  }
+  return instance.getSchema(key);
 }
 
 /**
@@ -215,7 +237,7 @@ export function validate({
     result.errorObjects = [];
   }
   let validationObject: any;
-  let check: ValidateFunction | undefined = ajv.getSchema(schemaKey);
+  let check: ValidateFunction | undefined = getValidator(ajv, schemaKey);
   if (!check) {
     result.valid = false;
     result.errors = `Schema not found: ${schemaKey}`;
@@ -262,10 +284,10 @@ export function validate({
     // is always a mutating match too, so this fast path is exact for any
     // candidate whose validity doesn't depend on a default/coercion.
     let matchedSchemaKey = compatibleSchemasList.find((key) => {
-      // Every compatible key is registered on ajvCheck (see the addSchema loop
-      // above), so getSchema is always defined — assert it, matching the
+      // Every compatible key is a known schema (getValidator registers it on
+      // first use), so the validator is always defined — assert it, matching the
       // `matchedCheck!` non-null assertion below.
-      const probe = ajvCheck.getSchema(key)!;
+      const probe = getValidator(ajvCheck, key)!;
       return probe(object) as boolean;
     });
     if (!matchedSchemaKey) {
@@ -276,7 +298,7 @@ export function validate({
       // that validated under the old code is newly rejected. Runs only on the
       // rare no-fast-match path, so the common case keeps its single-clone win.
       matchedSchemaKey = compatibleSchemasList.find((key) => {
-        const mutatingCheck = ajv.getSchema(key)!;
+        const mutatingCheck = getValidator(ajv, key)!;
         return mutatingCheck(cloneForValidation(object)) as boolean;
       });
     }
@@ -300,7 +322,7 @@ export function validate({
       // MUTATING validator for the matched schema, so its defaults/coercions are
       // applied exactly as before, then transform.
       validationObject = cloneForValidation(object);
-      const matchedCheck = ajv.getSchema(matchedSchemaKey);
+      const matchedCheck = getValidator(ajv, matchedSchemaKey);
       matchedCheck!(validationObject);
       const transformedObject = transformToSchemaKey({
         currentSchema: matchedSchemaKey,
