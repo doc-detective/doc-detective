@@ -71,6 +71,16 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("Schema not found: nonexistent_schema");
         expect(result.object).to.deep.equal({ test: "value" });
       });
+
+      it("should not treat inherited object keys as schema keys", function () {
+        const result = validate({
+          schemaKey: "constructor",
+          object: { test: "value" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.equal("Schema not found: constructor");
+      });
     });
 
     describe("valid objects", function () {
