@@ -1,3 +1,10 @@
+## [4.38.7](https://github.com/doc-detective/doc-detective/compare/v4.38.6...v4.38.7) (2026-10-10)
+
+
+### Bug Fixes
+
+* **common:** validate against $ref-intact schemas, compiled lazily ([e264dd0](https://github.com/doc-detective/doc-detective/commit/e264dd0046e02f3d80de047beae987bf2156e0be))
+
 ## [4.38.6](https://github.com/doc-detective/doc-detective/compare/v4.38.5...v4.38.6) (2026-10-01)
 
 
