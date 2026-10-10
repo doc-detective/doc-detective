@@ -1,5 +1,6 @@
 require:
   - ./test/hooks.js
+  - ./.github/exp/stall-monitor.js
 exit: true
 # Raise mocha's default per-test timeout from 2000ms. On hosted CI runners the
 # root suite's real async work (env injection, schema validation, driver

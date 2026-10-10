@@ -1,0 +1,84 @@
+# EXPERIMENT ONLY — never merge. Lives on exp/windows-stalls.
+# Question: are the multi-second event-loop freezes on windows-latest unit
+# shards caused by Windows Defender real-time scanning? Runs unit shard 1 of 2
+# ten times with Defender on and ten with it off, logging every >=2s block in
+# the mocha process (stall-monitor.js) and in an idle sidecar process.
+name: EXP windows stalls
+
+on:
+  push:
+    branches: [exp/windows-stalls]
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: shard1 defender-${{ matrix.defender }} rep${{ matrix.rep }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        defender: [on, off]
+        rep: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - name: Set Defender real-time monitoring (${{ matrix.defender }})
+        shell: pwsh
+        run: |
+          if ('${{ matrix.defender }}' -eq 'off') { Set-MpPreference -DisableRealtimeMonitoring $true }
+          Get-MpComputerStatus | Select-Object AMServiceEnabled, AntivirusEnabled, RealTimeProtectionEnabled, IsTamperProtected | Format-List
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: 24
+
+      - run: npm ci
+      - run: npm run build
+      - run: node ./bin/doc-detective.js install all --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      - name: Unit shard 1 with stall monitors
+        shell: bash
+        continue-on-error: true
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+          NODE_V8_COVERAGE: ${{ github.workspace }}/coverage/tmp
+          STALL_OUT: ${{ github.workspace }}/stalls.json
+        run: |
+          node .github/exp/sidecar.mjs "$GITHUB_WORKSPACE/sidecar.jsonl" &
+          SIDECAR=$!
+          start=$(date +%s)
+          ec=0
+          node scripts/run-test-shard.cjs 1 2 || ec=$?
+          kill $SIDECAR || true
+          echo "{\"exit\":$ec,\"secs\":$(( $(date +%s) - start ))}" > "$GITHUB_WORKSPACE/outcome.json"
+          exit $ec
+
+      - name: Defender state after
+        if: always()
+        shell: pwsh
+        run: Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled | Format-List
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: stalls-${{ matrix.defender }}-${{ matrix.rep }}
+          path: |
+            stalls.json
+            sidecar.jsonl
+            outcome.json
+          if-no-files-found: warn
+          retention-days: 7
