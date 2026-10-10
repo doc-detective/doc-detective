@@ -67,10 +67,12 @@ an inherited name like `constructor` crashed inside Ajv's lookup.
 
 ### Consequences
 
-* Good: one-step `runTests` drops from 4.8 s to 0.82 s, and `--version` from
-  930 to 424 ms. ESM import drops from 863 to 360 ms, and CJS require from 1053
-  to 291 ms. These are medians of 10 runs on Windows with Node 24, measured by
-  `scripts/bench-footprint.cjs`.
+* Good: startup gets several times faster. Medians of 10 runs on Windows with
+  Node 24, measured by `scripts/bench-footprint.cjs`:
+  * One-step `runTests`: 4.8 s → 0.82 s
+  * `--version`: 930 → 424 ms
+  * ESM import: 863 → 360 ms
+  * CJS require: 1053 → 291 ms
 * Good: the package shrinks from 137.9 MB to 76.9 MB unpacked (tarball 8.9 →
   5.6 MB). `dist/index.cjs` drops from 64 MB to 1.8 MB.
 * Bad: two schema artifacts must stay in sync. Both come from the same build
