@@ -25,6 +25,9 @@ const runs = Number(opt("--runs", 10));
 const outFile = opt("--out");
 
 const workDir = path.join(root, ".tmp", "bench");
+const outDir = path.join(workDir, "out");
+// Fresh results dir each time: every timed runTests writes a report into it.
+fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(workDir, { recursive: true });
 const env = { ...process.env, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" };
 const opts = { cwd: root, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 };
@@ -37,6 +40,8 @@ function fail(msg, res) {
   if (res) console.error(res.stdout, res.stderr);
   process.exit(1);
 }
+
+if (!Number.isInteger(runs) || runs < 1) fail(`--runs must be a positive integer, got "${opt("--runs")}"`);
 
 if (!flag("--no-build")) {
   const res = npm("run build");
@@ -84,7 +89,7 @@ fs.writeFileSync(
 );
 fs.writeFileSync(
   configPath,
-  JSON.stringify({ telemetry: { send: false }, autoUpdate: false, output: path.join(workDir, "out") })
+  JSON.stringify({ telemetry: { send: false }, autoUpdate: false, output: outDir })
 );
 
 const result = {

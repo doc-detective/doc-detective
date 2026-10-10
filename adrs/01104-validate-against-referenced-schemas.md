@@ -28,7 +28,7 @@ duplication on every run?
 
 ## Decision Drivers
 
-* Validation results must not change: same validity, same error strings, same
+* Validation results must not change: same validity, same error messages, same
   defaults applied. Configs and specs that pass today must pass the same way.
 * The public `schemas` export stays dereferenced. The LSP and external
   consumers read it directly.
@@ -80,6 +80,11 @@ an inherited name like `constructor` crashed inside Ajv's lookup.
 * Bad: the compensations depend on Ajv's `useDefaults` internals. An Ajv
   upgrade that changes them would show up as an equivalence-test failure, not
   silently.
+* Neutral: `ValidateResult.errorObjects[].schemaPath` changes. It now names the
+  referenced schema, such as `step_v3.schema.json#/...`, instead of a path into
+  one inlined document. The fields the LSP reads (`instancePath`, `keyword`,
+  `params`, `message`) don't change. A `doc-detective-common` consumer that
+  reads `schemaPath` sees new values.
 
 ### Confirmation
 
@@ -96,7 +101,7 @@ both Ajv behaviors above before the compensations existed.
 
 ### A. `$ref`-intact bundle
 
-* Good: shared subschemas compile once; the bundle is 0.9 MB instead of 61 MB.
+* Good: shared subschemas compile once; the bundle is 0.4 MB instead of 61 MB.
 * Good: no generated code to review or ship.
 * Bad: needs the two compensations above and a test to hold them.
 

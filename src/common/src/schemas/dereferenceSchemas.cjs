@@ -196,6 +196,8 @@ async function dereferenceSchemas() {
  * - `noDefaults`: a copy of each with every `default`/`dynamicDefaults`
  *   removed, under a `.nodefaults.schema.json` `$id`.
  *
+ * Both drop annotation keywords (title, description, examples, ...).
+ *
  * Two Ajv behaviors differ between the forms and are compensated here:
  *
  * 1. Ajv ignores defaults under composite keywords (anyOf, oneOf, not, if,
@@ -248,12 +250,14 @@ function buildReferencedSchemas(inputDir, files) {
   for (const [file, source] of Object.entries(sources)) {
     const schema = structuredClone(source);
     walkSchema(schema, (node, inComposite) => {
+      stripAnnotations(node);
       if (inComposite && typeof node.$ref === "string") node.$ref = toNoDefaults(node.$ref, file);
     });
     result.schemas[file.replace(".schema.json", "")] = { ...schema, $id: file };
 
     const stripped = structuredClone(source);
     walkSchema(stripped, (node) => {
+      stripAnnotations(node);
       delete node.default;
       delete node.dynamicDefaults;
       if (typeof node.$ref === "string") node.$ref = toNoDefaults(node.$ref, file);
@@ -288,6 +292,13 @@ function walkSchema(node, fn, inComposite = false) {
       walkSchema(value, fn, childComposite);
     }
   }
+}
+
+// Annotation keywords Ajv never reads. The bundle is only for validation, so
+// dropping them keeps it small (it's inlined into the CJS bundle and parsed on
+// first validation).
+function stripAnnotations(node) {
+  for (const key of ["title", "description", "$comment", "examples", "example"]) delete node[key];
 }
 
 function resolvePointer(root, pointer) {

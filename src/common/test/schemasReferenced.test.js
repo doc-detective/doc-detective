@@ -7,32 +7,12 @@ import { expect } from "chai";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
-import addKeywords from "ajv-keywords";
-import addErrors from "ajv-errors";
+import { createAjv } from "../dist/ajv.js";
 import { schemas } from "../dist/index.js";
 import { schemasReferenced } from "../dist/schemas/referenced.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OWN_EXAMPLES_ONLY = new Set(["report_v3", "resolvedTests_v3"]);
-
-function makeAjv() {
-  // Same options and plugins as src/validate.ts's mutating instance.
-  const ajv = new Ajv({
-    strictSchema: false,
-    logger: false,
-    useDefaults: true,
-    allErrors: true,
-    allowUnionTypes: true,
-    coerceTypes: true,
-    code: { optimize: false },
-  });
-  addFormats(ajv);
-  addKeywords(ajv);
-  addErrors(ajv);
-  return ajv;
-}
 
 function specFixtures(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -60,31 +40,35 @@ describe("schemasReferenced", function () {
     expect(Object.keys(schemasReferenced.schemas).sort()).to.deep.equal(Object.keys(schemas).sort());
   });
 
-  it("validates every example and spec fixture identically to the dereferenced schemas", function () {
-    const corpus = [
-      ...Object.values(schemas).flatMap((schema) => schema.examples || []),
-      ...specFixtures(path.join(here, "..", "..", "..", "test", "core-artifacts")),
-    ];
-    const dereferenced = makeAjv();
-    const referenced = makeAjv();
-    for (const [key, schema] of Object.entries(schemasReferenced.schemas)) referenced.addSchema(schema, key);
-    referenced.addSchema(schemasReferenced.noDefaults);
+  // Both instances validate.ts builds: the mutating validator and the
+  // non-mutating probe it uses to pick a compatible older schema.
+  for (const mutating of [true, false]) {
+    it(`validates every example and spec fixture identically to the dereferenced schemas (mutating: ${mutating})`, function () {
+      const corpus = [
+        ...Object.values(schemas).flatMap((schema) => schema.examples || []),
+        ...specFixtures(path.join(here, "..", "..", "..", "test", "core-artifacts")),
+      ];
+      const dereferenced = createAjv({ mutating });
+      const referenced = createAjv({ mutating });
+      for (const [key, schema] of Object.entries(schemasReferenced.schemas)) referenced.addSchema(schema, key);
+      referenced.addSchema(schemasReferenced.noDefaults);
 
-    let compared = 0;
-    for (const key of Object.keys(schemas)) {
-      const expectedCheck = dereferenced.compile(schemas[key]);
-      const actualCheck = referenced.getSchema(key);
-      // Dereferenced report/resolvedTests take minutes to reject foreign
-      // objects (allErrors across huge inlined anyOfs), so they get only their
-      // own examples. Every other schema gets the full cross-product.
-      const objects = OWN_EXAMPLES_ONLY.has(key) ? schemas[key].examples : corpus;
-      objects.forEach((object, i) => {
-        expect(run(actualCheck, object), `${key} vs corpus[${i}]`).to.deep.equal(
-          run(expectedCheck, object),
-        );
-        compared++;
-      });
-    }
-    expect(compared).to.be.greaterThan(1000);
-  });
+      let compared = 0;
+      for (const key of Object.keys(schemas)) {
+        const expectedCheck = dereferenced.compile(schemas[key]);
+        const actualCheck = referenced.getSchema(key);
+        // Dereferenced report/resolvedTests take minutes to reject foreign
+        // objects (allErrors across huge inlined anyOfs), so they get only their
+        // own examples. Every other schema gets the full cross-product.
+        const objects = OWN_EXAMPLES_ONLY.has(key) ? schemas[key].examples : corpus;
+        objects.forEach((object, i) => {
+          expect(run(actualCheck, object), `${key} vs corpus[${i}]`).to.deep.equal(
+            run(expectedCheck, object),
+          );
+          compared++;
+        });
+      }
+      expect(compared).to.be.greaterThan(1000);
+    });
+  }
 });
