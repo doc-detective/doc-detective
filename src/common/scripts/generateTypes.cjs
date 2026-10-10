@@ -2,7 +2,23 @@ const { compile } = require("json-schema-to-typescript");
 const fs = require("fs").promises;
 const path = require("path");
 
+// A stale install (e.g. v15 left over from before the v16 bump) silently emits
+// degraded types, such as `{ [k: string]: unknown }` for objects next to
+// oneOf/anyOf/allOf. Fail instead of writing them.
+function checkGeneratorVersion(installed, declared) {
+  const major = (v) => v.match(/\d+/)[0];
+  if (major(installed) !== major(declared)) {
+    throw new Error(
+      `json-schema-to-typescript ${installed} is installed but ${declared} is declared. Run \`npm ci\` at the repo root, then rebuild.`
+    );
+  }
+}
+
 async function generateTypes() {
+  checkGeneratorVersion(
+    require("json-schema-to-typescript/package.json").version,
+    require("../package.json").devDependencies["json-schema-to-typescript"]
+  );
   const schemasDir = path.join(__dirname, "..", "src", "schemas", "output_schemas");
   const outputDir = path.join(__dirname, "..", "src", "types", "generated");
 
@@ -48,7 +64,11 @@ async function generateTypes() {
   console.log("Type generation complete!");
 }
 
-generateTypes().catch((error) => {
-  console.error("Type generation failed:", error);
-  process.exit(1);
-});
+module.exports = { checkGeneratorVersion };
+
+if (require.main === module) {
+  generateTypes().catch((error) => {
+    console.error("Type generation failed:", error);
+    process.exit(1);
+  });
+}
