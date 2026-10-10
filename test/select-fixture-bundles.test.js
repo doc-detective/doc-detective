@@ -43,25 +43,38 @@ describe("select-fixture-bundles", function () {
     });
 
     it("maps group-confined changes to their bundles", function () {
-      assert.equal(selectBundles(["test/core-artifacts/http/checkLink.spec.json"]), "web-plumbing");
+      assert.equal(selectBundles(["test/core-artifacts/http/checkLink.spec.json"]), "general");
       assert.equal(
         selectBundles([
           "test/core-artifacts/http/checkLink.spec.json",
           "test/core-artifacts/guards/requires.spec.json",
         ]),
-        "web-plumbing"
+        "general"
       );
       assert.equal(
         selectBundles([
           "test/core-artifacts/navigation/goTo.spec.json",
-          "test/core-artifacts/sessions/s.spec.json",
+          "test/core-artifacts/recording/r.spec.json",
         ]),
-        "nav-capture,proc-sessions"
+        "general,recording"
       );
       assert.equal(
         selectBundles(["test/core-artifacts/apps-android/a.spec.json"]),
         "android-skip"
       );
+    });
+
+    it("runs the fast groups as one bundle so each OS pays setup once (ADR 01105)", function () {
+      // Each bundle is a job per OS, and each job pays ~3-4 min of cache
+      // restore, npm ci, and build before its first spec. The fast groups'
+      // fixtures run in 2-4 min, so splitting them spent more on setup than on
+      // tests and filled the 5-slot macOS pool ahead of the iOS critical path.
+      const fast = ["navigation", "capture", "interactions", "routing", "http",
+        "guards", "reporters", "process", "sessions"];
+      const owners = new Set(
+        fast.map((dir) => BUNDLES.find((b) => b.dirs.includes(dir))?.name)
+      );
+      assert.deepEqual([...owners], ["general"]);
     });
 
     it("normalizes Windows-style separators", function () {

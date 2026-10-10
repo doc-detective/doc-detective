@@ -18,12 +18,15 @@
 // directories under test/core-artifacts/; the CI-only attributes (timeout,
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
-  { name: "nav-capture", dirs: ["navigation", "capture"] },
-  { name: "interactions", dirs: ["interactions"] },
-  // `reporters` is shell-only (it spawns a nested CLI run), so it needs no
-  // browser or device and rides along with the other fast, headless groups.
-  { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },
-  { name: "proc-sessions", dirs: ["process", "sessions"] },
+  // The fast groups share one job per OS (ADR 01105): each job pays ~3-4 min
+  // of setup, more than these groups' fixtures take, and every extra macOS
+  // job competes with the iOS legs for the 5-slot macOS pool.
+  {
+    name: "general",
+    dirs: ["navigation", "capture", "interactions", "routing", "http", "guards",
+      "reporters", "process", "sessions"],
+    timeout: 30,
+  },
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },
