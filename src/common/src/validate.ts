@@ -43,6 +43,8 @@ function getValidator(
   if (!registered.has(instance)) {
     // Mark first: if an addSchema throws, later calls fail on the missing
     // schema instead of re-adding and masking the error with "already exists".
+    // That leaves the instance registered-but-incomplete for good, which is
+    // intended: the bundle is a build artifact, so a throw here is a build bug.
     registered.add(instance);
     for (const [name, schema] of Object.entries(schemasReferenced.schemas)) {
       instance.addSchema(schema, name);
