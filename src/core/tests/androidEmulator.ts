@@ -50,6 +50,7 @@ export {
   isCleanSnapshotStale,
   findUia2Helpers,
   bakeHelpersWith,
+  bestEffort,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -158,6 +159,22 @@ async function bakeHelpersWith(
     }
   }
   return found.driverVersion;
+}
+
+// Snapshot housekeeping must never abort a boot, but a silent failure leaves
+// slow boots unexplained — so log it. Returns whether the step succeeded.
+async function bestEffort(
+  step: () => unknown,
+  log: ((message: string) => void) | undefined,
+  what: string
+): Promise<boolean> {
+  try {
+    await step();
+    return true;
+  } catch (error: any) {
+    log?.(`Couldn't ${what}: ${error?.message ?? error}`);
+    return false;
+  }
 }
 
 // A clean snapshot built for another driver version holds stale helpers (an
@@ -937,7 +954,12 @@ async function realBootEmulator(
     isCleanSnapshotStale(readCleanSnapshotMeta(name, { avdHome }), helpers?.()?.driverVersion)
   ) {
     log?.(`The clean snapshot of "${name}" predates the current Appium driver; retaking it.`);
-    discardCleanSnapshot(name, { avdHome });
+    // Cold-boot either way; the retake's save replaces whatever is left.
+    await bestEffort(
+      () => discardCleanSnapshot(name, { avdHome }),
+      log,
+      `discard the stale clean snapshot of "${name}"`
+    );
     hasSnapshot = false;
   }
   let bakedVersion: string | undefined;
@@ -976,10 +998,18 @@ async function realBootEmulator(
       const found = helpers?.();
       if (!found) return;
       // Set only after every install succeeds (bakeHelpersWith throws first).
-      bakedVersion = await bakeHelpersWith(
-        (args) => runTool(adbPath, args, 120000),
-        udid,
-        found
+      // A failed bake still saves the snapshot; Appium then installs the
+      // helpers per session, as before ADR 01108.
+      await bestEffort(
+        async () => {
+          bakedVersion = await bakeHelpersWith(
+            (args) => runTool(adbPath, args, 120000),
+            udid,
+            found
+          );
+        },
+        log,
+        `bake Appium's helpers into the clean snapshot of "${desc.name}"`
       );
     },
     save: async () => {
@@ -993,7 +1023,13 @@ async function realBootEmulator(
       if (!saved) {
         log?.(`Couldn't save the clean snapshot of "${desc.name}"; its next boot will be cold.`);
       } else if (bakedVersion) {
-        writeCleanSnapshotMeta(name, { driverVersion: bakedVersion }, { avdHome });
+        // Without it the next boot sees no driver version and retakes the
+        // snapshot, so say why that happened.
+        await bestEffort(
+          () => writeCleanSnapshotMeta(name, { driverVersion: bakedVersion }, { avdHome }),
+          log,
+          `record the clean snapshot's driver version for "${desc.name}"`
+        );
       }
     },
   });

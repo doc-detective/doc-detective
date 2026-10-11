@@ -21,6 +21,7 @@ import {
   isCleanSnapshotStale,
   findUia2Helpers,
   bakeHelpersWith,
+  bestEffort,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -464,6 +465,37 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
     expect(r.outcome).to.equal("booted");
     expect(f.calls).to.deep.equal(["cold", "settle", "prepare", "save"]);
+  });
+});
+
+describe("androidEmulator: bestEffort", function () {
+  // Snapshot housekeeping (discarding a stale snapshot, baking helpers,
+  // recording metadata) must never abort a boot, but its failures must be
+  // visible: a silent one leaves slow boots unexplained.
+  it("logs a failing step instead of throwing, and reports it failed", async function () {
+    const logs = [];
+    const ok = await bestEffort(
+      () => {
+        throw new Error("EPERM");
+      },
+      (m) => logs.push(m),
+      "discard the stale snapshot"
+    );
+    expect(ok).to.equal(false);
+    expect(logs).to.deep.equal(["Couldn't discard the stale snapshot: EPERM"]);
+  });
+
+  it("awaits a passing step, logs nothing, and reports it succeeded", async function () {
+    const logs = [];
+    let ran = false;
+    const ok = await bestEffort(
+      async () => {
+        ran = true;
+      },
+      (m) => logs.push(m),
+      "x"
+    );
+    expect([ok, ran, logs]).to.deep.equal([true, true, []]);
   });
 });
 
