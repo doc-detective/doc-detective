@@ -112,13 +112,13 @@ fixtures) still validates against the stale schema. A fixture using a newly-adde
 with `/<field> must NOT be valid`, even though the source schema allows it.
 
 Related notes:
-- **A stale `node_modules` guts the committed types.** A long-lived worktree whose install predates
-  a `json-schema-to-typescript` major bump (15.x against a declared `^16.0.0`) emits
-  `{ [k: string]: unknown }` for every object next to `oneOf`/`anyOf`/`allOf` (one observation:
-  142k deletions across ~17 files). `generate:types` now refuses to run when the installed major
-  differs from the one declared in `src/common/package.json`, and tells you to `npm ci`. Same-major
-  drift (e.g. a prettier bump reflowing unions) still builds; the "Schema reference drift" workflow
-  rebuilds `build:common` and fails the PR on any diff under `src/common/src`. **Never commit that
+- **A stale `node_modules` guts the committed types.** Take a worktree installed before a
+  `json-schema-to-typescript` major bump (15.x against a declared `^16.0.0`). It emits
+  `{ [k: string]: unknown }` for every object next to `oneOf`/`anyOf`/`allOf`. One observation:
+  142k deletions across ~17 files. `generate:types` now refuses to run on a major mismatch with
+  `src/common/package.json`, and tells you to `npm ci`. Same-major drift (e.g. a prettier bump
+  reflowing unions) still builds. The "Schema reference drift" workflow runs `dereferenceSchemas`
+  and `generate:types`, then fails the PR on any diff under `src/common/src`. **Never commit that
   churn**: `git checkout -- src/common/src/types/generated/`, reinstall, and rebuild. That reset is
   a blunt instrument, so check what it would discard first. A schema edit in the same branch SHOULD
   regenerate types, and those are the one change in that directory worth keeping.

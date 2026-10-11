@@ -11,6 +11,8 @@ describe("generateTypes checkGeneratorVersion", function () {
   it("accepts an installed version in the declared major", function () {
     expect(() => checkGeneratorVersion("16.0.0", "^16.0.0")).to.not.throw();
     expect(() => checkGeneratorVersion("16.2.1", "^16.0.0")).to.not.throw();
+    expect(() => checkGeneratorVersion("16.0.0", "16.0.0")).to.not.throw();
+    expect(() => checkGeneratorVersion("15.0.4", "16.0.0")).to.throw(/npm ci/);
   });
 
   it("rejects an installed version from another major", function () {
