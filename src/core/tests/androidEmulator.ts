@@ -891,6 +891,9 @@ async function bootEmulatorOnce(
       if (!child.pid) return resolve();
       treeKill(child.pid, "SIGKILL", () => resolve());
     });
+    // SIGKILL lands in milliseconds; 30s is a generous bound. If the process
+    // somehow outlives it, the caller's cold retry reuses this port and fails
+    // cleanly on the held AVD lock (ADR 01106) rather than waiting forever.
     await waitForProcessExit(child, 30000);
     // Like the graceful shutdown: a straggling helper that inherited these
     // pipes must not hold the run open.
@@ -1061,7 +1064,6 @@ function buildAcquireDeviceDeps(
       realCreateAvd(avdmanager, a, env),
     boot: (desc: DeviceDescriptor, port: number) =>
       realBootEmulator(emulator, adb, desc, port, env, undefined, log, helpers),
-    kill: (entry: DeviceEntry) => shutdownEmulator(entry),
     log,
   };
 }
