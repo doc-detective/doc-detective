@@ -773,6 +773,10 @@ async function bootEmulatorOnce(
     while (exited === null && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 250));
     }
+    // Like the graceful shutdown: a straggling helper that inherited these
+    // pipes must not hold the run open.
+    child.stdout?.destroy();
+    child.stderr?.destroy();
   }
   return { outcome, child, diag, bootArgs };
 }

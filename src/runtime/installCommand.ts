@@ -195,13 +195,23 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
     const logger = makeLogger(pickLogLevel(argv));
     if (argv["reset-snapshot"]) {
       const { resetCleanSnapshots } = await import("./androidInstaller.js");
-      const reset = resetCleanSnapshots();
-      logger(
-        reset.length
-          ? `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`
-          : "No clean boot snapshots to reset.",
-        "info"
-      );
+      const { reset, failed } = resetCleanSnapshots();
+      if (reset.length) {
+        logger(
+          `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`,
+          "info"
+        );
+      }
+      for (const { name, error } of failed) {
+        logger(
+          `Couldn't reset the clean boot snapshot for ${name}: ${error}. Close any emulator running that AVD and rerun.`,
+          "error"
+        );
+      }
+      if (!reset.length && !failed.length) {
+        logger("No clean boot snapshots to reset.", "info");
+      }
+      if (failed.length) process.exitCode = 1;
       return;
     }
     const { installAndroid } = await import("./androidInstaller.js");
