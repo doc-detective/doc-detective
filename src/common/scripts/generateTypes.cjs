@@ -4,10 +4,11 @@ const path = require("path");
 
 // A stale install (e.g. v15 left over from before the v16 bump) silently emits
 // degraded types, such as `{ [k: string]: unknown }` for objects next to
-// oneOf/anyOf/allOf. Fail instead of writing them.
+// oneOf/anyOf/allOf. Fail instead of writing them. Only plain/^/~ ranges pin a
+// single major; anything else is skipped rather than misread.
 function checkGeneratorVersion(installed, declared) {
-  const major = (v) => v.match(/\d+/)[0];
-  if (major(installed) !== major(declared)) {
+  const declaredMajor = declared.match(/^[\^~]?(\d+)\./)?.[1];
+  if (declaredMajor && installed.split(".")[0] !== declaredMajor) {
     throw new Error(
       `json-schema-to-typescript ${installed} is installed but ${declared} is declared. Run \`npm ci\` at the repo root, then rebuild.`
     );

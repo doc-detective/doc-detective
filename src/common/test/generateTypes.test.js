@@ -16,5 +16,11 @@ describe("generateTypes checkGeneratorVersion", function () {
   it("rejects an installed version from another major", function () {
     expect(() => checkGeneratorVersion("15.0.4", "^16.0.0")).to.throw(/15\.0\.4.*\^16\.0\.0.*npm ci/);
     expect(() => checkGeneratorVersion("17.0.0", "^16.0.0")).to.throw(/npm ci/);
+    expect(() => checkGeneratorVersion("15.0.4", "~16.1.0")).to.throw(/npm ci/);
+  });
+
+  it("skips ranges it can't pin to one major instead of misreading them", function () {
+    expect(() => checkGeneratorVersion("16.0.0", ">=15.0.0 <17")).to.not.throw();
+    expect(() => checkGeneratorVersion("16.0.0", "latest")).to.not.throw();
   });
 });

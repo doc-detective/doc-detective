@@ -16,6 +16,7 @@ on:
       - "src/common/scripts/generateTypes.cjs"
       - "src/common/package.json"
       - "package-lock.json"
+      - ".github/workflows/docs-schema-refs.yml"
       - "docs/fern/pages/reference/schemas/**"
       - "docs/.scripts/buildSchemaReferencesV4.js"
   workflow_dispatch:
@@ -40,8 +41,10 @@ jobs:
       - name: Install dependencies (no postinstall)
         run: npm ci --ignore-scripts
 
+      # Only the steps that write committed files; `compile` writes gitignored dist/.
       - name: Rebuild doc-detective-common schemas and types
-        run: npm run build:common
+        working-directory: src/common
+        run: npm run dereferenceSchemas && npm run generate:types
 
       - name: Fail if committed common artifacts are out of date
         run: |
