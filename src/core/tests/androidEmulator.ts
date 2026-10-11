@@ -384,12 +384,20 @@ function planDeviceAcquisition(
 }
 
 // Resolve true once `proc` has exited (or was never there), false if it's
-// still running after `timeoutMs`.
+// still running after `timeoutMs`. A signal-terminated child (e.g. after a
+// SIGKILL tree-kill) has a null exitCode and a set signalCode, and its exit
+// event may already have fired — check both before waiting on the event.
 function waitForProcessExit(
-  proc: { exitCode: number | null; once: (event: "exit", cb: () => void) => any } | undefined,
+  proc:
+    | {
+        exitCode: number | null;
+        signalCode?: string | null;
+        once: (event: "exit", cb: () => void) => any;
+      }
+    | undefined,
   timeoutMs: number
 ): Promise<boolean> {
-  if (!proc || proc.exitCode !== null) return Promise.resolve(true);
+  if (!proc || proc.exitCode !== null || proc.signalCode) return Promise.resolve(true);
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(false), timeoutMs);
     proc.once("exit", () => {
