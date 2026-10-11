@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { getRuntimeDir } from "../dist/runtime/cacheDir.js";
 import {
   classifyAppIdentifier,
   defaultAppSurfaceName,
@@ -593,35 +594,48 @@ describe("appSurfacePreflight", function () {
     assert.match(outcome.reason, /macOS/);
   });
 
+  // Every Appium server is homed at <cacheDir>/runtime (ADR 01111). The
+  // runtime resolver is stubbed and the cacheDir is a scratch dir so these
+  // tests never touch (or install into) the real runtime cache.
+  let scratchCache;
+  beforeEach(function () {
+    scratchCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-preflight-"));
+  });
+  afterEach(function () {
+    fs.rmSync(scratchCache, { recursive: true, force: true });
+  });
+  const inRuntime = (name) => `/runtime/node_modules/${name}/index.js`;
+  const noInstall = async () => {
+    throw new Error("test must not install anything");
+  };
+
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
     // A2: the preflight is platform-tabled — on mac it must resolve/install
     // the Mac2 driver, never the Windows one.
-    const sep = path.sep;
     const requested = [];
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
-        resolveSource: (name) => {
+        resolvePathInCache: (name) => {
           requested.push(name);
-          return "shim";
+          return inRuntime(name);
         },
-        resolvePath: (name) =>
-          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+        ensureInstalled: noInstall,
         probeAccessibility: async () => true,
       },
     });
     assert.equal(outcome.ok, true);
-    assert.equal(outcome.appiumHome, `${sep}repo`);
-    assert.deepEqual(requested, ["appium-mac2-driver"]);
+    assert.ok(requested.includes("appium-mac2-driver"));
+    assert.ok(!requested.includes("appium-novawindows-driver"));
   });
 
   it("skips when the driver cannot be installed", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
-        resolveSource: () => null,
+        resolvePathInCache: () => null,
         ensureInstalled: async () => {
           throw new Error("offline");
         },
@@ -632,28 +646,24 @@ describe("appSurfacePreflight", function () {
     assert.match(outcome.reason, /offline/);
   });
 
-  it("resolves the shim home when the driver is shim-installed", async function () {
-    const sep = path.sep;
+  it("homes the server at <cacheDir>/runtime with the runtime's appium", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
-      deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) =>
-          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
-      },
+      deps: { resolvePathInCache: inRuntime, ensureInstalled: noInstall },
     });
     assert.equal(outcome.ok, true);
-    assert.equal(outcome.appiumHome, `${sep}repo`);
+    assert.equal(outcome.appiumHome, getRuntimeDir({ cacheDir: scratchCache }));
+    assert.equal(outcome.appiumEntry, inRuntime("appium"));
   });
 
   it("skips on mac when TCC accessibility is definitively denied, with the settings walkthrough", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        resolvePathInCache: inRuntime,
+        ensureInstalled: noInstall,
         probeAccessibility: async () => false,
       },
     });
@@ -665,25 +675,12 @@ describe("appSurfacePreflight", function () {
   it("proceeds on mac when the TCC probe is inconclusive, and never probes on Windows", async function () {
     // An erroring/unknown probe must NOT false-skip — a real TCC failure
     // still surfaces at session start with the same walkthrough.
-    // Paths are built with path.sep and the cache resolvers are stubbed:
-    // a foreign-separator path makes appiumHomeForDriverPath return null,
-    // which falls through to the REAL runtime cache (a force appium install
-    // + manifest invalidation) — that stomped the browser drivers' Appium
-    // home mid-suite on the Windows CI leg.
-    const sep = path.sep;
     const hermeticDeps = {
-      resolveSource: () => "shim",
-      resolvePath: (name) =>
-        `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
-      resolvePathInCache: () => {
-        throw new Error("test must not reach the real runtime cache");
-      },
-      ensureInstalled: async () => {
-        throw new Error("test must not install anything");
-      },
+      resolvePathInCache: inRuntime,
+      ensureInstalled: noInstall,
     };
     const inconclusive = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
         ...hermeticDeps,
@@ -696,7 +693,7 @@ describe("appSurfacePreflight", function () {
 
     let probed = 0;
     const win = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
         ...hermeticDeps,
@@ -727,24 +724,32 @@ describe("appSurfacePreflight", function () {
     );
   });
 
-  it("installs appium into the cache when the driver is cache-resolved", async function () {
+  it("installs only what the runtime is missing (driver and/or appium)", async function () {
     const installed = [];
-    let cacheHasAppium = false;
+    const present = new Set(["appium-novawindows-driver"]);
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
-        resolveSource: () => "cache",
-        resolvePathInCache: (name) =>
-          cacheHasAppium ? `/cache/node_modules/${name}/index.js` : null,
+        resolvePathInCache: (name) => (present.has(name) ? inRuntime(name) : null),
         ensureInstalled: async (pkgs) => {
           installed.push(...pkgs);
-          cacheHasAppium = true;
+          for (const p of pkgs) present.add(p);
         },
       },
     });
     assert.equal(outcome.ok, true);
     assert.deepEqual(installed, ["appium"]);
+  });
+
+  it("skips when the install succeeds but the runtime still can't resolve appium", async function () {
+    const outcome = await appSurfacePreflight({
+      config: { cacheDir: scratchCache },
+      platform: "windows",
+      deps: { resolvePathInCache: () => null, ensureInstalled: async () => {} },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /did not resolve/);
   });
 });
 

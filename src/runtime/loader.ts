@@ -110,7 +110,16 @@ function resolveEntry(requireFn: NodeRequire, name: string): string | null {
   }
 }
 
+// Appium and its drivers live only in <cacheDir>/runtime: every Appium server
+// is homed there (one APPIUM_HOME for browser and app surfaces alike), so a
+// copy in the shim's node_modules is never used — resolving one would split
+// Appium across two homes (ADR 01111).
+function isAppiumPackage(name: string): boolean {
+  return name === "appium" || name.startsWith("appium-");
+}
+
 function tryResolveFromShim(name: string): string | null {
+  if (isAppiumPackage(name)) return null;
   return resolveEntry(requireFromShim, name);
 }
 
@@ -664,6 +673,16 @@ export async function ensureRuntimeInstalled(
     record.npmPackages[name] = { installedVersion, installedAt: now };
   }
   writeInstalledRecord(record, ctx);
+  // Appium trusts an existing extension manifest and never rescans
+  // node_modules, so a driver installed after the manifest was built stays
+  // invisible ("Could not find a driver"). Drop it; the next server start
+  // rebuilds it from what's installed.
+  if (toInstall.some(isAppiumPackage)) {
+    fs.rmSync(path.join(runtimeDir, "node_modules", ".cache", "appium"), {
+      recursive: true,
+      force: true,
+    });
+  }
   // Record the new arrivals (now in installed.json AND on disk) so the NEXT
   // install's ideal tree keeps them too (#501).
   recordRuntimeDependencies(runtimeDir, ctx);

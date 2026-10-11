@@ -83,6 +83,28 @@ function cleanupTmp(dir) {
 // collector blow up" fixture used throughout this file.
 const BAD_CACHE_DIR = "bad;chars";
 
+// A scratch cacheDir whose runtime — the one APPIUM_HOME every server uses
+// (ADR 01111) — holds the browser drivers plus the given Appium manifest.
+// Appium drivers resolve only from the runtime, so the "resolvable" driver
+// classifications need them there. Callers clear DOC_DETECTIVE_CACHE_DIR,
+// which would otherwise win over config.cacheDir.
+function cacheWithAppiumManifest(manifestYaml) {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-appium-manifest-"));
+  const nm = path.join(cacheDir, "runtime", "node_modules");
+  fs.mkdirSync(path.join(nm, ".cache", "appium"), { recursive: true });
+  fs.writeFileSync(path.join(cacheDir, "runtime", "package.json"), "{}");
+  for (const name of ["appium-chromium-driver", "appium-geckodriver"]) {
+    fs.mkdirSync(path.join(nm, name), { recursive: true });
+    fs.writeFileSync(
+      path.join(nm, name, "package.json"),
+      JSON.stringify({ name, version: "1.0.0", main: "index.js" })
+    );
+    fs.writeFileSync(path.join(nm, name, "index.js"), "");
+  }
+  fs.writeFileSync(path.join(nm, ".cache", "appium", "extensions.yaml"), manifestYaml);
+  return cacheDir;
+}
+
 describe("debug/* remaining coverage", function () {
   // Belt-and-suspenders leak guard: every test restores its own stubs in a
   // `finally`, but if one is ever missed, this net catches it before the
@@ -1082,22 +1104,17 @@ describe("debug/* remaining coverage", function () {
 
     it("an unreadable extensions.yaml renders the Appium manifestError line and 'manifest unreadable' driver classification (lines 561-563, 570-578)", async function () {
       this.timeout(60000);
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-manifest-err-"));
-      const manifestDir = path.join(tmp, "node_modules", ".cache", "appium");
-      fs.mkdirSync(manifestDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(manifestDir, "extensions.yaml"),
-        "drivers:\n  bad: [unterminated"
-      );
+      const tmp = cacheWithAppiumManifest("drivers:\n  bad: [unterminated");
       const prevHome = process.env.APPIUM_HOME;
-      process.env.APPIUM_HOME = tmp;
+      const prevCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+      delete process.env.DOC_DETECTIVE_CACHE_DIR;
       try {
         const out = [];
         await printDebug({
           config: {
             input: ".",
             environment: { platform: "linux" },
-            cacheDir: BAD_CACHE_DIR,
+            cacheDir: tmp,
           },
           configPath: null,
           print: (line) => out.push(line),
@@ -1108,6 +1125,8 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
+        if (prevCacheEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+        else process.env.DOC_DETECTIVE_CACHE_DIR = prevCacheEnv;
         cleanupTmp(tmp);
       }
     });
@@ -1137,19 +1156,16 @@ describe("debug/* remaining coverage", function () {
 
     it("a valid manifest missing a driver entry renders 'resolvable but not registered' (line 578 branch)", async function () {
       this.timeout(60000);
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-appium-partial-"));
-      const manifestDir = path.join(tmp, "node_modules", ".cache", "appium");
-      fs.mkdirSync(manifestDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(manifestDir, "extensions.yaml"),
+      const tmp = cacheWithAppiumManifest(
         "drivers:\n  someOtherDriver:\n    pkgName: some-other-driver\n"
       );
       const prevHome = process.env.APPIUM_HOME;
-      process.env.APPIUM_HOME = tmp;
+      const prevCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+      delete process.env.DOC_DETECTIVE_CACHE_DIR;
       try {
         const out = [];
         await printDebug({
-          config: { input: ".", environment: { platform: "linux" }, cacheDir: BAD_CACHE_DIR },
+          config: { input: ".", environment: { platform: "linux" }, cacheDir: tmp },
           configPath: null,
           print: (line) => out.push(line),
         });
@@ -1159,6 +1175,8 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
+        if (prevCacheEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+        else process.env.DOC_DETECTIVE_CACHE_DIR = prevCacheEnv;
         cleanupTmp(tmp);
       }
     });
