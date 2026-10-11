@@ -51,7 +51,6 @@ export {
   waitForProcessExit,
   shutdownEmulatorWith,
   shutdownEmulator,
-  BOOT_POLL_INTERVAL_MS,
 };
 export type { DeviceDescriptor, DeviceRegistry, DeviceEntry, DeviceAcquisition };
 
@@ -377,7 +376,7 @@ async function shutdownEmulatorWith({
 
 // Sub-second so a resumed snapshot is noticed promptly; each probe is a cheap
 // `adb shell getprop`.
-const BOOT_POLL_INTERVAL_MS = 500;
+export const BOOT_POLL_INTERVAL_MS = 500;
 
 // Poll `probe` (sys.boot_completed == 1) until it reports booted, the emulator
 // process exits, or `timeoutMs` elapses. Probes immediately — no leading sleep
@@ -856,6 +855,8 @@ async function realBootEmulator(
       await runTool(adbPath, ["-s", udid, "shell", "am", "wait-for-broadcast-idle"], 60000);
     },
     save: async () => {
+      // Best-effort: a false (unconfirmed delete) skips the save, so the next
+      // boot is cold again and retakes the snapshot.
       await saveCleanSnapshotWith((args) => runTool(adbPath, args, 120000), udid);
     },
   });
