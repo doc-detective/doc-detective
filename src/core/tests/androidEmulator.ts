@@ -7,6 +7,7 @@
 
 import { execFile, spawn, spawnSync } from "node:child_process";
 import treeKill from "tree-kill";
+import fs from "node:fs";
 import path from "node:path";
 import {
   pickSystemImage,
@@ -51,6 +52,7 @@ export {
   waitForProcessExit,
   shutdownEmulatorWith,
   shutdownEmulator,
+  adbPathForSdkRoot,
 };
 export type { DeviceDescriptor, DeviceRegistry, DeviceEntry, DeviceAcquisition };
 
@@ -611,32 +613,48 @@ async function acquireDevice({
 }
 
 // Run-end sweep: kill only devices Doc Detective booted (launch-ownership),
-// leaving pre-existing emulators running. Effects injected.
+// leaving pre-existing emulators running. Shutdowns run concurrently: each
+// graceful one takes seconds, and a multi-device run shouldn't pay their sum.
+// Effects injected.
 async function teardownDeviceRegistry(
   registry: DeviceRegistry,
   kill: (entry: DeviceEntry) => Promise<void>
 ): Promise<void> {
-  for (const entry of registry.values()) {
-    if (!entry.bootedByUs) continue;
-    // A warm-phase boot can still be in flight at run end (the warm task
-    // resolves at boot initiation). Await it so the entry carries its real
-    // process/udid before the kill — sweeping mid-boot would no-op on the
-    // unset process and orphan the emulator. A boot that fails booted
-    // nothing, so there's nothing to kill.
-    if (entry.ready) {
-      try {
-        await entry.ready;
-      } catch {
-        continue;
-      }
-    }
-    try {
-      await kill(entry);
-    } catch {
-      // best-effort; a stuck emulator shouldn't fail the run's teardown
-    }
-  }
+  await Promise.all(
+    [...registry.values()]
+      .filter((entry) => entry.bootedByUs)
+      .map(async (entry) => {
+        // A warm-phase boot can still be in flight at run end (the warm task
+        // resolves at boot initiation). Await it so the entry carries its real
+        // process/udid before the kill — sweeping mid-boot would no-op on the
+        // unset process and orphan the emulator. A boot that fails booted
+        // nothing, so there's nothing to kill.
+        if (entry.ready) {
+          try {
+            await entry.ready;
+          } catch {
+            return;
+          }
+        }
+        try {
+          await kill(entry);
+        } catch {
+          // best-effort; a stuck emulator shouldn't fail the run's teardown
+        }
+      })
+  );
   registry.clear();
+}
+
+// The adb a shutdown should use: the SDK's platform-tools copy when it's
+// there, else adb on PATH — the same fallback boot uses (`sdk.adb ?? "adb"`).
+function adbPathForSdkRoot(sdkRoot: string): string {
+  const adb = path.join(
+    sdkRoot,
+    "platform-tools",
+    process.platform === "win32" ? "adb.exe" : "adb"
+  );
+  return fs.existsSync(adb) ? adb : "adb";
 }
 
 // --- Real effects (c8-ignored: exercised on the CI emulator legs and dev
@@ -870,11 +888,7 @@ async function realBootEmulator(
 // run never ends while it's still flushing its disk images (which hold the
 // clean snapshot). A shutdown that stalls gets tree-killed.
 async function shutdownEmulator(entry: DeviceEntry): Promise<void> {
-  const adbPath = path.join(
-    entry.sdkRoot,
-    "platform-tools",
-    process.platform === "win32" ? "adb.exe" : "adb"
-  );
+  const adbPath = adbPathForSdkRoot(entry.sdkRoot);
   await shutdownEmulatorWith({
     // The console answers "OK: killing emulator, bye bye".
     consoleKill: async () => {

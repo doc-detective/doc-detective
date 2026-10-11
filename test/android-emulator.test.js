@@ -24,10 +24,14 @@ import {
   waitForBootCompleted,
   waitForProcessExit,
   shutdownEmulatorWith,
+  adbPathForSdkRoot,
   BOOT_POLL_INTERVAL_MS,
 } from "../dist/core/tests/androidEmulator.js";
 
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -713,5 +717,40 @@ describe("androidEmulator: acquireDevice + teardown (injected effects)", functio
     await teardownDeviceRegistry(registry, async (e) => killed.push(e.name));
     expect(killed).to.deep.equal(["mine"]);
     expect(registry.size).to.equal(0);
+  });
+
+  it("teardown shuts its emulators down concurrently, not one after another", async function () {
+    // Graceful shutdowns take seconds each; a multi-device run shouldn't pay
+    // their sum. Each fake kill finishes only once BOTH have started.
+    const registry = createDeviceRegistry();
+    registry.set("a", { name: "a", udid: "emulator-5554", bootedByUs: true, sdkRoot: "/sdk" });
+    registry.set("b", { name: "b", udid: "emulator-5556", bootedByUs: true, sdkRoot: "/sdk" });
+    let started = 0;
+    let bothStarted;
+    const barrier = new Promise((r) => (bothStarted = r));
+    const kill = async () => {
+      if (++started === 2) bothStarted();
+      await barrier;
+    };
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("kills ran sequentially")), 1000)
+    );
+    await Promise.race([teardownDeviceRegistry(registry, kill), timeout]);
+    expect(registry.size).to.equal(0);
+  });
+});
+
+describe("androidEmulator: adbPathForSdkRoot", function () {
+  it("uses the SDK's platform-tools adb when it's there, else adb on PATH (as boot does)", function () {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dd-adb-path-"));
+    try {
+      expect(adbPathForSdkRoot(root)).to.equal("adb");
+      const adb = path.join(root, "platform-tools", process.platform === "win32" ? "adb.exe" : "adb");
+      fs.mkdirSync(path.dirname(adb), { recursive: true });
+      fs.writeFileSync(adb, "");
+      expect(adbPathForSdkRoot(root)).to.equal(adb);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

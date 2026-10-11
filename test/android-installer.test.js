@@ -740,6 +740,14 @@ describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
     expect(fs.existsSync(path.join(aDir, "snapshots", "user-snap"))).to.equal(true);
   });
 
+  it("dryRun reports what would be reset without deleting anything", function () {
+    fs.mkdirSync(clean(path.join(home, "a.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    const result = resetCleanSnapshots({ avdHome: home, dryRun: true });
+    expect(result).to.deep.equal({ reset: ["a"], failed: [] });
+    expect(fs.existsSync(clean(path.join(home, "a.avd")))).to.equal(true);
+  });
+
   it("returns nothing to reset when the AVD home doesn't exist", function () {
     expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal({
       reset: [],
