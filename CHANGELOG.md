@@ -1,3 +1,10 @@
+## [4.38.9](https://github.com/doc-detective/doc-detective/compare/v4.38.8...v4.38.9) (2026-10-11)
+
+
+### Bug Fixes
+
+* **firefox:** assign a unique geckodriver port per session ([80fecb6](https://github.com/doc-detective/doc-detective/commit/80fecb6956130115f512c3f4a709836f0df339dc))
+
 ## [4.38.8](https://github.com/doc-detective/doc-detective/compare/v4.38.7...v4.38.8) (2026-10-11)
 
 
