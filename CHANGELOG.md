@@ -1,3 +1,11 @@
+## [4.38.8](https://github.com/doc-detective/doc-detective/compare/v4.38.7...v4.38.8) (2026-10-11)
+
+
+### Bug Fixes
+
+* **common:** fail type generation on a stale json-schema-to-typescript, and guard schema/type drift in CI ([#734](https://github.com/doc-detective/doc-detective/issues/734)) ([d2ea0f7](https://github.com/doc-detective/doc-detective/commit/d2ea0f721a18224c0c1d4cc6a28aaa1996ac0563)), closes [#724](https://github.com/doc-detective/doc-detective/issues/724) [#732](https://github.com/doc-detective/doc-detective/issues/732)
+* **runtime:** default the install cache to ~/.doc-detective ([1bf2f6a](https://github.com/doc-detective/doc-detective/commit/1bf2f6a3443ef081221366518cf79d315c99acf0))
+
 ## [4.38.7](https://github.com/doc-detective/doc-detective/compare/v4.38.6...v4.38.7) (2026-10-10)
 
 
