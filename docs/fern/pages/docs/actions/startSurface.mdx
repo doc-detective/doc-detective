@@ -215,6 +215,20 @@ Without a `device`, an Android app runs on the context's default emulator, which
 
 Set a device once on the context to share it across every app the test launches. For the full list of device fields, including the fields Doc Detective reserves for later phases, see the [device descriptor](/reference/schemas/device-descriptor) reference.
 
+### How the emulator boots
+
+When an emulator for the device is already running, Doc Detective reuses it as-is and leaves it running after the run. Otherwise Doc Detective boots the emulator itself and shuts it down when the run ends.
+
+The first time Doc Detective boots an AVD, it cold-boots it and saves a snapshot named `doc-detective-clean` before any test runs. Later runs resume from that snapshot, which takes seconds instead of a full boot. Every run therefore starts from the same device state. If the snapshot can't load, for example after an emulator or system-image update, Doc Detective cold-boots and retakes it.
+
+Resuming the snapshot also restores the device's storage. Changes made after the snapshot don't carry over to the next run that Doc Detective boots. That includes an app a test installed or an app you added with `adb`. To keep such a change, reset the snapshot. The next boot then retakes it from the AVD's current state:
+
+```bash
+doc-detective install android --reset-snapshot
+```
+
+Each snapshot takes about as much disk space as the AVD's RAM, roughly 2.3 GB for the default AVD.
+
 ## Run on an iOS simulator
 
 An `ios` context runs the app on an iOS simulator that Doc Detective manages for you with `simctl`. iOS app surfaces run only on a macOS host. On Windows or Linux, an `ios` context skips with a reason rather than failing, so a cross-platform spec stays green.

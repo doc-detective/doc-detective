@@ -952,6 +952,65 @@ export function androidAvdHome(): string {
   return home;
 }
 
+// The snapshot every managed emulator boot resumes from (ADR 01106): taken
+// right after an AVD's first cold boot, before any test touches the device,
+// and never auto-saved over.
+export const CLEAN_SNAPSHOT_NAME = "doc-detective-clean";
+
+// An AVD's directory: `<name>.ini` names it in `path=`; avdmanager's default
+// is `<avdHome>/<name>.avd`.
+function avdDirFor(avdHome: string, name: string): string {
+  try {
+    const ini = fs.readFileSync(path.join(avdHome, `${name}.ini`), "utf8");
+    const match = /^path=(.+)$/m.exec(ini);
+    if (match) return match[1].trim();
+  } catch {
+    /* missing/unreadable ini: keep the default layout */
+  }
+  return path.join(avdHome, `${name}.avd`);
+}
+
+function cleanSnapshotDir(avdHome: string, name: string): string {
+  return path.join(avdDirFor(avdHome, name), "snapshots", CLEAN_SNAPSHOT_NAME);
+}
+
+/**
+ * Whether the AVD has a complete clean snapshot. `snapshot.pb` is written
+ * last, so a directory without it is an aborted save.
+ */
+export function hasCleanSnapshot(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): boolean {
+  return fs.existsSync(path.join(cleanSnapshotDir(avdHome, name), "snapshot.pb"));
+}
+
+/**
+ * Delete Doc Detective's clean boot snapshot from every AVD in `avdHome`, so
+ * each AVD's next managed boot cold-boots and retakes it from its current
+ * state. Other snapshots are untouched. Returns the AVD names reset.
+ */
+export function resetCleanSnapshots({
+  avdHome = androidAvdHome(),
+}: { avdHome?: string } = {}): string[] {
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(avdHome);
+  } catch {
+    return [];
+  }
+  const reset: string[] = [];
+  for (const entry of entries) {
+    if (!entry.endsWith(".ini")) continue;
+    const name = entry.slice(0, -".ini".length);
+    const snapshot = cleanSnapshotDir(avdHome, name);
+    if (!fs.existsSync(snapshot)) continue;
+    fs.rmSync(snapshot, { recursive: true, force: true });
+    reset.push(name);
+  }
+  return reset;
+}
+
 async function realRun(
   command: string,
   args: string[],

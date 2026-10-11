@@ -25,6 +25,8 @@ import {
   runSdkInstallWithRetry,
   isSystemImageComplete,
   SDK_INSTALL_MAX_ATTEMPTS,
+  resetCleanSnapshots,
+  hasCleanSnapshot,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -703,6 +705,53 @@ describe("android installer: installAndroid orchestration", function () {
       ).to.equal(true);
       expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(false);
     });
+  });
+});
+
+describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
+  let home;
+  const clean = (avdDir) => path.join(avdDir, "snapshots", "doc-detective-clean");
+  beforeEach(function () {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-avd-reset-"));
+  });
+  afterEach(function () {
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("deletes only Doc Detective's clean snapshot from every AVD, honoring the ini path", function () {
+    // a: ini points at a non-default directory, and has a user snapshot too.
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(path.join(aDir, "snapshots", "user-snap"), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), `avd.ini.encoding=UTF-8\npath=${aDir}\ntarget=android-36\n`);
+    // b: no path line — the default <home>/<name>.avd layout.
+    fs.mkdirSync(clean(path.join(home, "b.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    // c: no clean snapshot to reset.
+    fs.mkdirSync(path.join(home, "c.avd"), { recursive: true });
+    fs.writeFileSync(path.join(home, "c.ini"), `path=${path.join(home, "c.avd")}\n`);
+
+    expect(resetCleanSnapshots({ avdHome: home }).sort()).to.deep.equal(["a", "b"]);
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
+    expect(fs.existsSync(path.join(aDir, "snapshots", "user-snap"))).to.equal(true);
+  });
+
+  it("returns an empty list when the AVD home doesn't exist", function () {
+    expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal([]);
+  });
+
+  it("hasCleanSnapshot needs a complete snapshot (snapshot.pb) in the AVD's ini-resolved dir", function () {
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.writeFileSync(path.join(home, "a.ini"), `path=${aDir}\n`);
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    // A directory without snapshot.pb is a partial/aborted save.
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    fs.writeFileSync(path.join(clean(aDir), "snapshot.pb"), "x");
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(true);
+    // Unknown AVD.
+    expect(hasCleanSnapshot("nope", { avdHome: home })).to.equal(false);
   });
 });
 

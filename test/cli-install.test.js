@@ -52,6 +52,30 @@ describe("CLI install commands", function () {
     expect(r.stdout).to.match(/prebuild/i);
   });
 
+  it("`install android --reset-snapshot` deletes the clean boot snapshot and installs nothing (ADR 01106)", function () {
+    // Isolate os.homedir() (→ ~/.android/avd) so the real AVDs are never touched.
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-"));
+    try {
+      const avdHome = path.join(tmpHome, ".android", "avd");
+      const snap = path.join(avdHome, "pixel.avd", "snapshots", "doc-detective-clean");
+      fs.mkdirSync(snap, { recursive: true });
+      fs.writeFileSync(path.join(avdHome, "pixel.ini"), "target=android-36\n");
+      const r = runCli(["install", "android", "--reset-snapshot"], {
+        HOME: tmpHome,
+        USERPROFILE: tmpHome,
+        DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+      });
+      expect(r.status).to.equal(0);
+      expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+      expect(r.stdout).to.match(/pixel/);
+      expect(fs.existsSync(snap)).to.equal(false);
+      // A pure reset: no install plan, no --yes gate, no download.
+      expect(r.stdout).to.not.match(/Android install plan|--yes/);
+    } finally {
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
   it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
     // Dry-run is a pure preview: it must never require java, hit the network,
     // or spawn sdkmanager. It runs on every host regardless of SDK presence —

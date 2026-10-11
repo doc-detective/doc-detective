@@ -169,6 +169,11 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 - **Cause:** Android hardware keys (Back, Home, and so on) aren't on-screen elements.
 - **Solution:** Send a device-key token with [`type`](/docs/actions/type#device-keys-mobile-app-surfaces): `$BACK$`, `$HOME$`, `$APP_SWITCH$`, `$VOLUME_UP$`, or `$VOLUME_DOWN$`.
 
+**An app or setting you added to the emulator is gone on the next run**
+
+- **Cause:** When Doc Detective boots the emulator, it resumes a clean snapshot, which also restores the device's storage. Changes made after the snapshot don't carry over.
+- **Solution:** Run `doc-detective install android --reset-snapshot`. The next boot retakes the snapshot with your change included. See [How the emulator boots](/docs/actions/startsurface#how-the-emulator-boots).
+
 **Performing a gesture**
 
 - **Cause:** Swipes and scrolls aren't clicks.

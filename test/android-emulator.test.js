@@ -17,11 +17,77 @@ import {
   acquireDevice,
   teardownDeviceRegistry,
   hostHasKvm,
+  bootWithCleanSnapshot,
+  CLEAN_SNAPSHOT_NAME,
+  waitForBootCompleted,
+  BOOT_POLL_INTERVAL_MS,
 } from "../dist/core/tests/androidEmulator.js";
 
 before(async function () {
   const { expect } = await import("chai");
   global.expect = expect;
+});
+
+describe("androidEmulator: waitForBootCompleted", function () {
+  // A fake clock: sleep advances it, so deadlines are deterministic.
+  function fakeClock() {
+    let t = 0;
+    const sleeps = [];
+    return {
+      sleeps,
+      now: () => t,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+        t += ms;
+      },
+    };
+  }
+
+  it("probes immediately, then polls on a short interval until booted", async function () {
+    const clock = fakeClock();
+    let probes = 0;
+    const result = await waitForBootCompleted({
+      probe: async () => ++probes === 3,
+      exitCode: () => null,
+      timeoutMs: 180000,
+      ...clock,
+    });
+    expect(result).to.equal("booted");
+    expect(probes).to.equal(3);
+    // No leading sleep before the first probe; sub-second polling after.
+    expect(clock.sleeps).to.deep.equal([BOOT_POLL_INTERVAL_MS, BOOT_POLL_INTERVAL_MS]);
+    expect(BOOT_POLL_INTERVAL_MS).to.be.at.most(1000);
+  });
+
+  it("fails fast with the exit code when the emulator process dies", async function () {
+    const clock = fakeClock();
+    let probes = 0;
+    let code = null;
+    const result = await waitForBootCompleted({
+      probe: async () => {
+        probes++;
+        code = 1; // dies during the first probe
+        return false;
+      },
+      exitCode: () => code,
+      timeoutMs: 180000,
+      ...clock,
+    });
+    expect(result).to.deep.equal({ exited: 1 });
+    expect(probes).to.equal(1);
+  });
+
+  it("times out when the boot flag never flips", async function () {
+    const clock = fakeClock();
+    const result = await waitForBootCompleted({
+      probe: async () => false,
+      exitCode: () => null,
+      timeoutMs: 2000,
+      ...clock,
+    });
+    expect(result).to.equal("timeout");
+    expect(clock.now()).to.be.at.least(2000);
+  });
 });
 
 describe("androidEmulator: output parsers", function () {
@@ -84,9 +150,17 @@ describe("androidEmulator: descriptor + boot computation", function () {
     expect(nextEmulatorPort([5554, 5556])).to.equal(5558);
   });
 
-  it("emulatorBootArgs adds headless + software GPU + deterministic flags", function () {
+  it("emulatorBootArgs cold-boots by default and force-loads the clean snapshot when asked (ADR 01106)", function () {
+    expect(CLEAN_SNAPSHOT_NAME).to.equal("doc-detective-clean");
     expect(emulatorBootArgs({ name: "phone" }, 5554)).to.deep.equal([
       "-avd", "phone", "-port", "5554", "-no-snapshot", "-no-boot-anim",
+    ]);
+    // Snapshot boots never save over it, and exit (rather than silently cold
+    // boot) when it can't load — so the caller KNOWS which boot happened.
+    expect(emulatorBootArgs({ name: "phone" }, 5554, { snapshot: true })).to.deep.equal([
+      "-avd", "phone", "-port", "5554",
+      "-snapshot", CLEAN_SNAPSHOT_NAME, "-no-snapshot-save", "-force-snapshot-load",
+      "-no-boot-anim",
     ]);
     // Headless adds a software renderer — a windowless emulator with the host
     // GPU has no surface and exits immediately on a headless CI runner.
@@ -95,6 +169,76 @@ describe("androidEmulator: descriptor + boot computation", function () {
       "-no-window", "-no-audio", "-gpu", "swiftshader_indirect",
       "-no-snapshot", "-no-boot-anim",
     ]);
+  });
+});
+
+describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
+  function fakes(outcomes) {
+    const calls = [];
+    return {
+      calls,
+      attempt: async ({ snapshot }) => {
+        calls.push(snapshot ? "snapshot" : "cold");
+        return outcomes.shift();
+      },
+      settle: async () => {
+        calls.push("settle");
+      },
+      save: async () => {
+        calls.push("save");
+      },
+    };
+  }
+
+  it("loads an existing snapshot and never saves over it", async function () {
+    const f = fakes([{ outcome: "booted", id: 1 }]);
+    const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
+    expect(r).to.deep.equal({ outcome: "booted", id: 1 });
+    expect(f.calls).to.deep.equal(["snapshot"]);
+  });
+
+  it("cold-boots and takes the snapshot when there is none", async function () {
+    const f = fakes([{ outcome: "booted", id: 1 }]);
+    const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
+    expect(r.outcome).to.equal("booted");
+    expect(f.calls).to.deep.equal(["cold", "settle", "save"]);
+  });
+
+  it("retries cold and retakes the snapshot when the snapshot can't load", async function () {
+    const f = fakes([
+      { outcome: { exited: 1 }, id: 1 },
+      { outcome: "booted", id: 2 },
+    ]);
+    const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
+    expect(r).to.deep.equal({ outcome: "booted", id: 2 });
+    expect(f.calls).to.deep.equal(["snapshot", "cold", "settle", "save"]);
+  });
+
+  it("returns a failed cold boot as-is, without saving", async function () {
+    const f = fakes([{ outcome: { exited: 1 }, id: 1 }]);
+    const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
+    expect(r.outcome).to.deep.equal({ exited: 1 });
+    expect(f.calls).to.deep.equal(["cold"]);
+  });
+
+  it("still saves when settling fails (e.g. an Android version without the idle wait)", async function () {
+    const f = fakes([{ outcome: "booted", id: 1 }]);
+    f.settle = async () => {
+      f.calls.push("settle");
+      throw new Error("unknown command");
+    };
+    const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
+    expect(r.outcome).to.equal("booted");
+    expect(f.calls).to.deep.equal(["cold", "settle", "save"]);
+  });
+
+  it("keeps a booted device when the best-effort save fails", async function () {
+    const f = fakes([{ outcome: "booted", id: 1 }]);
+    f.save = async () => {
+      throw new Error("disk full");
+    };
+    const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
+    expect(r.outcome).to.equal("booted");
   });
 });
 

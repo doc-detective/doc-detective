@@ -185,9 +185,25 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
         type: "string",
         choices: ["phone", "tablet"] as const,
         describe: "Abstract hardware profile for the default AVD. Default: phone.",
+      })
+      .option("reset-snapshot", {
+        type: "boolean",
+        describe:
+          "Delete Doc Detective's clean boot snapshot from every AVD (nothing is installed). Each AVD's next managed boot cold-boots and retakes the snapshot from its current state.",
       }) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
+    if (argv["reset-snapshot"]) {
+      const { resetCleanSnapshots } = await import("./androidInstaller.js");
+      const reset = resetCleanSnapshots();
+      logger(
+        reset.length
+          ? `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`
+          : "No clean boot snapshots to reset.",
+        "info"
+      );
+      return;
+    }
     const { installAndroid } = await import("./androidInstaller.js");
     const reports = await installAndroid({
       yes: Boolean(argv.yes),
