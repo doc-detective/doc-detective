@@ -181,6 +181,15 @@ export function touchLastUsed(
  */
 export const MIN_PREBUILT_WDA_DRIVER_MAJOR = 10;
 
+/**
+ * Minimum appium-xcuitest-driver MAJOR that can launch the prebuilt runner app
+ * on a SIMULATOR directly (`appium:usePreinstalledWDA` + `appium:prebuiltWDAPath`:
+ * install the .app, then `simctl launch` it), skipping `xcodebuild
+ * test-without-building` on every session (ADR 01110). Validated on the 12.x
+ * line; older drivers keep the xcodebuild path.
+ */
+export const MIN_PREINSTALLED_WDA_DRIVER_MAJOR = 12;
+
 // One `xcodebuild -version` spawn max per process: sessions can be created
 // many times per run, and the Xcode version cannot change mid-run.
 let cachedXcodeProbe: XcodeVersion | null | undefined;
@@ -222,6 +231,9 @@ export interface ManagedWdaHit {
   key: string;
   /** Value for appium:derivedDataPath — the keyed DerivedData dir. */
   derivedDataPath: string;
+  /** The prebuilt runner app, set only when the installed driver can launch
+   * it directly (MIN_PREINSTALLED_WDA_DRIVER_MAJOR). */
+  runnerAppPath?: string;
 }
 
 /**
@@ -274,7 +286,13 @@ export function locateManagedWda(
     // one exception (it's the prune-freshness signal).
     touchLastUsed(keyDir, fs, now);
 
-    return { key, derivedDataPath: path.join(keyDir, "DerivedData") };
+    return {
+      key,
+      derivedDataPath: path.join(keyDir, "DerivedData"),
+      ...(driverMajor >= MIN_PREINSTALLED_WDA_DRIVER_MAJOR
+        ? { runnerAppPath: path.join(keyDir, RUNNER_APP_RELATIVE) }
+        : {}),
+    };
   } catch {
     // ADR 01049 degradation semantics: an unusable cache is a plain miss.
     return null;
@@ -309,6 +327,13 @@ export function applyManagedWdaCapabilities(
   if (managed) {
     capabilities["appium:derivedDataPath"] = managed.derivedDataPath;
     capabilities["appium:usePrebuiltWDA"] = true;
+    // Install the prebuilt runner and launch it without xcodebuild (ADR 01110).
+    // The driver copies the .app onto the simulator, so the products stay
+    // read-only.
+    if (managed.runnerAppPath) {
+      capabilities["appium:usePreinstalledWDA"] = true;
+      capabilities["appium:prebuiltWDAPath"] = managed.runnerAppPath;
+    }
   }
 }
 

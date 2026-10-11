@@ -1629,6 +1629,7 @@ describe("startAppSurface", function () {
           locateWda: () => ({
             key: "xcode-16.4-16F6-driver-10.8.1",
             derivedDataPath: "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+            runnerAppPath: "/dd-cache/runner.app",
           }),
         },
       });
@@ -1638,6 +1639,13 @@ describe("startAppSurface", function () {
       );
       // Read-only consumption: the session must not rebuild into the shared dir.
       assert.equal(caps["appium:usePrebuiltWDA"], true);
+      // Launch the prebuilt runner app directly instead of through xcodebuild
+      // on every session (ADR 01110).
+      assert.equal(caps["appium:usePreinstalledWDA"], true);
+      assert.equal(
+        caps["appium:prebuiltWDAPath"],
+        "/dd-cache/runner.app"
+      );
     } finally {
       if (prev === undefined)
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;

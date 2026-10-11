@@ -375,12 +375,19 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
           key: "xcode-16.4-16F6-driver-10.8.1",
           derivedDataPath:
             "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+          runnerAppPath: "/dd-cache/runner.app",
         }),
       });
       expect(capabilities["appium:derivedDataPath"]).to.equal(
         "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData"
       );
       expect(capabilities["appium:usePrebuiltWDA"]).to.equal(true);
+      // Launch the prebuilt runner app directly instead of through xcodebuild
+      // on every session (ADR 01110).
+      expect(capabilities["appium:usePreinstalledWDA"]).to.equal(true);
+      expect(capabilities["appium:prebuiltWDAPath"]).to.equal(
+        "/dd-cache/runner.app"
+      );
     } finally {
       if (prior === undefined) {
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
