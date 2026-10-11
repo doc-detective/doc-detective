@@ -221,6 +221,8 @@ When an emulator for the device is already running, Doc Detective reuses it as-i
 
 The first time Doc Detective boots an AVD, it cold-boots it and saves a snapshot named `doc-detective-clean` before any test runs. Later runs resume from that snapshot, which takes seconds instead of a full boot. Every run therefore starts from the same device state. If the snapshot can't load, for example after an emulator or system-image update, Doc Detective cold-boots and retakes it.
 
+The snapshot also includes the helper apps that Doc Detective's Android automation driver installs on the device. When an update brings a new driver version, the next run cold-boots once and retakes the snapshot with matching helpers.
+
 Resuming the snapshot also restores the device's storage. Changes made after the snapshot don't carry over to the next run that Doc Detective boots. That includes an app a test installed or an app you added with `adb`. To keep such a change, reset the snapshot. The next boot then retakes it from the AVD's current state:
 
 ```bash
