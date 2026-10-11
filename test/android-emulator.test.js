@@ -19,6 +19,7 @@ import {
   hostHasKvm,
   bootWithCleanSnapshot,
   cleanSnapshotSaveCommands,
+  saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
   waitForProcessExit,
@@ -272,6 +273,28 @@ describe("androidEmulator: cleanSnapshotSaveCommands (ADR 01106)", function () {
       ["-s", "emulator-5554", "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
       ["-s", "emulator-5554", "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
     ]);
+  });
+});
+
+describe("androidEmulator: saveCleanSnapshotWith (ADR 01106)", function () {
+  it("saves after the console confirms the delete (it answers OK even when there's nothing to delete)", async function () {
+    const ran = [];
+    const saved = await saveCleanSnapshotWith(async (args) => {
+      ran.push(args[4] + " " + args[5]);
+      return { stdout: "OK\r\n" };
+    }, "emulator-5554");
+    expect(saved).to.equal(true);
+    expect(ran).to.deep.equal(["snapshot delete", "snapshot save"]);
+  });
+
+  it("skips the save when the delete isn't confirmed, so a leftover can't make a bad snapshot", async function () {
+    const ran = [];
+    const saved = await saveCleanSnapshotWith(async (args) => {
+      ran.push(args[5]);
+      return { stdout: "KO: device not responding" };
+    }, "emulator-5554");
+    expect(saved).to.equal(false);
+    expect(ran).to.deep.equal(["delete"]);
   });
 });
 
