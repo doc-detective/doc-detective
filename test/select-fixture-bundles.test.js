@@ -9,7 +9,9 @@ const {
   selectBundles,
   selectMatrix,
   androidLegsRelevant,
+  selectLegs,
   BUNDLES,
+  OSES,
 } = require("../scripts/select-fixture-bundles.cjs");
 
 // Directories under test/core-artifacts/ that are NOT fixture-gate groups:
@@ -186,24 +188,59 @@ describe("select-fixture-bundles", function () {
     assert.equal(new Set(covered).size, covered.length, "no directory in two bundles");
   });
 
-  it("keeps fixtures.yml wired to the script's --matrix output (drift guard)", function () {
+  describe("selectLegs (iOS legs queue first, ADR 01106)", function () {
+    const key = (l) => `${l.os}|${l.bundle.name}`;
+
+    it("puts exactly the macOS legs of prebootIos bundles in the ios list", function () {
+      const { ios } = selectLegs(["src/core/utils.ts"]);
+      assert.deepEqual(ios.map(key).sort(), ["macos-latest|apps-ios", "macos-latest|mobile-web-ios"]);
+      for (const l of ios) assert.equal(l.bundle.prebootIos, true);
+    });
+
+    it("splits the full OS x bundle grid with nothing lost or doubled", function () {
+      const { ios, rest } = selectLegs([]);
+      const all = [...ios, ...rest].map(key);
+      assert.equal(new Set(all).size, all.length, "no leg in both lists");
+      const grid = OSES.flatMap((os) => selectMatrix([]).map((b) => `${os}|${b.name}`));
+      assert.deepEqual(all.sort(), grid.sort());
+    });
+
+    it("leaves the ios list empty when narrowing drops the iOS bundles", function () {
+      const { ios, rest } = selectLegs(["test/core-artifacts/http/checkLink.spec.json"]);
+      assert.deepEqual(ios, []);
+      assert.deepEqual(rest.map(key).sort(), OSES.map((os) => `${os}|general`).sort());
+    });
+  });
+
+  it("keeps fixtures.yml wired to the script's leg lists (drift guard)", function () {
     const wf = parseYaml(
       fs.readFileSync(
         path.join(process.cwd(), ".github", "workflows", "fixtures.yml"),
         "utf8"
       )
     );
-    // The matrix is dynamic (built from the select job), not a static list.
+    // Both matrices are dynamic (built from the select job), not static lists.
     assert.equal(
-      wf.jobs.fixtures.strategy.matrix.bundle,
-      "${{ fromJSON(needs.select.outputs.matrix) }}"
+      wf.jobs["fixtures-ios"].strategy.matrix,
+      "${{ fromJSON(needs.select.outputs.iosLegs) }}"
     );
-    assert.equal(wf.jobs.fixtures.needs, "select");
-    // The select job runs THIS script with --matrix and --android-legs.
+    assert.equal(
+      wf.jobs.fixtures.strategy.matrix,
+      "${{ fromJSON(needs.select.outputs.restLegs) }}"
+    );
+    // The iOS legs queue as soon as select finishes; the rest wait for the
+    // stagger job, so the iOS legs are ahead of them for macOS slots.
+    assert.equal(wf.jobs["fixtures-ios"].needs, "select");
+    assert.deepEqual(wf.jobs.fixtures.needs, ["select", "stagger"]);
+    assert.equal(wf.jobs.stagger.needs, "select");
+    // One step list (a YAML anchor), so the two jobs can never drift apart.
+    assert.deepEqual(wf.jobs["fixtures-ios"].steps, wf.jobs.fixtures.steps);
+    // The select job runs THIS script for both leg lists and --android-legs.
     const selectRun = wf.jobs.select.steps
       .map((s) => s.run || "")
       .join("\n");
-    assert.match(selectRun, /select-fixture-bundles\.cjs --matrix/);
+    assert.match(selectRun, /select-fixture-bundles\.cjs --legs-ios/);
+    assert.match(selectRun, /select-fixture-bundles\.cjs --legs-rest/);
     assert.match(selectRun, /select-fixture-bundles\.cjs --android-legs/);
   });
 
