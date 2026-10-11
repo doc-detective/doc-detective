@@ -59,7 +59,9 @@ Preserve that behavior in any install-flow refactor.
 Every Appium server, browser and app surface alike, is homed at `<cacheDir>/runtime` (ADR 01111).
 The loader never resolves `appium` or `appium-*` from the shim, even in a source checkout whose
 `node_modules` has them. Don't reintroduce a shim fallback for them: it splits Appium across two
-homes.
+homes. For the same reason they're declared in `ddRuntimeDependencies`, not `optionalDependencies`,
+so `npm ci` never installs an unused copy. Dependabot doesn't read that custom field, so bump their
+ranges by hand.
 
 ## Testing note
 
