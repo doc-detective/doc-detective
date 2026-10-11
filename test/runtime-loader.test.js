@@ -813,4 +813,71 @@ describe("runtime/loader", function () {
       expect(spawner.calls).to.have.lengthOf(1);
     });
   });
+
+  // Every Appium server shares one APPIUM_HOME, <cacheDir>/runtime, so Appium
+  // and its drivers resolve and install only there — never from the shim's
+  // node_modules, even when the shim has them (ADR 01111).
+  describe("Appium packages live only in the runtime cache", function () {
+    it("never resolves appium or an appium-* driver from the shim", function () {
+      if (!resolveHeavyDepPath("pngjs")) this.skip(); // not a source checkout
+      for (const name of ["appium", "appium-chromium-driver"]) {
+        expect(resolveHeavyDepPath(name), name).to.equal(null);
+        expect(resolveHeavyDepSource(name), name).to.equal(null);
+      }
+    });
+
+    it("resolves appium from the runtime cache", function () {
+      const runtimeDir = getRuntimeDir({ cacheDir: tmpRoot });
+      const pkgDir = path.join(runtimeDir, "node_modules", "appium");
+      fs.mkdirSync(pkgDir, { recursive: true });
+      fs.writeFileSync(path.join(runtimeDir, "package.json"), "{}");
+      fs.writeFileSync(
+        path.join(pkgDir, "package.json"),
+        JSON.stringify({ name: "appium", version: "3.8.0", main: "index.js" })
+      );
+      fs.writeFileSync(path.join(pkgDir, "index.js"), "");
+      // realpath: require.resolve returns real paths, and macOS's tmpdir
+      // (/var/...) is a symlink to /private/var/...
+      expect(fs.realpathSync(resolveHeavyDepPath("appium"))).to.equal(
+        fs.realpathSync(path.join(pkgDir, "index.js"))
+      );
+      expect(resolveHeavyDepSource("appium")).to.equal("cache");
+    });
+
+    it("installs appium into the runtime cache even when the shim has it", async function () {
+      const spawner = makeFakeSpawner();
+      await ensureRuntimeInstalled(["appium"], {
+        deps: { spawn: spawner, logger: () => {} },
+      });
+      expect(spawner.calls).to.have.lengthOf(1);
+      expect(spawner.calls[0].args.some((a) => a.startsWith("appium@"))).to.equal(
+        true
+      );
+    });
+
+    it("drops Appium's extension manifest after installing an Appium package, and only then", async function () {
+      // Appium trusts an existing node_modules/.cache/appium manifest and never
+      // rescans, so a driver installed after it was built stays invisible.
+      const manifestDir = path.join(
+        getRuntimeDir({ cacheDir: tmpRoot }),
+        "node_modules",
+        ".cache",
+        "appium"
+      );
+      const seed = () => {
+        fs.mkdirSync(manifestDir, { recursive: true });
+        fs.writeFileSync(path.join(manifestDir, "extensions.yaml"), "drivers: {}");
+      };
+      seed();
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: makeFakeSpawner(), logger: () => {} },
+        force: true,
+      });
+      expect(fs.existsSync(manifestDir)).to.equal(true);
+      await ensureRuntimeInstalled(["appium-chromium-driver"], {
+        deps: { spawn: makeFakeSpawner(), logger: () => {} },
+      });
+      expect(fs.existsSync(manifestDir)).to.equal(false);
+    });
+  });
 });

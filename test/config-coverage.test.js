@@ -386,6 +386,20 @@ describe("config.ts — getBrowserDiagnostics", function () {
     );
   }
 
+  // Appium drivers resolve only from <cacheDir>/runtime (ADR 01111), so a
+  // test that wants a browser available seeds its driver there.
+  function seedRuntimeDriver(cacheDir, name) {
+    const runtimeDir = path.join(cacheDir, "runtime");
+    const pkgDir = path.join(runtimeDir, "node_modules", name);
+    fs.mkdirSync(pkgDir, { recursive: true });
+    fs.writeFileSync(path.join(runtimeDir, "package.json"), "{}");
+    fs.writeFileSync(
+      path.join(pkgDir, "package.json"),
+      JSON.stringify({ name, version: "1.0.0", main: "index.js" })
+    );
+    fs.writeFileSync(path.join(pkgDir, "index.js"), "");
+  }
+
   it("reports all three browsers unavailable with an empty cache on non-mac", async function () {
     const cacheDir = trackedTmpDir();
     const config = { cacheDir, environment: { platform: "windows" } };
@@ -409,12 +423,12 @@ describe("config.ts — getBrowserDiagnostics", function () {
         chromedriver: { installedVersion: "124.0.0" },
       },
     });
+    seedRuntimeDriver(cacheDir, "appium-chromium-driver");
     const config = { cacheDir, environment: { platform: "windows" } };
     const { browsers } = await getBrowserDiagnostics({ config });
     const chrome = browsers.find((b) => b.name === "chrome");
-    // appium-chromium-driver resolves from the dev checkout's node_modules,
-    // so with both browser components recorded, chrome is available and its
-    // component details echo the recorded versions.
+    // With the driver in the runtime and both browser components recorded,
+    // chrome is available and its component details echo the recorded versions.
     assert.equal(chrome.available, true);
     const browserComp = chrome.components.find((c) => c.label === "chrome browser");
     assert.equal(browserComp.installed, true);
@@ -430,6 +444,7 @@ describe("config.ts — getBrowserDiagnostics", function () {
         geckodriver: { installedVersion: "0.34.0" },
       },
     });
+    seedRuntimeDriver(cacheDir, "appium-geckodriver");
     const config = { cacheDir, environment: { platform: "windows" } };
     const { browsers } = await getBrowserDiagnostics({ config });
     const firefox = browsers.find((b) => b.name === "firefox");
