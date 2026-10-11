@@ -244,6 +244,22 @@ describe("select-fixture-bundles", function () {
     assert.match(selectRun, /select-fixture-bundles\.cjs --android-legs/);
   });
 
+  it("keeps fixtures-debug.yml running the gate's exact fixture steps (drift guard)", function () {
+    const read = (f) =>
+      parseYaml(fs.readFileSync(path.join(process.cwd(), ".github", "workflows", f), "utf8"));
+    const gate = read("fixtures.yml");
+    const debug = read("fixtures-debug.yml");
+    // A single-leg run is only a faithful sample of a gate leg if it runs the
+    // same steps (cache, pre-boot, WDA prebuild, action inputs, gate).
+    assert.deepEqual(debug.jobs.fixtures.steps, gate.jobs.fixtures.steps);
+    assert.equal(debug.jobs.fixtures.strategy.matrix, "${{ fromJSON(needs.select.outputs.leg) }}");
+    assert.equal(debug.jobs.fixtures["timeout-minutes"], gate.jobs.fixtures["timeout-minutes"]);
+    // The leg comes from the selector, so bundle attributes can't drift either.
+    const selectRun = debug.jobs.select.steps.map((s) => s.run || "").join("\n");
+    assert.match(selectRun, /select-fixture-bundles\.cjs --legs-ios/);
+    assert.match(selectRun, /select-fixture-bundles\.cjs --legs-rest/);
+  });
+
   it("gates all three android KVM legs on the select job's androidLegs output", function () {
     const wf = parseYaml(
       fs.readFileSync(
