@@ -1,4 +1,10 @@
+import Mocha from "mocha";
 import { createTestServers } from "./server/instances.js";
+import { freezeAllowanceMs, installFreezeAllowance } from "./freeze-allowance.js";
+
+// Windows CI runners freeze the whole process on bad days; give every enforced
+// timeout a fixed cushion there so a freeze can't fail an innocent test.
+installFreezeAllowance(Mocha, freezeAllowanceMs(process.platform, process.env));
 
 // Canonical two-server topology (8092 main / 8093 API) lives in
 // test/server/instances.js so the standalone CI launcher (test/server/start.js)
