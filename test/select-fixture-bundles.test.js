@@ -188,7 +188,7 @@ describe("select-fixture-bundles", function () {
     assert.equal(new Set(covered).size, covered.length, "no directory in two bundles");
   });
 
-  describe("selectLegs (iOS legs queue first, ADR 01106)", function () {
+  describe("selectLegs (iOS legs queue first, ADR 01109)", function () {
     const key = (l) => `${l.os}|${l.bundle.name}`;
 
     it("puts exactly the macOS legs of prebootIos bundles in the ios list", function () {

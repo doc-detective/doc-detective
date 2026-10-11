@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      # {"include": [{os, bundle}, ...]} leg lists (ADR 01106): the macOS
+      # {"include": [{os, bundle}, ...]} leg lists (ADR 01109): the macOS
       # legs of the iOS bundles, and everything else.
       iosLegs: ${{ steps.pick.outputs.iosLegs }}
       restLegs: ${{ steps.pick.outputs.restLegs }}
@@ -100,7 +100,7 @@ jobs:
           echo "restLegs=$restLegs" >> "$GITHUB_OUTPUT"
           echo "androidLegs=$androidLegs" >> "$GITHUB_OUTPUT"
 
-  # Holds the non-iOS legs back ~1 min (ADR 01106). The macOS iOS legs are the
+  # Holds the non-iOS legs back ~1 min (ADR 01109). The macOS iOS legs are the
   # gate's critical path (16-19 min), and GitHub doesn't hand out runner slots
   # in matrix order, so when every leg queues at once the iOS legs often wait
   # behind shorter ones for the ~5 macOS slots. Queueing them a minute earlier
@@ -138,7 +138,7 @@ jobs:
       # composition, the zero-spec-typo caution, and the iOS-solo rule are
       # documented in that script and ADR 01048 / 01055 / 01105.
       matrix: ${{ fromJSON(needs.select.outputs.restLegs) }}
-    # Anchored so fixtures-ios runs the identical step list (ADR 01106).
+    # Anchored so fixtures-ios runs the identical step list (ADR 01109).
     steps: &fixture-steps
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -333,7 +333,7 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # The macOS legs of the iOS bundles, the gate's critical path (ADR 01106).
+  # The macOS legs of the iOS bundles, the gate's critical path (ADR 01109).
   # Same steps as `fixtures` (the anchor), but queued as soon as `select`
   # finishes, ahead of the legs that wait on `stagger`. Skips itself when
   # narrowing drops both iOS bundles (an empty matrix is an error otherwise).

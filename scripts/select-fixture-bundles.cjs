@@ -87,7 +87,7 @@ function selectMatrix(changedFiles) {
 const OSES = ["ubuntu-latest", "windows-latest", "macos-latest"];
 
 /**
- * The OS x bundle legs for a change set, split in two (ADR 01106). `ios` holds
+ * The OS x bundle legs for a change set, split in two (ADR 01109). `ios` holds
  * the macOS legs of the prebootIos bundles, the gate's critical path. fixtures.yml
  * queues them before `rest` so they aren't waiting on macOS slots held by
  * shorter legs.
