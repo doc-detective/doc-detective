@@ -172,7 +172,7 @@ On a host that can't run an Android emulator, the test skips with a reason rathe
 **An app or setting you added to the emulator is gone on the next run**
 
 - **Cause:** When Doc Detective boots the emulator, it resumes a clean snapshot, which also restores the device's storage. Changes made after the snapshot don't carry over.
-- **Solution:** Run `doc-detective install android --reset-snapshot`. The next boot retakes the snapshot with your change included. See [How the emulator boots](/docs/actions/startsurface#how-the-emulator-boots).
+- **Solution:** Run `doc-detective install android --reset-snapshot`. The next boot retakes the snapshot with your change included. See [How the emulator boots](/docs/actions/startsurface#how-the-emulator-boots) and the [`--reset-snapshot` option](/reference/reference/cli/install#install-android).
 
 **Performing a gesture**
 
