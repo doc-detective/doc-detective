@@ -49,6 +49,7 @@ export {
   bootWithCleanSnapshot,
   isCleanSnapshotStale,
   findUia2Helpers,
+  bakeHelpersWith,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -140,6 +141,23 @@ function findUia2Helpers(
     }
   }
   return driverVersion && apks.length ? { driverVersion, apks } : null;
+}
+
+// Install every helper APK on the device (`adb install -r -g`). Returns the
+// driver version they were baked for only once ALL succeed; a failed install
+// throws, so the snapshot never records a version its helpers don't match.
+async function bakeHelpersWith(
+  run: (args: string[]) => Promise<{ stdout: string }>,
+  udid: string,
+  found: { driverVersion: string; apks: string[] }
+): Promise<string> {
+  for (const apk of found.apks) {
+    const { stdout } = await run(["-s", udid, "install", "-r", "-g", apk]);
+    if (!/Success/.test(stdout)) {
+      throw new Error(`adb install ${path.basename(apk)}: ${stdout.trim()}`);
+    }
+  }
+  return found.driverVersion;
 }
 
 // A clean snapshot built for another driver version holds stale helpers (an
@@ -946,13 +964,12 @@ async function realBootEmulator(
     prepare: async () => {
       const found = helpers?.();
       if (!found) return;
-      bakedVersion = found.driverVersion;
-      for (const apk of found.apks) {
-        const { stdout } = await runTool(adbPath, ["-s", udid, "install", "-r", "-g", apk], 120000);
-        if (!/Success/.test(stdout)) {
-          throw new Error(`adb install ${path.basename(apk)}: ${stdout.trim()}`);
-        }
-      }
+      // Set only after every install succeeds (bakeHelpersWith throws first).
+      bakedVersion = await bakeHelpersWith(
+        (args) => runTool(adbPath, args, 120000),
+        udid,
+        found
+      );
     },
     save: async () => {
       // Best-effort: an unconfirmed save leaves no snapshot, so the next boot

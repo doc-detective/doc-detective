@@ -20,6 +20,7 @@ import {
   bootWithCleanSnapshot,
   isCleanSnapshotStale,
   findUia2Helpers,
+  bakeHelpersWith,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -455,6 +456,32 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
     expect(r.outcome).to.equal("booted");
     expect(f.calls).to.deep.equal(["cold", "settle", "prepare", "save"]);
+  });
+});
+
+describe("androidEmulator: bakeHelpersWith (ADR 01108)", function () {
+  const found = { driverVersion: "8.7.0", apks: ["/a/settings.apk", "/a/server.apk"] };
+
+  it("installs every helper APK and returns the driver version they were baked for", async function () {
+    const installed = [];
+    const version = await bakeHelpersWith(async (args) => {
+      installed.push(args[args.length - 1]);
+      return { stdout: "Performing Streamed Install\nSuccess\n" };
+    }, "emulator-5554", found);
+    expect(version).to.equal("8.7.0");
+    expect(installed).to.deep.equal(found.apks);
+  });
+
+  it("throws on a failed install, so no driver version gets recorded for the snapshot", async function () {
+    let threw = false;
+    try {
+      await bakeHelpersWith(async (args) => ({
+        stdout: args[args.length - 1].endsWith("server.apk") ? "Failure [INSTALL_FAILED_INSUFFICIENT_STORAGE]" : "Success",
+      }), "emulator-5554", found);
+    } catch (error) {
+      threw = /server\.apk/.test(error.message);
+    }
+    expect(threw).to.equal(true);
   });
 });
 
