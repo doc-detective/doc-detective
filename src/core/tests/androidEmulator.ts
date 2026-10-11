@@ -45,6 +45,7 @@ export {
   hostHasKvm,
   bootWithCleanSnapshot,
   cleanSnapshotSaveCommands,
+  saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
   waitForProcessExit,
@@ -111,6 +112,22 @@ function cleanSnapshotSaveCommands(udid: string): string[][] {
     ["-s", udid, "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
     ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
   ];
+}
+
+// Run the save, but only after the console confirms the delete (it answers
+// OK even when there's nothing to delete). An unconfirmed delete may have
+// left the stale copy behind, so skip the save: the next boot is cold and
+// retakes it, rather than resuming a snapshot that can't. Returns whether
+// the save was issued.
+async function saveCleanSnapshotWith(
+  run: (args: string[]) => Promise<{ stdout: string }>,
+  udid: string
+): Promise<boolean> {
+  const [deleteArgs, saveArgs] = cleanSnapshotSaveCommands(udid);
+  const { stdout } = await run(deleteArgs);
+  if (!/\bOK\b/.test(stdout)) return false;
+  await run(saveArgs);
+  return true;
 }
 
 // --- Descriptor / boot computation (pure) ---
@@ -789,6 +806,7 @@ async function bootEmulatorOnce(
     // pipes must not hold the run open.
     child.stdout?.destroy();
     child.stderr?.destroy();
+    child.unref?.();
   }
   return { outcome, child, diag, bootArgs };
 }
@@ -838,9 +856,7 @@ async function realBootEmulator(
       await runTool(adbPath, ["-s", udid, "shell", "am", "wait-for-broadcast-idle"], 60000);
     },
     save: async () => {
-      for (const args of cleanSnapshotSaveCommands(udid)) {
-        await runTool(adbPath, args, 120000);
-      }
+      await saveCleanSnapshotWith((args) => runTool(adbPath, args, 120000), udid);
     },
   });
   if (result.outcome === "booted") return { udid, process: result.child };
