@@ -50,27 +50,48 @@ Chosen option: 3, a clean named snapshot, with a reset command.
 * A managed boot first checks the AVD for a complete `doc-detective-clean`
   snapshot, meaning its `snapshot.pb` exists. If it's there, the boot loads it
   with `-snapshot doc-detective-clean`. It also passes `-no-snapshot-save` and
-  `-force-snapshot-load`. With
-  `-force-snapshot-load`, the emulator exits instead of silently cold booting
-  when the snapshot can't load (for example after an emulator or system-image
-  update, or a GPU-mode change). Doc Detective then retries as a cold boot.
+  `-force-snapshot-load`. The second flag makes the emulator exit when the
+  snapshot can't load, instead of silently cold booting. That happens after an
+  emulator or system-image update, or a GPU-mode change. Doc Detective then
+  retries as a cold boot.
 * A cold boot (no snapshot, or the retry) runs with `-no-snapshot`. Once
-  `sys.boot_completed` is set, and before any test touches the device, Doc
-  Detective lets the device settle and then saves `doc-detective-clean`
-  through the emulator console. The save is best-effort, and a failed one
-  means the next boot is cold again.
+  `sys.boot_completed` is set, Doc Detective lets the device settle. It then
+  saves `doc-detective-clean` through the emulator console, before any test
+  touches the device. The save is best-effort. A failed one means the next
+  boot is cold again.
 * Settling runs `adb shell am wait-for-broadcast-idle`, capped at 60 s. After
   `sys.boot_completed`, boot-completed receivers keep the guest CPU at 90-99%
   for about 10 s. The command returned at +11.6 s, right as the CPU dropped
   below 10%. A snapshot taken before that point makes every resume replay the
-  work: startup was 24.7 s with an unsettled snapshot and 19.4 s with a
-  settled one. Android versions without the command exit it immediately and
-  get an unsettled snapshot, which is still faster than a cold boot.
+  work. Startup was 24.7 s with an unsettled snapshot and 19.4 s with a
+  settled one. Older Android versions lack the command and exit it at once.
+  They get an unsettled snapshot, which still beats a cold boot.
 * Which boot happened is decided from the disk check and the process exit,
-  never from the emulator's log. Its stdout is block-buffered when piped, so a
-  "Successfully loaded snapshot" line can arrive after `sys.boot_completed`
-  reads `1`. An early prototype that relied on that line re-saved the snapshot
-  over a just-resumed VM, and the next boot from it hung.
+  never from the emulator's log. Its stdout is block-buffered when piped. So
+  the "Successfully loaded snapshot" line can arrive after
+  `sys.boot_completed` reads `1`. An early prototype relied on that line. It
+  re-saved the snapshot over a just-resumed VM, and the next boot hung.
+* A bad snapshot never fails a test. Healthy resumes take 3-9 s. A snapshot
+  boot that exits, or that misses `sys.boot_completed` within 60 s, is torn
+  down. Doc Detective deletes that snapshot, cold-boots, and retakes it. A
+  wedged guest can ignore the console's `emu kill`. So the timeout path
+  tree-kills the emulator launcher. Killing only the launcher orphaned its
+  qemu child on Windows. The orphan held the AVD lock and port, and every
+  later boot of that AVD in the run failed.
+* Run-end teardown shuts emulators down gracefully. It sends `emu kill` and
+  waits up to 8 s for the exit, which normally takes 1-4 s. An accepted kill
+  arms the emulator's own watchdog, `emulator -kill <pid> -sleep 20`. The
+  watchdog ends qemu within 20 s. Open adb clients, such as Appium's
+  `logcat`, sometimes stall qemu's exit until then. So a slow exit is left to
+  the watchdog, not waited on or hard-killed. Doc Detective tree-kills only
+  when the console refused the kill. It then releases the emulator's stdio
+  pipes. The watchdog inherits them and would otherwise hold the run open.
+* Teardown used to tree-kill right away. qemu keeps qcow2 metadata in memory,
+  so a hard kill can leave the AVD's disk images inconsistent. Those images
+  hold the clean snapshot's disk state. During this work, one snapshot went
+  bad in a full fixture run and couldn't be reproduced in isolation. The same
+  hard kill also left an app's APK unreadable on the next cold boot, with
+  `dumpsys package` showing `pkg=null`.
 * `doc-detective install android --reset-snapshot` deletes `doc-detective-clean`
   from every AVD in the managed AVD home. It leaves other snapshots alone and
   installs nothing. Each AVD's next managed boot cold-boots and retakes the
@@ -80,8 +101,10 @@ Chosen option: 3, a clean named snapshot, with a reset command.
 
 ### Consequences
 
-* Good: managed-boot startup dropped from 40.1 s to about 24 s. Completion
-  dropped from 42.5 s to about 26 s. Both are steady-state medians.
+* Good: managed-boot startup dropped from 40.1 s to 17.4 s, and completion
+  from 42.5 s to 20.4 s. Both are medians over eight runs.
+* Good: the full `apps-android` fixture group, with every AVD resuming, took
+  132 s instead of about 294 s, with identical per-context results.
 * Good: every managed run starts from the same RAM and disk state.
 * Bad: loading the snapshot also restores the disk. Anything written to the
   AVD after the snapshot reverts on the next managed boot, including apps a
@@ -90,13 +113,21 @@ Chosen option: 3, a clean named snapshot, with a reset command.
   boot retake the snapshot. Reused (already-running) emulators are unaffected.
 * Bad: each AVD stores a snapshot about the size of its RAM (about 2.3 GB for
   the default AVD).
-* Bad: the run that creates the snapshot pays for the save. The first one or
-  two loads also read the RAM image from a cold disk cache.
+* Bad: the run that creates the snapshot pays for the settle and the save,
+  about 1 s over a plain cold boot. The first one or two loads also read the
+  RAM image from a cold disk cache.
+* Neutral: an adb client can stall the emulator's exit. The run then waits
+  up to 8 s and ends while the watchdog finishes the shutdown.
 
 ### Confirmation
 
-* `test/android-emulator.test.js` asserts the boot arguments, the
-  snapshot-loaded parser, and the boot-wait polling.
+* `test/android-emulator.test.js` asserts the boot arguments and the boot
+  policy. That covers load, cold boot and retake, discard on exit or timeout,
+  and settle before save. It also asserts the shutdown policy and the boot
+  wait.
+* A manual end-to-end check on Windows corrupted a snapshot by truncating its
+  `ram.bin`. The next run discarded it, cold-booted, retook it, and passed.
+  The run after that resumed the new snapshot.
 * `test/android-installer.test.js` asserts `resetCleanSnapshots` removes only
   the clean snapshot, honoring each AVD's `.ini` path.
 * `test/cli-install.test.js` asserts `install android --reset-snapshot` resets

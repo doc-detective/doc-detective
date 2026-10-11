@@ -20,12 +20,101 @@ import {
   bootWithCleanSnapshot,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
+  waitForProcessExit,
+  shutdownEmulatorWith,
   BOOT_POLL_INTERVAL_MS,
 } from "../dist/core/tests/androidEmulator.js";
+
+import { EventEmitter } from "node:events";
 
 before(async function () {
   const { expect } = await import("chai");
   global.expect = expect;
+});
+
+describe("androidEmulator: waitForProcessExit", function () {
+  function fakeProc(exitCode = null) {
+    const p = new EventEmitter();
+    p.exitCode = exitCode;
+    return p;
+  }
+
+  it("resolves true once the process exits", async function () {
+    const p = fakeProc();
+    setTimeout(() => {
+      p.exitCode = 0;
+      p.emit("exit", 0);
+    }, 10);
+    expect(await waitForProcessExit(p, 1000)).to.equal(true);
+  });
+
+  it("resolves true immediately for an already-exited process", async function () {
+    expect(await waitForProcessExit(fakeProc(0), 1000)).to.equal(true);
+  });
+
+  it("resolves false when the process outlives the timeout", async function () {
+    expect(await waitForProcessExit(fakeProc(), 20)).to.equal(false);
+  });
+
+  it("treats a missing process as exited", async function () {
+    expect(await waitForProcessExit(undefined, 20)).to.equal(true);
+  });
+});
+
+describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
+  function fakes(exitsGracefully, consoleAccepted = true) {
+    const calls = [];
+    return {
+      calls,
+      consoleKill: async () => {
+        calls.push("console");
+        return consoleAccepted;
+      },
+      waitExit: async () => {
+        calls.push("wait");
+        return exitsGracefully;
+      },
+      forceKill: async () => {
+        calls.push("force");
+      },
+      release: () => {
+        calls.push("release");
+      },
+    };
+  }
+
+  it("shuts down through the console and waits, never hard-killing a clean exit", async function () {
+    // A hard kill can leave qemu's disk images (which hold the clean
+    // snapshot) inconsistent; a graceful exit flushes them.
+    const f = fakes(true);
+    expect(await shutdownEmulatorWith(f)).to.equal("graceful");
+    expect(f.calls).to.deep.equal(["console", "wait", "release"]);
+  });
+
+  it("leaves a slow exit to the emulator's own watchdog once the console accepted the kill", async function () {
+    // An accepted `emu kill` arms the emulator's watchdog, which ends qemu
+    // within 20s on its own (adb clients can stall qemu's exit until then).
+    // Waiting longer only delays the run, and a hard kill adds nothing.
+    const f = fakes(false, true);
+    expect(await shutdownEmulatorWith(f)).to.equal("watchdog");
+    expect(f.calls).to.deep.equal(["console", "wait", "release"]);
+  });
+
+  it("force-kills when the console refused the kill and the emulator doesn't exit", async function () {
+    const f = fakes(false, false);
+    expect(await shutdownEmulatorWith(f)).to.equal("forced");
+    expect(f.calls).to.deep.equal(["console", "wait", "force", "release"]);
+  });
+
+  it("still waits and force-kills when the console kill throws", async function () {
+    const f = fakes(false);
+    f.consoleKill = async () => {
+      f.calls.push("console");
+      throw new Error("adb missing");
+    };
+    expect(await shutdownEmulatorWith(f)).to.equal("forced");
+    expect(f.calls).to.deep.equal(["console", "wait", "force", "release"]);
+  });
 });
 
 describe("androidEmulator: waitForBootCompleted", function () {
@@ -184,6 +273,9 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
       settle: async () => {
         calls.push("settle");
       },
+      discard: async () => {
+        calls.push("discard");
+      },
       save: async () => {
         calls.push("save");
       },
@@ -204,14 +296,40 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     expect(f.calls).to.deep.equal(["cold", "settle", "save"]);
   });
 
-  it("retries cold and retakes the snapshot when the snapshot can't load", async function () {
+  it("discards an unloadable snapshot, then retries cold and retakes it", async function () {
     const f = fakes([
       { outcome: { exited: 1 }, id: 1 },
       { outcome: "booted", id: 2 },
     ]);
     const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
     expect(r).to.deep.equal({ outcome: "booted", id: 2 });
-    expect(f.calls).to.deep.equal(["snapshot", "cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
+  });
+
+  it("treats a resume that never finishes booting as a bad snapshot (self-healing)", async function () {
+    // A snapshot can load yet leave the guest wedged (adb stuck offline). A
+    // bad snapshot must never fail a test: discard it and boot cold.
+    const f = fakes([
+      { outcome: "timeout", id: 1 },
+      { outcome: "booted", id: 2 },
+    ]);
+    const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
+    expect(r).to.deep.equal({ outcome: "booted", id: 2 });
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
+  });
+
+  it("still boots cold when discarding the bad snapshot fails", async function () {
+    const f = fakes([
+      { outcome: "timeout", id: 1 },
+      { outcome: "booted", id: 2 },
+    ]);
+    f.discard = async () => {
+      f.calls.push("discard");
+      throw new Error("EBUSY");
+    };
+    const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
+    expect(r.outcome).to.equal("booted");
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
   });
 
   it("returns a failed cold boot as-is, without saving", async function () {

@@ -985,6 +985,14 @@ export function hasCleanSnapshot(
   return fs.existsSync(path.join(cleanSnapshotDir(avdHome, name), "snapshot.pb"));
 }
 
+/** Delete one AVD's clean snapshot (a bad one the boot couldn't resume). */
+export function discardCleanSnapshot(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): void {
+  fs.rmSync(cleanSnapshotDir(avdHome, name), { recursive: true, force: true });
+}
+
 /**
  * Delete Doc Detective's clean boot snapshot from every AVD in `avdHome`, so
  * each AVD's next managed boot cold-boots and retakes it from its current

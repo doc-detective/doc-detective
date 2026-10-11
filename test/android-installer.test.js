@@ -27,6 +27,7 @@ import {
   SDK_INSTALL_MAX_ATTEMPTS,
   resetCleanSnapshots,
   hasCleanSnapshot,
+  discardCleanSnapshot,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -752,6 +753,20 @@ describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
     expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(true);
     // Unknown AVD.
     expect(hasCleanSnapshot("nope", { avdHome: home })).to.equal(false);
+  });
+
+  it("discardCleanSnapshot removes one AVD's clean snapshot only", function () {
+    const aDir = path.join(home, "a.avd");
+    const bDir = path.join(home, "b.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(clean(bDir), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    discardCleanSnapshot("a", { avdHome: home });
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(bDir))).to.equal(true);
+    // Idempotent when nothing is there.
+    discardCleanSnapshot("a", { avdHome: home });
   });
 });
 
