@@ -582,6 +582,15 @@ describe("androidEmulator: findUia2Helpers (ADR 01108)", function () {
     write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
     expect(findUia2Helpers(driver)).to.equal(null);
   });
+
+  it("returns null when either helper package has no APKs, so a partial set is never stamped as baked", function () {
+    // Baking only the settings helper would record the driver version while
+    // the stale UiAutomator2 server stayed on the snapshot.
+    const driver = path.join(root, "node_modules", "appium-uiautomator2-driver");
+    write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
+    write(path.join(driver, "node_modules", "io.appium.settings", "apks", "settings_apk-debug.apk"));
+    expect(findUia2Helpers(driver)).to.equal(null);
+  });
 });
 
 describe("androidEmulator: planAndroidToolchain (lazy-install decision)", function () {

@@ -129,6 +129,7 @@ function findUia2Helpers(
   }
   const apks: string[] = [];
   for (const pkg of ["io.appium.settings", "appium-uiautomator2-server"]) {
+    const before = apks.length;
     for (const nodeModules of [path.join(driverRoot, "node_modules"), path.dirname(driverRoot)]) {
       const dir = path.join(nodeModules, pkg, "apks");
       let files: string[];
@@ -140,8 +141,11 @@ function findUia2Helpers(
       apks.push(...files.filter((f) => f.endsWith(".apk")).map((f) => path.join(dir, f)));
       break;
     }
+    // Both packages or nothing: a partial set would be stamped as a complete
+    // bake and keep a stale server on the snapshot.
+    if (apks.length === before) return null;
   }
-  return driverVersion && apks.length ? { driverVersion, apks } : null;
+  return driverVersion ? { driverVersion, apks } : null;
 }
 
 // Install every helper APK on the device (`adb install -r -g`). Returns the
