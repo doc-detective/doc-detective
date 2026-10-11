@@ -9,12 +9,12 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The macOS legs of `apps-ios` and `mobile-web-ios` are the PR gate's critical path. Each runs
-16–19 min, and one of them finished last in 12 of the 13 baseline runs (ADR 01105). The macOS pool
+16–19 min, and one of them finished last in 12 of the 13 baseline runs (ADR 01113). The macOS pool
 runs about 5 jobs at once, and fewer when other workflows hold slots. Every fixture leg queues the
 moment the `select` job finishes. GitHub doesn't assign queued jobs to runners in matrix order, so
 the iOS legs often wait behind shorter legs from the same run.
 
-ADR 01105 cut the run's macOS jobs from 11 to 8 and didn't fix this. In its third measured run,
+ADR 01113 cut the run's macOS jobs from 11 to 8 and didn't fix this. In its third measured run,
 `recording`, `general`, and `apps` took macOS slots at 0.5–1.8 min. `apps-ios` waited until
 6.5 min, finished at 25.5 min, and set the run's wall clock. Its first measured run had the same
 problem, with both iOS legs starting after 12 min.

@@ -19,7 +19,7 @@
 // directories under test/core-artifacts/; the CI-only attributes (timeout,
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
-  // The fast groups share one job per OS (ADR 01105): each job pays ~3-4 min
+  // The fast groups share one job per OS (ADR 01113): each job pays ~3-4 min
   // of setup, more than these groups' fixtures take, and every extra macOS
   // job competes with the iOS legs for the 5-slot macOS pool.
   {

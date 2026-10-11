@@ -448,7 +448,7 @@ describe("iosSimulator: acquireSimulator + teardown", function () {
     assert.equal(registry.size, 1);
   });
 
-  describe("shows the Simulator window so the driver doesn't reboot the device (ADR 01111)", function () {
+  describe("shows the Simulator window so the driver doesn't reboot the device (ADR 01114)", function () {
     // Without a running Simulator UI client, the XCUITest driver shuts a booted
     // simulator down and boots it again with a window (~100 s on CI).
     const bootedJson = JSON.stringify({

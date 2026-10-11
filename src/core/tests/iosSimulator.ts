@@ -430,7 +430,7 @@ interface AcquireSimulatorDeps {
     runtimeId: string;
   }) => Promise<{ udid: string }>;
   boot: (udid: string) => Promise<void>;
-  // Open the Simulator window on a booted device (ADR 01111). Best-effort.
+  // Open the Simulator window on a booted device (ADR 01114). Best-effort.
   showWindow?: (udid: string) => Promise<void>;
   log?: (message: string) => void;
 }
@@ -473,7 +473,7 @@ async function acquireSimulator({
   // The XCUITest driver shuts down a booted simulator that has no Simulator
   // UI client and boots it again with a window (~100 s). Opening the window
   // ourselves, once per device per run, lets it use the device as booted
-  // (ADR 01111). Never fails the acquire: the driver still copes without it.
+  // (ADR 01114). Never fails the acquire: the driver still copes without it.
   const showWindow = async (udid: string) => {
     try {
       await deps.showWindow?.(udid);
@@ -637,7 +637,7 @@ async function realCreateSimulator({
 
 // Open the selected Xcode's Simulator app on a booted device, so the XCUITest
 // driver finds its UI client running and doesn't reboot the device to show a
-// window (ADR 01111). This is the same app path the driver checks. Skips when
+// window (ADR 01114). This is the same app path the driver checks. Skips when
 // that app doesn't exist (e.g. Xcode 27+, which ships a different UI client).
 // No `-n`: an already-open Simulator app is reused, not duplicated.
 async function realShowSimulatorWindow(udid: string): Promise<void> {

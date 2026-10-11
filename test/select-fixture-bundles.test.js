@@ -66,7 +66,7 @@ describe("select-fixture-bundles", function () {
       );
     });
 
-    it("runs the fast groups as one bundle so each OS pays setup once (ADR 01105)", function () {
+    it("runs the fast groups as one bundle so each OS pays setup once (ADR 01113)", function () {
       // Each bundle is a job per OS, and each job pays ~3-4 min of cache
       // restore, npm ci, and build before its first spec. The fast groups'
       // fixtures run in 2-4 min, so splitting them spent more on setup than on
