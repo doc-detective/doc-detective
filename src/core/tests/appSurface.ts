@@ -3,8 +3,8 @@
 // naming, native-selector escape-hatch classification, and the per-platform
 // semantic-locator mappings (A1 ships the Windows/UIA column) — unit-testable
 // without a Windows host. The bottom half is the runtime: the per-context app
-// session (its own Appium server, homed where the native driver is
-// installed), the preflight that converts environment gaps into SKIPs, and
+// session (its own Appium server, homed at the runtime cache with every
+// other Appium server), the preflight that converts environment gaps into SKIPs, and
 // the app-side implementations of startSurface / find / click / type /
 // screenshot / closeSurface.
 
@@ -12,12 +12,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFile, spawnSync } from "node:child_process";
 import {
-  resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
-  resolveHeavyDepSource,
   ensureRuntimeInstalled,
 } from "../../runtime/loader.js";
-import { appiumHomeForDriverPath } from "../appium.js";
 import { getRuntimeDir } from "../../runtime/cacheDir.js";
 import {
   applyManagedWdaCapabilities,
@@ -948,8 +945,6 @@ async function appSurfacePreflight({
   config: any;
   platform: string;
   deps?: {
-    resolveSource?: typeof resolveHeavyDepSource;
-    resolvePath?: typeof resolveHeavyDepPath;
     resolvePathInCache?: typeof resolveHeavyDepPathInCache;
     ensureInstalled?: typeof ensureRuntimeInstalled;
     probeAccessibility?: () => Promise<boolean | null>;
@@ -996,66 +991,29 @@ async function appSurfacePreflight({
   const driverPackage = platformDriver.driverPackage;
   const driverLabel = platformDriver.driverLabel;
   const ctx = { cacheDir: config?.cacheDir };
-  const resolveSource = deps.resolveSource ?? resolveHeavyDepSource;
-  const resolvePath = deps.resolvePath ?? resolveHeavyDepPath;
   const resolvePathInCache =
     deps.resolvePathInCache ?? resolveHeavyDepPathInCache;
   const ensureInstalled = deps.ensureInstalled ?? ensureRuntimeInstalled;
 
-  let source = resolveSource(driverPackage, ctx);
-  if (!source) {
+  // Every Appium server is homed at <cacheDir>/runtime (ADR 01111): the
+  // driver and Appium itself must both live there.
+  const needed = [driverPackage, "appium"];
+  const missing = needed.filter((name) => !resolvePathInCache(name, ctx));
+  if (missing.length > 0) {
     try {
-      await ensureInstalled([driverPackage], { ctx });
+      await ensureInstalled(missing, { ctx });
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipping context: the ${driverLabel} (${driverPackage}) is not installed and could not be installed (${error?.message ?? error}). Install it with \`doc-detective install runtime ${driverPackage}\` or check network access.`,
-      };
-    }
-    source = resolveSource(driverPackage, ctx);
-    if (!source) {
-      return {
-        ok: false,
-        reason: `Skipping context: the ${driverLabel} (${driverPackage}) did not resolve after install. Inspect the runtime cache and reinstall with \`doc-detective install runtime ${driverPackage}\`.`,
-      };
-    }
-  }
-
-  // Appium discovers drivers in <APPIUM_HOME>/node_modules, so the server
-  // must be homed where the driver actually lives. A shim-resolved driver
-  // shares the shim's home with appium; a cache-resolved driver needs an
-  // appium copy in the cache too (a one-time install).
-  if (source === "shim") {
-    const driverEntry = resolvePath(driverPackage, ctx);
-    const home = driverEntry ? appiumHomeForDriverPath(driverEntry) : null;
-    const appiumEntry = resolvePath("appium", ctx);
-    if (home && appiumEntry) {
-      invalidateStaleAppiumManifest(home, driverPackage);
-      return { ok: true, appiumEntry, appiumHome: home };
-    }
-    // Fall through to the cache path when the shim layout is unexpected —
-    // logged so a spurious cache-side Appium install is diagnosable.
-    log(
-      config,
-      "debug",
-      `The ${driverLabel} resolved from the shim but its Appium home/entry did not (home: ${home}, appium: ${appiumEntry}); falling back to a cache-side Appium install.`
-    );
-  }
-  if (!resolvePathInCache("appium", ctx)) {
-    try {
-      await ensureInstalled(["appium"], { ctx, force: true });
-    } catch (error: any) {
-      return {
-        ok: false,
-        reason: `Skipping context: Appium could not be installed alongside the ${driverLabel} (${error?.message ?? error}).`,
+        reason: `Skipping context: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which could not be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
       };
     }
   }
   const appiumEntry = resolvePathInCache("appium", ctx);
-  if (!appiumEntry) {
+  if (!appiumEntry || !resolvePathInCache(driverPackage, ctx)) {
     return {
       ok: false,
-      reason: `Skipping context: Appium did not resolve from the runtime cache after install.`,
+      reason: `Skipping context: the ${driverLabel} (${driverPackage}) or Appium did not resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
     };
   }
   const appiumHome = getRuntimeDir(ctx);

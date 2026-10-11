@@ -1827,13 +1827,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
-    // Resolve appium's actual JS entrypoint via `require.resolve` (shim
-    // node_modules first, runtime cache second) and invoke it with
-    // `node <entry>`. This sidesteps every shell-injection trap at once: no
-    // `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no PATH
-    // lookup; no user-controlled paths in a shell-interpreted string. Works
-    // for both `--omit=optional` users (appium in cache only) and default
-    // installs (appium in shim).
+    // Resolve appium's actual JS entrypoint via `require.resolve` (always
+    // from the runtime cache, the shared APPIUM_HOME — ADR 01111) and invoke
+    // it with `node <entry>`. This sidesteps every shell-injection trap at
+    // once: no `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no
+    // PATH lookup; no user-controlled paths in a shell-interpreted string.
     const appiumEntry = resolveHeavyDepPath("appium", {
       cacheDir: config?.cacheDir,
     });
