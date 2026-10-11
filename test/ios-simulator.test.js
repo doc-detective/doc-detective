@@ -448,6 +448,52 @@ describe("iosSimulator: acquireSimulator + teardown", function () {
     assert.equal(registry.size, 1);
   });
 
+  describe("shows the Simulator window so the driver doesn't reboot the device (ADR 01111)", function () {
+    // Without a running Simulator UI client, the XCUITest driver shuts a booted
+    // simulator down and boots it again with a window (~100 s on CI).
+    const bootedJson = JSON.stringify({
+      devices: { [RT_180]: [{ udid: "UDID-B", name: "iPhone 15", state: "Booted", isAvailable: true, deviceTypeIdentifier: DT_IPHONE15 }] },
+    });
+
+    it("after booting a device", async function () {
+      const shown = [];
+      const { deps, calls } = fakeDeps({
+        showWindow: async (udid) => shown.push({ udid, afterBoot: calls.boot.includes(udid) }),
+      });
+      await acquireSimulator({ desc: { platform: "ios" }, registry: createSimulatorRegistry(), deps });
+      assert.deepEqual(shown, [{ udid: "UDID-15-180", afterBoot: true }]);
+    });
+
+    it("when reusing an already-booted device", async function () {
+      const shown = [];
+      const { deps } = fakeDeps({
+        listDevices: async () => parseSimctlDevices(bootedJson),
+        showWindow: async (udid) => shown.push(udid),
+      });
+      await acquireSimulator({ desc: { platform: "ios" }, registry: createSimulatorRegistry(), deps });
+      assert.deepEqual(shown, ["UDID-B"]);
+    });
+
+    it("once per device per run, not on every acquire", async function () {
+      const shown = [];
+      const registry = createSimulatorRegistry();
+      const { deps } = fakeDeps({ showWindow: async (udid) => shown.push(udid) });
+      await acquireSimulator({ desc: { platform: "ios" }, registry, deps });
+      await acquireSimulator({ desc: { platform: "ios" }, registry, deps });
+      assert.deepEqual(shown, ["UDID-15-180"]);
+    });
+
+    it("never fails the acquire when the window can't be shown", async function () {
+      const { deps } = fakeDeps({
+        showWindow: async () => {
+          throw new Error("no Simulator.app");
+        },
+      });
+      const result = await acquireSimulator({ desc: { platform: "ios" }, registry: createSimulatorRegistry(), deps });
+      assert.equal(result.entry.udid, "UDID-15-180");
+    });
+  });
+
   it("reuses an already-booted device without booting (bootedByUs false)", async function () {
     const registry = createSimulatorRegistry();
     const booted = JSON.stringify({
