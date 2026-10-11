@@ -167,16 +167,14 @@ function cleanSnapshotSaveCommands(udid: string): string[][] {
 // OK even when there's nothing to delete). An unconfirmed delete may have
 // left the stale copy behind, so skip the save: the next boot is cold and
 // retakes it, rather than resuming a snapshot that can't. Returns whether
-// the save was issued.
+// the console confirmed the save.
 async function saveCleanSnapshotWith(
   run: (args: string[]) => Promise<{ stdout: string }>,
   udid: string
 ): Promise<boolean> {
   const [deleteArgs, saveArgs] = cleanSnapshotSaveCommands(udid);
-  const { stdout } = await run(deleteArgs);
-  if (!/\bOK\b/.test(stdout)) return false;
-  await run(saveArgs);
-  return true;
+  if (!/\bOK\b/.test((await run(deleteArgs)).stdout)) return false;
+  return /\bOK\b/.test((await run(saveArgs)).stdout);
 }
 
 // --- Descriptor / boot computation (pure) ---
@@ -855,10 +853,7 @@ async function bootEmulatorOnce(
       if (!child.pid) return resolve();
       treeKill(child.pid, "SIGKILL", () => resolve());
     });
-    const deadline = Date.now() + 30000;
-    while (exited === null && Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 250));
-    }
+    await waitForProcessExit(child, 30000);
     // Like the graceful shutdown: a straggling helper that inherited these
     // pipes must not hold the run open.
     child.stdout?.destroy();

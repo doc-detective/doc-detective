@@ -308,6 +308,14 @@ describe("androidEmulator: saveCleanSnapshotWith (ADR 01106)", function () {
     expect(ran).to.deep.equal(["snapshot delete", "snapshot save"]);
   });
 
+  it("reports a save the console didn't confirm as not saved", async function () {
+    // e.g. disk full mid-write: callers must not record metadata for it.
+    const saved = await saveCleanSnapshotWith(async (args) => ({
+      stdout: args[5] === "delete" ? "OK\r\n" : "KO: could not save snapshot",
+    }), "emulator-5554");
+    expect(saved).to.equal(false);
+  });
+
   it("skips the save when the delete isn't confirmed, so a leftover can't make a bad snapshot", async function () {
     const ran = [];
     const saved = await saveCleanSnapshotWith(async (args) => {
