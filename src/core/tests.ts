@@ -135,6 +135,7 @@ import {
 } from "../runtime/androidInstaller.js";
 import {
   buildAcquireDeviceDeps,
+  findUia2Helpers,
   checkEmulatorAcceleration,
   hostHasKvm,
   planDeviceAcquisition,
@@ -167,7 +168,7 @@ import {
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { setAppiumHome } from "./appium.js";
+import { setAppiumHome, appiumHomeForDriverPath } from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -928,8 +929,11 @@ async function androidContextPreflight({
     }
   }
 
-  const deviceDeps = buildAcquireDeviceDeps(sdk!, abi, (m: string) =>
-    clog("debug", m)
+  const deviceDeps = buildAcquireDeviceDeps(
+    sdk!,
+    abi,
+    (m: string) => clog("debug", m),
+    uia2HelpersResolver(config)
   );
 
   // Device plan: every device the test needs must resolve (reuse an existing
@@ -2914,6 +2918,21 @@ async function warmBrowserInstall({
   };
 }
 
+// Resolves the UiAutomator2 driver's helper APKs (and its version) from
+// wherever the driver is installed, for baking into clean snapshots (ADR
+// 01108). Lazy: the warm-phase boot can start before the driver install ends.
+function uia2HelpersResolver(config: any) {
+  return () => {
+    const entry = resolveHeavyDepPath("appium-uiautomator2-driver", {
+      cacheDir: config?.cacheDir,
+    });
+    const home = entry ? appiumHomeForDriverPath(entry) : null;
+    return home
+      ? findUia2Helpers(path.join(home, "node_modules", "appium-uiautomator2-driver"))
+      : null;
+  };
+}
+
 /**
  * Light per-run Android environment probe for warm tasks: SDK + emulator
  * binary + acceleration (or a running emulator). Null means "not ready" —
@@ -2931,8 +2950,11 @@ async function resolveAndroidWarmEnv(
     const abi = hostAbi();
     const sdk = detectAndroidSdk({ cacheDir: config?.cacheDir });
     if (!sdk?.emulator) return null;
-    const deviceDeps = buildAcquireDeviceDeps(sdk, abi, (m: string) =>
-      log(config, "debug", m)
+    const deviceDeps = buildAcquireDeviceDeps(
+      sdk,
+      abi,
+      (m: string) => log(config, "debug", m),
+      uia2HelpersResolver(config)
     );
     const running = await deviceDeps.listRunning();
     const capable =

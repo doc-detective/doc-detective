@@ -28,6 +28,8 @@ import {
   resetCleanSnapshots,
   hasCleanSnapshot,
   discardCleanSnapshot,
+  readCleanSnapshotMeta,
+  writeCleanSnapshotMeta,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -783,6 +785,18 @@ describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
     expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(true);
     // Unknown AVD.
     expect(hasCleanSnapshot("nope", { avdHome: home })).to.equal(false);
+  });
+
+  it("writes and reads the clean snapshot's metadata (the driver version it was built for)", function () {
+    const aDir = path.join(home, "a.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.equal(null);
+    writeCleanSnapshotMeta("a", { driverVersion: "8.7.0" }, { avdHome: home });
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.deep.equal({ driverVersion: "8.7.0" });
+    // A corrupt marker reads as absent rather than throwing.
+    fs.writeFileSync(path.join(clean(aDir), "doc-detective.json"), "{not json");
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.equal(null);
   });
 
   it("discardCleanSnapshot removes one AVD's clean snapshot only", function () {
