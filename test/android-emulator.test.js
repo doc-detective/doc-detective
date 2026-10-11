@@ -129,6 +129,22 @@ describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
     expect(f.calls).to.deep.equal(["flush", "console", "wait", "release"]);
   });
 
+  it("always releases the stdio pipes, even when waiting or force-killing throws", async function () {
+    const f = fakes(false, false);
+    f.waitExit = async () => {
+      f.calls.push("wait");
+      throw new Error("wait failed");
+    };
+    let threw = false;
+    try {
+      await shutdownEmulatorWith(f);
+    } catch {
+      threw = true;
+    }
+    expect(threw).to.equal(true);
+    expect(f.calls).to.include("release");
+  });
+
   it("still waits and force-kills when the console kill throws", async function () {
     const f = fakes(false);
     f.consoleKill = async () => {

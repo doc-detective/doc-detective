@@ -414,10 +414,13 @@ async function shutdownEmulatorWith({
   } catch {
     /* fall through to the wait and the force-kill fallback */
   }
-  const graceful = await waitExit();
-  if (!graceful && !accepted) await forceKill();
-  release();
-  return graceful ? "graceful" : accepted ? "watchdog" : "forced";
+  try {
+    const graceful = await waitExit();
+    if (!graceful && !accepted) await forceKill();
+    return graceful ? "graceful" : accepted ? "watchdog" : "forced";
+  } finally {
+    release();
+  }
 }
 
 // --- Boot wait (effects injected) ---
@@ -935,14 +938,16 @@ async function realBootEmulator(
       }
     },
     save: async () => {
-      // Best-effort: a false (unconfirmed delete) skips the save, so the next
-      // boot is cold again and retakes the snapshot — and no metadata is
-      // written for a snapshot that wasn't taken.
+      // Best-effort: an unconfirmed save leaves no snapshot, so the next boot
+      // is cold again and retakes it. Say so, or slow boots look unexplained —
+      // and write no metadata for a snapshot that wasn't taken.
       const saved = await saveCleanSnapshotWith(
         (args) => runTool(adbPath, args, 120000),
         udid
       );
-      if (saved && bakedVersion) {
+      if (!saved) {
+        log?.(`Couldn't save the clean snapshot of "${desc.name}"; its next boot will be cold.`);
+      } else if (bakedVersion) {
         writeCleanSnapshotMeta(name, { driverVersion: bakedVersion }, { avdHome });
       }
     },
