@@ -7,7 +7,7 @@
 
 name: Doc Detective install cache
 description: >-
-  Junction the default Doc Detective cache location (<os.tmpdir()>/doc-detective)
+  Junction the default Doc Detective cache location (<os.homedir()>/.doc-detective)
   to a persistent per-user dir and restore/save it under the shared weekly key.
 
 inputs:
@@ -34,9 +34,9 @@ runs:
   using: composite
   steps:
     # Doc Detective's install cache (browsers, drivers, heavy runtime npm
-    # deps, git-bash) lives at <os.tmpdir()>/doc-detective by default, which
-    # hosted runners discard. Junction/symlink that default location to a
-    # stable per-user dir so actions/cache can persist it. Deliberately NOT
+    # deps, git-bash) lives at <os.homedir()>/.doc-detective by default
+    # (ADR 01105). Junction/symlink that default location to a stable
+    # per-user dir so actions/cache can persist it. Deliberately NOT
     # via DOC_DETECTIVE_CACHE_DIR: a job-level env var outranks the
     # config.cacheDir isolation many unit tests rely on, and some suites
     # delete the var mid-run. node's fs.symlinkSync(..., 'junction') needs no
@@ -47,7 +47,7 @@ runs:
         node -e "
           const fs = require('fs'), os = require('os'), path = require('path');
           const persist = path.join(os.homedir(), '.dd-cache');
-          const link = path.join(os.tmpdir(), 'doc-detective');
+          const link = path.join(os.homedir(), '.doc-detective');
           fs.mkdirSync(persist, { recursive: true });
           fs.rmSync(link, { recursive: true, force: true });
           fs.symlinkSync(persist, link, 'junction');

@@ -63,13 +63,16 @@ function emptyRecord(): InstalledRecord {
   return { npmPackages: {}, browsers: {} };
 }
 
+// A persistent per-user dir, NOT the OS temp dir (ADR 01105): temp is cleared
+// on reboot, and its `doc-detective/` root is also where cleanTemp sweeps run
+// scratch — a cache there lost its Android SDK/JRE/WDA builds after each run.
 function defaultCacheRoot(): string {
-  return path.join(os.tmpdir(), "doc-detective");
+  return path.join(os.homedir(), ".doc-detective");
 }
 
 /**
  * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > <os.tmpdir()>/doc-detective. The directory is created if missing — every
+ * > <os.homedir()>/.doc-detective. The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.

@@ -1245,11 +1245,10 @@ function appendQueryParams(
 }
 
 // Delete transient scratch files from the doc-detective temp directory.
-// PRESERVED entries: the lazy-install cache subdirectories (`browsers/`,
-// `runtime/`) and `installed.json`. The default cacheDir is
-// `<os.tmpdir()>/doc-detective/`, which means cache assets and scratch
-// files share the same root directory. A blanket wipe here would delete
-// the very chromedriver/firefox binaries the next runTests call needs
+// PRESERVED entries: every lazy-install cache entry. The default cacheDir is
+// `~/.doc-detective/` (ADR 01105), but a cacheDir explicitly pointed at
+// `<os.tmpdir()>/doc-detective/` shares this root with scratch files, and a
+// blanket wipe would delete the very binaries the next runTests call needs
 // (this regression broke sequential `runTests` calls in CI on every
 // platform — see test/core-core.test.js's getRunner suite).
 const PRESERVED_TEMP_ENTRIES = new Set([
@@ -1259,6 +1258,10 @@ const PRESERVED_TEMP_ENTRIES = new Set([
   // Tool downloads (git-bash — the MinGit backing runShell's Windows `bash`
   // shell). Wiping it would force a ~40 MB re-download on every run.
   "tools",
+  // `install android` (SDK + its JRE) and `install ios` (WDA prebuilds).
+  "android-sdk",
+  "jre",
+  "ios",
 ]);
 
 function cleanTemp() {

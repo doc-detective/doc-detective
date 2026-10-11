@@ -6699,7 +6699,7 @@ export interface Config {
    */
   shell?: "bash" | "cmd" | "powershell";
   /**
-   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
+   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `~/.doc-detective/` (the user's home directory). Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI to share one cache across users or place it on another volume.
    */
   cacheDir?: string;
   /**
