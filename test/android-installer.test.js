@@ -732,14 +732,44 @@ describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
     fs.mkdirSync(path.join(home, "c.avd"), { recursive: true });
     fs.writeFileSync(path.join(home, "c.ini"), `path=${path.join(home, "c.avd")}\n`);
 
-    expect(resetCleanSnapshots({ avdHome: home }).sort()).to.deep.equal(["a", "b"]);
+    const result = resetCleanSnapshots({ avdHome: home });
+    expect(result.reset.sort()).to.deep.equal(["a", "b"]);
+    expect(result.failed).to.deep.equal([]);
     expect(fs.existsSync(clean(aDir))).to.equal(false);
     expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
     expect(fs.existsSync(path.join(aDir, "snapshots", "user-snap"))).to.equal(true);
   });
 
-  it("returns an empty list when the AVD home doesn't exist", function () {
-    expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal([]);
+  it("returns nothing to reset when the AVD home doesn't exist", function () {
+    expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal({
+      reset: [],
+      failed: [],
+    });
+  });
+
+  it("rethrows AVD-home read errors other than a missing directory", function () {
+    const readdirSync = () => {
+      throw Object.assign(new Error("access denied"), { code: "EACCES" });
+    };
+    expect(() => resetCleanSnapshots({ avdHome: home, readdirSync })).to.throw(/access denied/);
+  });
+
+  it("keeps resetting the other AVDs when one removal fails, and reports it", function () {
+    // e.g. EBUSY on Windows while an emulator still holds that snapshot open.
+    for (const name of ["a", "b"]) {
+      fs.mkdirSync(clean(path.join(home, `${name}.avd`)), { recursive: true });
+      fs.writeFileSync(path.join(home, `${name}.ini`), "target=android-36\n");
+    }
+    const rmSync = (target, opts) => {
+      if (target.includes(`${path.sep}a.avd${path.sep}`)) {
+        throw Object.assign(new Error("resource busy"), { code: "EBUSY" });
+      }
+      fs.rmSync(target, opts);
+    };
+    const result = resetCleanSnapshots({ avdHome: home, rmSync });
+    expect(result.reset).to.deep.equal(["b"]);
+    expect(result.failed).to.deep.equal([{ name: "a", error: "resource busy" }]);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
   });
 
   it("hasCleanSnapshot needs a complete snapshot (snapshot.pb) in the AVD's ini-resolved dir", function () {

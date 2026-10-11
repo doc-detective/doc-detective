@@ -996,27 +996,41 @@ export function discardCleanSnapshot(
 /**
  * Delete Doc Detective's clean boot snapshot from every AVD in `avdHome`, so
  * each AVD's next managed boot cold-boots and retakes it from its current
- * state. Other snapshots are untouched. Returns the AVD names reset.
+ * state. Other snapshots are untouched. A removal that fails (e.g. EBUSY while
+ * an emulator holds the files) is reported and the rest still reset. A missing
+ * AVD home means nothing to reset; any other read error propagates.
  */
 export function resetCleanSnapshots({
   avdHome = androidAvdHome(),
-}: { avdHome?: string } = {}): string[] {
+  readdirSync = fs.readdirSync,
+  rmSync = fs.rmSync,
+}: {
+  avdHome?: string;
+  readdirSync?: (dir: string) => string[];
+  rmSync?: (target: string, opts: { recursive: boolean; force: boolean }) => void;
+} = {}): { reset: string[]; failed: { name: string; error: string }[] } {
   let entries: string[];
   try {
-    entries = fs.readdirSync(avdHome);
-  } catch {
-    return [];
+    entries = readdirSync(avdHome);
+  } catch (error: any) {
+    if (error?.code === "ENOENT") return { reset: [], failed: [] };
+    throw error;
   }
   const reset: string[] = [];
+  const failed: { name: string; error: string }[] = [];
   for (const entry of entries) {
     if (!entry.endsWith(".ini")) continue;
     const name = entry.slice(0, -".ini".length);
     const snapshot = cleanSnapshotDir(avdHome, name);
     if (!fs.existsSync(snapshot)) continue;
-    fs.rmSync(snapshot, { recursive: true, force: true });
-    reset.push(name);
+    try {
+      rmSync(snapshot, { recursive: true, force: true });
+      reset.push(name);
+    } catch (error: any) {
+      failed.push({ name, error: error?.message ?? String(error) });
+    }
   }
-  return reset;
+  return { reset, failed };
 }
 
 async function realRun(
