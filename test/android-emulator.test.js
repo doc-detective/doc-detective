@@ -18,6 +18,7 @@ import {
   teardownDeviceRegistry,
   hostHasKvm,
   bootWithCleanSnapshot,
+  cleanSnapshotSaveCommands,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
   waitForProcessExit,
@@ -257,6 +258,19 @@ describe("androidEmulator: descriptor + boot computation", function () {
       "-avd", "phone", "-port", "5556",
       "-no-window", "-no-audio", "-gpu", "swiftshader_indirect",
       "-no-snapshot", "-no-boot-anim",
+    ]);
+  });
+});
+
+describe("androidEmulator: cleanSnapshotSaveCommands (ADR 01106)", function () {
+  it("deletes any existing snapshot of that name through the console before saving", function () {
+    // Deleting only the snapshot directory leaves the qcow2-internal snapshot
+    // behind; re-saving the name over it produced a snapshot that never
+    // resumed on windowed (host-GPU) emulators, 2/2 — and 2/2 resumed with
+    // the console delete first.
+    expect(cleanSnapshotSaveCommands("emulator-5554")).to.deep.equal([
+      ["-s", "emulator-5554", "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
+      ["-s", "emulator-5554", "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
     ]);
   });
 });
