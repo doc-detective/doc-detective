@@ -106,6 +106,7 @@ async function dereferenceSchemas() {
       fs.writeFileSync(buildFilePath, JSON.stringify(schema, null, 2));
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
+      process.exitCode = 1;
     }
   }
 
@@ -133,6 +134,7 @@ async function dereferenceSchemas() {
       fs.writeFileSync(outputFilePath, JSON.stringify(schema, null, 2));
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
+      process.exitCode = 1;
     }
   }
   // Build final schemas.json file
@@ -182,6 +184,7 @@ async function dereferenceSchemas() {
       fs.copyFileSync(srcPath, destPath);
     } catch (err) {
       console.error(`Error publishing ${file}:`, err);
+      process.exitCode = 1;
     }
   });
 }
