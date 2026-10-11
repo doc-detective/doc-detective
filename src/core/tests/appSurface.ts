@@ -621,6 +621,9 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         "appium:automationName": "XCUITest",
         "appium:newCommandTimeout": 600,
         "wdio:enforceWebDriverClassic": true,
+        // Doc Detective never reads device logs; starting the capture costs
+        // 5-12 s per session (ADR 01112). driverOptions can turn it back on.
+        "appium:skipLogCapture": true,
       };
       if (classifyAppIdentifier(appId) === "id") {
         capabilities["appium:bundleId"] = appId;

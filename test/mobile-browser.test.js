@@ -321,6 +321,9 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(900000);
     expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(900000);
     expect(capabilities["wdio:enforceWebDriverClassic"]).to.equal(true);
+    // Doc Detective never reads device logs, so don't pay to start them
+    // (ADR 01112).
+    expect(capabilities["appium:skipLogCapture"]).to.equal(true);
     // No chromedriver keys leak onto the ios shape.
     expect(capabilities).to.not.have.property(
       "appium:chromedriverAutodownload"

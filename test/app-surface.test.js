@@ -1563,10 +1563,39 @@ describe("startAppSurface", function () {
     // The descriptor timeout floors the WDA build/connect timeouts.
     assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
     assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    // Doc Detective never reads device logs, so don't pay to start them
+    // (ADR 01112).
+    assert.equal(caps["appium:skipLogCapture"], true);
     assert.equal(
       appSession.deviceSessions.get("iPhone 15").foregroundApp,
       "com.apple.Preferences"
     );
+  });
+
+  it("ios: driverOptions can turn device log capture back on (ADR 01112)", async function () {
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.apple.Preferences",
+          name: "settings",
+          driverOptions: { "appium:skipLogCapture": false },
+        },
+      },
+      appSession: preflighted(),
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return fakeDriver();
+        },
+        acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        locateWda: () => null,
+      },
+    });
+    assert.equal(caps["appium:skipLogCapture"], false);
   });
 
   it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {

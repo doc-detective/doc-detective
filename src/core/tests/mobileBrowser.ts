@@ -195,6 +195,9 @@ function buildMobileBrowserCapabilities({
     "appium:udid": udid,
     "appium:newCommandTimeout": 600,
     "wdio:enforceWebDriverClassic": true,
+    // Doc Detective never reads device or Safari logs; starting the capture
+    // costs 5-12 s per session (ADR 01112).
+    "appium:skipLogCapture": true,
   };
   // The first-ever XCUITest session cold-builds WebDriverAgent via
   // xcodebuild (~10 min on CI). App surfaces carry an authored startSurface
