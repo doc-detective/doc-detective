@@ -1,3 +1,10 @@
+## [4.38.10](https://github.com/doc-detective/doc-detective/compare/v4.38.9...v4.38.10) (2026-10-11)
+
+
+### Bug Fixes
+
+* **appium:** home every Appium server in the runtime cache ([0531667](https://github.com/doc-detective/doc-detective/commit/053166705a365f40feb42683c3bdb33d0d125c90))
+
 ## [4.38.9](https://github.com/doc-detective/doc-detective/compare/v4.38.8...v4.38.9) (2026-10-11)
 
 
