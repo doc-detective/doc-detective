@@ -313,16 +313,25 @@ function waitForProcessExit(
 // console refused the kill (no watchdog). Then release our stdio pipes: the
 // watchdog inherits them and would hold the run open until it fires.
 async function shutdownEmulatorWith({
+  flush,
   consoleKill,
   waitExit,
   forceKill,
   release,
 }: {
+  flush: () => Promise<unknown>;
   consoleKill: () => Promise<boolean>;
   waitExit: () => Promise<boolean>;
   forceKill: () => Promise<void>;
   release: () => void;
 }): Promise<"graceful" | "watchdog" | "forced"> {
+  // `emu kill` halts the VM without an Android shutdown, so writes still in
+  // the guest's page cache never reach /data. Flush them first.
+  try {
+    await flush();
+  } catch {
+    /* best-effort: a wedged guest can't sync; shut down anyway */
+  }
   let accepted = false;
   try {
     accepted = await consoleKill();
@@ -837,6 +846,8 @@ async function shutdownEmulator(entry: DeviceEntry): Promise<void> {
     process.platform === "win32" ? "adb.exe" : "adb"
   );
   await shutdownEmulatorWith({
+    // ~0.2s; bounded so an unresponsive guest can't stall teardown.
+    flush: () => runTool(adbPath, ["-s", entry.udid, "shell", "sync"], 15000),
     // The console answers "OK: killing emulator, bye bye".
     consoleKill: async () => {
       const { stdout } = await runTool(adbPath, ["-s", entry.udid, "emu", "kill"], 15000);
