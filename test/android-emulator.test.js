@@ -58,6 +58,14 @@ describe("androidEmulator: waitForProcessExit", function () {
     expect(await waitForProcessExit(fakeProc(0), 1000)).to.equal(true);
   });
 
+  it("resolves true immediately for a process already killed by a signal", async function () {
+    // Node leaves exitCode null when a signal ends a child (signalCode is
+    // set instead); its exit event may have fired before we attach.
+    const p = fakeProc(null);
+    p.signalCode = "SIGKILL";
+    expect(await waitForProcessExit(p, 1000)).to.equal(true);
+  });
+
   it("resolves false when the process outlives the timeout", async function () {
     expect(await waitForProcessExit(fakeProc(), 20)).to.equal(false);
   });
