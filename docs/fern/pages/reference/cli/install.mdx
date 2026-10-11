@@ -125,7 +125,7 @@ Google's SDK repository occasionally serves a corrupt or truncated package. `ins
 |--------|-------------|
 | `--os-version` | Android version for the system image and AVD (for example, `14`, or a raw API level like `34`). Default: the newest available. |
 | `--device-type` | Abstract hardware profile for the default AVD: `phone` or `tablet`. Default: `phone`. |
-| `--reset-snapshot` | Delete Doc Detective's clean boot snapshot (`doc-detective-clean`) from every AVD, and install nothing. Each AVD's next managed boot cold-boots and retakes the snapshot from its current state. Other snapshots are untouched. See [How the emulator boots](/docs/actions/startsurface#how-the-emulator-boots). |
+| `--reset-snapshot` | Delete Doc Detective's clean boot snapshot (`doc-detective-clean`) from every AVD, and install nothing. Each AVD's next managed boot cold-boots and retakes the snapshot from its current state. Other snapshots are untouched. With `--dry-run`, lists what it would reset and deletes nothing. See [How the emulator boots](/docs/actions/startsurface#how-the-emulator-boots). |
 
 <Note>
 

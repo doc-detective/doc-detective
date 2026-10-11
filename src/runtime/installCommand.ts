@@ -195,10 +195,13 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
     const logger = makeLogger(pickLogLevel(argv));
     if (argv["reset-snapshot"]) {
       const { resetCleanSnapshots } = await import("./androidInstaller.js");
-      const { reset, failed } = resetCleanSnapshots();
+      const dryRun = Boolean(argv["dry-run"]);
+      const { reset, failed } = resetCleanSnapshots({ dryRun });
       if (reset.length) {
         logger(
-          `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`,
+          dryRun
+            ? `Would reset the clean boot snapshot for: ${reset.join(", ")}.`
+            : `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`,
           "info"
         );
       }
