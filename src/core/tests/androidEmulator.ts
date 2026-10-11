@@ -44,6 +44,7 @@ export {
   checkEmulatorAcceleration,
   hostHasKvm,
   bootWithCleanSnapshot,
+  cleanSnapshotSaveCommands,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
   waitForProcessExit,
@@ -99,6 +100,17 @@ function parseAccelCheck({
 }): boolean {
   if (code !== 0) return false;
   return !/not installed|not usable|is not/i.test(text);
+}
+
+// The adb commands that save the clean snapshot. Delete it through the
+// console first: a directory-only delete (reset, discard) leaves the
+// qcow2-internal snapshot behind, and re-saving the name over it produced a
+// snapshot that never resumed on windowed (host-GPU) emulators.
+function cleanSnapshotSaveCommands(udid: string): string[][] {
+  return [
+    ["-s", udid, "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
+    ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
+  ];
 }
 
 // --- Descriptor / boot computation (pure) ---
@@ -826,7 +838,9 @@ async function realBootEmulator(
       await runTool(adbPath, ["-s", udid, "shell", "am", "wait-for-broadcast-idle"], 60000);
     },
     save: async () => {
-      await runTool(adbPath, ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME], 120000);
+      for (const args of cleanSnapshotSaveCommands(udid)) {
+        await runTool(adbPath, args, 120000);
+      }
     },
   });
   if (result.outcome === "booted") return { udid, process: result.child };
