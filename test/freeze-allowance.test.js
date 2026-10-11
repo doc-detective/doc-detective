@@ -81,15 +81,19 @@ describe("freeze allowance: how it changes enforcement", function () {
     assert.equal(retry._timeout, 10000);
   });
 
+  // The passing fixtures run inside this suite, so a real runner freeze can land
+  // in them too: their allowance carries this run's own on top of the margin.
+  const RUN_ALLOWANCE = freezeAllowanceMs(process.platform, process.env);
+
   it("an async test that overruns its timeout by less than the allowance passes", async function () {
-    const T = patchedTest(1000);
+    const T = patchedTest(1000 + RUN_ALLOWANCE);
     const t = new T("x", (done) => setTimeout(done, 100));
     t.timeout(20);
     assert.equal(await run(t), undefined);
   });
 
   it("a synchronous test that overruns its timeout by less than the allowance passes", async function () {
-    const T = patchedTest(1000);
+    const T = patchedTest(1000 + RUN_ALLOWANCE);
     const t = new T("x", () => busyWait(100));
     t.timeout(20);
     assert.equal(await run(t), undefined);
