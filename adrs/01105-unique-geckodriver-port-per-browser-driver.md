@@ -45,8 +45,8 @@ WebDriverError: Got unexpected session id c8bb7360-… when running "url" with m
 
 ## Decision Outcome
 
-Chosen option: **1**. `findFreePort()` asks the OS for an ephemeral port (`listen(0)`), which is
-spread across a large range, rather than taking the lowest free port in a 100-port window. Two
+Chosen option: **1**. `findFreePort()` asks the OS for an ephemeral port (`listen(0)`). The OS
+spreads those across a large range instead of handing out the lowest free port in a 100-port window. Two
 concurrent sessions therefore no longer converge on the same deterministic answer. Allocation is per
 attempt, as in ADR 01039, so a retry moves to a new port.
 
@@ -74,10 +74,10 @@ attempt, as in ADR 01039, so a retry moves to a new port.
 
 ### Option 2: retry on `unexpected session id`
 
-- Bad: the retry re-enters the same lowest-free-port race, and the error can surface mid-test, after
-  steps have already run, where a session retry isn't possible.
+- Bad: the retry re-enters the same lowest-free-port race. The error can also surface mid-test,
+  after steps have already run, where a session retry isn't possible.
 
 ### Option 3: serialize Firefox session creation
 
-- Bad: the lock would have to span geckodriver's bind inside a separate Appium process, and it
+- Bad: the lock would have to span geckodriver's bind inside a separate Appium process. It also
   throttles concurrency to work around a one-capability fix.

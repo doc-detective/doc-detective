@@ -506,10 +506,16 @@ const DRIVER_PORT_CAPABILITY: Record<string, string> = {
   Gecko: "appium:systemPort",
 };
 
-function withDriverPort(capabilities: any, port: number): any {
+// The port capability these caps still need, or undefined when the engine has
+// none or the caller already pinned one.
+function driverPortCapability(capabilities: any): string | undefined {
   const key = DRIVER_PORT_CAPABILITY[capabilities?.["appium:automationName"]];
-  if (!key || capabilities[key] !== undefined) return capabilities;
-  return { ...capabilities, [key]: port };
+  return key && capabilities[key] === undefined ? key : undefined;
+}
+
+function withDriverPort(capabilities: any, port: number): any {
+  const key = driverPortCapability(capabilities);
+  return key ? { ...capabilities, [key]: port } : capabilities;
 }
 
 
@@ -5951,10 +5957,9 @@ async function driverStart(
       // path already retries — moves to a new free port instead of re-racing
       // the same one. Engines without a driver port skip the allocation and
       // keep a byte-identical wdio.remote payload.
-      const attemptCaps =
-        withDriverPort(capabilities, 0) !== capabilities
-          ? withDriverPort(capabilities, await findFreePort())
-          : capabilities;
+      const attemptCaps = driverPortCapability(capabilities)
+        ? withDriverPort(capabilities, await findFreePort())
+        : capabilities;
       const driver: any = await wdio.remote({
         protocol: "http",
         hostname: "127.0.0.1",
