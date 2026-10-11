@@ -836,8 +836,10 @@ describe("runtime/loader", function () {
         JSON.stringify({ name: "appium", version: "3.8.0", main: "index.js" })
       );
       fs.writeFileSync(path.join(pkgDir, "index.js"), "");
-      expect(resolveHeavyDepPath("appium")).to.equal(
-        path.join(pkgDir, "index.js")
+      // realpath: require.resolve returns real paths, and macOS's tmpdir
+      // (/var/...) is a symlink to /private/var/...
+      expect(fs.realpathSync(resolveHeavyDepPath("appium"))).to.equal(
+        fs.realpathSync(path.join(pkgDir, "index.js"))
       );
       expect(resolveHeavyDepSource("appium")).to.equal("cache");
     });
