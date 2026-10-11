@@ -1032,14 +1032,17 @@ export function discardCleanSnapshot(
  * each AVD's next managed boot cold-boots and retakes it from its current
  * state. Other snapshots are untouched. A removal that fails (e.g. EBUSY while
  * an emulator holds the files) is reported and the rest still reset. A missing
- * AVD home means nothing to reset; any other read error propagates.
+ * AVD home means nothing to reset; any other read error propagates. With
+ * `dryRun`, reports what would be reset and deletes nothing.
  */
 export function resetCleanSnapshots({
   avdHome = androidAvdHome(),
+  dryRun = false,
   readdirSync = fs.readdirSync,
   rmSync = fs.rmSync,
 }: {
   avdHome?: string;
+  dryRun?: boolean;
   readdirSync?: (dir: string) => string[];
   rmSync?: (target: string, opts: { recursive: boolean; force: boolean }) => void;
 } = {}): { reset: string[]; failed: { name: string; error: string }[] } {
@@ -1058,7 +1061,7 @@ export function resetCleanSnapshots({
     const snapshot = cleanSnapshotDir(avdHome, name);
     if (!fs.existsSync(snapshot)) continue;
     try {
-      rmSync(snapshot, { recursive: true, force: true });
+      if (!dryRun) rmSync(snapshot, { recursive: true, force: true });
       reset.push(name);
     } catch (error: any) {
       failed.push({ name, error: error?.message ?? String(error) });

@@ -76,6 +76,26 @@ describe("CLI install commands", function () {
     }
   });
 
+  it("`install android --reset-snapshot --dry-run` previews the reset and deletes nothing", function () {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-dry-"));
+    try {
+      const avdHome = path.join(tmpHome, ".android", "avd");
+      const snap = path.join(avdHome, "pixel.avd", "snapshots", "doc-detective-clean");
+      fs.mkdirSync(snap, { recursive: true });
+      fs.writeFileSync(path.join(avdHome, "pixel.ini"), "target=android-36\n");
+      const r = runCli(["install", "android", "--reset-snapshot", "--dry-run"], {
+        HOME: tmpHome,
+        USERPROFILE: tmpHome,
+        DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+      });
+      expect(r.status).to.equal(0);
+      expect(r.stdout).to.match(/Would reset the clean boot snapshot for: pixel/);
+      expect(fs.existsSync(snap)).to.equal(true);
+    } finally {
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
   it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
     // Dry-run is a pure preview: it must never require java, hit the network,
     // or spawn sdkmanager. It runs on every host regardless of SDK presence —
