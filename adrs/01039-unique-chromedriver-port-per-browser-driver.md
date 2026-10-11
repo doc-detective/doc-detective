@@ -36,7 +36,8 @@ chromedriver ever exists, so the fixed port never collides.
 
 Two properties were missing on the browser-driver path:
 
-1. **A unique port per concurrent chromedriver.** Firefox is unaffected. `appium-geckodriver`
+1. **A unique port per concurrent chromedriver.** Firefox was believed unaffected (later shown
+   wrong; see [ADR 01105](01105-unique-geckodriver-port-per-browser-driver.md)). `appium-geckodriver`
    auto-selects a free `systemPort` from a range, and errors only if none is free. Safari has no such
    port. Only the Chromium path pins the fixed default.
 2. **The Appium path's ECONNREFUSED retry, applied to the browser rebind race.** `driverStart`
