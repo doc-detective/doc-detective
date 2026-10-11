@@ -59,6 +59,12 @@ Chosen option: 3, a clean named snapshot, with a reset command.
   saves `doc-detective-clean` through the emulator console, before any test
   touches the device. The save is best-effort. A failed one means the next
   boot is cold again.
+* The save first deletes any snapshot of that name through the console
+  (`emu avd snapshot delete`). Reset and discard remove only the snapshot's
+  directory. The emulator also keeps an internal copy inside the AVD's qcow2
+  disk images. On windowed (host-GPU) emulators, re-saving the name over that
+  leftover produced a snapshot that never resumed, in 2 of 2 tries. With the
+  console delete first, 2 of 2 resumed. Headless emulators weren't affected.
 * Settling runs `adb shell am wait-for-broadcast-idle`, capped at 60 s. After
   `sys.boot_completed`, boot-completed receivers keep the guest CPU at 90-99%
   for about 10 s. The command returned at +11.6 s, right as the CPU dropped

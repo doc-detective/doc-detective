@@ -49,6 +49,7 @@ export {
   bootWithCleanSnapshot,
   isCleanSnapshotStale,
   findUia2Helpers,
+  cleanSnapshotSaveCommands,
   CLEAN_SNAPSHOT_NAME,
   waitForBootCompleted,
   waitForProcessExit,
@@ -149,6 +150,17 @@ function isCleanSnapshotStale(
 ): boolean {
   if (!driverVersion) return false;
   return meta?.driverVersion !== driverVersion;
+}
+
+// The adb commands that save the clean snapshot. Delete it through the
+// console first: a directory-only delete (reset, discard) leaves the
+// qcow2-internal snapshot behind, and re-saving the name over it produced a
+// snapshot that never resumed on windowed (host-GPU) emulators.
+function cleanSnapshotSaveCommands(udid: string): string[][] {
+  return [
+    ["-s", udid, "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
+    ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
+  ];
 }
 
 // --- Descriptor / boot computation (pure) ---
@@ -911,7 +923,9 @@ async function realBootEmulator(
       }
     },
     save: async () => {
-      await runTool(adbPath, ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME], 120000);
+      for (const args of cleanSnapshotSaveCommands(udid)) {
+        await runTool(adbPath, args, 120000);
+      }
       if (bakedVersion) {
         writeCleanSnapshotMeta(name, { driverVersion: bakedVersion }, { avdHome });
       }
