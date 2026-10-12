@@ -4300,8 +4300,7 @@ async function runContext({
           pool
             ? await pool.acquire(
                 JSON.stringify({ appiumEntry: appSession!.appiumEntry, env, extraArgs }),
-                start,
-                appServerReuseChecks
+                start
               )
             : await start();
         appSession!.server = {
@@ -5669,13 +5668,7 @@ async function runStep({
             // iOS contexts share the run's pooled server for this exact launch
             // environment (ADR 01115); teardown releases it via `release`.
             const pool = appSession?.appServerPool;
-            if (pool) {
-              return pool.acquire(
-                JSON.stringify({ appiumEntry, env }),
-                start,
-                appServerReuseChecks
-              );
-            }
+            if (pool) return pool.acquire(JSON.stringify({ appiumEntry, env }), start);
             return start();
           },
           startDriver: (capabilities: any, port: number) =>
@@ -5892,26 +5885,6 @@ async function spawnAppiumServer(
   proc.stderr.on("data", () => {});
   return { port, process: proc, display };
 }
-
-// Reuse checks for the pooled iOS app servers (ADR 01115). A server reused
-// with a session still open (a swallowed deleteSession failure) could keep the
-// simulator claimed, so an idle server is reused only when Appium reports no
-// sessions. Any error reads as "don't reuse"; the server is killed instead.
-/* c8 ignore start — real HTTP and process kill; the pool logic is unit-tested. */
-const appServerReuseChecks = {
-  reusable: async (server: { port: number }) => {
-    try {
-      const res = await fetch(`http://127.0.0.1:${server.port}/appium/sessions`);
-      if (!res.ok) return false;
-      const body: any = await res.json();
-      return Array.isArray(body?.value) && body.value.length === 0;
-    } catch {
-      return false;
-    }
-  },
-  discard: (server: { process: any }) => killTree(server.process?.pid),
-};
-/* c8 ignore stop */
 
 async function startAppiumServer(
   appiumEntry: string,

@@ -42,11 +42,13 @@ Chosen option: **A**. `runSpecs` creates one `createAppServerPool()` per run and
   key is the server's launch environment: Appium entry, environment variables, and extra
   arguments. Servers only serve contexts that would have started an identical server.
 * A held server never goes to a second context, so concurrent contexts still get their own.
-* Before reusing an idle server, the pool checks that its process is alive and that
-  `GET /appium/sessions` reports no sessions. A session left open by a swallowed `deleteSession`
-  failure could still claim the simulator, so such a server is killed and replaced.
-* Context teardown releases a pooled server instead of killing it, and skips the Windows orphan
+* Context teardown releases a pooled server only when every session in the context closed
+  cleanly. A session left open by a failed `deleteSession` could still claim the simulator, so
+  such a server is killed like a per-context one. A released server skips the Windows orphan
   sweep, which force-kills a live server's descendants.
+* The pool reuses an idle server only while its process is alive.
+* Appium's `GET /appium/sessions` would be a more direct check, but it needs the
+  `session_discovery` insecure feature, so teardown decides instead.
 * Run-end teardown drains the pool through `teardownAppSession`, the same path a per-context
   server took.
 
@@ -56,13 +58,13 @@ Chosen option: **A**. `runSpecs` creates one `createAppServerPool()` per run and
 * Neutral: each context still opens and closes its own XCUITest session, so nothing visible
   changes. There's no documentation change.
 * Bad: an Appium server now outlives a context. A server-level fault, as opposed to a
-  session-level one, can affect later contexts until the reuse check catches it.
+  session-level one, can affect later contexts until the server's process exits.
 
 ### Confirmation
 
 * Unit tests cover reuse on a matching key and no double-handout. They also cover a separate
-  server per key, replacing dead and session-holding servers, and drain returning each server once. Teardown releases a
-  pooled server without killing or sweeping it.
+  server per key, replacing dead servers, and drain returning each server once. Teardown releases a
+  pooled server without killing or sweeping it, and kills one whose session failed to close.
 * Same-batch A/B runs of each iOS fixture leg against the previous commit (`fixtures-debug.yml`).
   Each context's PASS/SKIP result matches, and the job log shows one app server start per leg
   instead of one per context.

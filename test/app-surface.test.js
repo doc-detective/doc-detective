@@ -2082,6 +2082,28 @@ describe("Windows console-orphan sweep (issue #501)", function () {
     assert.equal(appSession.server, undefined);
   });
 
+  it("teardownAppSession kills a pooled server when a session failed to close (ADR 01115)", async function () {
+    // A session left open could keep the simulator claimed on the next
+    // context, so the server must not go back to the pool.
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    appSession.deviceSessions.set("iPhone 15", {
+      driver: {
+        async deleteSession() {
+          throw new Error("WDA crashed");
+        },
+      },
+    });
+    const killed = [];
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      runQuery: async () => [],
+    });
+    assert.deepEqual(released, []);
+    assert.deepEqual(killed, [42]);
+    assert.equal(appSession.server, undefined);
+  });
+
   it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
     if (process.platform !== "win32") this.skip();
     const appSession = createAppSessionState();
@@ -2164,23 +2186,6 @@ describe("createAppServerPool (one app Appium server reused across contexts, ADR
     a.process.exitCode = 1;
     const b = await pool.acquire("ios", starter(started));
     assert.notEqual(b.port, a.port);
-    assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
-  });
-
-  it("discards an idle server that still has a session open and starts a fresh one", async function () {
-    // A session that failed to close (swallowed deleteSession error) would
-    // otherwise still claim the simulator on the next context's server.
-    const pool = createAppServerPool();
-    const started = [];
-    const discarded = [];
-    const a = await pool.acquire("ios", starter(started));
-    a.release();
-    const b = await pool.acquire("ios", starter(started), {
-      reusable: async (s) => s.port !== a.port,
-      discard: async (s) => discarded.push(s.port),
-    });
-    assert.notEqual(b.port, a.port);
-    assert.deepEqual(discarded, [a.port]);
     assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
   });
 

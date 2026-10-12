@@ -1557,7 +1557,8 @@ async function closeAppSurface({
 }: {
   entry: AppSurfaceEntry;
   appSession: AppSessionState;
-}): Promise<void> {
+}): Promise<boolean> {
+  // Resolves false when deleting the session failed (it may still be open).
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
   // Window selectors may have left the session rooted at a dialog (Windows
@@ -1579,12 +1580,14 @@ async function closeAppSurface({
       // Idempotent: the app may already be gone.
     }
     if (session?.foregroundApp === entry.appId) session.foregroundApp = undefined;
-    return;
+    return true;
   }
   try {
     await entry.driver.deleteSession();
+    return true;
   } catch {
     // Idempotent: the app/session may already be gone.
+    return false;
   }
 }
 
@@ -1740,27 +1743,14 @@ function createAppServerPool() {
   return {
     async acquire(
       key: string,
-      start: () => Promise<{ port: number; process: any }>,
-      // `reusable` vets an idle server before reuse (e.g. no session left
-      // open); a server that fails it goes to `discard` instead.
-      {
-        reusable,
-        discard,
-      }: {
-        reusable?: (s: PooledAppServer) => Promise<boolean>;
-        discard?: (s: PooledAppServer) => Promise<void>;
-      } = {}
+      start: () => Promise<{ port: number; process: any }>
     ): Promise<PooledAppServer & { release: () => void }> {
       let server: PooledAppServer | undefined;
       for (let i = idle.length - 1; i >= 0 && !server; i--) {
         if (idle[i].key !== key) continue;
         const [candidate] = idle.splice(i, 1);
-        if (isAlive(candidate) && (!reusable || (await reusable(candidate)))) {
-          server = candidate;
-        } else {
-          all.delete(candidate);
-          await discard?.(candidate);
-        }
+        if (isAlive(candidate)) server = candidate;
+        else all.delete(candidate);
       }
       if (!server) {
         server = { ...(await start()), key };
@@ -1796,22 +1786,26 @@ async function teardownAppSession(
   tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
+  let closedCleanly = true;
   for (const entry of [...appSession.surfaces.values()]) {
-    await closeAppSurface({ entry, appSession });
+    if (!(await closeAppSurface({ entry, appSession }))) closedCleanly = false;
   }
-  // End the shared Android device sessions (one per device) after all their
-  // surfaces are closed. The emulators themselves are swept at run level.
+  // End the shared device sessions (one per device) after all their surfaces
+  // are closed. The emulators/simulators themselves are swept at run level.
   for (const session of appSession.deviceSessions?.values() ?? []) {
     try {
       await session.driver.deleteSession();
     } catch {
       // best-effort
+      closedCleanly = false;
     }
   }
   appSession.deviceSessions?.clear();
-  // A pooled server stays up for the next context. Skip the orphan sweep too:
-  // it force-kills the server's live descendants.
-  if (appSession.server?.release) {
+  // A pooled server stays up for the next context, but only if every session
+  // closed: one left open could keep the device claimed. Skip the orphan sweep
+  // too: it force-kills the server's live descendants. Otherwise the server
+  // is killed below like a per-context one (ADR 01115).
+  if (appSession.server?.release && closedCleanly) {
     const { release } = appSession.server;
     appSession.server = undefined;
     release();
