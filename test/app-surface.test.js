@@ -28,6 +28,7 @@ import {
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  createAppServerPool,
   snapshotAppServerDescendants,
   reapConsoleOrphans,
   listWindowsDescendantPids,
@@ -2061,6 +2062,26 @@ describe("Windows console-orphan sweep (issue #501)", function () {
     assert.deepEqual(reaped, []);
   });
 
+  it("teardownAppSession returns a pooled server instead of killing it (ADR 01115)", async function () {
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    const killed = [];
+    let swept = false;
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      // The orphan sweep force-kills the server's descendants; it must never
+      // run against a server that stays alive for the next context.
+      runQuery: async () => {
+        swept = true;
+        return [];
+      },
+    });
+    assert.deepEqual(released, [42]);
+    assert.deepEqual(killed, []);
+    assert.equal(swept, false);
+    assert.equal(appSession.server, undefined);
+  });
+
   it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
     if (process.platform !== "win32") this.skip();
     const appSession = createAppSessionState();
@@ -2093,5 +2114,83 @@ describe("Windows console-orphan sweep (issue #501)", function () {
       ["reap", 501],
     ]);
     assert.equal(appSession.server, undefined);
+  });
+});
+
+describe("createAppServerPool (one app Appium server reused across contexts, ADR 01115)", function () {
+  let nextPid = 100;
+  const starter = (log) => async () => {
+    const server = { port: nextPid, process: { pid: nextPid, exitCode: null, signalCode: null } };
+    nextPid++;
+    log.push(server.process.pid);
+    return server;
+  };
+
+  it("hands a released server to the next context with the same launch key", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    const b = await pool.acquire("ios", starter(started));
+    assert.equal(b.port, a.port);
+    assert.equal(started.length, 1);
+  });
+
+  it("never hands one server to two contexts at once", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const [a, b] = await Promise.all([
+      pool.acquire("ios", starter(started)),
+      pool.acquire("ios", starter(started)),
+    ]);
+    assert.notEqual(a.port, b.port);
+    assert.equal(started.length, 2);
+  });
+
+  it("starts a separate server for a different launch key", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    (await pool.acquire("ios", starter(started))).release();
+    const other = await pool.acquire("ios-other-env", starter(started));
+    assert.equal(started.length, 2);
+    assert.equal(other.port, started[1]);
+  });
+
+  it("drops an idle server whose process exited and starts a fresh one", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    a.process.exitCode = 1;
+    const b = await pool.acquire("ios", starter(started));
+    assert.notEqual(b.port, a.port);
+    assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
+  });
+
+  it("discards an idle server that still has a session open and starts a fresh one", async function () {
+    // A session that failed to close (swallowed deleteSession error) would
+    // otherwise still claim the simulator on the next context's server.
+    const pool = createAppServerPool();
+    const started = [];
+    const discarded = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    const b = await pool.acquire("ios", starter(started), {
+      reusable: async (s) => s.port !== a.port,
+      discard: async (s) => discarded.push(s.port),
+    });
+    assert.notEqual(b.port, a.port);
+    assert.deepEqual(discarded, [a.port]);
+    assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
+  });
+
+  it("drain returns every server once, held or idle, for the run-end shutdown", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    const b = await pool.acquire("ios", starter(started));
+    a.release();
+    assert.deepEqual(pool.drain().map((s) => s.port).sort(), [a.port, b.port].sort());
+    assert.deepEqual(pool.drain(), []);
   });
 });

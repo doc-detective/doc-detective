@@ -63,6 +63,7 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  createAppServerPool,
   snapshotAppServerDescendants,
   reapConsoleOrphans,
   listWindowsDescendantPids,
@@ -71,7 +72,7 @@ export {
   invalidateStaleAppiumManifest,
   probeIosToolchain,
 };
-export type { AppSessionState, AppSurfaceEntry };
+export type { AppSessionState, AppSurfaceEntry, AppServerPool };
 
 type AppIdentifierKind = "path" | "aumid" | "id";
 
@@ -714,7 +715,9 @@ interface AppSurfaceEntry {
 // (no browser driver), so ffmpeg captures — including autoRecord — ride the
 // existing per-session recording machinery unchanged.
 interface AppSessionState {
-  server?: { port: number; process: any };
+  // `release` is set when the server came from the run's app server pool
+  // (ADR 01115): teardown hands it back instead of killing it.
+  server?: { port: number; process: any; release?: () => void };
   appiumEntry?: string;
   appiumHome?: string;
   surfaces: Map<string, AppSurfaceEntry>;
@@ -747,6 +750,9 @@ interface AppSessionState {
   // simulator (keyed in deviceSessions like Android), so no SDK-root env is
   // needed — simctl/xcrun are on PATH.
   iosSimulatorRegistry?: any;
+  // The run's app server pool (ADR 01115). Set for iOS contexts; Android
+  // contexts keep a server per context.
+  appServerPool?: AppServerPool;
   iosSimulatorDeps?: any;
 }
 
@@ -1715,6 +1721,65 @@ async function reapConsoleOrphans(
   return reaped;
 }
 
+interface PooledAppServer {
+  port: number;
+  process: any;
+  key: string;
+}
+
+// Run-level pool of app Appium servers (ADR 01115). Starting a server and
+// killing it again cost 5-15 s per context; contexts that run one after
+// another on the same launch environment (`key`) reuse one instead. A held
+// server is never handed to a second context, an idle one whose process
+// exited is dropped, and `drain` gives the run-end teardown every server once.
+function createAppServerPool() {
+  const idle: PooledAppServer[] = [];
+  const all = new Set<PooledAppServer>();
+  const isAlive = (s: PooledAppServer) =>
+    s.process?.exitCode == null && s.process?.signalCode == null;
+  return {
+    async acquire(
+      key: string,
+      start: () => Promise<{ port: number; process: any }>,
+      // `reusable` vets an idle server before reuse (e.g. no session left
+      // open); a server that fails it goes to `discard` instead.
+      {
+        reusable,
+        discard,
+      }: {
+        reusable?: (s: PooledAppServer) => Promise<boolean>;
+        discard?: (s: PooledAppServer) => Promise<void>;
+      } = {}
+    ): Promise<PooledAppServer & { release: () => void }> {
+      let server: PooledAppServer | undefined;
+      for (let i = idle.length - 1; i >= 0 && !server; i--) {
+        if (idle[i].key !== key) continue;
+        const [candidate] = idle.splice(i, 1);
+        if (isAlive(candidate) && (!reusable || (await reusable(candidate)))) {
+          server = candidate;
+        } else {
+          all.delete(candidate);
+          await discard?.(candidate);
+        }
+      }
+      if (!server) {
+        server = { ...(await start()), key };
+        all.add(server);
+      }
+      const held = server;
+      return { ...held, release: () => void (all.has(held) && idle.push(held)) };
+    },
+    drain(): PooledAppServer[] {
+      const servers = [...all];
+      all.clear();
+      idle.length = 0;
+      return servers;
+    },
+  };
+}
+
+type AppServerPool = ReturnType<typeof createAppServerPool>;
+
 // Context teardown: close every remaining app surface, end each shared Android
 // device session, then stop the app session's Appium server. Killing only what
 // we launched is the driver's contract (deleteSession terminates driver-
@@ -1744,6 +1809,14 @@ async function teardownAppSession(
     }
   }
   appSession.deviceSessions?.clear();
+  // A pooled server stays up for the next context. Skip the orphan sweep too:
+  // it force-kills the server's live descendants.
+  if (appSession.server?.release) {
+    const { release } = appSession.server;
+    appSession.server = undefined;
+    release();
+    return;
+  }
   if (appSession.server) {
     const serverPid = appSession.server.process?.pid;
     const orphanSnapshot = await snapshotAppServerDescendants(serverPid, tools);

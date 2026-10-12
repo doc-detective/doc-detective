@@ -96,9 +96,11 @@ import {
   isAppDriverRequired,
   stepTargetsAppSurface,
   teardownAppSession,
+  createAppServerPool,
   APP_DRIVER_PLATFORMS,
   probeIosToolchain,
   type AppSessionState,
+  type AppServerPool,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
 import {
@@ -1936,6 +1938,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // shut down (launch-ownership).
   const simulatorRegistry: SimulatorRegistry = createSimulatorRegistry();
 
+  // Run-level pool of iOS app Appium servers (ADR 01115): sequential iOS
+  // contexts reuse one server instead of starting and killing their own.
+  // Drained in the `finally` below.
+  const appServerPool: AppServerPool = createAppServerPool();
+
   // One resource registry per run, shared by the warm phase, every phase's
   // flat pool, AND the routed sequencer — so warm's cache-mutating tasks,
   // flat-pool recordings, and routed-spec recordings all contend on the same
@@ -2083,6 +2090,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2173,6 +2181,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           platform,
           markAutoRecord,
           limit,
@@ -2238,6 +2247,18 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         return killTree(server.process?.pid);
       })
     );
+    // Close the pooled iOS app servers (ADR 01115) through the same teardown a
+    // per-context server gets, so the Windows orphan sweep still applies.
+    for (const server of appServerPool.drain()) {
+      log(config, "debug", `Closing app Appium server on port ${server.port}`);
+      const owner = createAppSessionState();
+      owner.server = { port: server.port, process: server.process };
+      try {
+        await teardownAppSession(owner, (pid) => killTree(pid));
+      } catch (error: any) {
+        log(config, "debug", `Couldn't close app Appium server: ${error?.message ?? error}`);
+      }
+    }
     // Tear down any Xvfb virtual displays started for recording.
     for (const xvfb of xvfbProcesses) {
       try {
@@ -2352,6 +2373,7 @@ async function runRoutedSpec({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   platform,
   markAutoRecord,
   limit,
@@ -2373,6 +2395,7 @@ async function runRoutedSpec({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -2560,6 +2583,7 @@ async function runRoutedSpec({
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -3842,6 +3866,7 @@ async function runContext({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   logPrefix = "",
 }: {
   config: any;
@@ -3859,6 +3884,7 @@ async function runContext({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -4005,6 +4031,7 @@ async function runContext({
       appSession.appiumHome = pre.appiumHome;
       appSession.iosSimulatorRegistry = simulatorRegistry;
       appSession.iosSimulatorDeps = pre.simulatorDeps;
+      appSession.appServerPool = appServerPool;
       gateBrowserName = pre.mobileWebBrowserName;
       /* c8 ignore stop */
     }
@@ -4258,14 +4285,30 @@ async function runContext({
       // FAIL — matching the mobile rule that every environment gap SKIPs.
       let acquired: any;
       try {
-        const server = await startAppiumServer(
-          appSession!.appiumEntry!,
-          config,
-          undefined,
-          env,
-          extraArgs
-        );
-        appSession!.server = { port: server.port, process: server.process };
+        const start = async () =>
+          startAppiumServer(
+            appSession!.appiumEntry!,
+            config,
+            undefined,
+            env,
+            extraArgs
+          );
+        // iOS shares the run's pooled server for this launch environment
+        // (ADR 01115); `release` hands it back at context teardown.
+        const pool = appSession!.appServerPool;
+        const server: { port: number; process: any; release?: () => void } =
+          pool
+            ? await pool.acquire(
+                JSON.stringify({ appiumEntry: appSession!.appiumEntry, env, extraArgs }),
+                start,
+                appServerReuseChecks
+              )
+            : await start();
+        appSession!.server = {
+          port: server.port,
+          process: server.process,
+          release: server.release,
+        };
         const desc = normalizeDeviceDescriptor({
           contextDevice: context.device,
           platform: mobileTarget as "android" | "ios",
@@ -5614,13 +5657,26 @@ async function runStep({
                 /* best-effort */
               }
             }
-            const server = await startAppiumServer(
-              appiumEntry,
-              config,
-              undefined,
-              env
-            );
-            return { port: server.port, process: server.process };
+            const start = async () => {
+              const server = await startAppiumServer(
+                appiumEntry,
+                config,
+                undefined,
+                env
+              );
+              return { port: server.port, process: server.process };
+            };
+            // iOS contexts share the run's pooled server for this exact launch
+            // environment (ADR 01115); teardown releases it via `release`.
+            const pool = appSession?.appServerPool;
+            if (pool) {
+              return pool.acquire(
+                JSON.stringify({ appiumEntry, env }),
+                start,
+                appServerReuseChecks
+              );
+            }
+            return start();
           },
           startDriver: (capabilities: any, port: number) =>
             driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
@@ -5836,6 +5892,26 @@ async function spawnAppiumServer(
   proc.stderr.on("data", () => {});
   return { port, process: proc, display };
 }
+
+// Reuse checks for the pooled iOS app servers (ADR 01115). A server reused
+// with a session still open (a swallowed deleteSession failure) could keep the
+// simulator claimed, so an idle server is reused only when Appium reports no
+// sessions. Any error reads as "don't reuse"; the server is killed instead.
+/* c8 ignore start — real HTTP and process kill; the pool logic is unit-tested. */
+const appServerReuseChecks = {
+  reusable: async (server: { port: number }) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.port}/appium/sessions`);
+      if (!res.ok) return false;
+      const body: any = await res.json();
+      return Array.isArray(body?.value) && body.value.length === 0;
+    } catch {
+      return false;
+    }
+  },
+  discard: (server: { process: any }) => killTree(server.process?.pid),
+};
+/* c8 ignore stop */
 
 async function startAppiumServer(
   appiumEntry: string,
