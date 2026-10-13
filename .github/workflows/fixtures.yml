@@ -82,9 +82,10 @@ jobs:
           fi
           # Fail-safe: no PR, API/selector failure, or an empty/degenerate rest
           # list → the full grid (never zero fixtures). Empty stdin selects all.
-          # Every selected bundle has non-macOS legs, so `rest` is never empty
-          # for a real selection; `ios` legitimately is when narrowing drops
-          # the iOS bundles, and the fixtures-ios job skips itself then.
+          # An empty string means the selector failed. Every selected bundle
+          # has non-macOS legs, so an empty `rest` list ({"include":[]}) also
+          # means something went wrong. An empty `ios` list is legitimate when
+          # narrowing drops the iOS bundles; the fixtures-ios job skips itself.
           if [ -z "$iosLegs" ] || [ -z "$restLegs" ] || [ "$restLegs" = '{"include":[]}' ]; then
             echo "defaulting to the full fixture matrix"
             iosLegs=$(printf '' | node scripts/select-fixture-bundles.cjs --legs-ios)
