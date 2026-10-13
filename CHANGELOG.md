@@ -1,3 +1,10 @@
+## [4.39.1](https://github.com/doc-detective/doc-detective/compare/v4.39.0...v4.39.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **android:** flush the guest before shutting an emulator down ([09c6f5f](https://github.com/doc-detective/doc-detective/commit/09c6f5fff87e8d4eb515d92ff2bf6cb0fa1c574a))
+
 # [4.39.0](https://github.com/doc-detective/doc-detective/compare/v4.38.10...v4.39.0) (2026-10-12)
 
 
