@@ -2189,6 +2189,19 @@ describe("createAppServerPool (one app Appium server reused across contexts, ADR
     assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
   });
 
+  it("ignores a second release of the same hand-out", async function () {
+    // A double release must not put one server in the idle list twice, or
+    // two later contexts would share it.
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    a.release();
+    const b = await pool.acquire("ios", starter(started));
+    const c = await pool.acquire("ios", starter(started));
+    assert.notEqual(b.port, c.port);
+  });
+
   it("drain returns every server once, held or idle, for the run-end shutdown", async function () {
     const pool = createAppServerPool();
     const started = [];

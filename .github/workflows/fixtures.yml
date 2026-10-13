@@ -105,6 +105,8 @@ jobs:
   # in matrix order, so when every leg queues at once the iOS legs often wait
   # behind shorter ones for the ~5 macOS slots. Queueing them a minute earlier
   # puts them ahead. The held-back legs finish well inside the iOS legs' time.
+  # It runs even when narrowing drops the iOS bundles (fixtures-ios then
+  # skips), costing those runs ~1 min; ADR 01109 accepts that.
   # ponytail: a fixed sleep, not a real priority; replace it if GitHub ever
   # offers job priority within a run.
   stagger:

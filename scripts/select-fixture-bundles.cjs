@@ -171,7 +171,7 @@ function main() {
     // Default: comma names, for humans and any name-only consumer.
     const out =
       mode === "legs-ios" || mode === "legs-rest"
-        ? JSON.stringify({ include: selectLegs(files)[mode.slice(5)] })
+        ? JSON.stringify({ include: selectLegs(files)[mode === "legs-ios" ? "ios" : "rest"] })
         : mode === "android"
         ? String(androidLegsRelevant(files))
         : selectBundles(files);

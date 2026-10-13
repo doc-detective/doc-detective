@@ -1757,7 +1757,15 @@ function createAppServerPool() {
         all.add(server);
       }
       const held = server;
-      return { ...held, release: () => void (all.has(held) && idle.push(held)) };
+      let released = false;
+      // Once per hand-out: a second release must not list the server as idle
+      // twice. A drained server (no longer in `all`) never goes back.
+      const release = () => {
+        if (released || !all.has(held)) return;
+        released = true;
+        idle.push(held);
+      };
+      return { ...held, release };
     },
     drain(): PooledAppServer[] {
       const servers = [...all];
