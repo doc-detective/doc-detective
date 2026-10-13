@@ -233,7 +233,7 @@ doc-detective install ios --yes
 
 See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the driver still installs on demand the first time an `ios` surface starts.
 
-On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator. That can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache, and sessions consume it automatically. That build cost then disappears from the run. It's especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
+On a cold machine, the first `ios` surface of a run builds WebDriverAgent for the simulator. That can take several minutes, so give it a generous `timeout`. Running [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand prebuilds WebDriverAgent into the cache, and sessions consume it automatically. That build cost then disappears from the run, and every session starts faster, because it launches the prebuilt WebDriverAgent instead of starting it through Xcode. It's especially worthwhile in CI, where a persisted cache lets every run and every parallel job share one prebuild.
 
 ### Choose the simulator
 
