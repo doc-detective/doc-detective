@@ -2255,6 +2255,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // per-context server gets, so the Windows orphan sweep still applies.
     for (const server of appServerPool.drain()) {
       log(config, "debug", `Closing app Appium server on port ${server.port}`);
+      // A fresh state with no `release` sends teardown down the kill path.
       const owner = createAppSessionState();
       owner.server = { port: server.port, process: server.process };
       try {

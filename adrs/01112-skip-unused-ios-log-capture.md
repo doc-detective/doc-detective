@@ -28,7 +28,8 @@ logs: nothing in `src/core` calls `getLogs` or reads a syslog.
 Chosen option: **A**. iOS app sessions and Safari sessions set `appium:skipLogCapture: true`. App
 surfaces merge `driverOptions` after the defaults, so `"appium:skipLogCapture": false` in a
 `startSurface` step's `driverOptions` restores the capture for anyone driving Appium's log
-endpoints themselves.
+endpoints themselves. Safari sessions have no `startSurface` step, so they have no
+`driverOptions` and log capture stays off for them.
 
 ### Consequences
 
@@ -38,7 +39,8 @@ endpoints themselves.
 
 ### Confirmation
 
-* Unit tests: both builders set the capability, and `driverOptions` can turn it off.
+* Unit tests: both builders set the capability, and an app surface's `driverOptions` can turn it
+  off.
 * Three single-leg runs per iOS fixture leg (`fixtures-debug.yml`). Each context's PASS/SKIP result
   matches the baseline, and median startup drops against the previous round.
 
