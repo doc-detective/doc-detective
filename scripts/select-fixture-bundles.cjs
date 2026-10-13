@@ -95,7 +95,8 @@ const OSES = ["ubuntu-latest", "windows-latest", "macos-latest"];
  * @returns {{ios: {os: string, bundle: object}[], rest: {os: string, bundle: object}[]}}
  */
 function selectLegs(changedFiles) {
-  const legs = OSES.flatMap((os) => selectMatrix(changedFiles).map((bundle) => ({ os, bundle })));
+  const matrix = selectMatrix(changedFiles);
+  const legs = OSES.flatMap((os) => matrix.map((bundle) => ({ os, bundle })));
   const first = (l) => l.os === "macos-latest" && l.bundle.prebootIos === true;
   return { ios: legs.filter(first), rest: legs.filter((l) => !first(l)) };
 }
