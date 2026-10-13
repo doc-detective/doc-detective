@@ -330,6 +330,20 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     );
   });
 
+  it("launches WDA through the prebuilt path, not directly, below iOS 17 (ADR 01110)", function () {
+    // The driver's direct (preinstalled) launch requires iOS 17+.
+    const hit = () => ({ key: "k", derivedDataPath: "/dd", runnerAppPath: "/dd-cache/runner.app" });
+    const old = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit, iosMajor: 16,
+    });
+    expect(old["appium:usePrebuiltWDA"]).to.equal(true);
+    expect(old["appium:usePreinstalledWDA"]).to.equal(undefined);
+    const current = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit, iosMajor: 17,
+    });
+    expect(current["appium:usePreinstalledWDA"]).to.equal(true);
+  });
+
   it("keeps the 120s WDA floor under an authored smaller timeout", function () {
     const capabilities = buildMobileBrowserCapabilities({
       platform: "ios",

@@ -155,12 +155,15 @@ function buildMobileBrowserCapabilities({
   udid,
   cacheDir,
   timeout,
+  iosMajor,
   locateWda = () => locateManagedWda({ ctx: { cacheDir } }),
 }: {
   platform: MobileTarget;
   udid: string;
   cacheDir: string;
   timeout?: number;
+  // The simulator's iOS major version, when known (picks the WDA launch mode).
+  iosMajor?: number;
   // Injected in tests; the default reads the managed WDA products under the
   // resolved cache root.
   locateWda?: () => ManagedWdaHit | null;
@@ -212,6 +215,6 @@ function buildMobileBrowserCapabilities({
   // Same derived-data contract as iOS app sessions: env override wins,
   // else managed prebuilt products are consumed read-only — one shared
   // helper so the two builders cannot drift.
-  applyManagedWdaCapabilities(capabilities, locateWda);
+  applyManagedWdaCapabilities(capabilities, locateWda, iosMajor);
   return capabilities;
 }

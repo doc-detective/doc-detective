@@ -43,14 +43,15 @@ Chosen option: **A**. `runSpecs` creates one `createAppServerPool()` per run and
   arguments. Servers only serve contexts that would have started an identical server.
 * A held server never goes to a second context, so concurrent contexts still get their own.
 * Context teardown releases a pooled server only when every session in the context closed
-  cleanly. A session left open by a failed `deleteSession` could still claim the simulator, so
-  such a server is killed like a per-context one. A released server skips the Windows orphan
+  cleanly. That includes the mobile-web session, which the browser-session sweep closes. A
+  session left open by a failed `deleteSession` could still claim the simulator, so such a server
+  is killed like a per-context one. A released server skips the Windows orphan
   sweep, which force-kills a live server's descendants.
 * The pool reuses an idle server only while its process is alive.
 * Appium's `GET /appium/sessions` would be a more direct check, but it needs the
   `session_discovery` insecure feature, so teardown decides instead.
 * Run-end teardown drains the pool through `teardownAppSession`, the same path a per-context
-  server took.
+  server took. The SIGINT/SIGTERM handler drains it too, alongside the browser servers.
 
 ### Consequences
 

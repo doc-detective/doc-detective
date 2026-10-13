@@ -377,14 +377,18 @@ async function closeSession(
 // Context-teardown sweep: end every remaining session, tolerating individual
 // failures (a session the test already closed, a crashed browser). Leaves the
 // registry empty so a re-entrant sweep is a no-op.
-async function sweepSessions(registry: BrowserSessionRegistry): Promise<void> {
+// Resolves false when any session failed to delete (it may still be open).
+async function sweepSessions(registry: BrowserSessionRegistry): Promise<boolean> {
+  let allClosed = true;
   for (const entry of registry.sessions.values()) {
     try {
       await entry.driver.deleteSession();
     } catch {
       // Best-effort — the finally block that calls this must not throw.
+      allClosed = false;
     }
   }
   registry.sessions.clear();
   registry.activeName = null;
+  return allClosed;
 }

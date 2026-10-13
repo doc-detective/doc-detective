@@ -1688,6 +1688,29 @@ describe("startAppSurface", function () {
     }
   });
 
+  it("ios: uses the prebuilt (not direct) WDA launch on a pre-iOS-17 simulator (ADR 01110)", async function () {
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+      appSession: preflighted(),
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return fakeDriver();
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 14", udid: "U", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-16-4" },
+        }),
+        locateWda: () => ({ key: "k", derivedDataPath: "/dd", runnerAppPath: "/dd-cache/runner.app" }),
+      },
+    });
+    assert.equal(caps["appium:usePrebuiltWDA"], true);
+    assert.equal(caps["appium:usePreinstalledWDA"], undefined);
+  });
+
   it("ios: a second app on the same simulator reuses the session and activates it", async function () {
     const appSession = preflighted();
     const driver = fakeDriver();
@@ -2102,6 +2125,20 @@ describe("Windows console-orphan sweep (issue #501)", function () {
     assert.deepEqual(released, []);
     assert.deepEqual(killed, [42]);
     assert.equal(appSession.server, undefined);
+  });
+
+  it("teardownAppSession kills a pooled server when the context left another session open (ADR 01115)", async function () {
+    // e.g. a mobile-web (Safari) session the browser sweep couldn't delete.
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    appSession.sessionLeftOpen = true;
+    const killed = [];
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      runQuery: async () => [],
+    });
+    assert.deepEqual(released, []);
+    assert.deepEqual(killed, [42]);
   });
 
   it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {

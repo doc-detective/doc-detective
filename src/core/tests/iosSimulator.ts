@@ -29,6 +29,7 @@ export {
   createSimulatorRegistry,
   acquireSimulator,
   teardownSimulatorRegistry,
+  iosMajorOfRuntime,
   normalizeDeviceDescriptor,
   // Effectful helpers + the deps builder that wires them.
   buildAcquireSimulatorDeps,
@@ -407,9 +408,19 @@ interface SimulatorEntry {
   name: string;
   udid: string;
   bootedByUs: boolean;
+  // The device's runtime identifier (e.g. com.apple.CoreSimulator.SimRuntime.
+  // iOS-26-0). Session builders read its iOS version to pick a WDA launch mode.
+  runtime?: string;
   // In-flight boot, memoized so concurrent acquirers of the same device share
   // one boot instead of racing.
   ready?: Promise<SimulatorEntry>;
+}
+
+// The iOS major version in a runtime identifier, or undefined when it can't
+// be read (callers then keep their default).
+function iosMajorOfRuntime(runtime?: string): number | undefined {
+  const match = /iOS-(\d+)/.exec(runtime ?? "");
+  return match ? Number(match[1]) : undefined;
 }
 
 type SimulatorRegistry = Map<string, SimulatorEntry>;
@@ -495,9 +506,17 @@ async function acquireSimulator({
       name: plan.name,
       udid: plan.udid,
       bootedByUs: false,
+      runtime: devices.find((d) => d.udid === plan.udid)?.runtime,
     };
+    // Register the window attempt as the in-flight `ready` (like a boot), so a
+    // concurrent acquirer of this device waits for it too.
+    const ready = (async () => {
+      await showWindow(entry.udid);
+      return entry;
+    })();
+    entry.ready = ready;
     registry.set(plan.name, entry);
-    await showWindow(entry.udid);
+    await ready;
     return { entry };
   }
 
@@ -507,6 +526,10 @@ async function acquireSimulator({
     name: plan.name,
     udid: plan.action === "boot" ? plan.udid : "",
     bootedByUs: true,
+    runtime:
+      plan.action === "boot"
+        ? devices.find((d) => d.udid === plan.udid)?.runtime
+        : plan.runtimeId,
   };
   const readyPromise = (async () => {
     if (plan.action === "create-boot") {

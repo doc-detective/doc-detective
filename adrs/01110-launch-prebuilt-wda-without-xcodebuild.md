@@ -55,10 +55,9 @@ skips xcodebuild.
 * Good: the products stay read-only. The driver copies the app onto the simulator.
 * Neutral: older drivers, a products miss, and the environment-variable override all behave as
   before.
-* Bad: the driver's launch path requires iOS 17 or later. The driver reads the version from the
-  selected simulator and fails the session start on older runtimes. The ADR 01033 retry doesn't
-  change the capabilities, so such a simulator would fail rather than fall back. Current Xcode
-  images ship iOS 17+ runtimes only.
+* Neutral: the driver's direct launch requires iOS 17 or later. The simulator registry records
+  each device's runtime, and both builders pass its iOS major version along. A simulator older
+  than iOS 17 keeps the prebuilt `xcodebuild` launch. An unknown version uses the direct launch.
 
 ### Confirmation
 

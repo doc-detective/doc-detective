@@ -505,11 +505,19 @@ describe("browserSessions: closeSession and sweep", function () {
     };
     registerSession(registry, { name: "chrome", engine: "chrome", driver: chrome });
     registerSession(registry, { name: "admin", engine: "firefox", driver: admin });
-    await sweepSessions(registry);
+    // Reports the failure, so a pooled iOS server isn't reused with a session
+    // still open on it (ADR 01115).
+    assert.equal(await sweepSessions(registry), false);
     assert.equal(chrome._deleted, true);
     assert.equal(registry.activeName, null);
     assert.equal(lookupSessionByName(registry, "chrome"), undefined);
     assert.equal(lookupSessionByName(registry, "admin"), undefined);
+  });
+
+  it("reports a clean sweep when every session closed", async function () {
+    const { registry } = stubRegistry();
+    registerSession(registry, { name: "chrome", engine: "chrome", driver: stubDriver({ engine: "chrome" }) });
+    assert.equal(await sweepSessions(registry), true);
   });
 });
 

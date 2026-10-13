@@ -154,6 +154,7 @@ import {
   acquireSimulator,
   createSimulatorRegistry,
   teardownSimulatorRegistry,
+  iosMajorOfRuntime,
   type SimulatorRegistry,
 } from "./tests/iosSimulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
@@ -1993,7 +1994,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     (async () => {
       await killAllRegistered();
       await Promise.all(
-        appiumServers.map((server) => killTree(server.process?.pid))
+        [...appiumServers, ...appServerPool.drain()].map((server) =>
+          killTree(server.process?.pid)
+        )
       );
       for (const xvfb of xvfbProcesses) {
         try {
@@ -4356,6 +4359,8 @@ async function runContext({
         // The resolved cache root (not the raw config field, which is
         // usually unset) — the chromedriver autodownload dir lives here.
         cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
+        // iOS: the simulator's version picks the WDA launch mode (ADR 01110).
+        iosMajor: iosMajorOfRuntime(acquired.entry.runtime),
       });
       try {
         driver = await driverStart(capabilities, appSession!.server.port, 2, {
@@ -5214,17 +5219,22 @@ async function runContext({
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
     // can't leak sessions while sibling contexts keep running.
+    // A session left open (a failed delete) must keep a pooled iOS app server
+    // from being reused: the mobile-web session runs on it (ADR 01115).
+    let sessionsClosed = true;
     if (browserSessions) {
-      await sweepSessions(browserSessions);
+      sessionsClosed = await sweepSessions(browserSessions);
     } else if (driver) {
       // Registry creation is unconditional after a driver starts, so this
       // fallback only runs if the start path threw between the two.
       try {
         await driver.deleteSession();
       } catch (error: any) {
+        sessionsClosed = false;
         clog("error", `Failed to delete driver session: ${error.message}`);
       }
     }
+    if (appSession && !sessionsClosed) appSession.sessionLeftOpen = true;
     // Tear down app surfaces: close every remaining app session (the driver
     // terminates apps it launched) and stop the app Appium server. Tree-kill
     // in callback form so the server process is actually gone before the

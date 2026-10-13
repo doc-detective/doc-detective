@@ -28,6 +28,7 @@ import {
   appWindowRect,
 } from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { iosMajorOfRuntime } from "./iosSimulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import {
@@ -428,6 +429,9 @@ interface AppDriverPlatform {
       // iOS only: locate managed prebuilt WDA products (injected by the
       // caller so config-resolved cache context and test stubs both flow).
       locateWda?: () => ManagedWdaHit | null;
+      // iOS only: the simulator's iOS major version, when known (picks the
+      // WDA launch mode; ADR 01110).
+      iosMajor?: number;
     }
   ): Record<string, any>;
   // Whether elementText and elementAria's accessible name map to the SAME
@@ -643,7 +647,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       // builder and the mobile-web one cannot drift. No bare locator default
       // here: the caller threads a config-aware locator via extras, and its
       // absence means "no managed consumption", never "guess a cache root".
-      applyManagedWdaCapabilities(capabilities, extras?.locateWda);
+      applyManagedWdaCapabilities(capabilities, extras?.locateWda, extras?.iosMajor);
       return capabilities;
     },
     unsupportedFields: [
@@ -753,6 +757,10 @@ interface AppSessionState {
   // The run's app server pool (ADR 01115). Set for iOS contexts; Android
   // contexts keep a server per context.
   appServerPool?: AppServerPool;
+  // Set when a session on this context's app server outside `surfaces` /
+  // `deviceSessions` (the mobile-web browser session) failed to close, so
+  // teardown kills a pooled server instead of returning it.
+  sessionLeftOpen?: boolean;
   iosSimulatorDeps?: any;
 }
 
@@ -1313,6 +1321,7 @@ async function startAppSurface({
       // (and installs, when `install` is set) the app.
       const capabilities = platformDriver.buildCapabilities(descriptor, appId, {
         udid: acquired.entry.udid,
+        iosMajor: iosMajorOfRuntime(acquired.entry.runtime),
         locateWda:
           serverDeps.locateWda ??
           (() => locateManagedWda({ ctx: { cacheDir: config?.cacheDir } })),
@@ -1794,7 +1803,7 @@ async function teardownAppSession(
   tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
-  let closedCleanly = true;
+  let closedCleanly = !appSession.sessionLeftOpen;
   for (const entry of [...appSession.surfaces.values()]) {
     if (!(await closeAppSurface({ entry, appSession }))) closedCleanly = false;
   }
