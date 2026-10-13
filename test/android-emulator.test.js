@@ -80,6 +80,9 @@ describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
     const calls = [];
     return {
       calls,
+      flush: async () => {
+        calls.push("flush");
+      },
       consoleKill: async () => {
         calls.push("console");
         return consoleAccepted;
@@ -102,7 +105,7 @@ describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
     // snapshot) inconsistent; a graceful exit flushes them.
     const f = fakes(true);
     expect(await shutdownEmulatorWith(f)).to.equal("graceful");
-    expect(f.calls).to.deep.equal(["console", "wait", "release"]);
+    expect(f.calls).to.deep.equal(["flush", "console", "wait", "release"]);
   });
 
   it("leaves a slow exit to the emulator's own watchdog once the console accepted the kill", async function () {
@@ -111,13 +114,26 @@ describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
     // Waiting longer only delays the run, and a hard kill adds nothing.
     const f = fakes(false, true);
     expect(await shutdownEmulatorWith(f)).to.equal("watchdog");
-    expect(f.calls).to.deep.equal(["console", "wait", "release"]);
+    expect(f.calls).to.deep.equal(["flush", "console", "wait", "release"]);
   });
 
   it("force-kills when the console refused the kill and the emulator doesn't exit", async function () {
     const f = fakes(false, false);
     expect(await shutdownEmulatorWith(f)).to.equal("forced");
-    expect(f.calls).to.deep.equal(["console", "wait", "force", "release"]);
+    expect(f.calls).to.deep.equal(["flush", "console", "wait", "force", "release"]);
+  });
+
+  it("flushes the guest's page cache first, and a failed flush never blocks the shutdown", async function () {
+    // `emu kill` halts the VM without an Android shutdown: writes still in
+    // the guest page cache never reach /data (a just-installed APK came back
+    // as pkg=null on the next cold boot 4/4 times without the flush).
+    const f = fakes(true);
+    f.flush = async () => {
+      f.calls.push("flush");
+      throw new Error("device offline");
+    };
+    expect(await shutdownEmulatorWith(f)).to.equal("graceful");
+    expect(f.calls).to.deep.equal(["flush", "console", "wait", "release"]);
   });
 
   it("always releases the stdio pipes, even when waiting or force-killing throws", async function () {
@@ -143,7 +159,7 @@ describe("androidEmulator: shutdownEmulatorWith (ADR 01106)", function () {
       throw new Error("adb missing");
     };
     expect(await shutdownEmulatorWith(f)).to.equal("forced");
-    expect(f.calls).to.deep.equal(["console", "wait", "force", "release"]);
+    expect(f.calls).to.deep.equal(["flush", "console", "wait", "force", "release"]);
   });
 });
 
