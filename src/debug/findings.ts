@@ -127,8 +127,8 @@ const driverNotRegistered: Rule = (data) => {
     title: "Appium driver installed but not registered",
     detail: `${stranded
       .map((d) => d.name)
-      .join(", ")} resolve from npm but Appium doesn't list them under the active APPIUM_HOME — usually an APPIUM_HOME pointing at the wrong node_modules.`,
-    fix: "doc-detective install runtime",
+      .join(", ")} resolve from npm but Appium doesn't list them under the active APPIUM_HOME — usually a stale Appium manifest in the runtime cache.`,
+    fix: "doc-detective install runtime appium --force",
   };
 };
 

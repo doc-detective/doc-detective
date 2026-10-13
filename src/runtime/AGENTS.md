@@ -52,9 +52,16 @@ throws while `require.resolve("<driver>/package.json")` succeeds.
 Appium only scans `APPIUM_HOME/node_modules` for drivers when its manifest cache
 (`node_modules/.cache/appium/extensions.yaml`) is **absent**. A lazily-installed driver added to a
 home with an existing manifest is invisible, reporting "Could not find a driver for automationName
-…". The preflight therefore deletes the stale manifest cache before starting a server that needs a
-new driver.
+…". `ensureRuntimeInstalled` therefore deletes the manifest cache after installing any Appium
+package, and the app-surface preflight also deletes a manifest that doesn't list its driver.
 Preserve that behavior in any install-flow refactor.
+
+Every Appium server, browser and app surface alike, is homed at `<cacheDir>/runtime` (ADR 01111).
+The loader never resolves `appium` or `appium-*` from the shim, even in a source checkout whose
+`node_modules` has them. Don't reintroduce a shim fallback for them: it splits Appium across two
+homes. For the same reason they're declared in `ddRuntimeDependencies`, not `optionalDependencies`,
+so `npm ci` never installs an unused copy. Dependabot doesn't read that custom field, so bump their
+ranges by hand.
 
 ## Testing note
 

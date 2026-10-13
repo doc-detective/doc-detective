@@ -7,4 +7,6 @@ exit: true
 # exceeded" on whichever test is unlucky — an intermittent, test-agnostic flake
 # (see ADR 01037). 10s gives ample headroom while still catching genuine hangs.
 # Individual slow tests keep their own longer `this.timeout(...)`.
+# On Windows CI every enforced timeout also gets a 60s freeze allowance
+# (test/freeze-allowance.js, ADR 01105).
 timeout: 10000

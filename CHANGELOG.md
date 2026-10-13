@@ -1,3 +1,36 @@
+# [4.39.0](https://github.com/doc-detective/doc-detective/compare/v4.38.10...v4.39.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* **android:** always release emulator pipes and log unsaved snapshots ([cf11c87](https://github.com/doc-detective/doc-detective/commit/cf11c87223d760dfdce38a67b28059fe4c96316c))
+* **android:** delete the clean snapshot through the console before re-saving it ([70193fe](https://github.com/doc-detective/doc-detective/commit/70193fe1f3dfd3e45d32fa0c83b2c121671962e5))
+* **android:** don't wait 30s on an emulator a signal already ended ([d1322a9](https://github.com/doc-detective/doc-detective/commit/d1322a9671f82be77cc4524669d44b9f6f266472))
+* **android:** honor --dry-run on reset, shut emulators down concurrently ([738200b](https://github.com/doc-detective/doc-detective/commit/738200b3096a0a30f0f8804c7159b3849339963c))
+* **android:** report a clean-snapshot save the console didn't confirm ([c363cdc](https://github.com/doc-detective/doc-detective/commit/c363cdc71f32adb2a1b268713aa2b392d493a81b))
+* **android:** report per-AVD reset failures and release pipes on boot timeout ([2fbe815](https://github.com/doc-detective/doc-detective/commit/2fbe8155378786e258a4c18d61374e77a331cebb))
+* **android:** save the clean snapshot only after a confirmed delete ([84fe2c2](https://github.com/doc-detective/doc-detective/commit/84fe2c251b81e6d747d03977d8f076c6b36c7574))
+* **android:** self-heal bad snapshots and shut emulators down gracefully ([808a403](https://github.com/doc-detective/doc-detective/commit/808a403c844328cb714f713006af8dbb494c96b0))
+
+
+### Features
+
+* **android:** boot managed emulators from a clean snapshot ([c997527](https://github.com/doc-detective/doc-detective/commit/c9975279862618b0d5dfbe653643080267b2e714))
+
+## [4.38.10](https://github.com/doc-detective/doc-detective/compare/v4.38.9...v4.38.10) (2026-10-11)
+
+
+### Bug Fixes
+
+* **appium:** home every Appium server in the runtime cache ([0531667](https://github.com/doc-detective/doc-detective/commit/053166705a365f40feb42683c3bdb33d0d125c90))
+
+## [4.38.9](https://github.com/doc-detective/doc-detective/compare/v4.38.8...v4.38.9) (2026-10-11)
+
+
+### Bug Fixes
+
+* **firefox:** assign a unique geckodriver port per session ([80fecb6](https://github.com/doc-detective/doc-detective/commit/80fecb6956130115f512c3f4a709836f0df339dc))
+
 ## [4.38.8](https://github.com/doc-detective/doc-detective/compare/v4.38.7...v4.38.8) (2026-10-11)
 
 

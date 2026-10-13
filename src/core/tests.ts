@@ -205,7 +205,7 @@ export {
   warmUpDecision,
   selectWarmUpTargets,
   getDriverCapabilities,
-  withChromedriverPort,
+  withDriverPort,
   getDefaultBrowser,
   buildFallbackCandidates,
   driverSkipDiagnostic,
@@ -496,19 +496,28 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
 // the other's connection is REFUSED, surfacing later as a mid-session
 // `ECONNREFUSED 127.0.0.1:9515` when a command proxies to the wrong/dead
 // chromedriver (ADR 01039). Assigning a unique free port per session removes the
-// collision. Gecko/Safari are unaffected — geckodriver auto-selects a free
-// `systemPort` from a range, and Safari has no such port — so this only touches
-// Chromium caps, leaving every other engine's caps byte-identical. An explicit
-// `appium:chromedriverPort` (a caller opting into a fixed port) is preserved.
-function withChromedriverPort(capabilities: any, port: number): any {
-  if (
-    !capabilities ||
-    capabilities["appium:automationName"] !== "Chromium" ||
-    capabilities["appium:chromedriverPort"] !== undefined
-  ) {
-    return capabilities;
-  }
-  return { ...capabilities, "appium:chromedriverPort": port };
+// collision. Gecko races the same way, just less often: appium-geckodriver
+// picks the lowest free port in 5200..5300 for `systemPort` but only reserves
+// it once geckodriver binds, so two concurrent Appium servers can both pick
+// 5200 and one proxies into the other's geckodriver session ("Got unexpected
+// session id"; ADR 01105). Safari has no such port, so its caps (and every
+// other engine's) stay byte-identical. An explicit port capability (a caller
+// opting into a fixed port) is preserved.
+const DRIVER_PORT_CAPABILITY: Record<string, string> = {
+  Chromium: "appium:chromedriverPort",
+  Gecko: "appium:systemPort",
+};
+
+// The port capability these caps still need, or undefined when the engine has
+// none or the caller already pinned one.
+function driverPortCapability(capabilities: any): string | undefined {
+  const key = DRIVER_PORT_CAPABILITY[capabilities?.["appium:automationName"]];
+  return key && capabilities[key] === undefined ? key : undefined;
+}
+
+function withDriverPort(capabilities: any, port: number): any {
+  const key = driverPortCapability(capabilities);
+  return key ? { ...capabilities, [key]: port } : capabilities;
 }
 
 
@@ -1823,13 +1832,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
-    // Resolve appium's actual JS entrypoint via `require.resolve` (shim
-    // node_modules first, runtime cache second) and invoke it with
-    // `node <entry>`. This sidesteps every shell-injection trap at once: no
-    // `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no PATH
-    // lookup; no user-controlled paths in a shell-interpreted string. Works
-    // for both `--omit=optional` users (appium in cache only) and default
-    // installs (appium in shim).
+    // Resolve appium's actual JS entrypoint via `require.resolve` (always
+    // from the runtime cache, the shared APPIUM_HOME — ADR 01111) and invoke
+    // it with `node <entry>`. This sidesteps every shell-injection trap at
+    // once: no `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no
+    // PATH lookup; no user-controlled paths in a shell-interpreted string.
     const appiumEntry = resolveHeavyDepPath("appium", {
       cacheDir: config?.cacheDir,
     });
@@ -5965,18 +5972,16 @@ async function driverStart(
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // Chromium sessions get a unique free chromedriver port so concurrent
-      // browser contexts never collide on chromedriver's fixed default (9515);
-      // see withChromedriverPort (ADR 01039). A FRESH port is allocated per
+      // Chromium and Gecko sessions get a unique free driver port so
+      // concurrent browser contexts never collide on chromedriver's fixed
+      // default (9515) or geckodriver's lowest-free-in-range pick; see
+      // withDriverPort (ADR 01039, 01105). A FRESH port is allocated per
       // attempt so a retryable ECONNREFUSED — the very rebind-race the Appium
       // path already retries — moves to a new free port instead of re-racing
-      // the same one. Only Chromium caps need a port; every other engine skips
-      // the allocation and keeps a byte-identical wdio.remote payload.
-      const needsChromedriverPort =
-        capabilities?.["appium:automationName"] === "Chromium" &&
-        capabilities?.["appium:chromedriverPort"] === undefined;
-      const attemptCaps = needsChromedriverPort
-        ? withChromedriverPort(capabilities, await findFreePort())
+      // the same one. Engines without a driver port skip the allocation and
+      // keep a byte-identical wdio.remote payload.
+      const attemptCaps = driverPortCapability(capabilities)
+        ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
       const driver: any = await wdio.remote({
         protocol: "http",

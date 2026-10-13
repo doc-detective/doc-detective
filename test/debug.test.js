@@ -1385,7 +1385,9 @@ describe("debug/findings", function () {
     expect(findings.find((f) => /stale/i.test(f.title))).to.not.equal(undefined);
     const stranded = findings.find((f) => /not registered/i.test(f.title));
     expect(stranded).to.not.equal(undefined);
-    expect(stranded.fix).to.equal("doc-detective install runtime");
+    // A plain `install runtime` no-ops when everything is present; a forced
+    // Appium reinstall drops the stale manifest (ADR 01111).
+    expect(stranded.fix).to.equal("doc-detective install runtime appium --force");
   });
 
   it("does NOT flag unregistered drivers when the manifest is absent", function () {
