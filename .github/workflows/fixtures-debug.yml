@@ -8,6 +8,8 @@
 # stripped; see fixtures.yml for what each one does), and the leg comes from
 # scripts/select-fixture-bundles.cjs, so a debug run is a faithful sample of the
 # gate leg. test/select-fixture-bundles.test.js fails if the two drift apart.
+# That includes the "Gate on results" PASS requirement, which follows the
+# gate's per-leg rule; there's deliberately no input to switch it off.
 
 name: Fixture Debug (single leg)
 

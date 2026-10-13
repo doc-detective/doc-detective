@@ -1753,7 +1753,7 @@ function createAppServerPool() {
     async acquire(
       key: string,
       start: () => Promise<{ port: number; process: any }>
-    ): Promise<PooledAppServer & { release: () => void }> {
+    ): Promise<{ port: number; process: any; release: () => void }> {
       let server: PooledAppServer | undefined;
       for (let i = idle.length - 1; i >= 0 && !server; i--) {
         if (idle[i].key !== key) continue;
@@ -1774,7 +1774,7 @@ function createAppServerPool() {
         released = true;
         idle.push(held);
       };
-      return { ...held, release };
+      return { port: held.port, process: held.process, release };
     },
     drain(): PooledAppServer[] {
       const servers = [...all];
