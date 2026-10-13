@@ -535,7 +535,16 @@ describe("iosSimulator: acquireSimulator + teardown", function () {
       registry: createSimulatorRegistry(),
       deps: fakeDeps().deps,
     });
-    assert.match(create.entry.runtime, /SimRuntime\.iOS-/);
+    const createPlan = planSimulatorAcquisition(
+      { platform: "ios", name: "Brand New Phone" },
+      {
+        devices: parseSimctlDevices(devicesJson),
+        runtimes: parseSimctlRuntimes(runtimesJson),
+        deviceTypes: parseSimctlDeviceTypes(deviceTypesJson),
+      }
+    );
+    assert.equal(createPlan.action, "create-boot");
+    assert.equal(create.entry.runtime, createPlan.runtimeId);
   });
 
   it("reuses an already-booted device without booting (bootedByUs false)", async function () {

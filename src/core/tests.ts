@@ -5683,6 +5683,8 @@ async function runStep({
             // iOS contexts share the run's pooled server for this exact launch
             // environment (ADR 01115); teardown releases it via `release`.
             const pool = appSession?.appServerPool;
+            // Deliberately a different key from the mobile-web site: app servers
+            // also carry the ffmpeg PATH, so the two never share a server.
             if (pool) return pool.acquire(JSON.stringify({ appiumEntry, env }), start);
             return start();
           },
