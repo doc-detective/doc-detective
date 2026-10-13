@@ -80,3 +80,17 @@ Or ask in plain language:
 You can also ask for more specific behavior:
 
 > Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.
+
+## Language server
+
+Installing the plugin also bundles a Doc Detective language server with Claude Code. It gives Claude Code authoring-time feedback on your test specs, running the same schema checks as the test runner but surfacing them the moment the agent edits a spec instead of only when tests run. Claude Code reads that feedback as it writes and fixes structural mistakes before a test ever executes, so you spend fewer round trips on failed runs.
+
+The language server activates automatically after installation, with nothing for you to set up. It provides three things:
+
+- **Diagnostics**: Claude Code sees schema errors inline as it edits `*.spec.json` and `*.spec.yaml` specs, `.doc-detective.*` config files, and inline Doc Detective tests embedded in Markdown, AsciiDoc, HTML, and DITA. The common `action`-keyed mistake—writing `{"action": "goTo"}` instead of the compact `{"goTo": "..."}` form—produces a single clear message instead of a cascade of schema errors.
+- **Completion**: Suggestions for action keys and their fields, with schema-aware snippets for values.
+- **Hover**: Action descriptions pulled straight from the schema.
+
+To avoid noise, the language server stays silent on files that aren't Doc Detective documents. It engages on specs and config files by name, on any file whose `$schema` points at a Doc Detective schema, and on JSON with a top-level `tests` array, so an unrelated `package.json` never produces feedback.
+
+The language server runs through your project's Doc Detective CLI, falling back to `npx` when the project has no local copy. Because it's a Claude Code capability, it doesn't apply to the other assistants.
