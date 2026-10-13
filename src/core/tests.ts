@@ -225,8 +225,8 @@ export {
   warmBrowserInstall,
   prefetchMobileChromedriver,
   appiumIsReady,
+  driverStart,
 };
-// exports.driverStart = driverStart;
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
@@ -4357,6 +4357,7 @@ async function runContext({
       try {
         driver = await driverStart(capabilities, appSession!.server.port, 2, {
           cacheDir: config?.cacheDir,
+          log: (m) => clog("warning", m),
         });
       } catch (error: any) {
         // A capable host that can't open the device browser is an
@@ -5672,7 +5673,10 @@ async function runStep({
             return start();
           },
           startDriver: (capabilities: any, port: number) =>
-            driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+            driverStart(capabilities, port, 2, {
+              cacheDir: config?.cacheDir,
+              log: (m) => log(config, "warning", m),
+            }),
           // Mobile device acquisition (boot/create-and-boot, or reuse), bound
           // to the run-level registry stashed on the app session. Android uses
           // the emulator layer; iOS uses the simctl simulator layer. Both
@@ -5970,7 +5974,14 @@ async function driverStart(
   capabilities: any,
   port: number,
   maxAttempts: number = 4,
-  ctx: { cacheDir?: string } = {}
+  ctx: {
+    cacheDir?: string;
+    // Reports each failed attempt that gets retried (a hung iOS launch
+    // otherwise shows as a silent stall up to the startup ceiling).
+    log?: (message: string) => void;
+    // Test seam for the WebDriver client.
+    remote?: (options: any) => Promise<any>;
+  } = {}
 ) {
   // Retryable session-creation failures (transient races/contention, plus the
   // client-side timeout abort for slow-startup native sessions) are enumerated
@@ -6007,7 +6018,7 @@ async function driverStart(
       const attemptCaps = driverPortCapability(capabilities)
         ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
-      const driver: any = await wdio.remote({
+      const driver: any = await (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -6029,6 +6040,10 @@ async function driverStart(
       if (!isRetryableSessionError(String(err && err.message), startupCeiling))
         throw err;
       if (attempt < maxAttempts) {
+        const reason = String(err?.message ?? err).split("\n")[0];
+        ctx.log?.(
+          `Session start attempt ${attempt} of ${maxAttempts} failed (${reason}); retrying.`
+        );
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
     }
