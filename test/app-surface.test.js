@@ -1660,7 +1660,9 @@ describe("startAppSurface", function () {
             caps = c;
             return fakeDriver();
           },
-          acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+          acquireDevice: async () => ({
+            entry: { name: "iPhone 15", udid: "U", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-26-0" },
+          }),
           locateWda: () => ({
             key: "xcode-16.4-16F6-driver-10.8.1",
             derivedDataPath: "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",

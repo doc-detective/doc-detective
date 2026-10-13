@@ -342,6 +342,12 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
       platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit, iosMajor: 17,
     });
     expect(current["appium:usePreinstalledWDA"]).to.equal(true);
+    // An unknown version keeps the established prebuilt launch (fail safe).
+    const unknown = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit,
+    });
+    expect(unknown["appium:usePrebuiltWDA"]).to.equal(true);
+    expect(unknown["appium:usePreinstalledWDA"]).to.equal(undefined);
   });
 
   it("keeps the 120s WDA floor under an authored smaller timeout", function () {
@@ -388,6 +394,7 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
         platform: "ios",
         udid: "SIM-UDID-1234",
         cacheDir: "/tmp/dd-cache",
+        iosMajor: 26,
         locateWda: () => ({
           key: "xcode-16.4-16F6-driver-10.8.1",
           derivedDataPath:

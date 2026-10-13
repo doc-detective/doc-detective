@@ -317,8 +317,9 @@ export function locateManagedWda(
 export function applyManagedWdaCapabilities(
   capabilities: Record<string, any>,
   locateWda?: () => ManagedWdaHit | null,
-  // The target simulator's iOS major version, when known. The driver's direct
-  // launch needs iOS 17+; older runtimes keep the prebuilt xcodebuild path.
+  // The target simulator's iOS major version. The driver's direct launch needs
+  // iOS 17+, so it's used only when the version is known to qualify; older or
+  // unknown runtimes keep the prebuilt xcodebuild path.
   iosMajor?: number
 ): void {
   const derivedDataPath = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
@@ -333,7 +334,7 @@ export function applyManagedWdaCapabilities(
     // Install the prebuilt runner and launch it without xcodebuild (ADR 01110).
     // The driver copies the .app onto the simulator, so the products stay
     // read-only.
-    if (managed.runnerAppPath && (iosMajor === undefined || iosMajor >= 17)) {
+    if (managed.runnerAppPath && iosMajor !== undefined && iosMajor >= 17) {
       capabilities["appium:usePreinstalledWDA"] = true;
       capabilities["appium:prebuiltWDAPath"] = managed.runnerAppPath;
     }

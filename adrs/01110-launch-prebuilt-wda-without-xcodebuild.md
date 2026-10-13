@@ -57,7 +57,8 @@ skips xcodebuild.
   before.
 * Neutral: the driver's direct launch requires iOS 17 or later. The simulator registry records
   each device's runtime, and both builders pass its iOS major version along. A simulator older
-  than iOS 17 keeps the prebuilt `xcodebuild` launch. An unknown version uses the direct launch.
+  than iOS 17 keeps the prebuilt `xcodebuild` launch, and so does an unknown version, which fails
+  safe.
 
 ### Confirmation
 

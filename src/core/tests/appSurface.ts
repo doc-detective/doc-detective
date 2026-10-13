@@ -1755,6 +1755,7 @@ function createAppServerPool() {
       start: () => Promise<{ port: number; process: any }>
     ): Promise<{ port: number; process: any; release: () => void }> {
       let server: PooledAppServer | undefined;
+      // Most recently released first (LIFO), so the warmest server is reused.
       for (let i = idle.length - 1; i >= 0 && !server; i--) {
         if (idle[i].key !== key) continue;
         const [candidate] = idle.splice(i, 1);
