@@ -1,0 +1,36 @@
+{
+  "specId": "android-reset-snapshot",
+  "description": "ADR 01106: `doc-detective install android --reset-snapshot` deletes Doc Detective's clean boot snapshot (`doc-detective-clean`) from every AVD and installs nothing, so each AVD's next managed boot cold-boots and retakes it. Each test seeds a throwaway AVD home under `.tmp/` and runs the real CLI with HOME/USERPROFILE pointed at it, so the host's real AVDs are never touched and no emulator or SDK is needed. The boot side of the feature (cold boot + settle + save, then snapshot resume) is exercised by the managed-boot leg's two runs: `apps-android` creates the snapshots, `mobile-web-android` resumes them.",
+  "tests": [
+    {
+      "testId": "reset-removes-clean-snapshot",
+      "description": "With a clean snapshot present (in an AVD whose .ini points at a non-default directory), the reset removes it, keeps a user snapshot on the same AVD, and names the AVD.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');const h=path.resolve('.tmp/fixture-reset-snapshot/present');fs.rmSync(h,{recursive:true,force:true});const avd=path.join(h,'.android','avd');const dir=path.join(h,'elsewhere','fx.avd');const clean=path.join(dir,'snapshots','doc-detective-clean');const user=path.join(dir,'snapshots','user-snap');fs.mkdirSync(clean,{recursive:true});fs.writeFileSync(path.join(clean,'snapshot.pb'),'x');fs.mkdirSync(user,{recursive:true});fs.mkdirSync(avd,{recursive:true});fs.writeFileSync(path.join(avd,'fx.ini'),'path='+dir+'\\n');const r=spawnSync(process.execPath,['./bin/doc-detective.js','install','android','--reset-snapshot'],{encoding:'utf8',env:{...process.env,HOME:h,USERPROFILE:h,DOC_DETECTIVE_SKIP_AUTO_UPDATE:'1'}});const out=(r.stdout||'')+(r.stderr||'');if(r.status!==0){console.error('exit '+r.status+': '+out);process.exit(1)}if(!/Reset the clean boot snapshot for: fx/.test(out)){console.error('missing reset report: '+out);process.exit(1)}if(fs.existsSync(clean)){console.error('clean snapshot still present');process.exit(1)}if(!fs.existsSync(user)){console.error('user snapshot was removed');process.exit(1)}if(/Android install plan/.test(out)){console.error('reset must not plan an install');process.exit(1)}console.log('reset ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reset-with-nothing-to-reset",
+      "description": "With no clean snapshot anywhere (and no AVD home at all), the reset is a no-op that says so and exits 0.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');const h=path.resolve('.tmp/fixture-reset-snapshot/empty');fs.rmSync(h,{recursive:true,force:true});fs.mkdirSync(h,{recursive:true});const r=spawnSync(process.execPath,['./bin/doc-detective.js','install','android','--reset-snapshot'],{encoding:'utf8',env:{...process.env,HOME:h,USERPROFILE:h,DOC_DETECTIVE_SKIP_AUTO_UPDATE:'1'}});const out=(r.stdout||'')+(r.stderr||'');if(r.status!==0){console.error('exit '+r.status+': '+out);process.exit(1)}if(!/No clean boot snapshots to reset/.test(out)){console.error('missing no-op message: '+out);process.exit(1)}console.log('no-op ok')\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -25,6 +25,9 @@ import {
   runSdkInstallWithRetry,
   isSystemImageComplete,
   SDK_INSTALL_MAX_ATTEMPTS,
+  resetCleanSnapshots,
+  hasCleanSnapshot,
+  discardCleanSnapshot,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -703,6 +706,105 @@ describe("android installer: installAndroid orchestration", function () {
       ).to.equal(true);
       expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(false);
     });
+  });
+});
+
+describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
+  let home;
+  const clean = (avdDir) => path.join(avdDir, "snapshots", "doc-detective-clean");
+  beforeEach(function () {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-avd-reset-"));
+  });
+  afterEach(function () {
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("deletes only Doc Detective's clean snapshot from every AVD, honoring the ini path", function () {
+    // a: ini points at a non-default directory, and has a user snapshot too.
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(path.join(aDir, "snapshots", "user-snap"), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), `avd.ini.encoding=UTF-8\npath=${aDir}\ntarget=android-36\n`);
+    // b: no path line — the default <home>/<name>.avd layout.
+    fs.mkdirSync(clean(path.join(home, "b.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    // c: no clean snapshot to reset.
+    fs.mkdirSync(path.join(home, "c.avd"), { recursive: true });
+    fs.writeFileSync(path.join(home, "c.ini"), `path=${path.join(home, "c.avd")}\n`);
+
+    const result = resetCleanSnapshots({ avdHome: home });
+    expect(result.reset.sort()).to.deep.equal(["a", "b"]);
+    expect(result.failed).to.deep.equal([]);
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
+    expect(fs.existsSync(path.join(aDir, "snapshots", "user-snap"))).to.equal(true);
+  });
+
+  it("dryRun reports what would be reset without deleting anything", function () {
+    fs.mkdirSync(clean(path.join(home, "a.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    const result = resetCleanSnapshots({ avdHome: home, dryRun: true });
+    expect(result).to.deep.equal({ reset: ["a"], failed: [] });
+    expect(fs.existsSync(clean(path.join(home, "a.avd")))).to.equal(true);
+  });
+
+  it("returns nothing to reset when the AVD home doesn't exist", function () {
+    expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal({
+      reset: [],
+      failed: [],
+    });
+  });
+
+  it("rethrows AVD-home read errors other than a missing directory", function () {
+    const readdirSync = () => {
+      throw Object.assign(new Error("access denied"), { code: "EACCES" });
+    };
+    expect(() => resetCleanSnapshots({ avdHome: home, readdirSync })).to.throw(/access denied/);
+  });
+
+  it("keeps resetting the other AVDs when one removal fails, and reports it", function () {
+    // e.g. EBUSY on Windows while an emulator still holds that snapshot open.
+    for (const name of ["a", "b"]) {
+      fs.mkdirSync(clean(path.join(home, `${name}.avd`)), { recursive: true });
+      fs.writeFileSync(path.join(home, `${name}.ini`), "target=android-36\n");
+    }
+    const rmSync = (target, opts) => {
+      if (target.includes(`${path.sep}a.avd${path.sep}`)) {
+        throw Object.assign(new Error("resource busy"), { code: "EBUSY" });
+      }
+      fs.rmSync(target, opts);
+    };
+    const result = resetCleanSnapshots({ avdHome: home, rmSync });
+    expect(result.reset).to.deep.equal(["b"]);
+    expect(result.failed).to.deep.equal([{ name: "a", error: "resource busy" }]);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
+  });
+
+  it("hasCleanSnapshot needs a complete snapshot (snapshot.pb) in the AVD's ini-resolved dir", function () {
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.writeFileSync(path.join(home, "a.ini"), `path=${aDir}\n`);
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    // A directory without snapshot.pb is a partial/aborted save.
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    fs.writeFileSync(path.join(clean(aDir), "snapshot.pb"), "x");
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(true);
+    // Unknown AVD.
+    expect(hasCleanSnapshot("nope", { avdHome: home })).to.equal(false);
+  });
+
+  it("discardCleanSnapshot removes one AVD's clean snapshot only", function () {
+    const aDir = path.join(home, "a.avd");
+    const bDir = path.join(home, "b.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(clean(bDir), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    discardCleanSnapshot("a", { avdHome: home });
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(bDir))).to.equal(true);
+    // Idempotent when nothing is there.
+    discardCleanSnapshot("a", { avdHome: home });
   });
 });
 

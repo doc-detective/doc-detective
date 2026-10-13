@@ -3,13 +3,16 @@
  * the input. Two changes:
  *   1. Drop `workspaces` — npx/global installs of the published package must not
  *      see the monorepo workspaces field (see PR #236).
- *   2. Move `optionalDependencies` (which by this point holds only the heavy
+ *   2. Merge `optionalDependencies` (which by this point holds only heavy
  *      lazy-installed runtime deps) into the custom `ddRuntimeDependencies`
  *      field. npm never auto-installs a custom field, so a default
- *      `npm i doc-detective` no longer drags in webdriverio/appium/sharp/etc.
- *      and their deprecated transitive deps. The runtime loader reads versions
+ *      `npm i doc-detective` no longer drags in webdriverio/sharp/etc. and
+ *      their deprecated transitive deps. The runtime loader reads versions
  *      from `ddRuntimeDependencies` via getDeclaredVersion(). The source
- *      manifest keeps `optionalDependencies` so Dependabot still bumps them.
+ *      manifest keeps most heavy deps in `optionalDependencies` so Dependabot
+ *      still bumps them. Deps that only ever load from the runtime cache
+ *      (Appium and its drivers, the PTY backend) are declared directly in
+ *      `ddRuntimeDependencies` instead and are bumped by hand.
  *
  * This MUST be applied to package.json on disk *before* `npm publish` is
  * invoked — not from a `prepack`/`prepare` lifecycle hook. `npm publish` builds

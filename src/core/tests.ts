@@ -145,6 +145,7 @@ import {
   acquireDevice,
   createDeviceRegistry,
   teardownDeviceRegistry,
+  shutdownEmulator,
   type DeviceRegistry,
 } from "./tests/androidEmulator.js";
 import {
@@ -2275,7 +2276,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     if (deviceRegistry.size > 0) {
       await teardownDeviceRegistry(deviceRegistry, async (entry) => {
         log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
-        await killTree(entry.process?.pid);
+        // Graceful, not a tree-kill: a hard kill can leave the AVD's disk
+        // images (and the clean boot snapshot inside them) inconsistent.
+        await shutdownEmulator(entry);
       });
     }
     // Sweep the iOS simulator registry (native app phase A4): shut down only the

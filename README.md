@@ -41,7 +41,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 **Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0`, which also accepts `false`, `no`, and `off`. The CLI install then stays small, with no browser download and no heavy npm packages. The heavy assets install lazily the first time a test needs them, or up front through `doc-detective install all`.
 
-Either way, the *published* package declares the heavy packages in neither `dependencies` nor `optionalDependencies`. npm itself therefore never fetches them as part of the dependency tree. In the source repo they live under `optionalDependencies`, and the publish step rewrites them into a custom `ddRuntimeDependencies` field. The resolver reads that field's version constraints when it installs each dep into the cache, whether at postinstall or on first use.
+Either way, the *published* package declares the heavy packages in neither `dependencies` nor `optionalDependencies`. npm itself therefore never fetches them as part of the dependency tree. In the source repo most of them live under `optionalDependencies`, and the publish step rewrites them into a custom `ddRuntimeDependencies` field. Appium, its drivers, and the PTY backend only ever load from the runtime cache. The source repo therefore declares them directly in `ddRuntimeDependencies`. The resolver reads that field's version constraints when it installs each dep into the cache, whether at postinstall or on first use.
 
 - **Pre-install everything up front:**
 

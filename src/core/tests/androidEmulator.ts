@@ -6,6 +6,9 @@
 // polling) are all injected so the orchestration is testable with fakes.
 
 import { execFile, spawn, spawnSync } from "node:child_process";
+import treeKill from "tree-kill";
+import fs from "node:fs";
+import path from "node:path";
 import {
   pickSystemImage,
   DEVICE_TYPE_PROFILES,
@@ -13,6 +16,9 @@ import {
   listInstalledSystemImages,
   winShellCommand,
   androidAvdHome,
+  CLEAN_SNAPSHOT_NAME,
+  hasCleanSnapshot,
+  discardCleanSnapshot,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 import { normalizeDeviceDescriptor } from "./mobileDevice.js";
@@ -38,6 +44,15 @@ export {
   buildAcquireDeviceDeps,
   checkEmulatorAcceleration,
   hostHasKvm,
+  bootWithCleanSnapshot,
+  cleanSnapshotSaveCommands,
+  saveCleanSnapshotWith,
+  CLEAN_SNAPSHOT_NAME,
+  waitForBootCompleted,
+  waitForProcessExit,
+  shutdownEmulatorWith,
+  shutdownEmulator,
+  adbPathForSdkRoot,
 };
 export type { DeviceDescriptor, DeviceRegistry, DeviceEntry, DeviceAcquisition };
 
@@ -89,6 +104,31 @@ function parseAccelCheck({
   return !/not installed|not usable|is not/i.test(text);
 }
 
+// The adb commands that save the clean snapshot. Delete it through the
+// console first: a directory-only delete (reset, discard) leaves the
+// qcow2-internal snapshot behind, and re-saving the name over it produced a
+// snapshot that never resumed on windowed (host-GPU) emulators.
+function cleanSnapshotSaveCommands(udid: string): string[][] {
+  return [
+    ["-s", udid, "emu", "avd", "snapshot", "delete", CLEAN_SNAPSHOT_NAME],
+    ["-s", udid, "emu", "avd", "snapshot", "save", CLEAN_SNAPSHOT_NAME],
+  ];
+}
+
+// Run the save, but only after the console confirms the delete (it answers
+// OK even when there's nothing to delete). An unconfirmed delete may have
+// left the stale copy behind, so skip the save: the next boot is cold and
+// retakes it, rather than resuming a snapshot that can't. Returns whether
+// the console confirmed the save.
+async function saveCleanSnapshotWith(
+  run: (args: string[]) => Promise<{ stdout: string }>,
+  udid: string
+): Promise<boolean> {
+  const [deleteArgs, saveArgs] = cleanSnapshotSaveCommands(udid);
+  if (!/\bOK\b/.test((await run(deleteArgs)).stdout)) return false;
+  return /\bOK\b/.test((await run(saveArgs)).stdout);
+}
+
 // --- Descriptor / boot computation (pure) ---
 
 // The AVD emulator serial for a console port (even ports 5554..5680).
@@ -107,16 +147,25 @@ function nextEmulatorPort(usedPorts: Iterable<number>): number {
   throw new Error("No free emulator console port in 5554-5680.");
 }
 
-// Emulator boot arguments. `-no-snapshot-save`/`-no-boot-anim` keep CI runs
-// fast and deterministic; headless adds `-no-window -no-audio`.
-function emulatorBootArgs(desc: DeviceDescriptor, port: number): string[] {
+// Emulator boot arguments; headless adds `-no-window -no-audio`.
+function emulatorBootArgs(
+  desc: DeviceDescriptor,
+  port: number,
+  { snapshot = false }: { snapshot?: boolean } = {}
+): string[] {
   const args = ["-avd", String(desc.name), "-port", String(port)];
   // Headless needs a software renderer — a windowless emulator with the default
   // (host) GPU has no surface and exits immediately on a headless CI runner.
   if (desc.headless)
     args.push("-no-window", "-no-audio", "-gpu", "swiftshader_indirect");
-  // Cold boot (no snapshot load/save) for a deterministic, clean start.
-  args.push("-no-snapshot", "-no-boot-anim");
+  // Snapshot boots resume the clean snapshot, never save over it, and exit
+  // (instead of silently cold booting) when it can't load. Otherwise cold boot.
+  if (snapshot) {
+    args.push("-snapshot", CLEAN_SNAPSHOT_NAME, "-no-snapshot-save", "-force-snapshot-load");
+  } else {
+    args.push("-no-snapshot");
+  }
+  args.push("-no-boot-anim");
   return args;
 }
 
@@ -265,6 +314,159 @@ function planDeviceAcquisition(
     DEVICE_TYPE_PROFILES[desc.deviceType ?? "phone"] ??
     DEVICE_TYPE_PROFILES.phone;
   return { action: "create-boot", name, systemImage, device };
+}
+
+// Resolve true once `proc` has exited (or was never there), false if it's
+// still running after `timeoutMs`. A signal-terminated child (e.g. after a
+// SIGKILL tree-kill) has a null exitCode and a set signalCode, and its exit
+// event may already have fired — check both before waiting on the event.
+function waitForProcessExit(
+  proc:
+    | {
+        exitCode: number | null;
+        signalCode?: string | null;
+        once: (event: "exit", cb: () => void) => any;
+      }
+    | undefined,
+  timeoutMs: number
+): Promise<boolean> {
+  if (!proc || proc.exitCode !== null || proc.signalCode) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    proc.once("exit", () => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
+// The emulator shutdown policy (ADR 01106), effects injected: ask the
+// emulator to exit through its console and wait, so qemu flushes its disk
+// images (a hard kill can leave them — and the clean snapshot inside them —
+// inconsistent). An accepted kill arms the emulator's own watchdog, which ends
+// qemu within 20s even when adb clients stall its exit — so a slow exit is
+// left to it rather than waited on or hard-killed. Force-kill only when the
+// console refused the kill (no watchdog). Then release our stdio pipes: the
+// watchdog inherits them and would hold the run open until it fires.
+async function shutdownEmulatorWith({
+  flush,
+  consoleKill,
+  waitExit,
+  forceKill,
+  release,
+}: {
+  flush: () => Promise<unknown>;
+  consoleKill: () => Promise<boolean>;
+  waitExit: () => Promise<boolean>;
+  forceKill: () => Promise<void>;
+  release: () => void;
+}): Promise<"graceful" | "watchdog" | "forced"> {
+  // `emu kill` halts the VM without an Android shutdown, so writes still in
+  // the guest's page cache never reach /data. Flush them first.
+  try {
+    await flush();
+  } catch {
+    /* best-effort: a wedged guest can't sync; shut down anyway */
+  }
+  let accepted = false;
+  try {
+    accepted = await consoleKill();
+  } catch {
+    /* fall through to the wait and the force-kill fallback */
+  }
+  try {
+    const graceful = await waitExit();
+    if (!graceful && !accepted) await forceKill();
+    return graceful ? "graceful" : accepted ? "watchdog" : "forced";
+  } finally {
+    release();
+  }
+}
+
+// --- Boot wait (effects injected) ---
+
+// Sub-second so a resumed snapshot is noticed promptly; each probe is a cheap
+// `adb shell getprop`.
+export const BOOT_POLL_INTERVAL_MS = 500;
+
+// Poll `probe` (sys.boot_completed == 1) until it reports booted, the emulator
+// process exits, or `timeoutMs` elapses. Probes immediately — no leading sleep
+// — and checks for an exit around every probe so a crashed emulator fails fast
+// instead of burning the timeout. The caller formats the outcome.
+async function waitForBootCompleted({
+  probe,
+  exitCode,
+  timeoutMs,
+  intervalMs = BOOT_POLL_INTERVAL_MS,
+  sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+  now = Date.now,
+}: {
+  probe: () => Promise<boolean>;
+  exitCode: () => number | null;
+  timeoutMs: number;
+  intervalMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}): Promise<"booted" | "timeout" | { exited: number }> {
+  const deadline = now() + timeoutMs;
+  while (true) {
+    let code = exitCode();
+    if (code !== null) return { exited: code };
+    if (await probe()) return "booted";
+    code = exitCode();
+    if (code !== null) return { exited: code };
+    if (now() >= deadline) return "timeout";
+    await sleep(intervalMs);
+  }
+}
+
+type BootOutcome = "booted" | "timeout" | { exited: number };
+
+// The clean-snapshot boot policy (ADR 01106), effects injected. With a
+// snapshot on disk, force-load it (the emulator EXITS when it can't load, so
+// we always know which boot happened). A snapshot that won't load — or loads
+// but never finishes booting — is bad: discard it, so a bad snapshot never
+// fails a test or costs more than one run. Then (or with no snapshot)
+// cold-boot and take the snapshot before any test touches the device. Settle
+// first: a snapshot taken mid boot-time work makes every resume replay that
+// work. Discard, settle, and save are best-effort — a failed save just means
+// the next boot is cold again.
+async function bootWithCleanSnapshot<T extends { outcome: BootOutcome }>({
+  hasSnapshot,
+  attempt,
+  discard,
+  settle,
+  save,
+}: {
+  hasSnapshot: boolean;
+  attempt: (opts: { snapshot: boolean }) => Promise<T>;
+  discard: () => Promise<void>;
+  settle: () => Promise<void>;
+  save: () => Promise<void>;
+}): Promise<T> {
+  if (hasSnapshot) {
+    const fromSnapshot = await attempt({ snapshot: true });
+    if (fromSnapshot.outcome === "booted") return fromSnapshot;
+    try {
+      await discard();
+    } catch {
+      /* best-effort: the cold boot below still runs */
+    }
+  }
+  const cold = await attempt({ snapshot: false });
+  if (cold.outcome === "booted") {
+    try {
+      await settle();
+    } catch {
+      /* best-effort: snapshot the unsettled device */
+    }
+    try {
+      await save();
+    } catch {
+      /* best-effort */
+    }
+  }
+  return cold;
 }
 
 // --- Device registry + acquisition (effectful; deps injected) ---
@@ -428,32 +630,48 @@ async function acquireDevice({
 }
 
 // Run-end sweep: kill only devices Doc Detective booted (launch-ownership),
-// leaving pre-existing emulators running. Effects injected.
+// leaving pre-existing emulators running. Shutdowns run concurrently: each
+// graceful one takes seconds, and a multi-device run shouldn't pay their sum.
+// Effects injected.
 async function teardownDeviceRegistry(
   registry: DeviceRegistry,
   kill: (entry: DeviceEntry) => Promise<void>
 ): Promise<void> {
-  for (const entry of registry.values()) {
-    if (!entry.bootedByUs) continue;
-    // A warm-phase boot can still be in flight at run end (the warm task
-    // resolves at boot initiation). Await it so the entry carries its real
-    // process/udid before the kill — sweeping mid-boot would no-op on the
-    // unset process and orphan the emulator. A boot that fails booted
-    // nothing, so there's nothing to kill.
-    if (entry.ready) {
-      try {
-        await entry.ready;
-      } catch {
-        continue;
-      }
-    }
-    try {
-      await kill(entry);
-    } catch {
-      // best-effort; a stuck emulator shouldn't fail the run's teardown
-    }
-  }
+  await Promise.all(
+    [...registry.values()]
+      .filter((entry) => entry.bootedByUs)
+      .map(async (entry) => {
+        // A warm-phase boot can still be in flight at run end (the warm task
+        // resolves at boot initiation). Await it so the entry carries its real
+        // process/udid before the kill — sweeping mid-boot would no-op on the
+        // unset process and orphan the emulator. A boot that fails booted
+        // nothing, so there's nothing to kill.
+        if (entry.ready) {
+          try {
+            await entry.ready;
+          } catch {
+            return;
+          }
+        }
+        try {
+          await kill(entry);
+        } catch {
+          // best-effort; a stuck emulator shouldn't fail the run's teardown
+        }
+      })
+  );
   registry.clear();
+}
+
+// The adb a shutdown should use: the SDK's platform-tools copy when it's
+// there, else adb on PATH — the same fallback boot uses (`sdk.adb ?? "adb"`).
+function adbPathForSdkRoot(sdkRoot: string): string {
+  const adb = path.join(
+    sdkRoot,
+    "platform-tools",
+    process.platform === "win32" ? "adb.exe" : "adb"
+  );
+  return fs.existsSync(adb) ? adb : "adb";
 }
 
 // --- Real effects (c8-ignored: exercised on the CI emulator legs and dev
@@ -554,20 +772,21 @@ async function realCreateAvd(
   });
 }
 
-// Boot an emulator and poll sys.boot_completed until ready or timeout.
-async function realBootEmulator(
+// One emulator spawn, polled until sys.boot_completed, an exit, or timeout.
+async function bootEmulatorOnce(
   emulatorPath: string,
   adbPath: string,
   desc: DeviceDescriptor,
   port: number,
   env: NodeJS.ProcessEnv,
-  timeout = 180000
-): Promise<{ udid: string; process: any }> {
+  timeout: number,
+  snapshot: boolean
+): Promise<{ outcome: BootOutcome; child: any; diag: string; bootArgs: string[] }> {
   const udid = udidForPort(port);
   // Force headless when there's no display (CI) so a windowed emulator doesn't
   // exit immediately on a headless runner.
   const bootDesc = { ...desc, headless: effectiveHeadless(desc) };
-  const bootArgs = emulatorBootArgs(bootDesc, port);
+  const bootArgs = emulatorBootArgs(bootDesc, port, { snapshot });
   // Capture stdout AND stderr so an emulator that dies on boot reports WHY
   // (missing accel, bad AVD config, …) instead of an opaque "exited (code 1)".
   // The emulator writes most fatal errors to stdout, not stderr.
@@ -588,30 +807,129 @@ async function realBootEmulator(
   child.on("exit", (code) => {
     exited = code ?? 0;
   });
-  const deadline = Date.now() + timeout;
-  // Give adb a moment, then poll the boot flag.
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-    if (exited !== null) {
-      const why = diag.trim() ? ` — ${diag.trim()}` : "";
-      throw new Error(
-        `Emulator "${desc.name}" exited (code ${exited}) before finishing boot` +
-          ` (\`emulator ${bootArgs.join(" ")}\`)${why}`
-      );
-    }
-    const { stdout } = await runTool(adbPath, ["-s", udid, "shell", "getprop", "sys.boot_completed"], 8000);
-    if (stdout.trim() === "1") return { udid, process: child };
+  const outcome = await waitForBootCompleted({
+    probe: async () => {
+      const { stdout } = await runTool(adbPath, ["-s", udid, "shell", "getprop", "sys.boot_completed"], 8000);
+      return stdout.trim() === "1";
+    },
+    exitCode: () => exited,
+    timeoutMs: timeout,
+  });
+  if (outcome === "timeout") {
+    // Tree-kill the launcher so its qemu child goes with it. The console
+    // can't be trusted here — a wedged guest can ignore `emu kill` — and
+    // killing only the launcher orphans qemu on Windows, which keeps the AVD
+    // lock and port and fails every later boot of this AVD in the run.
+    await new Promise<void>((resolve) => {
+      if (!child.pid) return resolve();
+      treeKill(child.pid, "SIGKILL", () => resolve());
+    });
+    // SIGKILL lands in milliseconds; 30s is a generous bound. If the process
+    // somehow outlives it, the caller's cold retry reuses this port and fails
+    // cleanly on the held AVD lock (ADR 01106) rather than waiting forever.
+    await waitForProcessExit(child, 30000);
+    // Like the graceful shutdown: a straggling helper that inherited these
+    // pipes must not hold the run open.
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+    child.unref?.();
   }
-  try {
-    child.kill();
-  } catch {
-    /* ignore */
+  return { outcome, child, diag, bootArgs };
+}
+
+// A healthy resume reaches sys.boot_completed in seconds; past this, the
+// snapshot is treated as bad (discarded and replaced by a cold boot).
+const SNAPSHOT_RESUME_TIMEOUT_MS = 60000;
+
+// Boot an emulator from its clean snapshot (or cold, taking the snapshot).
+async function realBootEmulator(
+  emulatorPath: string,
+  adbPath: string,
+  desc: DeviceDescriptor,
+  port: number,
+  env: NodeJS.ProcessEnv,
+  timeout = 180000,
+  log?: (message: string) => void
+): Promise<{ udid: string; process: any }> {
+  const udid = udidForPort(port);
+  const avdHome = env.ANDROID_AVD_HOME ?? androidAvdHome();
+  const result = await bootWithCleanSnapshot({
+    hasSnapshot: hasCleanSnapshot(String(desc.name), { avdHome }),
+    attempt: ({ snapshot }) => {
+      log?.(
+        snapshot
+          ? `Resuming "${desc.name}" from its clean snapshot.`
+          : `Cold-booting "${desc.name}"; its clean snapshot is taken once it boots.`
+      );
+      return bootEmulatorOnce(
+        emulatorPath,
+        adbPath,
+        desc,
+        port,
+        env,
+        snapshot ? Math.min(timeout, SNAPSHOT_RESUME_TIMEOUT_MS) : timeout,
+        snapshot
+      );
+    },
+    discard: async () => {
+      log?.(`The clean snapshot of "${desc.name}" didn't resume; discarding it.`);
+      discardCleanSnapshot(String(desc.name), { avdHome });
+    },
+    // Boot-completed receivers keep the CPU pinned for ~10s after
+    // sys.boot_completed; this returns once their broadcast queues drain.
+    // Unsupported on old Android versions, where it exits immediately.
+    settle: async () => {
+      await runTool(adbPath, ["-s", udid, "shell", "am", "wait-for-broadcast-idle"], 60000);
+    },
+    save: async () => {
+      // Best-effort: an unconfirmed save leaves no snapshot, so the next boot
+      // is cold again and retakes it. Say so, or slow boots look unexplained.
+      const saved = await saveCleanSnapshotWith(
+        (args) => runTool(adbPath, args, 120000),
+        udid
+      );
+      if (!saved) {
+        log?.(`Couldn't save the clean snapshot of "${desc.name}"; its next boot will be cold.`);
+      }
+    },
+  });
+  if (result.outcome === "booted") return { udid, process: result.child };
+  if (typeof result.outcome === "object") {
+    const why = result.diag.trim() ? ` — ${result.diag.trim()}` : "";
+    throw new Error(
+      `Emulator "${desc.name}" exited (code ${result.outcome.exited}) before finishing boot` +
+        ` (\`emulator ${result.bootArgs.join(" ")}\`)${why}`
+    );
   }
   throw new Error(`Emulator "${desc.name}" did not finish booting within ${timeout}ms.`);
 }
 
-async function realKillEmulator(adbPath: string, udid: string): Promise<void> {
-  await runTool(adbPath, ["-s", udid, "emu", "kill"], 15000);
+// Shut down an emulator Doc Detective booted and wait for it to exit, so the
+// run never ends while it's still flushing its disk images (which hold the
+// clean snapshot). A shutdown that stalls gets tree-killed.
+async function shutdownEmulator(entry: DeviceEntry): Promise<void> {
+  const adbPath = adbPathForSdkRoot(entry.sdkRoot);
+  await shutdownEmulatorWith({
+    // ~0.2s; bounded so an unresponsive guest can't stall teardown.
+    flush: () => runTool(adbPath, ["-s", entry.udid, "shell", "sync"], 15000),
+    // The console answers "OK: killing emulator, bye bye".
+    consoleKill: async () => {
+      const { stdout } = await runTool(adbPath, ["-s", entry.udid, "emu", "kill"], 15000);
+      return /\bOK\b/.test(stdout);
+    },
+    // A clean exit takes 1-4s; past that, an accepted kill is the watchdog's.
+    waitExit: () => waitForProcessExit(entry.process, 8000),
+    forceKill: () =>
+      new Promise<void>((resolve) => {
+        if (!entry.process?.pid) return resolve();
+        treeKill(entry.process.pid, "SIGKILL", () => resolve());
+      }),
+    release: () => {
+      entry.process?.stdout?.destroy();
+      entry.process?.stderr?.destroy();
+      entry.process?.unref?.();
+    },
+  });
 }
 
 // Assemble the injected effect bundle for acquireDevice from a detected SDK.
@@ -644,8 +962,7 @@ function buildAcquireDeviceDeps(sdk: AndroidSdk, abi: string, log?: (m: string) 
     createAvd: (a: { name: string; systemImage: string; device: string }) =>
       realCreateAvd(avdmanager, a, env),
     boot: (desc: DeviceDescriptor, port: number) =>
-      realBootEmulator(emulator, adb, desc, port, env),
-    kill: (entry: DeviceEntry) => realKillEmulator(adb, entry.udid),
+      realBootEmulator(emulator, adb, desc, port, env, undefined, log),
     log,
   };
 }
