@@ -127,11 +127,41 @@ jobs:
       - name: Link local build
         run: npm link
 
+      - name: Read the Xcode version
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: xcode
+        shell: bash
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          # No entry has this exact key; the prefix picks the newest entry.
+          key: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-latest
+          restore-keys: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+
       - name: Prebuild WebDriverAgent
         if: runner.os == 'macOS' && matrix.bundle.prebootIos
         run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      - name: Key the WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-key
+        shell: bash
+        run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          key: ${{ steps.wda-key.outputs.key }}
 
       - name: Start test servers
         shell: bash
@@ -149,7 +179,9 @@ jobs:
       - name: Wait for pre-booted simulator
         if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
         shell: bash
-        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+        # macOS runners have no GNU `timeout`, so the old `timeout 300 …` form
+        # failed instantly and never waited. perl's alarm survives exec.
+        run: perl -e 'alarm shift; exec @ARGV' 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
 
       - name: Run ${{ matrix.bundle.name }} fixtures
         uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)

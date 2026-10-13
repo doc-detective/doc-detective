@@ -225,17 +225,55 @@ jobs:
       - name: Link local build
         run: npm link
 
-      # iOS legs: prebuild WebDriverAgent into the dd-cache
-      # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
-      # skip on the keyed products the Sunday warmer built); one ~10-minute
-      # build on a cold one. Sessions then consume the products read-only via
-      # usePrebuiltWDA instead of compiling WDA inside the first XCUITest
-      # session — which is also why the action's `ios` WDA cache is off below.
+      # iOS legs: the WebDriverAgent products get their own cache (ADR 01116).
+      # The weekly dd-cache entry never re-saves once its key hits, so products
+      # for a driver or Xcode newer than the Sunday warm-up were rebuilt in
+      # every job all week. Restore the newest entry for this Xcode; the
+      # prebuild then reuses matching products or builds new ones, and the
+      # save step stores a changed product set under its own key.
+      - name: Read the Xcode version
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: xcode
+        shell: bash
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          # No entry has this exact key; the prefix picks the newest entry.
+          key: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-latest
+          restore-keys: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+
+      # Prebuild WebDriverAgent into the dd-cache
+      # (docs/design/ios-wda-prebuild.md). Seconds when the restored products
+      # match this driver and Xcode (check-and-skip); one build otherwise.
+      # Sessions then consume the products read-only instead of compiling WDA
+      # inside the first XCUITest session — which is also why the action's
+      # `ios` WDA cache is off below.
       - name: Prebuild WebDriverAgent
         if: runner.os == 'macOS' && matrix.bundle.prebootIos
         run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # `install ios` prunes stale keys, so the product dirs left identify the
+      # product set (one dir per Xcode x driver key).
+      - name: Key the WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-key
+        shell: bash
+        run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          key: ${{ steps.wda-key.outputs.key }}
 
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
@@ -268,7 +306,9 @@ jobs:
       - name: Wait for pre-booted simulator
         if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
         shell: bash
-        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+        # macOS runners have no GNU `timeout`, so the old `timeout 300 …` form
+        # failed instantly and never waited. perl's alarm survives exec.
+        run: perl -e 'alarm shift; exec @ARGV' 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
 
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see

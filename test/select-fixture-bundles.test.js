@@ -244,6 +244,37 @@ describe("select-fixture-bundles", function () {
     assert.match(selectRun, /select-fixture-bundles\.cjs --android-legs/);
   });
 
+  describe("iOS leg setup (ADR 01116)", function () {
+    const steps = () =>
+      parseYaml(
+        fs.readFileSync(path.join(process.cwd(), ".github", "workflows", "fixtures.yml"), "utf8")
+      ).jobs.fixtures.steps;
+    const byName = (name) => steps().find((s) => s.name === name);
+    const iosOnly = "runner.os == 'macOS' && matrix.bundle.prebootIos";
+
+    it("restores the WDA products cache before the prebuild and saves it only when they changed", function () {
+      const names = steps().map((s) => s.name);
+      const restore = byName("Restore WebDriverAgent products");
+      const save = byName("Save WebDriverAgent products");
+      assert.ok(restore && save, "restore and save steps exist");
+      assert.match(restore.uses, /^actions\/cache\/restore@/);
+      assert.match(save.uses, /^actions\/cache\/save@/);
+      assert.equal(restore.with.path, "~/.dd-cache/ios/wda");
+      assert.equal(save.with.path, "~/.dd-cache/ios/wda");
+      assert.ok(restore.if.startsWith(iosOnly));
+      // Save only on a changed product set, never over the entry just restored.
+      assert.match(save.if, /cache-matched-key/);
+      assert.ok(names.indexOf("Restore WebDriverAgent products") < names.indexOf("Prebuild WebDriverAgent"));
+      assert.ok(names.indexOf("Prebuild WebDriverAgent") < names.indexOf("Save WebDriverAgent products"));
+    });
+
+    it("bounds the simulator boot wait without GNU timeout, which macOS runners lack", function () {
+      const run = byName("Wait for pre-booted simulator").run;
+      assert.doesNotMatch(run, /\btimeout\s+\d/);
+      assert.match(run, /simctl bootstatus/);
+    });
+  });
+
   it("keeps fixtures-debug.yml running the gate's exact fixture steps (drift guard)", function () {
     const read = (f) =>
       parseYaml(fs.readFileSync(path.join(process.cwd(), ".github", "workflows", f), "utf8"));
