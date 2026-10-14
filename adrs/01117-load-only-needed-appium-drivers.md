@@ -53,9 +53,11 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
   manifest scan registers it under.
 - Appium refuses to start when `--use-drivers` names a driver it doesn't know.
   It also trusts an existing manifest without rescanning. A driver is therefore
-  named only when its package is installed in the home and, if a manifest
-  exists, the manifest lists it. When nothing qualifies, no flag is passed and
-  Appium keeps its load-everything default. A driver missing from the manifest
+  named only when its package is installed in the home. If a manifest exists,
+  its `drivers` entry for that name must also give exactly that package as
+  `pkgName`. An unparseable manifest can't be verified, so it gets no flag.
+  When nothing qualifies, no flag is passed and Appium keeps its
+  load-everything default. A driver missing from the manifest
   fails exactly as it did before, at session creation, instead of taking the
   server down.
 
@@ -73,12 +75,15 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
 ### Confirmation
 
 * [test/appium-use-drivers.test.js](../test/appium-use-drivers.test.js): only
-  the requested, installed, manifest-listed drivers are named. Nothing
-  qualifying means no flag. Safari is in the pool list only on macOS. The
-  Android chromedriver-prefetch server loads only `uiautomator2`.
-* The existing browser fixture groups, the `apps` group (NovaWindows on
-  Windows, Mac2 on macOS), and the `apps-android`, `mobile-web-android`, and
-  `mobile-web-ios` groups run end to end with the restricted servers.
+  the requested, installed drivers whose manifest entry names the exact
+  package are named. A substring match or an unparseable manifest is not
+  enough. Nothing qualifying means no flag. Safari is in the pool list only on
+  macOS. The Android chromedriver-prefetch server loads only `uiautomator2`.
+* Verified on Windows before merge: the `apps/app-windows` fixture passes on
+  NovaWindows, and a browser `goTo` and `screenshot` run passes.
+* Still to confirm in CI: the browser fixture groups, the `apps` group on
+  macOS (Mac2), and the `apps-android`, `mobile-web-android`, and
+  `mobile-web-ios` groups.
 
 ## Pros and Cons of the Options
 

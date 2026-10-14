@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import YAML from "yaml";
 import { getRuntimeDir } from "../runtime/cacheDir.js";
 
 export {
@@ -16,20 +17,29 @@ export {
 // Appium's manifest scan registers it under — and only when it's installed
 // in `<appiumHome>/node_modules`, because Appium refuses to start on an
 // unknown name. An existing manifest is trusted without a rescan, so when one
-// exists the package must also be listed there. Nothing qualifies → no args,
+// exists its `drivers.<name>.pkgName` must also be exactly the package; an
+// unparseable manifest can't be verified. Nothing qualifies → no args,
 // keeping the load-all default.
 function useDriversArgs(appiumHome: string, packages: string[]): string[] {
-  let manifest: string | undefined;
+  let manifestText: string | undefined;
   try {
-    manifest = fs.readFileSync(
+    manifestText = fs.readFileSync(
       path.join(appiumHome, "node_modules", ".cache", "appium", "extensions.yaml"),
       "utf8"
     );
   } catch {
     // No manifest: Appium scans node_modules on start, so on disk is enough.
   }
+  let registered: Record<string, any> | undefined;
+  if (manifestText !== undefined) {
+    try {
+      registered = YAML.parse(manifestText)?.drivers ?? {};
+    } catch {
+      return [];
+    }
+  }
   const names = packages.flatMap((pkg) => {
-    if (manifest !== undefined && !manifest.includes(pkg)) return [];
+    let name: unknown;
     try {
       const pkgJson = JSON.parse(
         fs.readFileSync(
@@ -37,11 +47,13 @@ function useDriversArgs(appiumHome: string, packages: string[]): string[] {
           "utf8"
         )
       );
-      const name = pkgJson?.appium?.driverName;
-      return typeof name === "string" && name ? [name] : [];
+      name = pkgJson?.appium?.driverName;
     } catch {
       return [];
     }
+    if (typeof name !== "string" || !name) return [];
+    if (registered && registered[name]?.pkgName !== pkg) return [];
+    return [name];
   });
   return names.length ? [`--use-drivers=${names.join(",")}`] : [];
 }

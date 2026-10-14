@@ -78,6 +78,28 @@ describe("useDriversArgs", function () {
     );
   });
 
+  it("requires the manifest's driver entry to name the exact package, not a substring match", function () {
+    home = makeHome({ "appium-geckodriver": "gecko" });
+    const manifestDir = path.join(home, "node_modules", ".cache", "appium");
+    fs.mkdirSync(manifestDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir, "extensions.yaml"),
+      "drivers:\n  gecko:\n    pkgName: appium-geckodriver-fork\n"
+    );
+    assert.deepEqual(useDriversArgs(home, ["appium-geckodriver"]), []);
+  });
+
+  it("passes no flag when the manifest can't be parsed", function () {
+    home = makeHome({ "appium-geckodriver": "gecko" });
+    const manifestDir = path.join(home, "node_modules", ".cache", "appium");
+    fs.mkdirSync(manifestDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir, "extensions.yaml"),
+      "drivers: [unclosed\n  appium-geckodriver"
+    );
+    assert.deepEqual(useDriversArgs(home, ["appium-geckodriver"]), []);
+  });
+
   it("returns no args when none are installed, so Appium keeps its load-everything default", function () {
     home = makeHome({});
     assert.deepEqual(useDriversArgs(home, ["appium-chromium-driver"]), []);
