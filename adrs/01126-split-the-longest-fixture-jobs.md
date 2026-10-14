@@ -67,9 +67,14 @@ Chosen option: **A**.
 
 ### Consequences
 
-* Good: the managed-boot critical path drops from ~17 min to about the `apps-android`
-  leg (~9 min). The Windows and macOS recording jobs drop to about half their fixture
-  time.
+* Good, measured on PR #745 (run 38581264149) against two `main`-equivalent runs
+  (38516518765, 38567811852):
+  * Managed-boot: one 15.6–17.0 min job became legs of 8.3 min (`apps-android`), 6.6 min
+    (`multidevice`), and 6.2 min (`mobile-web-android`). The two-device spec took 180 s
+    alone, against ~310 s inside the serial run.
+  * Recording, fixtures step: Windows 514–540 s became 258 s + 243 s, and macOS ~600 s
+    became 222 s + 289 s. Job time on Windows went from 11.1–11.6 min to 6.1 and 5.7 min.
+  * Every spec kept its PASS/SKIPPED/WARNING outcome.
 * Good: no fixture file moves or changes, and every spec still runs on the same OS
   legs. New recording specs, and new `apps-android` specs, need no selector edit.
 * Bad: four more jobs per full run (one recording job per OS, two managed-boot legs),

@@ -58,8 +58,9 @@ Chosen option: **A**.
 
 ### Consequences
 
-* Good: estimated from the measured per-file times, the Windows shards drop from up to
-  ~690 s of mocha to ~350 s each.
+* Good, measured on PR #745 (run 38581264149): the three Windows shards ran 235 s, 232 s,
+  and 234 s of mocha. Two `main`-equivalent runs took 371–676 s per shard. The
+  Windows shard jobs took 5.1–6.2 min, down from 8.4–15.3 min.
 * Good: other cells' layouts are byte-for-byte what they were. The required contexts still
   exist under the same names.
 * Bad: one more Windows job per run, ~3–4 min of setup on a runner slot.
