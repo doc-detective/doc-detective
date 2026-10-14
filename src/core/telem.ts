@@ -1,7 +1,7 @@
 import os from "node:os";
-import { log } from "./utils.js";
 import { PostHog } from "posthog-node";
 import { createRequire } from "node:module";
+import { telemetryNotice } from "./telemLite.js";
 
 const require = createRequire(import.meta.url);
 
@@ -10,23 +10,6 @@ const platformMap: Record<string, string> = {
   darwin: "mac",
   linux: "linux",
 };
-
-// TODO: Add link to docs
-function telemetryNotice(config: any) {
-  if (config?.telemetry?.send === false) {
-    log(
-      config,
-      "info",
-      "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
-    );
-  } else {
-    log(
-      config,
-      "info",
-      "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
-    );
-  }
-}
 
 // meta = {
 //   distribution: "doc-detective", // doc-detective, core

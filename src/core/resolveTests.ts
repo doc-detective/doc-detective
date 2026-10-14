@@ -7,7 +7,7 @@
 import crypto from "node:crypto";
 import { log, logLevelEnabled } from "./utils.js";
 import { generateSpecId } from "./detectTests.js";
-import { contentHash } from "../common/src/detectTests.js";
+import { contentHash } from "../common/src/textUtils.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
 import {

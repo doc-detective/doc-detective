@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import YAML from "yaml";
-import axios from "axios";
 import { validate } from "../common/src/validate.js";
+import { createRequire } from "node:module";
+
+// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
+const requireYaml = (): typeof import("yaml") =>
+  createRequire(import.meta.url)("yaml");
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
@@ -36,7 +39,7 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
 
   if (isRemote) {
     try {
-      const response = await axios.get(fileURLOrPath);
+      const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
       console.warn(
@@ -69,7 +72,7 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
     }
   } else if (ext === "yaml" || ext === "yml") {
     try {
-      return YAML.parse(content);
+      return requireYaml().parse(content);
     } catch (error: any) {
       console.warn(`Failed to parse YAML: ${error.message}`);
       return content;

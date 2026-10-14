@@ -48,7 +48,6 @@ import {
   realizeViewport,
   isViewportFloored,
 } from "./utils.js";
-import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
@@ -174,7 +173,7 @@ import {
   useDriversArgs,
   browserPoolDriverPackages,
 } from "./appium.js";
-import { contentHash } from "../common/src/detectTests.js";
+import { contentHash } from "../common/src/textUtils.js";
 import { resolveExpression } from "./expressions.js";
 import {
   evaluateCustomAssertions,
@@ -1341,7 +1340,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // Create run
   let createResponse;
   try {
-    createResponse = await axios.post(apiUrl, resolvedTests, axiosConfig);
+    createResponse = await (await import("axios")).default.post(apiUrl, resolvedTests, axiosConfig);
   } catch (error: any) {
     return {
       status: error.response?.status,
@@ -1358,7 +1357,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // Start run
   let startResponse;
   try {
-    startResponse = await axios.post(
+    startResponse = await (await import("axios")).default.post(
       `${apiUrl}/${runId}/start`,
       {},
       axiosConfig
@@ -1394,7 +1393,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
 
     // Poll for results
     try {
-      response = await axios.get(`${apiUrl}/${runId}`, axiosConfig);
+      response = await (await import("axios")).default.get(`${apiUrl}/${runId}`, axiosConfig);
     } catch (error: any) {
       return {
         status: error.response?.status,
@@ -5949,7 +5948,7 @@ async function appiumIsReady(
         // Bound each probe: without a per-request timeout a hung /status
         // response would block this await indefinitely, and the overall
         // `timeoutMs` guard (checked only between probes) could never fire.
-        const resp = await axios.get(`http://127.0.0.1:${p}/status`, {
+        const resp = await (await import("axios")).default.get(`http://127.0.0.1:${p}/status`, {
           timeout: STATUS_PROBE_TIMEOUT_MS,
         });
         return resp.status === 200;

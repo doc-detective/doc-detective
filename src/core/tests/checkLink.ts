@@ -5,7 +5,6 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
-import axios from "axios";
 
 export { checkLink };
 
@@ -102,7 +101,7 @@ async function attemptRequest(
   headers: Record<string, string>
 ): Promise<AttemptResult> {
   try {
-    const res = await axios.request({
+    const res = await (await import("axios")).default.request({
       method,
       url,
       headers,

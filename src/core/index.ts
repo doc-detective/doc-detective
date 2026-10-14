@@ -3,10 +3,23 @@ import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice, sendTelemetry, awaitTelemetryFlush } from "./telem.js";
+import { telemetryNotice } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
+
+// telem.js carries posthog-node (~95 modules), so it loads on the first send
+// instead of at startup. A run with telemetry.send === false never loads it.
+let telemModule: Promise<typeof import("./telem.js")> | undefined;
+
+async function sendTelemetry(config: any, command: string, results: any) {
+  if (config?.telemetry?.send === false) return;
+  (await (telemModule ??= import("./telem.js"))).sendTelemetry(config, command, results);
+}
+
+async function awaitTelemetryFlush(): Promise<void> {
+  if (telemModule) await (await telemModule).awaitTelemetryFlush();
+}
 
 const supportMessage = `
 ##########################################################################
@@ -97,7 +110,7 @@ async function runTests(config: any, options: any = {}) {
   if (config.dryRun) {
     console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
-    sendTelemetry(config, "runTests:dryRun", {
+    await sendTelemetry(config, "runTests:dryRun", {
       specs: resolvedTests.specs.length,
     });
     return resolvedTests;
@@ -311,7 +324,7 @@ async function runTests(config: any, options: any = {}) {
   cleanTemp();
 
   // Send telemetry
-  sendTelemetry(config, "runTests", results);
+  await sendTelemetry(config, "runTests", results);
   log(config, "info", supportMessage);
 
   return results;

@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
 import type {
   AgentAdapter,
   DetectionResult,
@@ -42,7 +41,7 @@ export function defaultGeminiCliDeps(): GeminiCliDeps {
        * seam at this exact spot (this closure IS the seam other tests inject
        * a fake for). Exercising it would require a live network peer, which
        * would make the suite flaky/non-hermetic per ADR 01017. */
-      const response = await axios.get(LATEST_MANIFEST_URL, {
+      const response = await (await import("axios")).default.get(LATEST_MANIFEST_URL, {
         timeout: 5000,
         responseType: "json",
       });

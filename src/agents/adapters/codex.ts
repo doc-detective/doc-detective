@@ -1,8 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
-import YAML from "yaml";
 import type {
   AgentAdapter,
   DetectionResult,
@@ -13,6 +11,11 @@ import type {
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
 import { fetchAgentToolsZip } from "../fetcher.js";
+import { createRequire } from "node:module";
+
+// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
+const requireYaml = (): typeof import("yaml") =>
+  createRequire(import.meta.url)("yaml");
 
 export interface RunResult {
   stdout: string;
@@ -55,7 +58,7 @@ export function defaultCodexDeps(): CodexDeps {
        * seam at this exact spot (this closure IS the seam other tests inject
        * a fake for). Exercising it would require a live network peer, which
        * would make the suite flaky/non-hermetic per ADR 01017. */
-      const response = await axios.get(LATEST_SKILL_URL, {
+      const response = await (await import("axios")).default.get(LATEST_SKILL_URL, {
         timeout: 5000,
         responseType: "text",
       });
@@ -341,7 +344,7 @@ export function parseMetadataVersion(body: string): string | undefined {
   const match = body.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return undefined;
   try {
-    const frontmatter = YAML.parse(match[1]);
+    const frontmatter = requireYaml().parse(match[1]);
     const v = frontmatter?.metadata?.version;
     return typeof v === "string" ? v : undefined;
   } catch {
