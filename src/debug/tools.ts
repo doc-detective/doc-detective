@@ -160,21 +160,51 @@ function runWithTimeout(
   });
 }
 
+// The spawned system-tool probes are memoized per process, keyed on the PATH
+// they resolve against: re-spawning six `--version` commands on every dump
+// returns the same answers (ADR 01123). A set with a timed-out probe isn't
+// kept, so a transient stall can't stick.
+const systemProbeMemo = new Map<string, Promise<ToolResult[]>>();
+
+function probeSystemTools(): Promise<ToolResult[]> {
+  const env = envWithoutNodeModulesBin();
+  const pathKey = Object.keys(env).find((k) => k.toLowerCase() === "path");
+  const key = (pathKey && env[pathKey]) || "";
+  let memo = systemProbeMemo.get(key);
+  if (!memo) {
+    memo = Promise.all([
+      probeTool("npm", "npm --version"),
+      probeTool("npx", "npx --version"),
+      probePython(),
+      probeTool("java", "java -version"),
+      probeTool("git", "git --version"),
+      probeTool("docker", "docker --version"),
+    ]).then((results) => {
+      if (results.some((r) => r.version.startsWith("<timed out"))) {
+        systemProbeMemo.delete(key);
+      }
+      return results;
+    });
+    systemProbeMemo.set(key, memo);
+  }
+  return memo;
+}
+
 // The probe set the debug dump runs. Order is the print order. `cacheDir`
 // (from config) lets the appium probe see cache-installed runtime deps.
 export async function probeAllTools(cacheDir?: string): Promise<ToolResult[]> {
-  const probes: Array<ToolResult | Promise<ToolResult>> = [
+  const [npm, npx, python, java, git, docker] = await probeSystemTools();
+  return [
     { name: "node", version: process.version },
-    probeTool("npm", "npm --version"),
-    probeTool("npx", "npx --version"),
-    probePython(),
-    probeTool("java", "java -version"),
+    npm,
+    npx,
+    python,
+    java,
     probeFfmpeg(),
     probeAppium(cacheDir),
-    probeTool("git", "git --version"),
-    probeTool("docker", "docker --version"),
+    git,
+    docker,
   ];
-  return Promise.all(probes);
 }
 
 async function probePython(): Promise<ToolResult> {
