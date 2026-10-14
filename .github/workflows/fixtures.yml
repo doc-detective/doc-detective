@@ -199,14 +199,14 @@ jobs:
         with:
           node: '24'
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
 
       # Expose the freshly-built package so the action's `npx doc-detective`
       # (run with an empty `version`, see below) resolves THIS build instead of
       # fetching the published one from the registry.
       - name: Link local build
-        run: npm link
+        run: npm link --no-audit --no-fund
 
       # iOS legs: prebuild WebDriverAgent into the dd-cache
       # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
@@ -364,9 +364,9 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm link
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
+      - run: npm link --no-audit --no-fund
 
       # The install/activity fixture is gated on this file (requires.files); the
       # sample is Appium's stable ApiDemos APK (io.appium.android.apis).
@@ -502,9 +502,9 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm link
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
+      - run: npm link --no-audit --no-fund
 
       - name: Enable KVM
         run: |
@@ -590,11 +590,11 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
       # Expose the freshly-built package so the action's bare `npx doc-detective`
       # (version: '') resolves THIS build instead of the published one.
-      - run: npm link
+      - run: npm link --no-audit --no-fund
 
       # The action enables KVM (android: auto detects the android specs) and runs
       # the linked local build — no manual KVM step, no `install android`. Doc

@@ -106,8 +106,13 @@ jobs:
         with:
           node: ${{ matrix.node }}
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      # build:ci = build minus regenerating the committed, type-only
+      # generated types, so the JS under test is identical. The two
+      # coverage-ratchet jobs below (both required) still run the full
+      # build, so a stale committed type still fails the gate
+      # (test/build-ci-contract.test.js).
+      - run: npm run build:ci
       # Pre-warm the lazy-install cache so tests that drive Chrome through
       # the lower-level runSpecs/getRunner paths (and therefore bypass the
       # JIT pre-flight in runTests) still find a browser. The published
@@ -193,7 +198,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run build:common
       # build:common no longer runs the suite (it builds artifacts only, so the
       # ~40 fixture/shard jobs that just need dist do not pay for — or flake on —
@@ -242,7 +247,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       # Build so dist/**/*.js + sourcemaps + src/** exist: c8 report remaps each
       # raw dist entry through its sourcemap back to the original src/** file,
       # exactly as the single-OS job did.
