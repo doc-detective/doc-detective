@@ -897,13 +897,19 @@ async function probeBrowserEnvironment({
 // build the installer failed to prune), and the scan lists them in directory
 // order, which put the stale one first. Prefer the build installed.json records,
 // the one the installer validated and that repair refreshes (ADR 01118).
-function selectInstalledBuild(
-  installedBrowsers: any[],
+interface ScannedBuild {
+  browser: string;
+  buildId: string;
+  executablePath: string;
+}
+
+function selectInstalledBuild<T extends ScannedBuild>(
+  installedBrowsers: T[],
   name: string,
   recordedBuildId: string | undefined
-): any {
-  const builds = installedBrowsers.filter((b: any) => b.browser === name);
-  return builds.find((b: any) => b.buildId === recordedBuildId) ?? builds[0];
+): T | undefined {
+  const builds = installedBrowsers.filter((b) => b.browser === name);
+  return builds.find((b) => b.buildId === recordedBuildId) ?? builds[0];
 }
 
 async function getAvailableApps({ config }: any) {

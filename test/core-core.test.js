@@ -3013,7 +3013,8 @@ describe("getRunner() function", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-type-chrome-no-retry.json");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
     const config = { input: tempFilePath, logLevel: "debug" };
     try {
@@ -3026,7 +3027,7 @@ describe("getRunner() function", function () {
       assert.equal(ran.steps[0].result, "PASS");
       assert.equal(ran.steps[1].result, "FAIL");
     } finally {
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
