@@ -31,13 +31,13 @@ function useDriversArgs(appiumHome: string, packages: string[]): string[] {
   const names = packages.flatMap((pkg) => {
     if (manifest !== undefined && !manifest.includes(pkg)) return [];
     try {
-      const manifest = JSON.parse(
+      const pkgJson = JSON.parse(
         fs.readFileSync(
           path.join(appiumHome, "node_modules", pkg, "package.json"),
           "utf8"
         )
       );
-      const name = manifest?.appium?.driverName;
+      const name = pkgJson?.appium?.driverName;
       return typeof name === "string" && name ? [name] : [];
     } catch {
       return [];
