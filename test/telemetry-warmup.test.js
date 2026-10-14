@@ -25,7 +25,12 @@ describe("telemetry warm-up", function () {
   beforeEach(function () {
     fetchStub = sinon.stub(globalThis, "fetch").callsFake(async () => okResponse());
   });
-  afterEach(function () {
+  // Drain a flush a test left in flight (a dry run's telemetry POST lands after
+  // runTests returns, by design) while this test's fetch stub is still in
+  // place, so it can neither leak into the next test's stub nor reach the
+  // network once the real fetch is restored.
+  afterEach(async function () {
+    await awaitTelemetryFlush();
     abortTelemetryWarmup();
     sinon.restore();
   });
@@ -107,6 +112,29 @@ describe("telemetry warm-up", function () {
     assert.equal(fetchStub.callCount, 2, "send went out before the latest warm-up settled");
     pending[1]();
     assert.equal((await send).status, 200);
+  });
+
+  // A new warm-up that starts while a send is already waiting replaces the old
+  // one; the send must follow it to the newest socket, not go out cold the
+  // moment the replaced warm-up is aborted.
+  it("a send waiting on a warm-up follows a newer warm-up that starts mid-wait", async function () {
+    const pending = [];
+    fetchStub.callsFake((url, init) =>
+      init?.method === "OPTIONS"
+        ? new Promise((resolve, reject) => {
+            pending.push(() => resolve(okResponse()));
+            init.signal.addEventListener("abort", () => reject(new Error("aborted")));
+          })
+        : Promise.resolve(okResponse())
+    );
+    prewarmTelemetry({});
+    const send = telemetryFetch(`${POSTHOG_HOST}/batch/`, { method: "POST" });
+    prewarmTelemetry({}); // aborts the first; the send must now wait on this one
+    for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+    assert.equal(fetchStub.callCount, 2, "send went out before the newer warm-up settled");
+    pending[1]();
+    assert.equal((await send).status, 200);
+    assert.equal(fetchStub.callCount, 3);
   });
 
   // A warm-up whose request ignores the abort (never settles) must not stall a
@@ -214,14 +242,17 @@ describe("telemetry warm-up", function () {
       } finally {
         log.restore();
       }
+      await awaitTelemetryFlush(); // the dry run's own event POST
       const warmups = fetchStub.getCalls().filter((c) => c.args[1]?.method === "OPTIONS");
       assert.equal(warmups.length, 0);
     });
 
     it("makes no PostHog request at all with telemetry.send false", async function () {
+      const before = fetchStub.callCount; // count only this run's requests
       await run({ send: false });
       const posthogCalls = fetchStub
         .getCalls()
+        .slice(before)
         .filter((c) => String(c.args[0]).startsWith(POSTHOG_HOST));
       assert.equal(posthogCalls.length, 0);
     });
