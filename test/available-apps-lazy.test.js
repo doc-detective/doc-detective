@@ -11,6 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sinon from "sinon";
+import { spawnSync } from "node:child_process";
 import { runNeedsAvailableApps, runSpecs } from "../dist/core/tests.js";
 import {
   setConfig,
@@ -185,6 +186,72 @@ describe("lazy available-apps detection", function () {
       else process.env.DOC_DETECTIVE_API = saved;
       fs.rmSync(dir, { recursive: true, force: true });
       fs.rmSync(freshCache, { recursive: true, force: true });
+    }
+  });
+
+  // willRunViaApi must read the EFFECTIVE config: an API key that only arrives
+  // through setConfig (here the DOC_DETECTIVE env override) still dispatches
+  // the run to the API, and so still skips local detection and installs. A
+  // non-matching testFilter makes runViaApi short-circuit offline, and the
+  // dispatch shows up as its debug line.
+  const API_DISPATCH = /dispatched via Doc Detective Orchestration API/;
+  it("an API key supplied only through the DOC_DETECTIVE env override dispatches to the API", async function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-apps-lazy-envkey-"));
+    const savedApi = process.env.DOC_DETECTIVE_API;
+    const savedEnv = process.env.DOC_DETECTIVE;
+    delete process.env.DOC_DETECTIVE_API;
+    process.env.DOC_DETECTIVE = JSON.stringify({
+      config: { integrations: { docDetectiveApi: { apiKey: "env-only-key" } } },
+    });
+    try {
+      const input = path.join(dir, "shell.spec.json");
+      fs.writeFileSync(input, JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }));
+      const lines = capturedLogs();
+      await runTests({
+        input: [input],
+        output: path.join(dir, "out"),
+        logLevel: "debug",
+        cacheDir,
+        telemetry: { send: false },
+        testFilter: ["definitely-not-a-real-test-id"],
+      });
+      sinon.restore();
+      assert.ok(lines.some((l) => API_DISPATCH.test(l)), "run wasn't dispatched to the API");
+    } finally {
+      sinon.restore();
+      if (savedApi === undefined) delete process.env.DOC_DETECTIVE_API;
+      else process.env.DOC_DETECTIVE_API = savedApi;
+      if (savedEnv === undefined) delete process.env.DOC_DETECTIVE;
+      else process.env.DOC_DETECTIVE = savedEnv;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("an API key supplied only in a config file dispatches to the API (CLI)", function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-apps-lazy-filekey-"));
+    try {
+      const input = path.join(dir, "shell.spec.json");
+      fs.writeFileSync(input, JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }));
+      const configFile = path.join(dir, "config.json");
+      fs.writeFileSync(
+        configFile,
+        JSON.stringify({
+          telemetry: { send: false },
+          testFilter: ["definitely-not-a-real-test-id"],
+          integrations: { docDetectiveApi: { apiKey: "file-only-key" } },
+        })
+      );
+      const env = { ...process.env, CI: "1" };
+      delete env.DOC_DETECTIVE_API;
+      delete env.DOC_DETECTIVE;
+      const res = spawnSync(
+        process.execPath,
+        [path.resolve("bin/doc-detective.js"), "--input", input, "--config", configFile, "--output", path.join(dir, "out"), "--logLevel", "debug"],
+        { cwd: dir, encoding: "utf8", env }
+      );
+      assert.ok(API_DISPATCH.test(res.stdout + res.stderr), `not dispatched; exit ${res.status}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 

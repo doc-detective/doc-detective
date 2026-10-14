@@ -54,7 +54,9 @@ consults the list.
   resolution, fills `environment.apps` with the same `getAvailableApps` call when the predicate
   holds. It also fills it when the run goes to the orchestration API, which receives the resolved
   config. That uses the same `willRunViaApi` gate as the dispatch itself, so an API key with
-  `DOC_DETECTIVE_API` set, which runs locally, doesn't force detection. `detectAndResolveTests` keeps the default, so public callers are unaffected.
+  `DOC_DETECTIVE_API` set, which runs locally, doesn't force detection. The gate reads the effective
+  config, so an API key that only arrives through `setConfig`, such as the `DOC_DETECTIVE`
+  environment override, counts too. Before, the dispatch read the caller's config and missed it. `detectAndResolveTests` keeps the default, so public callers are unaffected.
 
 The change sits at the call sites. `getAvailableApps` itself is unchanged, so changes to its
 internals compose with this one.

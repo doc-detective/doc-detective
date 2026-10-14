@@ -115,22 +115,25 @@ async function runTestsAndReport(config: any, options: any) {
     if (!config.dryRun) prewarmTelemetry(effectiveConfig);
     loadTelemetry();
   };
-  // Pre-resolved tests skip setConfig: the merged config above is effective.
-  if (resolvedTests) startTelemetry(config);
-
-  // Whether the orchestration API runs this (tests execute remotely). Decided
-  // once, here, because both deferred browser detection and the dispatch below
+  // The config every run decision below reads. Pre-resolved tests skip
+  // setConfig, so the merged config above is already effective; otherwise it's
+  // setConfig's output, which adds the DOC_DETECTIVE env override.
+  let effectiveConfig = config;
+  // Whether the orchestration API runs this (tests execute remotely). Read from
+  // the effective config, so an API key that only arrives through setConfig
+  // still counts; both deferred browser detection and the dispatch below
   // depend on it.
-  const willRunViaApi = Boolean(
-    !process.env.DOC_DETECTIVE_API &&
-      config.integrations &&
-      config.integrations.docDetectiveApi &&
-      config.integrations.docDetectiveApi.apiKey
-  );
+  const runsViaApi = (c: any) =>
+    Boolean(!process.env.DOC_DETECTIVE_API && c?.integrations?.docDetectiveApi?.apiKey);
+  let willRunViaApi = false;
 
-  if (!resolvedTests) {
-    const effectiveConfig = await setConfig({ config, detectApps: false });
+  if (resolvedTests) {
     startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
+  } else {
+    effectiveConfig = await setConfig({ config, detectApps: false });
+    startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
     resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
@@ -351,12 +354,12 @@ async function runTestsAndReport(config: any, options: any) {
   }
   /* c8 ignore stop */
 
-  // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
+  // If the effective config carries an API key, run tests via API instead of locally
   if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
-      apiKey: config.integrations.docDetectiveApi.apiKey,
+      apiKey: effectiveConfig.integrations.docDetectiveApi.apiKey,
     });
   } else {
     // Run test specs locally

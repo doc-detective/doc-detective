@@ -15,6 +15,13 @@ import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
+// common's parseContent pulls in the yaml parser, so it loads on the first file
+// that needs it, once per process, instead of at module load.
+let parseContentModule: Promise<typeof import("../common/src/detectTests.js").detectTests> | undefined;
+function loadParseContent() {
+  return (parseContentModule ??= import("../common/src/detectTests.js").then((m) => m.detectTests));
+}
+
 // Bounded fan-out for the per-file parse pass. Detection is I/O-bound (reading
 // text/markdown files and remote before/after specs); overlapping those reads
 // instead of running strictly one file at a time is the win. Bounded so a large
@@ -504,9 +511,6 @@ async function qualifyFiles({ config }: { config: any }) {
 async function parseTests({ config, files }: { config: any; files: string[] }) {
   // Per-file parsing extracted so it can run concurrently. Returns the parsed
   // spec, or null when the file yields no valid spec (the old `continue` cases).
-  // Loaded once, on the first file that needs it, not at module load: it pulls
-  // in the yaml parser.
-  let parseContent: typeof import("../common/src/detectTests.js").detectTests | undefined;
   const parseOneFile = async (file: string): Promise<any | null> => {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
@@ -861,8 +865,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Parse content using common's detectTests. testIdBase keys generated
       // testIds to the spec's stable path-derived ID instead of the absolute
       // file path.
-      parseContent ??= (await import("../common/src/detectTests.js")).detectTests;
-      const tests = await parseContent({
+      const tests = await (await loadParseContent())({
         config: config,
         content: content,
         fileType: fileType,
