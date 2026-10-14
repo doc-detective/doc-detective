@@ -204,7 +204,9 @@ async function defaultVerifyBash(bashPath: string): Promise<boolean> {
 // current directory, then each PATH entry (trimmed, relative ones resolved
 // against cwd), matching a FILE named `<name>` or `<name><PATHEXT ext>`.
 // Entries where.exe skips (quoted, unexpanded %VARS%) never stat as
-// directories, so they drop out here too. Returns one hit per directory,
+// directories, so they drop out here too. Quotes are deliberately NOT
+// stripped (unlike cmd.exe's lookup): where.exe finds nothing through a
+// quoted entry, and matching it keeps the resolved bash identical. Returns one hit per directory,
 // because bash candidates derive only from the hit's directory.
 async function whereLike(
   name: string,

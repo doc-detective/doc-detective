@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { whereLike } from "../dist/runtime/windowsBash.js";
 
@@ -46,13 +47,28 @@ describe("runtime/windowsBash whereLike", function () {
     assert.deepEqual(hits.map((h) => W.dirname(h)), ["C:\\work\\rel", "C:\\Space"]);
   });
 
+  it("skips a quoted PATH entry, as where.exe does (quotes are not stripped)", async function () {
+    // Measured: `where.exe` finds nothing through PATH="\"C:\\Program Files\\Git\\cmd\""
+    // and finds the tool through the same entry unquoted. Stripping quotes
+    // here would pick candidates where.exe never offers, changing which bash
+    // the resolver returns; when the in-process lookup finds nothing, the
+    // resolver falls back to where.exe exactly as before.
+    const hits = await whereLike("git", {
+      cwd: "C:\\work",
+      env: { PATH: '"C:\\Program Files\\Git\\cmd";C:\\B', PATHEXT: ".EXE" },
+      isFile: files(["C:\\Program Files\\Git\\cmd\\git.exe", "C:\\B\\git.exe"]),
+    });
+    assert.deepEqual(hits.map((h) => h.toLowerCase()), ["c:\\b\\git.exe"]);
+  });
+
   it("returns [] with no PATH", async function () {
     assert.deepEqual(await whereLike("git", { cwd: "C:\\work", env: {}, isFile: () => false }), []);
   });
 
   it("finds the same directories, in the same order, as where.exe", async function () {
     if (process.platform !== "win32") this.skip();
-    const root = fs.mkdtempSync(path.join(path.resolve(".tmp"), "dd-wherelike-"));
+    // Long-name form: where.exe prints long names, os.tmpdir() may be 8.3.
+    const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "dd-wherelike-")));
     try {
       const name = "ddfaketool";
       const mk = (dir, names) => {
