@@ -15,6 +15,7 @@
 const path = require("path");
 const readline = require("readline");
 const { spawn } = require("child_process");
+const treeKill = require("tree-kill");
 const { resolveShard } = require("./run-test-shard.cjs");
 
 // Highest exit status wins, so any failing shard fails the run. A shard
@@ -45,26 +46,41 @@ function runShard(index, total) {
 async function main() {
   const total = Number(process.argv[2] ?? 2);
   resolveShard(["1", String(total)]); // validates totalShards
-  const { createTestServers } = await import("../test/server/instances.js");
-  const servers = createTestServers();
-  const started = [];
-  for (const { name, server } of servers) {
-    try {
-      await server.start();
-      started.push(server);
-    } catch (error) {
-      if (error.code !== "EADDRINUSE") throw error;
-      console.log(`Test server (${name}) already running; reusing it`);
-    }
-  }
 
+  // Registered before anything starts, and kept for every signal (not
+  // `once`), so a second Ctrl+C still lands here instead of killing this
+  // process before it stops the servers. Each shard's whole tree is killed:
+  // mocha, plus the browsers and Appium servers it spawned, which would
+  // otherwise outlive it.
+  const shards = [];
+  let interrupted = false;
+  const onSignal = () => {
+    if (!interrupted) console.error("test:parallel: stopping shards…");
+    interrupted = true;
+    for (const { child } of shards) {
+      if (child.exitCode === null) treeKill(child.pid);
+    }
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
+  const { createTestServers } = await import("../test/server/instances.js");
+  const started = [];
   const t0 = Date.now();
-  const shards = Array.from({ length: total }, (_, i) => runShard(i + 1, total));
-  const stopChildren = () => shards.forEach(({ child }) => child.kill());
-  process.once("SIGINT", stopChildren);
-  process.once("SIGTERM", stopChildren);
   let statuses;
   try {
+    for (const { name, server } of createTestServers()) {
+      try {
+        await server.start();
+        started.push(server);
+      } catch (error) {
+        if (error.code !== "EADDRINUSE") throw error;
+        console.log(`Test server (${name}) already running; reusing it`);
+      }
+    }
+    if (!interrupted) {
+      for (let i = 1; i <= total; i++) shards.push(runShard(i, total));
+    }
     statuses = await Promise.all(shards.map((s) => s.done));
   } finally {
     for (const server of started) {
@@ -80,7 +96,8 @@ async function main() {
     console.log(`shard ${i + 1}/${total}: ${s === 0 ? "passed" : `FAILED (exit ${s})`}`)
   );
   console.log(`test:parallel finished in ${secs}s`);
-  process.exit(combinedExit(statuses));
+  // 130 = interrupted (128 + SIGINT), even if the shards exited cleanly.
+  process.exit(interrupted ? 130 : combinedExit(statuses));
 }
 
 if (require.main === module) {

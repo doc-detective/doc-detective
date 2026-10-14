@@ -43,7 +43,11 @@ shard's root hook then hits `EADDRINUSE` and reuses them. A shard's `afterAll`
 stop is a no-op on a server it never started. The script spawns
 `run-test-shard.cjs i N` for each shard, two by default, and prefixes every
 output line with `[shard i/N]`. It exits with the highest shard status, and a
-signal-killed shard counts as 1. It always stops the servers it started.
+signal-killed shard counts as 1. It always stops the servers it started. Its
+SIGINT and SIGTERM handlers go in before the servers start and stay for every
+signal. Each signal kills every shard's whole process tree with `tree-kill`, so
+browsers and Appium servers don't outlive the run. An interrupted run exits
+130.
 
 ### Consequences
 
