@@ -67,7 +67,7 @@ async function main() {
   const { createTestServers } = await import("../test/server/instances.js");
   const started = [];
   const t0 = Date.now();
-  let statuses;
+  let statuses = [];
   try {
     for (const { name, server } of createTestServers()) {
       try {
@@ -92,12 +92,16 @@ async function main() {
     }
   }
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
+  if (interrupted) {
+    // 130 = 128 + SIGINT. Killed shards report null, not a real failure.
+    console.log(`test:parallel interrupted after ${secs}s`);
+    process.exit(130);
+  }
   statuses.forEach((s, i) =>
     console.log(`shard ${i + 1}/${total}: ${s === 0 ? "passed" : `FAILED (exit ${s})`}`)
   );
   console.log(`test:parallel finished in ${secs}s`);
-  // 130 = interrupted (128 + SIGINT), even if the shards exited cleanly.
-  process.exit(interrupted ? 130 : combinedExit(statuses));
+  process.exit(combinedExit(statuses));
 }
 
 if (require.main === module) {

@@ -213,6 +213,7 @@ export async function probeAllTools(cacheDir?: string): Promise<ToolResult[]> {
     npx,
     python,
     java,
+    // Synchronous metadata reads (nothing spawned), so returned directly.
     probeFfmpeg(),
     probeAppium(cacheDir),
     git,
