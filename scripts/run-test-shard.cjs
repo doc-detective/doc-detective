@@ -44,7 +44,9 @@ const WEIGHTS = {
 // At 3+ shards the packer uses measured seconds instead (windows-latest CI,
 // the slowest OS), because WEIGHTS badly underrates some files: runTests is
 // weight 1 but ~35-130 s, and core-screenshot weighs the same as
-// appium-port-conflict at twice the time. Unlisted files count 2 s.
+// appium-port-conflict at twice the time. Unlisted files count 2 s. When the
+// Windows shard jobs drift out of balance, refresh these from that cell's
+// mocha logs (per-file wall time between top-level describe headers).
 const SECONDS = {
   "core-screenshot.test.js": 200,
   "appium-port-conflict.test.js": 120,

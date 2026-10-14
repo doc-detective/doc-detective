@@ -79,8 +79,16 @@ jobs:
         # 3 shards the runner packs by measured seconds and splits core-core
         # by top-level describe. macOS stays at 2: its runners are a 5-slot
         # pool shared with the iOS fixture legs, so a third job's setup costs
-        # more there than it saves. Every other cell runs `shards || 2`.
+        # more there than it saves.
+        #
+        # Every cell states its shard count. It can't be a base `shards: [2]`
+        # dimension: `include` can't overwrite a base value, so Windows could
+        # never say 3. The first three entries extend the base cells per OS.
         include:
+          - os: ubuntu-latest
+            shards: 2
+          - os: macos-latest
+            shards: 2
           - os: windows-latest
             shards: 3
           - os: windows-latest
@@ -90,9 +98,11 @@ jobs:
           - os: ubuntu-latest
             node: 22
             shard: 1
+            shards: 2
           - os: ubuntu-latest
             node: 22
             shard: 2
+            shards: 2
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -145,7 +155,7 @@ jobs:
       # mocha half: it runs this shard's deterministic slice of test/*.test.js
       # (the two slices union to exactly the full glob — asserted by
       # test/run-test-shard.test.js).
-      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} ${{ matrix.shards || 2 }}
+      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} ${{ matrix.shards }}
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
