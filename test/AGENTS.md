@@ -32,8 +32,10 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   timed out`, a truncated `.webm` (`Read error at pos. 37`), or, worst, two runs silently producing
   byte-identical videos. Both keys are now per-process (ADR 01076). If you see these symptoms
   anyway, check for a concurrent run *before* suspecting Chrome. Reproduce with nothing else
-  running, and compare against the `fixtures / recording (windows-latest|macos-latest)` CI jobs,
-  which exercise the browser engine headed on the same managed Chrome build.
+  running, and compare against the `fixtures / recording` and `recording-2`
+  `(windows-latest|macos-latest)` CI jobs, which exercise the browser engine headed on the same
+  managed Chrome build. The two jobs split the group's specs between them (ADR 01126); the
+  claimed list is in [select-fixture-bundles.cjs](../scripts/select-fixture-bundles.cjs).
 - **Killed runs leave debris.** Killing mocha mid-flight orphans its test server and can leave
   stray artifacts: modified root `image.png`/`reference.png` baselines, `screenshot-boolean.png`,
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these

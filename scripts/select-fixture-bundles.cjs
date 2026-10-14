@@ -14,6 +14,9 @@
 // Zero runtime dependencies on purpose: the CI `select` job runs this straight
 // from a checkout, before any npm install.
 
+const fs = require("fs");
+const path = require("path");
+
 // One entry per fixture bundle, in matrix order. `dirs` are the fixture group
 // directories under test/core-artifacts/; the CI-only attributes (timeout,
 // android, prebootIos) travel with each bundle into the matrix.
@@ -25,6 +28,25 @@ const BUNDLES = [
   { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },
   { name: "proc-sessions", dirs: ["process", "sessions"] },
   { name: "recording", dirs: ["recording"] },
+  // Spec-file shard (ADR 01126). Recordings serialize on one display mutex
+  // inside a run, so the group's only parallelism is a second runner. This
+  // job takes the listed specs; "recording" takes every OTHER entry in the
+  // dir, read from disk at matrix time, so a new spec lands there with no
+  // edit here. The split balances CI timings (~250 s per job on Windows and
+  // macOS; recording-permutations alone is ~165 s). A shard owns no dir, so
+  // the one-bundle-per-dir guard and dir-based narrowing are unchanged, and
+  // selectMatrix runs it whenever its owner runs.
+  {
+    name: "recording-2",
+    dirs: [],
+    shardOf: "recording",
+    specs: [
+      "above-variation.spec.json",
+      "annotate-timeout.spec.json",
+      "recording-permutations.spec.json",
+      "stale-headless.spec.json",
+    ],
+  },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },
   // prebootIos is load-bearing beyond the simulator pre-boot: fixtures.yml
@@ -46,14 +68,33 @@ for (const bundle of BUNDLES)
 // --input value (the action passes it verbatim to `--input`, which splits on
 // commas); the optional CI attributes are included only when set.
 function toMatrixEntry(b) {
-  const entry = {
-    name: b.name,
-    input: b.dirs.map((d) => `test/core-artifacts/${d}`).join(","),
-  };
+  const entry = { name: b.name, input: inputPaths(b).join(",") };
   if (b.timeout) entry.timeout = b.timeout;
   if (b.android) entry.android = true;
   if (b.prebootIos) entry.prebootIos = true;
   return entry;
+}
+
+// A bundle's --input paths: its group dirs, except that a dir with shards is
+// listed entry by entry minus the specs its shards claim, and a shard lists
+// its claimed specs inside its owner's dir.
+function inputPaths(b) {
+  const at = (dir, name) => `test/core-artifacts/${dir}/${name}`;
+  if (b.shardOf) {
+    const dir = BUNDLES.find((o) => o.name === b.shardOf).dirs[0];
+    return b.specs.map((s) => at(dir, s));
+  }
+  const claimed = new Set(
+    BUNDLES.filter((s) => s.shardOf === b.name).flatMap((s) => s.specs)
+  );
+  if (claimed.size === 0) return b.dirs.map((d) => `test/core-artifacts/${d}`);
+  return b.dirs.flatMap((d) =>
+    fs
+      .readdirSync(path.join(__dirname, "..", "test", "core-artifacts", d))
+      .filter((name) => !claimed.has(name))
+      .sort()
+      .map((name) => at(d, name))
+  );
 }
 
 /**
@@ -76,7 +117,9 @@ function selectBundles(changedFiles) {
 function selectMatrix(changedFiles) {
   const names = selectedNames(changedFiles);
   const keep = names === null ? null : new Set(names);
-  return BUNDLES.filter((b) => keep === null || keep.has(b.name)).map(toMatrixEntry);
+  return BUNDLES.filter(
+    (b) => keep === null || keep.has(b.name) || keep.has(b.shardOf)
+  ).map(toMatrixEntry);
 }
 
 // Returns the selected bundle names in matrix order, or null meaning "not
