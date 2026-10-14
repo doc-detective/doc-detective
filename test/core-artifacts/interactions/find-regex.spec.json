@@ -1,0 +1,103 @@
+{
+  "specId": "findRegexSemantics",
+  "description": "Regex find (string shorthand \"/re/\" and object elementText \"/re/\") matches the driver's rendered text, the WebDriver Get Element Text result, not textContent. It polls up to the timeout instead of sleeping the whole timeout first (ADR 01131). Each step pins a case where rendered text and textContent disagree: a hidden earlier match, collapsed whitespace, CSS text-transform, and fragmented text nodes. Also covered: the shorthand's attribute strategies (aria-label, id, data-testid) and a late-rendering match.",
+  "tests": [
+    {
+      "testId": "find-regex-rendered-text",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-regex.html"
+        },
+        {
+          "stepId": "regex-shorthand-skips-hidden",
+          "find": "/regex target \\d/",
+          "assertions": "$$outputs.element.text == \"Visible regex target 2\""
+        },
+        {
+          "stepId": "regex-object-skips-hidden",
+          "find": {
+            "elementText": "/regex target \\d/"
+          },
+          "assertions": "$$outputs.element.text == \"Visible regex target 2\""
+        },
+        {
+          "stepId": "regex-shorthand-collapsed-whitespace",
+          "find": "/^collapsed regex spacing$/"
+        },
+        {
+          "stepId": "regex-object-collapsed-whitespace",
+          "find": {
+            "elementText": "/^collapsed regex spacing$/"
+          }
+        },
+        {
+          "stepId": "regex-shorthand-text-transform",
+          "find": "/^SHOUTED REGEX TEXT$/"
+        },
+        {
+          "stepId": "regex-object-text-transform",
+          "find": {
+            "elementText": "/^SHOUTED REGEX TEXT$/"
+          }
+        },
+        {
+          "stepId": "regex-shorthand-fragmented-text",
+          "find": "/Fragmented regex \\w+/",
+          "assertions": "$$outputs.element.tag == \"h2\""
+        },
+        {
+          "stepId": "regex-object-fragmented-text",
+          "find": {
+            "elementText": "/Fragmented regex \\w+/"
+          },
+          "assertions": "$$outputs.element.tag == \"h2\""
+        },
+        {
+          "stepId": "regex-shorthand-aria-label",
+          "find": "/Regex aria label \\d/",
+          "assertions": "$$outputs.element.text == \"X\""
+        },
+        {
+          "stepId": "regex-shorthand-id",
+          "find": "/regex-id-\\d+/",
+          "assertions": "$$outputs.element.text == \"id holder\""
+        },
+        {
+          "stepId": "regex-shorthand-testid",
+          "find": "/regex-testid-\\d/",
+          "assertions": "$$outputs.element.text == \"testid holder\""
+        }
+      ]
+    },
+    {
+      "testId": "find-regex-late-arrival",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-regex.html"
+        },
+        {
+          "click": "#start-late"
+        },
+        {
+          "stepId": "regex-shorthand-late-arrival",
+          "description": "Nothing matches until ~1.5s after the click; the shorthand regex find polls within its 5s timeout.",
+          "find": "/Late regex arrival \\d/",
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "goTo": "http://localhost:8092/find-regex.html"
+        },
+        {
+          "click": "#start-late"
+        },
+        {
+          "stepId": "regex-object-late-arrival",
+          "find": {
+            "elementText": "/Late regex arrival \\d/"
+          },
+          "assertions": "$$outputs.element.tag == \"p\""
+        }
+      ]
+    }
+  ]
+}
