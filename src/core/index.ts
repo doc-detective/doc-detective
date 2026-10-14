@@ -1,8 +1,8 @@
-import { setConfig } from "./config.js";
+import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
-import { runSpecs, runViaApi, getRunner } from "./tests.js";
+import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import { telemetryNotice, prewarmTelemetry, abortTelemetryWarmup } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
 
@@ -49,8 +49,8 @@ const supportMessage = `
  * @param {Object} options.config - The configuration object
  * @returns {Promise<Object|null>} Resolved tests object or null if none found
  */
-async function detectAndResolveTests({ config }: any) {
-  config = await setConfig({ config });
+async function detectAndResolveTests({ config, detectApps = true }: any) {
+  config = await setConfig({ config, detectApps });
   const detectedTests = await detectTests({ config });
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
@@ -106,12 +106,24 @@ async function runTests(config: any, options: any = {}) {
   }
 
   if (!resolvedTests) {
-    resolvedTests = await detectAndResolveTests({ config });
+    resolvedTests = await detectAndResolveTests({ config, detectApps: false });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
+    }
+    // Browser detection, deferred from setConfig so a run whose contexts
+    // can't use it skips it (ADR 01133). Any run that can still gets the same
+    // environment.apps, as do API-dispatched runs, which send the resolved
+    // config to the API.
+    const resolvedConfig = resolvedTests.config;
+    if (
+      !resolvedConfig.dryRun &&
+      (resolvedConfig.integrations?.docDetectiveApi?.apiKey ||
+        runNeedsAvailableApps(resolvedTests.specs))
+    ) {
+      resolvedConfig.environment.apps = await getAvailableApps({ config: resolvedConfig });
     }
   }
 

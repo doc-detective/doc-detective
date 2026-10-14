@@ -717,6 +717,31 @@ function isBrowserRequired({ test }: { test: any }): boolean {
   );
 }
 
+// Whether any context in `specs` could read the available-apps list: it names a
+// browser, targets a mobile platform, or has a step that drives a browser or
+// opens/closes a surface. A deliberate superset of every availableApps reader in
+// this file, so a run where it's false never consults the list and can skip
+// detection (ADR 01133). Falls back to the test's steps for a stepless context.
+export function runNeedsAvailableApps(specs: any[]): boolean {
+  const list = (v: any) => (Array.isArray(v) ? v : []);
+  const stepNeedsApps = (step: any) =>
+    Boolean(step) &&
+    typeof step === "object" &&
+    (step.startSurface !== undefined ||
+      step.closeSurface !== undefined ||
+      driverActions.some((key) => step[key] !== undefined));
+  return list(specs).some((spec: any) =>
+    list(spec?.tests).some((test: any) =>
+      list(test?.contexts).some(
+        (context: any) =>
+          Boolean(context?.browser) ||
+          isMobileTargetPlatform(context?.platform) ||
+          list(Array.isArray(context?.steps) ? context.steps : test?.steps).some(stepNeedsApps)
+      )
+    )
+  );
+}
+
 // Size the browser Appium server pool: the number of concurrent runner jobs
 // that will actually create a BROWSER session. App-only jobs are excluded —
 // they provision their own per-context Appium server (homed where the native
@@ -1488,10 +1513,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     };
   }
 
-  // Get runner details
+  // Get runner details. Browser detection is skipped when no context can use
+  // its result (ADR 01133); APPIUM_HOME is still set, as detection would have.
+  const needsApps = runNeedsAvailableApps(specs);
+  if (!needsApps) {
+    log(config, "debug", "No context in this run uses a browser; skipping browser detection.");
+    setAppiumHome({ cacheDir: config?.cacheDir });
+  }
   const runnerDetails = {
     environment: getEnvironment(),
-    availableApps: await getAvailableApps({ config }),
+    availableApps: needsApps ? await getAvailableApps({ config }) : [],
     allowUnsafeSteps: await allowUnsafeSteps({ config }),
   };
 

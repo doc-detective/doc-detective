@@ -66,7 +66,9 @@ process.on("exit", () => process.stderr.write("PKGS:" + JSON.stringify([...pkgs]
 
   // yaml is legitimately loaded here: detection maps every spec's steps to
   // source locations with yaml's parseDocument, JSON specs included.
-  it("a shell-only JSON run with telemetry off loads no axios, form-data, or posthog-node", function () {
+  // @puppeteer/browsers is what browser detection loads first; a run with no
+  // browser context skips detection entirely (ADR 01133).
+  it("a shell-only JSON run with telemetry off loads no axios, form-data, posthog-node, or browser detection", function () {
     const spec = path.join(tmp, "shell.spec.json");
     fs.writeFileSync(
       spec,
@@ -82,7 +84,7 @@ process.on("exit", () => process.stderr.write("PKGS:" + JSON.stringify([...pkgs]
     ]);
     assert.equal(status, 0);
     assert.deepEqual(
-      HEAVY.filter((p) => p !== "yaml" && pkgs.includes(p)),
+      [...HEAVY, "@puppeteer/browsers"].filter((p) => p !== "yaml" && pkgs.includes(p)),
       []
     );
   });
