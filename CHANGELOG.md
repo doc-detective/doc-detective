@@ -1,3 +1,17 @@
+# [4.40.0](https://github.com/doc-detective/doc-detective/compare/v4.39.1...v4.40.0) (2026-10-14)
+
+
+### Bug Fixes
+
+* **android:** bake helpers only when both helper packages have APKs ([a14cb48](https://github.com/doc-detective/doc-detective/commit/a14cb4871168e048d3e41c42f24a78b3382067c6))
+* **android:** log snapshot housekeeping failures instead of aborting or hiding them ([8fe9ff9](https://github.com/doc-detective/doc-detective/commit/8fe9ff9319609ff5eacaef1177012ec5053ca647))
+* **android:** record the baked driver version only after every helper installs ([ca69765](https://github.com/doc-detective/doc-detective/commit/ca697655ce7c08a751052695f09ffb1b5cb4b942))
+
+
+### Features
+
+* **android:** bake Appium's helpers into the clean snapshot ([8114232](https://github.com/doc-detective/doc-detective/commit/81142327ca76be0edfa3f2cf6486c9b58e88ed67))
+
 ## [4.39.1](https://github.com/doc-detective/doc-detective/compare/v4.39.0...v4.39.1) (2026-10-13)
 
 
