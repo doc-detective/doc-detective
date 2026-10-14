@@ -5665,8 +5665,9 @@ async function runStep({
               }
             }
             // Load only this platform's app driver (ADR 01117).
-            const driverPackage =
-              APP_DRIVER_PLATFORMS[context?.platform]?.driverPackage;
+            const driverPackage = context?.platform
+              ? APP_DRIVER_PLATFORMS[context.platform]?.driverPackage
+              : undefined;
             const server = await startAppiumServer(
               appiumEntry,
               config,

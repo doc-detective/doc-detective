@@ -30,7 +30,7 @@ function useDriversArgs(appiumHome: string, packages: string[]): string[] {
   } catch {
     // No manifest: Appium scans node_modules on start, so on disk is enough.
   }
-  let registered: Record<string, any> | undefined;
+  let registered: Record<string, { pkgName?: string } | undefined> | undefined;
   if (manifestText !== undefined) {
     try {
       registered = YAML.parse(manifestText)?.drivers ?? {};

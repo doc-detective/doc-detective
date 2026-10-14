@@ -81,6 +81,23 @@ describe("useDriversArgs", function () {
     );
   });
 
+  it("names the drivers when the manifest lists every installed requested one exactly", function () {
+    home = makeHome({
+      "appium-chromium-driver": "chromium",
+      "appium-geckodriver": "gecko",
+    });
+    const manifestDir = path.join(home, "node_modules", ".cache", "appium");
+    fs.mkdirSync(manifestDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(manifestDir, "extensions.yaml"),
+      "drivers:\n  chromium:\n    pkgName: appium-chromium-driver\n  gecko:\n    pkgName: appium-geckodriver\n  xcuitest:\n    pkgName: appium-xcuitest-driver\n"
+    );
+    assert.deepEqual(
+      useDriversArgs(home, ["appium-chromium-driver", "appium-geckodriver"]),
+      ["--use-drivers=chromium,gecko"]
+    );
+  });
+
   it("requires the manifest's driver entry to name the exact package, not a substring match", function () {
     home = makeHome({ "appium-geckodriver": "gecko" });
     const manifestDir = path.join(home, "node_modules", ".cache", "appium");
