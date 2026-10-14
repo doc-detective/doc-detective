@@ -154,6 +154,40 @@ describe("lazy available-apps detection", function () {
     assert.ok(!lines.some((l) => SKIP.test(l)), "detection was skipped for a browser context");
   });
 
+  // An API key normally dispatches the run to the orchestration API, which
+  // receives environment.apps. With DOC_DETECTIVE_API set the run is local
+  // instead (the same willRunViaApi gate the dispatch uses), so a shell-only
+  // run must still skip detection. The probe chdirs into the package root, so
+  // a chdir spy observes whether it ran.
+  it("an API key with DOC_DETECTIVE_API set (a local run) doesn't force detection", async function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-apps-lazy-api-"));
+    const saved = process.env.DOC_DETECTIVE_API;
+    process.env.DOC_DETECTIVE_API = "1";
+    const freshCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-apps-lazy-cache-"));
+    try {
+      const input = path.join(dir, "shell.spec.json");
+      fs.writeFileSync(input, JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }));
+      const chdir = sinon.spy(process, "chdir");
+      const results = await runTests({
+        input: [input],
+        output: path.join(dir, "out"),
+        logLevel: "silent",
+        cacheDir: freshCache,
+        telemetry: { send: false },
+        integrations: { docDetectiveApi: { apiKey: "test-key" } },
+      });
+      const probed = chdir.getCalls().length;
+      sinon.restore();
+      assert.equal(results.summary.steps.pass, 1);
+      assert.equal(probed, 0, "browser detection ran for a local shell-only run");
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_API;
+      else process.env.DOC_DETECTIVE_API = saved;
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(freshCache, { recursive: true, force: true });
+    }
+  });
+
   it("runTests runs a shell-only spec end to end without detection", async function () {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-apps-lazy-run-"));
     try {

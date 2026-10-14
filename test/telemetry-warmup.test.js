@@ -82,6 +82,32 @@ describe("telemetry warm-up", function () {
     assert.equal(res.status, 200);
   });
 
+  // Back-to-back or concurrent runTests calls share this module's state: a new
+  // warm-up must cancel the previous one, and a send must never wait on the
+  // orphaned one.
+  it("a second warm-up aborts the first, and a send waits only on the latest", async function () {
+    const pending = [];
+    fetchStub.callsFake((url, init) =>
+      init?.method === "OPTIONS"
+        ? new Promise((resolve, reject) => {
+            pending.push(() => resolve(okResponse()));
+            init.signal.addEventListener("abort", () => reject(new Error("aborted")));
+          })
+        : Promise.resolve(okResponse())
+    );
+    prewarmTelemetry({});
+    const first = fetchStub.firstCall.args[1].signal;
+    prewarmTelemetry({});
+    const second = fetchStub.secondCall.args[1].signal;
+    assert.equal(first.aborted, true);
+    assert.equal(second.aborted, false);
+    const send = telemetryFetch(`${POSTHOG_HOST}/batch/`, { method: "POST" });
+    await new Promise((r) => setImmediate(r));
+    assert.equal(fetchStub.callCount, 2, "send went out before the latest warm-up settled");
+    pending[1]();
+    assert.equal((await send).status, 200);
+  });
+
   it("swallows a failed warm-up (telemetry never fails a run)", async function () {
     fetchStub.callsFake(async () => {
       throw new Error("offline");

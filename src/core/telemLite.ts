@@ -18,6 +18,9 @@ let warmupSettled: Promise<void> = Promise.resolve();
 // longer keep-alive is the upgrade path.
 export function prewarmTelemetry(config: any) {
   if (config?.telemetry?.send === false) return;
+  // One warm-up at a time: a back-to-back or concurrent runTests call cancels
+  // the previous one, so no send can wait behind an orphaned request.
+  warmup?.abort();
   warmup = new AbortController();
   warmupSettled = fetch(POSTHOG_HOST, {
     method: "OPTIONS",
@@ -48,7 +51,9 @@ export function abortTelemetryWarmup() {
   warmup = undefined;
 }
 
-// TODO: Add link to docs
+// The notice text is documented verbatim in docs/fern/pages/legal/telemetry.mdx
+// (/legal/telemetry); keep the two in sync. It isn't linked from the message
+// itself, since that would change the CLI's printed output.
 export function telemetryNotice(config: any) {
   if (config?.telemetry?.send === false) {
     log(

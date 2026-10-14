@@ -43,6 +43,8 @@ Details that matter:
 * The warm-up settles one event-loop turn after its body ends. undici returns the socket to its
   pool on that later turn, and a request sent sooner opens a new connection.
 * A failed warm-up settles immediately, so the send goes out cold, as before.
+* Only one warm-up runs at a time. A new `runTests` call aborts the previous warm-up, so a send never
+  waits behind an orphaned request.
 * `awaitTelemetryFlush` aborts a warm-up that's still in flight. A run that ends without sending
   anything, such as one with no tests, doesn't wait for it.
 

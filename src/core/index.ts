@@ -105,6 +105,16 @@ async function runTests(config: any, options: any = {}) {
     loadTelemetry();
   }
 
+  // Whether the orchestration API runs this (tests execute remotely). Decided
+  // once, here, because both deferred browser detection and the dispatch below
+  // depend on it.
+  const willRunViaApi = Boolean(
+    !process.env.DOC_DETECTIVE_API &&
+      config.integrations &&
+      config.integrations.docDetectiveApi &&
+      config.integrations.docDetectiveApi.apiKey
+  );
+
   if (!resolvedTests) {
     resolvedTests = await detectAndResolveTests({ config, detectApps: false });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
@@ -120,8 +130,7 @@ async function runTests(config: any, options: any = {}) {
     const resolvedConfig = resolvedTests.config;
     if (
       !resolvedConfig.dryRun &&
-      (resolvedConfig.integrations?.docDetectiveApi?.apiKey ||
-        runNeedsAvailableApps(resolvedTests.specs))
+      (willRunViaApi || runNeedsAvailableApps(resolvedTests.specs))
     ) {
       resolvedConfig.environment.apps = await getAvailableApps({ config: resolvedConfig });
     }
@@ -157,15 +166,9 @@ async function runTests(config: any, options: any = {}) {
   // browser is already detectable (e.g., the legacy ./browser-snapshots/
   // pre-warm is still in place), we skip the install entirely.
   //
-  // Skipped entirely for API-backed runs: the orchestration API executes
-  // tests remotely, so installing browsers/runtime locally would burn
-  // network and disk for nothing.
-  const willRunViaApi = Boolean(
-    !process.env.DOC_DETECTIVE_API &&
-      config.integrations &&
-      config.integrations.docDetectiveApi &&
-      config.integrations.docDetectiveApi.apiKey
-  );
+  // Skipped entirely for API-backed runs (willRunViaApi, above): the
+  // orchestration API executes tests remotely, so installing browsers/runtime
+  // locally would burn network and disk for nothing.
   if (willRunViaApi) {
     log(
       config,
