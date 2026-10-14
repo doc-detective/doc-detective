@@ -61,7 +61,10 @@ describe("useDriversArgs", function () {
     );
   });
 
-  it("skips installed drivers a stale manifest doesn't list (Appium trusts the manifest and would refuse to start)", function () {
+  it("falls back to loading everything when the manifest misses an installed driver", function () {
+    // A partial list would be unsafe both ways: if Appium trusts the stale
+    // manifest it refuses an unknown name, and if its hash check rescans,
+    // the left-out driver would never load.
     home = makeHome({
       "appium-chromium-driver": "chromium",
       "appium-geckodriver": "gecko",
@@ -74,7 +77,7 @@ describe("useDriversArgs", function () {
     );
     assert.deepEqual(
       useDriversArgs(home, ["appium-chromium-driver", "appium-geckodriver"]),
-      ["--use-drivers=gecko"]
+      []
     );
   });
 

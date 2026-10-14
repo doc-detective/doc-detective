@@ -16,10 +16,10 @@ export {
 // vs ~1.3s). Each package is named by its `appium.driverName` — the key
 // Appium's manifest scan registers it under — and only when it's installed
 // in `<appiumHome>/node_modules`, because Appium refuses to start on an
-// unknown name. An existing manifest is trusted without a rescan, so when one
-// exists its `drivers.<name>.pkgName` must also be exactly the package; an
-// unparseable manifest can't be verified. Nothing qualifies → no args,
-// keeping the load-all default.
+// unknown name. When a manifest exists, every installed requested driver must
+// appear there as `drivers.<name>.pkgName` exactly; a mismatch or an
+// unparseable manifest can't be verified. Unverifiable or nothing installed →
+// no args, keeping the load-all default.
 function useDriversArgs(appiumHome: string, packages: string[]): string[] {
   let manifestText: string | undefined;
   try {
@@ -39,23 +39,27 @@ function useDriversArgs(appiumHome: string, packages: string[]): string[] {
     }
   }
   const names = packages.flatMap((pkg) => {
-    let name: unknown;
     try {
-      const pkgJson = JSON.parse(
+      const name = JSON.parse(
         fs.readFileSync(
           path.join(appiumHome, "node_modules", pkg, "package.json"),
           "utf8"
         )
-      );
-      name = pkgJson?.appium?.driverName;
+      )?.appium?.driverName;
+      return typeof name === "string" && name ? [{ name, pkg }] : [];
     } catch {
       return [];
     }
-    if (typeof name !== "string" || !name) return [];
-    if (registered && registered[name]?.pkgName !== pkg) return [];
-    return [name];
   });
-  return names.length ? [`--use-drivers=${names.join(",")}`] : [];
+  // A manifest that disagrees with what's on disk is stale. A partial list is
+  // unsafe either way (Appium may refuse the name, or rescan and then never
+  // load the one left out), so fall back to loading everything.
+  if (registered && names.some(({ name, pkg }) => registered[name]?.pkgName !== pkg)) {
+    return [];
+  }
+  return names.length
+    ? [`--use-drivers=${names.map(({ name }) => name).join(",")}`]
+    : [];
 }
 
 // Drivers a desktop browser-pool server can host. Safari's driver only runs

@@ -40,8 +40,9 @@ browser test: 2.5 of the 6.8 seconds in a single-screenshot test.
 Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
 [src/core/appium.ts](../src/core/appium.ts).
 
-- **Browser pool servers** load `chromium` and `gecko`, plus `safari` on macOS
-  (`browserPoolDriverPackages`). The pool hosts only desktop browser sessions.
+- **Browser pool servers** and the `getRunner` server load `chromium` and
+  `gecko`, plus `safari` on macOS (`browserPoolDriverPackages`). They host only
+  desktop browser sessions.
   Mobile web and native apps run on their own servers. The Safari driver only
   runs on macOS. Its package declares `platformNames` Mac and iOS.
 - **App-surface servers** load the platform's driver from
@@ -52,14 +53,14 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
 - Each driver is named by its package's `appium.driverName`, the key Appium's
   manifest scan registers it under.
 - Appium refuses to start when `--use-drivers` names a driver it doesn't know.
-  It also trusts an existing manifest without rescanning. A driver is therefore
-  named only when its package is installed in the home. If a manifest exists,
-  its `drivers` entry for that name must also give exactly that package as
-  `pkgName`. An unparseable manifest can't be verified, so it gets no flag.
-  When nothing qualifies, no flag is passed and Appium keeps its
-  load-everything default. A driver missing from the manifest
-  fails exactly as it did before, at session creation, instead of taking the
-  server down.
+  An existing manifest may be stale, and Appium may or may not rescan it. A
+  driver is therefore named only when its package is installed in the home. If
+  a manifest exists, every installed requested driver must have a `drivers`
+  entry that gives exactly its package as `pkgName`. Otherwise the manifest
+  can't be trusted, and no flag is passed. A partial list would either name a
+  driver Appium refuses, or leave out one a rescan would have loaded. An
+  unparseable manifest also gets no flag. With no flag, Appium keeps its
+  load-everything default, so a server never fails to start where it used to.
 
 ### Consequences
 
@@ -76,9 +77,10 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
 
 * [test/appium-use-drivers.test.js](../test/appium-use-drivers.test.js): only
   the requested, installed drivers whose manifest entry names the exact
-  package are named. A substring match or an unparseable manifest is not
-  enough. Nothing qualifying means no flag. Safari is in the pool list only on
-  macOS. The Android chromedriver-prefetch server loads only `uiautomator2`.
+  package are named. A substring match, an unparseable manifest, or a manifest
+  missing any installed requested driver means no flag. Safari is in the pool
+  list only on macOS. The Android chromedriver-prefetch server loads only
+  `uiautomator2`.
 * Verified on Windows before merge: the `apps/app-windows` fixture passes on
   NovaWindows, and a browser `goTo` and `screenshot` run passes.
 * Still to confirm in CI: the browser fixture groups, the `apps` group on

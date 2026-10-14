@@ -1864,6 +1864,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       // await them together so the waits OVERLAP — total ≈ max(readiness)
       // instead of the sum of serial waits.
       const readinessWaits: Promise<boolean>[] = [];
+      // Load only the desktop browser drivers (ADR 01117): the shared home
+      // also holds the mobile drivers, which roughly doubled startup.
+      const useDrivers = useDriversArgs(
+        process.env.APPIUM_HOME!,
+        browserPoolDriverPackages(process.platform)
+      );
       for (let i = 0; i < serverCount; i++) {
         let display: string | undefined;
         if (useXvfbDisplays) {
@@ -1877,20 +1883,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // chrome-authored context to Firefox mid-run, so gating the flag on the
         // run's authored browsers would leave the capability illegal exactly
         // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
-        // Load only the desktop browser drivers (ADR 01117): the shared home
-        // also holds the mobile drivers, which roughly doubled startup.
         const server = await spawnAppiumServer(
           appiumEntry,
           config,
           display,
           undefined,
-          [
-            ...GECKODRIVER_EXECUTABLE_ARGS,
-            ...useDriversArgs(
-              process.env.APPIUM_HOME!,
-              browserPoolDriverPackages(process.platform)
-            ),
-          ]
+          [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
         );
         appiumServers.push(server);
         const wait = appiumIsReady(server.port);
@@ -6261,7 +6259,18 @@ async function getRunner(options: any = {}) {
   }
   const appium = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+    [
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(appiumPort),
+      // Load only the desktop browser drivers (ADR 01117).
+      ...useDriversArgs(
+        process.env.APPIUM_HOME!,
+        browserPoolDriverPackages(process.platform)
+      ),
+    ],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
