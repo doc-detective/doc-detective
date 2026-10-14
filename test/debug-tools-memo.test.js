@@ -2,7 +2,7 @@
 // keyed on the PATH the probes resolve against (ADR 01123).
 import path from "node:path";
 import assert from "node:assert/strict";
-import { probeAllTools } from "../dist/debug/tools.js";
+import { probeAllTools, probeSystemTools } from "../dist/debug/tools.js";
 
 const SPAWNED = ["npm", "npx", "python", "java", "git", "docker"];
 
@@ -29,6 +29,23 @@ describe("probeAllTools memo", function () {
       b.find((t) => t.name === "appium"),
       a.find((t) => t.name === "appium")
     );
+  });
+
+  it("doesn't keep a rejected probe set, and still rejects for the caller", async function () {
+    const key = Object.keys(process.env).find((k) => k.toLowerCase() === "path");
+    const prev = process.env[key];
+    try {
+      // A PATH no other test uses, so the memo starts empty for it.
+      process.env[key] = `${prev}${path.delimiter}${path.join("dd-memo-reject", "bin")}`;
+      await assert.rejects(
+        probeSystemTools(() => Promise.reject(new Error("probe boom"))),
+        /probe boom/
+      );
+      const fresh = [{ name: "npm", version: "1.0.0" }];
+      assert.equal(await probeSystemTools(async () => fresh), fresh);
+    } finally {
+      process.env[key] = prev;
+    }
   });
 
   it("re-probes when PATH changes", async function () {

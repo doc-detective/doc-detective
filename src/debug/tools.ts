@@ -162,29 +162,42 @@ function runWithTimeout(
 
 // The spawned system-tool probes are memoized per process, keyed on the PATH
 // they resolve against: re-spawning six `--version` commands on every dump
-// returns the same answers (ADR 01123). A set with a timed-out probe isn't
-// kept, so a transient stall can't stick.
+// returns the same answers (ADR 01123). A set with a timed-out probe, or one
+// that rejected, isn't kept, so a transient failure can't stick. `run` is
+// injectable for tests; exported for testing.
 const systemProbeMemo = new Map<string, Promise<ToolResult[]>>();
 
-function probeSystemTools(): Promise<ToolResult[]> {
+function runSystemProbes(): Promise<ToolResult[]> {
+  return Promise.all([
+    probeTool("npm", "npm --version"),
+    probeTool("npx", "npx --version"),
+    probePython(),
+    probeTool("java", "java -version"),
+    probeTool("git", "git --version"),
+    probeTool("docker", "docker --version"),
+  ]);
+}
+
+export function probeSystemTools(
+  run: () => Promise<ToolResult[]> = runSystemProbes
+): Promise<ToolResult[]> {
   const env = envWithoutNodeModulesBin();
   const pathKey = Object.keys(env).find((k) => k.toLowerCase() === "path");
   const key = (pathKey && env[pathKey]) || "";
   let memo = systemProbeMemo.get(key);
   if (!memo) {
-    memo = Promise.all([
-      probeTool("npm", "npm --version"),
-      probeTool("npx", "npx --version"),
-      probePython(),
-      probeTool("java", "java -version"),
-      probeTool("git", "git --version"),
-      probeTool("docker", "docker --version"),
-    ]).then((results) => {
-      if (results.some((r) => r.version.startsWith("<timed out"))) {
+    memo = run().then(
+      (results) => {
+        if (results.some((r) => r.version.startsWith("<timed out"))) {
+          systemProbeMemo.delete(key);
+        }
+        return results;
+      },
+      (error) => {
         systemProbeMemo.delete(key);
+        throw error;
       }
-      return results;
-    });
+    );
     systemProbeMemo.set(key, memo);
   }
   return memo;

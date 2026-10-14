@@ -56,8 +56,9 @@ reads cost nothing. `probeTool` itself isn't memoized.
 ### Confirmation
 
 [test/debug-tools-memo.test.js](../test/debug-tools-memo.test.js) asserts that
-a second call returns the memoized system-tool entries in the same order, that
-the Appium entry is rebuilt per call, and that a changed `PATH` re-probes.
+a second call returns the memoized system-tool entries in the same order. It
+also asserts that the Appium entry is rebuilt per call, that a changed `PATH`
+re-probes, and that a rejected probe set isn't kept.
 
 ## Pros and Cons of the Options
 
