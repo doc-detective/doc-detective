@@ -225,7 +225,9 @@ async function whereLike(
         (s) => s.isFile(),
         () => false
       ));
-  const exts = ["", ...(env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)];
+  // Measured against where.exe: the extensionless name matches (and lists
+  // first), and with PATHEXT unset ONLY the extensionless name matches.
+  const exts = ["", ...(env.PATHEXT ?? "").split(";").filter(Boolean)];
   const dirs = new Map<string, string>(); // lowercased → as written; keeps order
   for (const entry of [cwd, ...(env.PATH ?? env.Path ?? "").split(";")]) {
     const trimmed = entry.trim();

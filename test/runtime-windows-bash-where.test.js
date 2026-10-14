@@ -65,40 +65,41 @@ describe("runtime/windowsBash whereLike", function () {
     assert.deepEqual(await whereLike("git", { cwd: "C:\\work", env: {}, isFile: () => false }), []);
   });
 
-  it("finds the same directories, in the same order, as where.exe", async function () {
-    if (process.platform !== "win32") this.skip();
+  it("with PATHEXT unset, matches only the extensionless name (as where.exe does)", async function () {
+    const hits = await whereLike("git", {
+      cwd: "C:\\work",
+      env: { PATH: "C:\\A;C:\\B" },
+      isFile: files(["C:\\A\\git.exe", "C:\\B\\git"]),
+    });
+    assert.deepEqual(hits, ["C:\\B\\git"]);
+  });
+
+  // Real where.exe parity (Windows only). Builds `layout` under a scratch
+  // root, runs where.exe and whereLike with the same cwd/PATH/PATHEXT, and
+  // compares the directories hit, in order. Bash candidates derive only from
+  // a hit's directory, so the file within it doesn't matter.
+  async function assertWhereParity({ layout, pathEntries, pathext, minDirs = 1 }) {
     // Long-name form: where.exe prints long names, os.tmpdir() may be 8.3.
     const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "dd-wherelike-")));
     try {
       const name = "ddfaketool";
-      const mk = (dir, names) => {
+      for (const [dir, names] of Object.entries(layout)) {
         fs.mkdirSync(path.join(root, dir), { recursive: true });
-        for (const n of names) fs.writeFileSync(path.join(root, dir, n.replace("N", name)), "");
-      };
-      mk("cwd", ["N.bat"]);
-      mk("d1", ["N", "N.exe", "N.txt"]);
-      mk("d2", ["N.cmd"]);
-      mk("d 3", ["N.exe"]);
-      mk("none", ["N.js"]);
-      mk("cwd/rel", ["N.com"]);
-      fs.mkdirSync(path.join(root, "asdir", `${name}.exe`), { recursive: true });
-      const env = {
-        PATH: [
-          path.join(root, "d1"),
-          `"${path.join(root, "d 3")}"`,
-          path.join(root, "none"),
-          "rel",
-          path.join(root, "asdir"),
-          `${path.join(root, "d2")}\\  `,
-          "",
-          path.join(root, "d1"),
-        ].join(";"),
-        PATHEXT: ".COM;.EXE;.BAT;.CMD",
-      };
+        for (const n of names) {
+          const target = path.join(root, dir, n.replace("N", name));
+          if (n.endsWith("/")) fs.mkdirSync(target, { recursive: true });
+          else fs.writeFileSync(target, "");
+        }
+      }
+      const env = { PATH: pathEntries(root).join(";") };
+      if (pathext !== undefined) env.PATHEXT = pathext;
       const cwd = path.join(root, "cwd");
+      fs.mkdirSync(cwd, { recursive: true });
+      const childEnv = { ...process.env, ...env };
+      if (pathext === undefined) delete childEnv.PATHEXT;
       const real = spawnSync(path.join(process.env.SystemRoot, "System32", "where.exe"), [name], {
         cwd,
-        env: { ...process.env, ...env },
+        env: childEnv,
         encoding: "utf8",
       });
       const realDirs = [];
@@ -107,10 +108,57 @@ describe("runtime/windowsBash whereLike", function () {
         if (!realDirs.includes(d)) realDirs.push(d);
       }
       const ours = (await whereLike(name, { cwd, env })).map((h) => path.dirname(h).toLowerCase());
-      assert.ok(realDirs.length >= 3, `where.exe found too little to compare: ${real.stdout}`);
+      assert.ok(realDirs.length >= minDirs, `where.exe found too little to compare: ${real.stdout}`);
       assert.deepEqual(ours, realDirs);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  }
+
+  it("finds the same directories, in the same order, as where.exe", async function () {
+    if (process.platform !== "win32") this.skip();
+    await assertWhereParity({
+      layout: {
+        cwd: ["N.bat"],
+        d1: ["N", "N.exe", "N.txt"],
+        d2: ["N.cmd"],
+        "d 3": ["N.exe"],
+        none: ["N.js"],
+        "cwd/rel": ["N.com"],
+        asdir: ["N.exe/"],
+      },
+      pathEntries: (root) => [
+        path.join(root, "d1"),
+        `"${path.join(root, "d 3")}"`,
+        path.join(root, "none"),
+        "rel",
+        path.join(root, "asdir"),
+        `${path.join(root, "d2")}\\  `,
+        "",
+        path.join(root, "d1"),
+      ],
+      pathext: ".COM;.EXE;.BAT;.CMD",
+      minDirs: 3,
+    });
+  });
+
+  it("matches where.exe for a bare-name-only directory and a mixed one", async function () {
+    if (process.platform !== "win32") this.skip();
+    await assertWhereParity({
+      layout: { bare: ["N"], mixed: ["N", "N.exe", "N.bat"], exe: ["N.exe"] },
+      pathEntries: (root) => ["bare", "mixed", "exe"].map((d) => path.join(root, d)),
+      pathext: ".COM;.EXE;.BAT;.CMD",
+      minDirs: 3,
+    });
+  });
+
+  it("matches where.exe with PATHEXT unset", async function () {
+    if (process.platform !== "win32") this.skip();
+    await assertWhereParity({
+      layout: { exe: ["N.exe"], bare: ["N"], mixed: ["N", "N.exe"] },
+      pathEntries: (root) => ["exe", "bare", "mixed"].map((d) => path.join(root, d)),
+      pathext: undefined,
+      minDirs: 2,
+    });
   });
 });
