@@ -124,7 +124,7 @@ async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern:
 
 async function findElementByShorthand({ string, timeout = 5000, driver }: { string: any; timeout?: number; driver: any }) {
   // Find an element based on a string that could be a selector, text, aria label, id, or test id
-  // Uses parallel search with precedence: selector > elementText > elementAria > elementId > elementTestId
+  // Exact match precedence: elementText > elementAria > elementId > elementTestId > selector
 
   // If regex, find element by regex across all attribute types
   if (string.startsWith("/") && string.endsWith("/")) {
@@ -166,92 +166,67 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     return { element: null, foundBy: null };
   }
 
-  // Perform parallel searches for exact match across all five attribute types
-  const selectorPromise = driver
-    .$(string)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
+  // Exact match across all five strategies, polled together (ADR 01130). Each
+  // poll looks every strategy up once without waiting, and the first poll that
+  // finds anything returns the highest-precedence match present on it. A
+  // per-strategy `waitForExist({ timeout })` would make every strategy that
+  // never matches burn the whole timeout before precedence could be applied.
   const textLiteral = xpathLiteral(normalizeText(string));
-  const textPromise = driver
-    // Match the element's FULL normalized text, not its first text node — a
-    // framework-fragmented heading (e.g. text nodes ["", "Title", ""]) has an
-    // empty first node and would never match `normalize-space(text())` (ADR 01061).
-    // `not(.//*[…])` keeps the INNERMOST match: a wrapping ancestor whose whole
-    // text also equals the string (a single-child container) must not shadow the
-    // leaf, or clicks/`outputs.element` would target the container.
-    .$(
-      `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`
-    )
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
+  // Listed in lookup order; `precedence` below decides the winner.
+  const strategies: { foundBy: string; query: string; dropped?: boolean }[] = [
+    { foundBy: "selector", query: string },
+    {
+      foundBy: "elementText",
+      // Match the element's FULL normalized text, not its first text node — a
+      // framework-fragmented heading (e.g. text nodes ["", "Title", ""]) has an
+      // empty first node and would never match `normalize-space(text())` (ADR 01061).
+      // `not(.//*[…])` keeps the INNERMOST match: a wrapping ancestor whose whole
+      // text also equals the string (a single-child container) must not shadow the
+      // leaf, or clicks/`outputs.element` would target the container.
+      query: `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`,
+    },
+    { foundBy: "elementAria", query: `aria/${string}` },
+    { foundBy: "elementId", query: `//*[@id="${string}"]` },
+    { foundBy: "elementTestId", query: `//*[@data-testid="${string}"]` },
+  ];
+  // elementText > elementAria > elementId > elementTestId > selector
+  const precedence = [1, 2, 3, 4, 0];
 
-  const ariaPromise = driver
-    .$(`aria/${string}`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
+  // wdio's `$` resolves an element without an `elementId` when nothing matches
+  // yet; that strategy is polled again. A lookup that throws gives that
+  // strategy up for the rest of the call, as the old per-strategy `.catch`
+  // did.
+  const lookup = async (strategy: (typeof strategies)[number]) => {
+    try {
+      const el = await driver.$(strategy.query);
+      return el.elementId ? el : null;
+    } catch {
+      strategy.dropped = true;
+      return null;
+    }
+  };
 
-  const idPromise = driver
-    .$(`//*[@id="${string}"]`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
-  const testIdPromise = driver
-    .$(`//*[@data-testid="${string}"]`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
-  // Wait for all promises to resolve
-  const results = await Promise.allSettled([
-    selectorPromise,
-    textPromise,
-    ariaPromise,
-    idPromise,
-    testIdPromise,
-  ]);
-
-  // Extract results
-  const selectorResult =
-    results[0].status === "fulfilled" ? results[0].value : null;
-  const textResult =
-    results[1].status === "fulfilled" ? results[1].value : null;
-  const ariaResult =
-    results[2].status === "fulfilled" ? results[2].value : null;
-  const idResult = results[3].status === "fulfilled" ? results[3].value : null;
-  const testIdResult =
-    results[4].status === "fulfilled" ? results[4].value : null;
-
-  // Apply precedence order: elementText > elementAria > elementId > elementTestId > selector
-  if (textResult && textResult.elementId) {
-    return { element: textResult, foundBy: "elementText" };
-  }
-  if (ariaResult && ariaResult.elementId) {
-    return { element: ariaResult, foundBy: "elementAria" };
-  }
-  if (idResult && idResult.elementId) {
-    return { element: idResult, foundBy: "elementId" };
-  }
-  if (testIdResult && testIdResult.elementId) {
-    return { element: testIdResult, foundBy: "elementTestId" };
-  }
-  if (selectorResult && selectorResult.elementId) {
-    return { element: selectorResult, foundBy: "selector" };
-  }
+  const startTime = Date.now();
+  // do/while so `timeout: 0` means "check once, now" (ADR 01090).
+  do {
+    const found = await Promise.all(
+      strategies.map((s) => (s.dropped ? null : lookup(s)))
+    );
+    for (const i of precedence) {
+      if (!found[i]) continue;
+      try {
+        // Zero-timeout existence check: the element must still be there, as
+        // the old `waitForExist` guaranteed. It doesn't wait.
+        await found[i].waitForExist({ timeout: 0 });
+        return { element: found[i], foundBy: strategies[i].foundBy };
+      } catch {
+        // Gone since the lookup; try the next strategy found on this poll.
+      }
+    }
+    if (strategies.every((s) => s.dropped)) break;
+    if (Date.now() - startTime >= timeout) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } while (Date.now() - startTime < timeout);
 
   // No matching elements
   return { element: null, foundBy: null };

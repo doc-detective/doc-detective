@@ -646,6 +646,47 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
+    // The not-found permutation of interactions/find-shorthand.spec.json: it
+    // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: "Shorthand text target" },
+            { find: "No such shorthand target" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-find-shorthand-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const context = result.specs[0].tests[0].contexts.find(
+        (c) => c.steps && c.steps.length
+      );
+      assert.ok(context, "expected a context that ran steps");
+      const [, hit, miss] = context.steps;
+      assert.equal(hit.result, "PASS");
+      // Pre-ADR 01130 every shorthand hit took the full 5s default timeout.
+      assert.ok(
+        hit.durationMs < 4000,
+        `shorthand hit took ${hit.durationMs}ms; it must not wait out the timeout`
+      );
+      assert.equal(miss.result, "FAIL");
+      assert.equal(miss.outputs.found, false);
+      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.ok(
+        miss.durationMs >= 5000,
+        `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
+      );
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [

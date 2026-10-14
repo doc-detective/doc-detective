@@ -10,7 +10,7 @@ If multiple elements match the specified criteria (`elementText` and/or `selecto
 
 Specify the target element directly with a string for basic text or selector lookup. Use an object for more detailed options and interactions:
 
-- **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used.
+- **String Shorthand:** Provide the display text or CSS/XPath selector directly as the value for the `find` key. If elements are found by both text and selector, the element found by matching text is used. Doc Detective checks every way of matching together, every 100 milliseconds for up to 5 seconds, and uses the first check that finds an element. A selector match that's already on the page wins over a text match that renders later. If both could match, use the object format to say which one you mean.
   - Example: `"find": "Login"` or `"find": "#username"`.
 - **Object Format:** Use an object with the following properties:
   - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.

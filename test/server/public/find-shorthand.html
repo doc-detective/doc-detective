@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Shorthand Test Page</title>
+</head>
+<body>
+    <h1>Find Shorthand Test Page</h1>
+    <!-- One target per shorthand strategy (ADR 01130). Each value is unique to
+         its strategy so the step can only match the way its stepId says. -->
+    <p>Shorthand text target</p>
+    <button aria-label="Shorthand aria target" onclick="reveal('Aria click landed')">A</button>
+    <button id="shorthand-id-target" onclick="reveal('Id click landed')">I</button>
+    <button data-testid="shorthand-testid-target" onclick="reveal('TestId click landed')">T</button>
+    <button class="shorthand-selector-target" onclick="reveal('Selector click landed')">S</button>
+
+    <!-- Precedence: "shorthand-precedence" matches by text (the <p>) AND by id
+         (the <span>). elementText outranks elementId, so the <p> must win. -->
+    <span id="shorthand-precedence">id holder</span>
+    <p>shorthand-precedence</p>
+
+    <button id="start-late" onclick="scheduleLate()">Start late arrival</button>
+
+    <div id="messages"></div>
+
+    <script>
+        function reveal(text) {
+            const p = document.createElement("p");
+            p.textContent = text;
+            document.getElementById("messages").appendChild(p);
+        }
+        // Late arrival: no strategy matches until this lands, so the shorthand
+        // find must keep polling (not give up on the first miss). Started by a
+        // click rather than on load, so goTo's settle wait can't absorb it.
+        function scheduleLate() {
+            setTimeout(() => reveal("Shorthand late arrival"), 1500);
+        }
+    </script>
+</body>
+</html>
