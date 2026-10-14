@@ -15,8 +15,8 @@ the mocha step is the slowest in the grid: 6–11 min per shard, with shard jobs
 Two things limit it. First, the weights don't track reality. `runTests.test.js` weighs 1 but
 takes 35–130 s, and `core-screenshot.test.js` weighs the same as `appium-port-conflict.test.js`
 at about twice the time. So the heavy files pile onto one shard. Second, `core-core.test.js`
-alone is ~250 s on Windows, about a quarter of the suite, so no packing can get a shard below
-it while it's one unit.
+alone is ~250 s on Windows, about a quarter of the suite. No packing can get a shard below it
+while it's one unit.
 
 The required checks name `Test (ubuntu-latest, node 22, shard 1|2)`, and the coverage-merge
 job unions every shard's raw-coverage artifact. Both must keep working, and every test must
@@ -27,7 +27,7 @@ still run on every OS/node cell it runs on today.
 * Cut the slowest cell without dropping or editing any test.
 * Don't move the 2-shard layout of the other cells. Its pairings encode known flake
   avoidance, such as keeping `detecttests-coverage` away from `core-core`.
-* macOS runners are a 5-slot pool shared with the iOS fixture legs, and a job costs ~2 min of
+* macOS runners are a 5-slot pool shared with the iOS fixture legs. A job costs ~2 min of
   setup, so an extra macOS job costs more than it saves.
 * Coverage must still union to the full suite's.
 

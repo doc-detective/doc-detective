@@ -9,9 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The PR gate's wall clock is set by its longest jobs. On a recent `main`-based run
-(38516518765) two fixture jobs sat near the top: the managed-boot Android job (~17 min:
-the `apps-android` group, ~11 min, then `mobile-web-android`, ~3 min, back to back) and
-`recording (windows-latest)` (11–15 min, of which ~510 s is the fixtures step).
+(38516518765) two fixture jobs sat near the top. The managed-boot Android job took ~17 min:
+the `apps-android` group (~11 min), then `mobile-web-android` (~3 min), back to back.
+`recording (windows-latest)` took 11–15 min, of which ~510 s is the fixtures step.
 
 Neither can go faster inside one job. Recordings serialize on a display mutex within a
 run, so the recording specs run one after another however many runners the config
@@ -29,8 +29,8 @@ OS legs, with the same gates.
 * A new spec must land in some job without anyone remembering to list it.
 * Keep the per-group guard, dir-based narrowing (ADR 01055), and the zero-spec and
   require-a-PASS gates working unchanged.
-* Every extra job costs setup time (~2–4 min) and a runner slot, and macOS slots are
-  capped at 5, so split only where the job is long enough to pay for it.
+* Every extra job costs setup time (~2–4 min) and a runner slot. macOS slots are capped at
+  5. So split only where the job is long enough to pay for it.
 
 ## Considered Options
 
@@ -48,8 +48,8 @@ Chosen option: **A**.
 
 * **Recording.** A bundle can now be a *shard* of another (`shardOf`): it owns no dir
   and claims named spec files from its owner's dir. The owner's input becomes every
-  entry in the dir *not* claimed, read from disk when the matrix is computed, so a new
-  spec lands in the owner by default. `recording-2` claims
+  entry in the dir *not* claimed, read from disk when the matrix is computed. A new spec
+  therefore lands in the owner by default. `recording-2` claims
   `recording-permutations`, `annotate-timeout`, `above-variation`, and
   `stale-headless`, which balances CI timings to ~250 s per job on Windows and macOS.
   `selectMatrix` runs a shard whenever its owner is selected. `selectBundles`, the
