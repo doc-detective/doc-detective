@@ -10,7 +10,8 @@ import { setConfig } from "../dist/core/config.js";
 
 describe("detectTests detected-spec dump log level", function () {
   this.timeout(30000);
-  const MARKER = "https://spec-dump-marker.example/";
+  // A unique, non-URL token: only the spec dump can print it.
+  const MARKER = "SpecDumpMarker7f3a9c";
   let tmpDir;
   let captured;
   let originalLog;
@@ -18,7 +19,7 @@ describe("detectTests detected-spec dump log level", function () {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-detect-dump-"));
     fs.writeFileSync(
       path.join(tmpDir, "s.spec.json"),
-      JSON.stringify({ tests: [{ steps: [{ goTo: MARKER }] }] })
+      JSON.stringify({ tests: [{ steps: [{ find: MARKER }] }] })
     );
     captured = [];
     originalLog = console.log;
