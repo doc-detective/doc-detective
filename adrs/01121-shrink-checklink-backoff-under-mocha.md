@@ -62,8 +62,8 @@ retry sleeps total 70ms instead of 7s.
 ### Confirmation
 
 `test/checkLink.test.js` › "checkLink base backoff test seam" asserts that the
-default is 1000ms, that the root hook has shrunk it, and that a 100ms base
-yields about 300ms of total sleep across two retries.
+default is 1000ms and that the root hook has shrunk it. It also asserts that a
+100ms base yields at least 300ms of total sleep across two retries.
 
 ## Pros and Cons of the Options
 
