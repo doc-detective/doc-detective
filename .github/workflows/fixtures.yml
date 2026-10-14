@@ -121,6 +121,12 @@ jobs:
         with:
           persist-credentials: false
 
+      # Windows: keep npm's cache on D:, before setup-node restores into it.
+      # C: is slow at small-file I/O (see the dd-cache action).
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           # Fixture runtime behavior is node-line-independent; the smoke +
