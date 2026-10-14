@@ -101,6 +101,7 @@ function listedEntries(groupPath, claimed) {
 function inputPaths(b) {
   const at = (dir, name) => `test/core-artifacts/${dir}/${name}`;
   if (b.shardOf) {
+    // A shard's owner has exactly one dir (asserted in select-fixture-bundles-shards.test.js).
     const dir = BUNDLES.find((o) => o.name === b.shardOf).dirs[0];
     return b.specs.map((s) => at(dir, s));
   }
