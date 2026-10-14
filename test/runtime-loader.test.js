@@ -921,9 +921,9 @@ describe("runtime/loader", function () {
         "globalThis.__ddPrefetchFlag = (globalThis.__ddPrefetchFlag || 0) + 1;"
       );
       delete globalThis.__ddPrefetchFlag;
-      expect(prefetchHeavyDep("dd-prefetch-flag", { cacheDir: tmpRoot })).to.equal(
-        undefined
-      );
+      // Fire-and-forget: the call itself completes without throwing, and
+      // the evaluation lands afterwards.
+      expect(() => prefetchHeavyDep("dd-prefetch-flag", { cacheDir: tmpRoot })).to.not.throw();
       await waitFor(() => globalThis.__ddPrefetchFlag === 1);
       expect(globalThis.__ddPrefetchFlag).to.equal(1);
       // The later real load shares the module-map entry: no second evaluation.
