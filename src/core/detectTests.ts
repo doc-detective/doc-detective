@@ -41,7 +41,7 @@ async function detectTests({ config }: { config: any }) {
 
   const specs = await parseTests({ config, files });
   log(config, "debug", `SPECS:`);
-  log(config, "info", specs);
+  log(config, "debug", specs); // ADR 01136: debug, like its header
 
   return specs;
 }
