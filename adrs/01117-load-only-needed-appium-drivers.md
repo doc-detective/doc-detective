@@ -9,19 +9,19 @@ decision-makers: hawkeyexl
 ## Context and Problem Statement
 
 ADR 01111 homes every Appium server at `<cacheDir>/runtime`. That home collects
-every driver a machine has ever used: the desktop browser drivers (chromium,
-gecko, safari) and, once a run touches native apps or mobile web, the heavy
-ones (xcuitest, uiautomator2, novawindows, mac2). By default Appium `require`s
-every installed driver at startup, one after another, before it opens its HTTP
-port.
+every driver a machine has ever used. It holds the desktop browser drivers
+(chromium, gecko, safari). Once a run touches native apps or mobile web, it
+also holds the heavy ones (xcuitest, uiautomator2, novawindows, mac2). By
+default Appium `require`s every installed driver at startup, one after another,
+before it opens its HTTP port.
 
 So a browser run paid to load the iOS and Android drivers, and a Windows app
-run paid to load the browser and mobile drivers. Measured on Windows, a server
-in a home with six drivers took 3.0s to answer `/status`. The same server
-limited to the one or two drivers it uses took 1.3s. Every `runTests` that
-drives a browser or app starts at least one server. The mocha suite starts 55,
-so this cost was the largest single slice of a typical browser test (2.5s of a
-6.8s single-screenshot test).
+run paid to load the browser and mobile drivers. We measured this on Windows.
+With six drivers in the home, a server took 3.0 seconds to answer `/status`.
+Limited to the drivers it uses, the same server took 1.3 seconds. Every
+`runTests` that drives a browser or app starts at least one server, and the
+mocha suite starts 61. Server startup was the largest single slice of a typical
+browser test: 2.5 of the 6.8 seconds in a single-screenshot test.
 
 ## Decision Drivers
 
@@ -46,9 +46,9 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
   runs on macOS. Its package declares `platformNames` Mac and iOS.
 - **App-surface servers** load the platform's driver from
   `APP_DRIVER_PLATFORMS`, for example `novawindows` on Windows.
-- **Mobile servers** load the device's driver: `uiautomator2` for the Android
-  mobile-web context server and the warm-phase chromedriver prefetch, and
-  `xcuitest` for the iOS mobile-web context server.
+- **Mobile servers** load the device's driver. Android's mobile-web context
+  server and its warm-phase chromedriver prefetch load `uiautomator2`. The iOS
+  mobile-web context server loads `xcuitest`.
 - Each driver is named by its package's `appium.driverName`, the key Appium's
   manifest scan registers it under.
 - Appium refuses to start when `--use-drivers` names a driver it doesn't know.
@@ -61,8 +61,8 @@ Chosen option: **1, `--use-drivers`**, built by `useDriversArgs` in
 
 ### Consequences
 
-* Good, because each browser or app server starts in about half the time
-  (~1.3s instead of 2.5–3.0s on Windows), on every run.
+* Good, because each browser or app server starts in about half the time, on
+  every run. On Windows that's about 1.3 seconds instead of 2.5 to 3.0.
 * Good, because a broken, unrelated driver in the shared home can no longer
   slow or clutter a server's startup.
 * Neutral, because the set of sessions each server hosts is unchanged.
