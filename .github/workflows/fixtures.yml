@@ -225,14 +225,28 @@ jobs:
           node test/server/wait-ready.js
 
       # Diagnostic: make the CI log show which doc-detective the action will run,
-      # so a silent fallback to the published package is visible. The linked
-      # build's version and the global link should both point at this checkout.
+      # so a silent fallback to the published package is visible. The action's
+      # bare `npx doc-detective` resolves the global link `npm link` made, so
+      # print where that link points and warn when it isn't this checkout.
+      # Deliberately not `npm ls -g` / `npx … --version`: those walk the whole
+      # global tree and boot the full CLI, which cost up to ~80 s on Windows,
+      # while this reads one symlink and one package.json.
       - name: Resolution diagnostic
         shell: bash
         run: |
-          echo "local package version: $(node -p 'require("./package.json").version')"
-          npm ls -g doc-detective || true
-          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const link = path.join(process.argv[1], "doc-detective");
+            let target = "(missing)", version = "(none)";
+            try {
+              target = fs.realpathSync(link);
+              version = require(path.join(target, "package.json")).version;
+            } catch {}
+            console.log("local package version:", require(path.resolve("package.json")).version);
+            console.log("global link:", link, "->", target, "@", version);
+            if (target !== fs.realpathSync("."))
+              console.log("::warning::the global doc-detective is not this checkout; npx may run the published package");
+          ' "$(npm root -g)"
 
       # Block on the pre-booted simulator reaching `Booted`. This wait is NOT
       # additive on the happy path — Doc Detective's first startSurface would
