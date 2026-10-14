@@ -44,6 +44,19 @@ describe("pathNodeIsCurrentNode", function () {
     assert.equal(pathNodeIsCurrentNode(deps), false);
   });
 
+  it("resolves relative PATH entries against the current directory, as the shell does", function () {
+    const posix = fake(
+      { "/work/bin/node": "/opt/node-22/bin/node" },
+      { platform: "linux", cwd: "/work", execPath: "/opt/node-22/bin/node", env: { PATH: "bin" } }
+    );
+    assert.equal(pathNodeIsCurrentNode(posix), true);
+    const win = fake(
+      { "C:\\work\\bin\\node.exe": "C:\\nodejs\\node.exe" },
+      { platform: "win32", cwd: "C:\\work", execPath: "C:\\nodejs\\node.exe", env: { PATH: "bin", PATHEXT: ".exe" } }
+    );
+    assert.equal(pathNodeIsCurrentNode(win), true);
+  });
+
   it("false when no node is on PATH", function () {
     const deps = fake({}, { platform: "linux", cwd: "/work", execPath: "/opt/node/bin/node", env: { PATH: "/usr/bin" } });
     assert.equal(pathNodeIsCurrentNode(deps), false);

@@ -42,9 +42,10 @@ function pathNodeIsCurrentNode(
     });
   const realpath = deps.realpath ?? ((f: string) => fs.realpathSync.native(f));
   const entries = (env.PATH ?? env.Path ?? "").split(p.delimiter);
+  // Relative entries resolve against the current directory, as in the shell.
   const dirs = win
-    ? [cwd, ...entries.map((d) => d.replace(/"/g, "")).filter(Boolean)]
-    : entries.map((d) => d || cwd);
+    ? [cwd, ...entries.map((d) => d.replace(/"/g, "")).filter(Boolean)].map((d) => p.resolve(cwd, d))
+    : entries.map((d) => p.resolve(cwd, d || "."));
   const exts = win
     ? (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)
     : [""];
