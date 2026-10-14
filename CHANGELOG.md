@@ -1,3 +1,16 @@
+## [4.40.1](https://github.com/doc-detective/doc-detective/compare/v4.40.0...v4.40.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* **appium:** fall back to load-all on a stale manifest; restrict getRunner ([6919fd7](https://github.com/doc-detective/doc-detective/commit/6919fd708e9ebbd597c9b0a853eefd3c640222c6))
+* **appium:** match the manifest's driver entry exactly before --use-drivers ([ec08572](https://github.com/doc-detective/doc-detective/commit/ec08572bc4d866f20ee378d81f1221ee4e9b37c5))
+
+
+### Performance Improvements
+
+* **appium:** load only the drivers each Appium server needs ([5ddbb94](https://github.com/doc-detective/doc-detective/commit/5ddbb945efb09377b494b5801f2c198c6fa66183))
+
 # [4.40.0](https://github.com/doc-detective/doc-detective/compare/v4.39.1...v4.40.0) (2026-10-14)
 
 
