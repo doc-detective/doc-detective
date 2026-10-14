@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const {
+  listedEntries,
   selectBundles,
   selectMatrix,
   BUNDLES,
@@ -78,32 +80,32 @@ describe("select-fixture-bundles spec-file shards", function () {
       });
 
       describe("with stray entries in the group dir", function () {
-        // Planted for the duration of this block, then removed.
-        const stray = [".DS_Store", ".doc-detective", "node_modules", "notes.txt", "nested"];
-        const at = (n) => path.join(ARTIFACTS, dir, n);
+        // A scratch group dir, so the real fixture dir is never touched.
+        let tmp, names;
         before(function () {
-          fs.writeFileSync(at(".DS_Store"), "");
-          fs.mkdirSync(at(".doc-detective"), { recursive: true });
-          fs.mkdirSync(at("node_modules"), { recursive: true });
-          fs.writeFileSync(at("notes.txt"), "not a spec");
-          fs.mkdirSync(at("nested"), { recursive: true });
+          tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-bundle-shards-"));
+          for (const spec of [...shard.specs, "kept.spec.json"])
+            fs.writeFileSync(path.join(tmp, spec), "{}");
+          fs.writeFileSync(path.join(tmp, ".DS_Store"), "");
+          fs.mkdirSync(path.join(tmp, ".doc-detective"));
+          fs.mkdirSync(path.join(tmp, "node_modules"));
+          fs.writeFileSync(path.join(tmp, "notes.txt"), "not a spec");
+          fs.mkdirSync(path.join(tmp, "nested"));
+          names = listedEntries(tmp, new Set(shard.specs));
         });
         after(function () {
-          for (const n of stray) fs.rmSync(at(n), { recursive: true, force: true });
+          fs.rmSync(tmp, { recursive: true, force: true });
         });
 
-        it("skips dotfiles, dot-dirs, and node_modules", function () {
-          const names = inputs(selectMatrix([]).find((e) => e.name === owner.name));
-          for (const n of [".DS_Store", ".doc-detective", "node_modules"])
-            assert.ok(!names.some((p) => p.endsWith(`/${n}`)), `${n} must not be an input`);
+        it("skips dotfiles, dot-dirs, node_modules, and claimed specs", function () {
+          for (const n of [".DS_Store", ".doc-detective", "node_modules", ...shard.specs])
+            assert.ok(!names.includes(n), `${n} must not be an input`);
         });
 
         it("forwards other entries, which doc-detective filters as dir discovery would", function () {
           // A non-spec file goes through the same isValidSourceFile filter as a
           // discovered one, and a subdirectory stays a (recursive) dir input.
-          const names = inputs(selectMatrix([]).find((e) => e.name === owner.name));
-          assert.ok(names.includes(`test/core-artifacts/${dir}/notes.txt`));
-          assert.ok(names.includes(`test/core-artifacts/${dir}/nested`));
+          assert.deepEqual(names, ["kept.spec.json", "nested", "notes.txt"]);
         });
       });
 

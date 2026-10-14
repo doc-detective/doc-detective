@@ -85,7 +85,19 @@ function toMatrixEntry(b) {
 // a dir input, discovered recursively as before. Two exceptions mirror what
 // dir discovery skips or should: anything under node_modules, and dotfiles and
 // dot-dirs (.DS_Store, a local run's .doc-detective/ reports).
-const isListable = (name) => !name.startsWith(".") && name !== "node_modules";
+/**
+ * The entry names of a group dir a sharded owner forwards as inputs.
+ * @param {string} groupPath - absolute path of the group dir
+ * @param {Set<string>} claimed - spec names its shards take
+ * @returns {string[]}
+ */
+function listedEntries(groupPath, claimed) {
+  return fs
+    .readdirSync(groupPath)
+    .filter((name) => !name.startsWith(".") && name !== "node_modules" && !claimed.has(name))
+    .sort();
+}
+
 function inputPaths(b) {
   const at = (dir, name) => `test/core-artifacts/${dir}/${name}`;
   if (b.shardOf) {
@@ -97,11 +109,9 @@ function inputPaths(b) {
   );
   if (claimed.size === 0) return b.dirs.map((d) => `test/core-artifacts/${d}`);
   return b.dirs.flatMap((d) =>
-    fs
-      .readdirSync(path.join(__dirname, "..", "test", "core-artifacts", d))
-      .filter((name) => isListable(name) && !claimed.has(name))
-      .sort()
-      .map((name) => at(d, name))
+    listedEntries(path.join(__dirname, "..", "test", "core-artifacts", d), claimed).map(
+      (name) => at(d, name)
+    )
   );
 }
 
@@ -212,6 +222,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  listedEntries,
   selectBundles,
   selectMatrix,
   androidLegsRelevant,
