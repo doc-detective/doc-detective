@@ -23,8 +23,8 @@ import type { AgentDetection, HintContext } from "./types.js";
 import { createRequire } from "node:module";
 
 // yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireYaml = (): typeof import("yaml") =>
-  createRequire(import.meta.url)("yaml");
+const requireFromHere = createRequire(import.meta.url);
+const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
 // `step_v3.schema.json`'s anyOf branches — extra entries here would

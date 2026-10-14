@@ -8,6 +8,7 @@ import {
   log,
   calculateFractionalDifference,
   replaceEnvs,
+  loadAxios,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -326,7 +327,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   let response: any = {};
   if (!step?.httpRequest?.openApi?.mockResponse) {
     // Perform request
-    response = await (await import("axios")).default(request)
+    response = await (await loadAxios())(request)
       .then((response: any) => {
         return response;
       })

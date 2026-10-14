@@ -69,3 +69,37 @@ export function telemetryNotice(config: any) {
     );
   }
 }
+
+// telem.js carries posthog-node (~95 modules), so the runner loads it when a run
+// starts (in the background) rather than at CLI startup. A run with
+// telemetry.send === false never loads it. Resolves to null when telem.js can't
+// load: telemetry must never fail a run.
+let telemModule: Promise<typeof import("./telem.js") | null> | undefined;
+const defaultTelemetryLoader = () => import("./telem.js");
+let telemetryLoader: () => Promise<typeof import("./telem.js")> = defaultTelemetryLoader;
+
+// Test seam (internal module, not part of the package API): swap how telem.js
+// loads, e.g. to simulate a failed load, and drop any already-loaded module. No
+// argument restores the real loader.
+export function setTelemetryLoader(loader?: () => Promise<typeof import("./telem.js")>) {
+  telemetryLoader = loader ?? defaultTelemetryLoader;
+  telemModule = undefined;
+}
+
+export function loadTelemetry() {
+  telemModule ??= telemetryLoader().catch(() => null);
+  return telemModule;
+}
+
+export async function sendRunTelemetry(config: any, command: string, results: any) {
+  if (config?.telemetry?.send === false) return;
+  (await loadTelemetry())?.sendTelemetry(config, command, results);
+}
+
+// Join the flush the last send started (if any), then cancel a warm-up still in
+// flight so it can't hold the process open.
+export async function flushRunTelemetry(): Promise<void> {
+  const telem = telemModule ? await telemModule : null;
+  if (telem) await telem.awaitTelemetryFlush();
+  abortTelemetryWarmup();
+}

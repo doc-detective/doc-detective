@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import { isRelativeUrl, appendQueryParams, loadAxios } from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -101,7 +101,7 @@ async function attemptRequest(
   headers: Record<string, string>
 ): Promise<AttemptResult> {
   try {
-    const res = await (await import("axios")).default.request({
+    const res = await (await loadAxios()).request({
       method,
       url,
       headers,

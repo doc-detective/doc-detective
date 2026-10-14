@@ -14,8 +14,9 @@ import {
   prewarmTelemetry,
   abortTelemetryWarmup,
   telemetryFetch,
+  setTelemetryLoader,
 } from "../dist/core/telemLite.js";
-import { runTests, awaitTelemetryFlush, setTelemetryLoader } from "../dist/core/index.js";
+import { runTests, awaitTelemetryFlush } from "../dist/core/index.js";
 
 const okResponse = () => new Response("{}", { status: 200 });
 

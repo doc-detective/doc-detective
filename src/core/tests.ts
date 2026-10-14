@@ -47,6 +47,7 @@ import {
   guardBlankDocumentNavigation,
   realizeViewport,
   isViewportFloored,
+  loadAxios,
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -1316,7 +1317,7 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
-  const { default: axios } = await import("axios");
+  const axios = await loadAxios();
   // Apply specFilter / testFilter before sending. Without this the API run
   // path silently ignores --test / --spec, since the orchestration server
   // sees the full unfiltered payload.
@@ -5980,7 +5981,7 @@ async function appiumIsReady(
         // Bound each probe: without a per-request timeout a hung /status
         // response would block this await indefinitely, and the overall
         // `timeoutMs` guard (checked only between probes) could never fire.
-        const resp = await (await import("axios")).default.get(`http://127.0.0.1:${p}/status`, {
+        const resp = await (await loadAxios()).get(`http://127.0.0.1:${p}/status`, {
           timeout: STATUS_PROBE_TIMEOUT_MS,
         });
         return resp.status === 200;

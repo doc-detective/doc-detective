@@ -24,8 +24,8 @@ import { resolveHeavyDepPath } from "../runtime/loader.js";
 import { createRequire } from "node:module";
 
 // yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireYaml = (): typeof import("yaml") =>
-  createRequire(import.meta.url)("yaml");
+const requireFromHere = createRequire(import.meta.url);
+const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
 
 // The driver packages doc-detective installs. Order matches the browsers we
 // support (Chrome via chromium, Firefox via gecko).

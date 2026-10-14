@@ -16,6 +16,14 @@ import {
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
 
+// axios (~70 modules with its deps) loads on first use rather than at CLI
+// startup (see test/startup-modules.test.js). Cached, so hot paths pay the
+// dynamic import once.
+let axiosModule: Promise<typeof import("axios").default> | undefined;
+export function loadAxios(): Promise<typeof import("axios").default> {
+  return (axiosModule ??= import("axios").then((m) => m.default));
+}
+
 export {
   outputResults,
   loadEnvs,
@@ -652,7 +660,7 @@ async function waitForHttp(
       // Cap the per-request timeout to the time left so a single hung request
       // can't block past the overall readiness deadline (e.g. timeout: 600).
       const remaining = deadline - Date.now();
-      const resp = await (await import("axios")).default.get(url, {
+      const resp = await (await loadAxios()).get(url, {
         validateStatus: () => true,
         timeout: Math.max(1, Math.min(5000, remaining)),
       });
@@ -1484,7 +1492,7 @@ async function fetchFile(
       // change; expanding SSRF coverage there belongs in its own PR.
       await assertUrlHostIsPublic(fileURL);
     }
-    const response = await (await import("axios")).default.get(
+    const response = await (await loadAxios()).get(
       fileURL,
       opts.binary ? FETCH_BINARY_DEFAULTS : undefined
     );

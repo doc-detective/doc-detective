@@ -14,8 +14,8 @@ import { fetchAgentToolsZip } from "../fetcher.js";
 import { createRequire } from "node:module";
 
 // yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireYaml = (): typeof import("yaml") =>
-  createRequire(import.meta.url)("yaml");
+const requireFromHere = createRequire(import.meta.url);
+const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
 
 export interface RunResult {
   stdout: string;
