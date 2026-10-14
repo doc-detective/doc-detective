@@ -123,6 +123,63 @@ describe("regex find scanning (ADR 01131)", function () {
       assert.equal(res.foundBy, "selector");
     });
 
+    it("re-checks the text scan when an element renders mid-pass, so the aria text fallback's container doesn't win", async function () {
+      // The late <p> renders after the pass's text scan ran but while the
+      // aria scan walks every element. Its getText() fallback then matches the
+      // <p>'s container. The old code scanned once, after the timeout, and
+      // returned the <p> by text. That's what CI's late-arrival fixture caught.
+      let rendered = false;
+      const p = makeElement({ text: "Late regex arrival 5" });
+      const container = {
+        ...makeElement(),
+        getText: async () => {
+          rendered = true; // the <p> lands while the aria scan is mid-walk
+          return "Late regex arrival 5";
+        },
+      };
+      const driver = makeDriver((q) => {
+        if (q === TEXT_QUERY) return rendered ? [p] : [];
+        if (q === "//*") return [makeElement(), container];
+        return [];
+      });
+      const res = await findElementByShorthand({
+        string: "/Late regex arrival \\d/",
+        timeout: 3000,
+        driver,
+      });
+      assert.equal(res.element, p);
+      assert.equal(res.foundBy, "selector");
+    });
+
+    it("labels a text match by text, not elementAria, when the text scan's getText throws once mid-pass", async function () {
+      // A per-element getText() that throws (e.g. a stale element) rejects the
+      // whole text scan for that pass. The aria scan's text fallback then
+      // matches the same element. The text scan is re-checked before the aria
+      // hit is accepted.
+      let textCalls = 0;
+      const target = makeElement({ text: "Total: 42" });
+      const flaky = {
+        ...target,
+        getText: async () => {
+          textCalls += 1;
+          if (textCalls === 1) throw new Error("stale element reference");
+          return "Total: 42";
+        },
+      };
+      const driver = makeDriver((q) => {
+        if (q === TEXT_QUERY) return [flaky];
+        if (q === "//*") return [target];
+        return [];
+      });
+      const res = await findElementByShorthand({
+        string: "/Total: \\d+/",
+        timeout: 3000,
+        driver,
+      });
+      assert.equal(res.element, flaky);
+      assert.equal(res.foundBy, "selector");
+    });
+
     it("treats a scan that throws as no match for that pass and still finds via another strategy", async function () {
       const idHit = makeElement({ attributes: { id: "user-42" } });
       const driver = makeDriver((q) => {

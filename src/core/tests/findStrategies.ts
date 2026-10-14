@@ -146,13 +146,24 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     // which is what running them all and applying precedence returned. A scan
     // that throws counts as no match on that pass, as Promise.allSettled did.
     // do/while so `timeout: 0` scans once, now (ADR 01090).
+    const run = async (i: number) =>
+      (await scans[i].scan({ pattern, driver }).catch(() => ({ element: null })))
+        .element;
     const startTime = Date.now();
     do {
-      for (const { type, scan } of scans) {
-        const { element } = await scan({ pattern, driver }).catch(() => ({
-          element: null,
-        }));
-        if (element) return { element, foundBy: type };
+      for (let i = 0; i < scans.length; i++) {
+        const element = await run(i);
+        if (!element) continue;
+        // A lower-precedence hit means the higher scans missed earlier in this
+        // pass. Content can render (or a stale getText can clear) while the
+        // pass is still running, and the aria scan's text fallback walks every
+        // element, so it can match a late element's container. Re-check the
+        // higher scans before settling; the first hit wins (ADR 01131).
+        for (let h = 0; h < i; h++) {
+          const higher = await run(h);
+          if (higher) return { element: higher, foundBy: scans[h].type };
+        }
+        return { element, foundBy: scans[i].type };
       }
       if (Date.now() - startTime >= timeout) break;
       await new Promise((resolve) => setTimeout(resolve, 100));

@@ -33,8 +33,8 @@ in the first row, the shorthand still took 6.3 seconds.
 Why the pause? The commit that added regex matching (`cdf7dfe9` in
 doc-detective-core, "Added elementText regex support") put `pause(timeout)`
 before the first scan. It left no comment. There's no `waitForExist` for a
-regex, so sleeping the whole timeout and then scanning once was the simplest
-way to give late-rendering content a chance. It wasn't guarding against
+regex. Sleeping the whole timeout and then scanning once was the simplest way
+to give late-rendering content a chance. It wasn't guarding against
 anything else, and the exact-text and object paths never slept like this.
 
 ## Decision Drivers
@@ -73,8 +73,8 @@ it. Vendoring a copy would still drift from each driver's built-in version.
 The fixtures pin cases where `textContent` picks a different element or none:
 a hidden earlier match, collapsed whitespace, and `text-transform`.
 
-Chunked concurrency doesn't help. In a test that ran `getText()` 25 at a time,
-the 1,000-row scan took 7.5 seconds against 5.7 seconds one at a time.
+Chunked concurrency doesn't help. We tried running `getText()` 25 at a time.
+The 1,000-row scan took 7.5 seconds, against 5.7 seconds one at a time.
 chromedriver runs a session's commands one after another, so concurrent requests
 just queue.
 
@@ -85,23 +85,30 @@ What changed:
    the same. The existence check now runs once per match instead of once per
    candidate. A candidate that matches but no longer exists is still skipped,
    and the scan moves on to the next match.
-2. The shorthand regex path drops `driver.pause(timeout)`. It polls instead.
-   Each pass runs the text, aria, id, and testid scans in precedence order and
-   returns the first hit. The loop sleeps 100 ms between passes until the
+2. The shorthand regex path drops the fixed `pause` and polls instead.
+   Each pass runs the text, aria, id, and testid scans in precedence
+   order. It returns the first hit. The loop sleeps 100 ms between passes until the
    timeout is spent. Running the scans in order and stopping at the first hit
    returns what running all four and applying precedence returned. A scan that
    throws counts as no match on that pass, as `Promise.allSettled` treated it.
+   A hit from a lower-precedence scan re-runs the higher scans before it's
+   accepted, and the first of those to hit wins. Content can render while a pass
+   is still running. The aria scan's text fallback walks every element. It can
+   reach a late element's container after the text scan missed the element
+   itself. The old single scan, a full timeout in, never saw that
+   race. CI's Firefox late-arrival fixture did, and returned the container.
+   The re-check also covers a text scan that failed on one stale `getText()`.
 3. The text scan runs once and keeps the `selector` label. The second run
    behind `elementText` repeated the same scan, so it never won.
 
 ### The one semantic edge that changes
 
 The shorthand regex path used to look at the page once, a full timeout after
-the step started. It now looks immediately and then every 100 ms. On a page that
-changes during those 5 seconds, it can return an element that matches
-early instead of one that only matches later. Examples are a placeholder that
-matches the regex before the real content replaces it, or the outgoing page of
-a navigation that hasn't committed yet. The exact-text shorthand and the object
+the step started. It now looks immediately and then every 100 ms. A page can
+change during those 5 seconds. If it does, the path can return an element that
+matches early instead of one that only matches later. One example is a placeholder
+that matches the regex before the real content replaces it. Another is the
+outgoing page of a navigation that hasn't committed yet. The exact-text shorthand and the object
 form already worked this way. They return as soon as a match exists. The old
 sleep was an accidental settle delay on this one path, and a 5-second cost on
 every regex step. Authors who need the page to settle have `wait` and `goTo`'s
@@ -109,13 +116,16 @@ wait conditions.
 
 ### Consequences
 
-* Good, because the object form's cost is linear. On the 1,000-row page it went
-  from 334.5 seconds to 5.4 seconds with the match in the last row, and from
-  1.2 to 0.7 seconds with the match in the first row.
-* Good, because a shorthand regex hit no longer costs the timeout. The same page
-  took 5.7 seconds with the match last, down from 14.8, and 0.4 seconds with
-  the match first, down from 6.3. On the small fixture page, shorthand regex
-  steps took 100–255 ms, down from 5.1–5.3 seconds.
+* Good, because the object form's cost is linear. On the 1,000-row page, a
+  match in the last row went from 334.5 seconds to 5.4 seconds. A match in the
+  first row went from 1.2 to 0.7 seconds.
+* Good, because a shorthand regex hit no longer costs the timeout. On the same
+  page, a match in the last row went from 14.8 to 5.7 seconds. A match in the
+  first row went from 6.3 to 0.4 seconds. On the small fixture page, shorthand
+  regex steps took 100–514 ms, down from 5.1–5.3 seconds.
+* Neutral, because an aria, id, or testid hit re-runs the higher scans once.
+  An id hit pays for one more aria scan, which calls `getText()` on every
+  element that has no matching `aria-label`.
 * Good, because matching is unchanged. The candidate set and order are the
   same, the text is the same `getText()`, and the same `RegExp` runs in Node.
 * Neutral, because a regex scan is still one `getText()` round trip per
@@ -130,7 +140,8 @@ wait conditions.
   following with fake drivers. The shorthand path finds a present element
   without any `pause` and polls for a late one. A miss re-scans for the full
   timeout. `timeout: 0` scans once. Precedence holds, and a scan that throws
-  counts as no match. In `findElementByCriteria`, `isExisting` never runs on a
+  counts as no match. A lower-precedence hit re-checks the higher scans, both
+  for an element that renders mid-pass and for a `getText()` that throws once. In `findElementByCriteria`, `isExisting` never runs on a
   non-matching candidate, a matching candidate that no longer exists is still
   skipped, and `all: true` confirms each match.
 * [test/core-artifacts/interactions/find-regex.spec.json](../test/core-artifacts/interactions/find-regex.spec.json)
