@@ -1333,6 +1333,9 @@ async function startAppSurface({
           appSession.server.port
         );
       } catch (error: any) {
+        // A client-side timeout can abort while the server is still creating
+        // the session, so treat it as possibly open (ADR 01115).
+        appSession.sessionLeftOpen = true;
         result.status = "FAIL";
         result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;

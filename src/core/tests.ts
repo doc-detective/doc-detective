@@ -4369,6 +4369,9 @@ async function runContext({
           log: (m) => clog("warning", m),
         });
       } catch (error: any) {
+        // A client-side timeout can abort while the server is still creating
+        // the session, so keep a pooled server out of reuse (ADR 01115).
+        appSession!.sessionLeftOpen = true;
         // A capable host that can't open the device browser is an
         // environment gap (the absent-browser precedent): SKIP with the
         // likely cause named, never FAIL.

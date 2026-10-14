@@ -514,6 +514,20 @@ describe("browserSessions: closeSession and sweep", function () {
     assert.equal(lookupSessionByName(registry, "admin"), undefined);
   });
 
+  it("reports an unclean sweep after an explicit close whose delete failed", async function () {
+    // closeSession still deregisters the session, but the failure must reach
+    // the final sweep (ADR 01115).
+    const { registry } = stubRegistry();
+    const admin = stubDriver({ engine: "firefox" });
+    admin.deleteSession = async () => {
+      throw new Error("timed out");
+    };
+    registerSession(registry, { name: "admin", engine: "firefox", driver: admin });
+    await closeSession(registry, "admin");
+    assert.equal(lookupSessionByName(registry, "admin"), undefined);
+    assert.equal(await sweepSessions(registry), false);
+  });
+
   it("reports a clean sweep when every session closed", async function () {
     const { registry } = stubRegistry();
     registerSession(registry, { name: "chrome", engine: "chrome", driver: stubDriver({ engine: "chrome" }) });

@@ -1578,6 +1578,28 @@ describe("startAppSurface", function () {
     );
   });
 
+  it("ios: a failed session start marks the session left open (ADR 01115)", async function () {
+    // A client-side timeout can abort while Appium is still creating the
+    // session, so a pooled server must not be reused after it.
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {}, release: () => {} }),
+        startDriver: async () => {
+          throw new Error("Request aborted due to timeout");
+        },
+        acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        locateWda: () => null,
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(appSession.sessionLeftOpen, true);
+  });
+
   it("ios: driverOptions can turn device log capture back on (ADR 01112)", async function () {
     let caps;
     await startAppSurface({

@@ -113,6 +113,9 @@ export interface BrowserSessionRegistry {
   // also marks the browser as the context's active surface, so surface-less
   // steps route here after any browser open/focus.
   tracker?: ActiveSurfaceTracker;
+  // Set when an explicit close failed to delete its session, so the final
+  // sweep can report that a session may still be open (ADR 01115).
+  closeFailed?: boolean;
 }
 
 function createSessionRegistry(
@@ -362,7 +365,9 @@ async function closeSession(
   try {
     await entry.driver.deleteSession();
   } catch {
-    // Already dead — deregistering is the part that matters.
+    // Usually already dead — deregistering is the part that matters. Remember
+    // the failure for the final sweep: it may also still be open.
+    registry.closeFailed = true;
   }
   registry.sessions.delete(key);
   if (registry.activeName === key) {
@@ -379,7 +384,7 @@ async function closeSession(
 // registry empty so a re-entrant sweep is a no-op.
 // Resolves false when any session failed to delete (it may still be open).
 async function sweepSessions(registry: BrowserSessionRegistry): Promise<boolean> {
-  let allClosed = true;
+  let allClosed = !registry.closeFailed;
   for (const entry of registry.sessions.values()) {
     try {
       await entry.driver.deleteSession();
