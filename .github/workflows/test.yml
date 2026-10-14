@@ -61,29 +61,28 @@ jobs:
         # cells' worth of matrix time (Windows/macOS node 22).
         node:
           - 24
-        # Each cell's mocha suite is split into parallel shard jobs (two;
-        # three on Windows, below) by
-        # scripts/run-test-shard.cjs (deterministic weighted partition of
-        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the 8092/
-        # 8093 test servers per mocha process, so each shard self-provisions;
-        # the coverage-merge job unions the shards' raw-coverage artifacts, and
-        # the union equals the unsharded suite's coverage.
+        # Each cell's mocha suite runs as parallel shard jobs, split by
+        # scripts/run-test-shard.cjs (a deterministic partition of
+        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the
+        # 8092/8093 test servers per mocha process, so each shard provisions
+        # its own. The coverage-merge job unions the shards' raw-coverage
+        # artifacts, and the union equals the unsharded suite's coverage.
+        #
+        # Shard counts (`shards`, ADR 01127): 3 on windows-latest, whose
+        # mocha step ran 6-11 min per shard, the longest in the grid. At 3
+        # shards the runner packs by measured seconds and splits core-core
+        # by top-level describe. 2 everywhere else: macOS runners are a
+        # 5-slot pool shared with the iOS fixture legs, so a third job's
+        # setup costs more there than it saves.
         shard:
           - 1
           - 2
-        # `include` entries only extend existing combinations when every listed
-        # key matches one, so the node-22 cell must spell out both shards.
-        #
-        # windows-latest gets a third shard (`shards: 3`, ADR 01127): its mocha
-        # step ran 6-11 min per shard, the longest in the cell grid, and at
-        # 3 shards the runner packs by measured seconds and splits core-core
-        # by top-level describe. macOS stays at 2: its runners are a 5-slot
-        # pool shared with the iOS fixture legs, so a third job's setup costs
-        # more there than it saves.
-        #
-        # Every cell states its shard count. It can't be a base `shards: [2]`
-        # dimension: `include` can't overwrite a base value, so Windows could
-        # never say 3. The first three entries extend the base cells per OS.
+        # Every cell states its shard count. It can't be a base `shards`
+        # dimension, because `include` can't overwrite a base value, so
+        # Windows could never say 3. The first three entries extend the base
+        # cells per OS. The rest add cells (Windows shard 3, node 22), and
+        # spell out every key, since `include` only extends a combination
+        # when every listed key matches it.
         include:
           - os: ubuntu-latest
             shards: 2

@@ -9,6 +9,7 @@ const {
   listedEntries,
   selectBundles,
   selectMatrix,
+  toMatrixEntry,
   BUNDLES,
 } = require("../scripts/select-fixture-bundles.cjs");
 
@@ -22,6 +23,13 @@ const inputs = (entry) => entry.input.split(",");
 
 describe("select-fixture-bundles spec-file shards", function () {
   const shards = BUNDLES.filter((b) => b.shardOf);
+
+  it("names the missing owner when a shard points at no bundle", function () {
+    assert.throws(
+      () => toMatrixEntry({ name: "orphan", dirs: [], shardOf: "nope", specs: ["a.spec.json"] }),
+      /shard orphan: no bundle named "nope"/
+    );
+  });
 
   it("splits the recording group across two jobs", function () {
     assert.deepEqual(
