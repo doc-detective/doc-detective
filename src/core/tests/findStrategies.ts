@@ -186,8 +186,10 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
       query: `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`,
     },
     { foundBy: "elementAria", query: `aria/${string}` },
-    { foundBy: "elementId", query: `//*[@id="${string}"]` },
-    { foundBy: "elementTestId", query: `//*[@data-testid="${string}"]` },
+    // xpathLiteral leaves a quote-free string as `"…"` (the old query) and
+    // keeps a string containing `"` a valid XPath literal.
+    { foundBy: "elementId", query: `//*[@id=${xpathLiteral(string)}]` },
+    { foundBy: "elementTestId", query: `//*[@data-testid=${xpathLiteral(string)}]` },
   ];
   // elementText > elementAria > elementId > elementTestId > selector
   const precedence = [1, 2, 3, 4, 0];

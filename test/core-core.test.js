@@ -660,7 +660,8 @@ describe("Run tests successfully", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-find-shorthand-test.json");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "find-shorthand-"));
+    const tempFilePath = path.join(tempDir, "find-shorthand.spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "debug" });
@@ -683,7 +684,7 @@ describe("Run tests successfully", function () {
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
     } finally {
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 

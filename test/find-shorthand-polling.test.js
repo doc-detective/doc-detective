@@ -186,6 +186,22 @@ describe("findElementByShorthand polling (ADR 01130)", function () {
     assert.equal(res.foundBy, "elementId");
   });
 
+  it("quotes a string containing a double quote as a valid XPath literal in the id/testid lookups", async function () {
+    const queries = [];
+    const driver = {
+      $: async (query) => {
+        queries.push(query);
+        return {};
+      },
+    };
+    await findElementByShorthand({ string: 'say "hi"', timeout: 0, driver });
+    assert.ok(queries.includes(`//*[@id='say "hi"']`), queries.join("\n"));
+    assert.ok(
+      queries.includes(`//*[@data-testid='say "hi"']`),
+      queries.join("\n")
+    );
+  });
+
   it("returns immediately when every lookup rejects", async function () {
     const driver = { $: () => Promise.reject(new Error("no session")) };
     const { res, ms } = await timed(() =>

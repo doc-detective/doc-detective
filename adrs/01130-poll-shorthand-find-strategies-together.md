@@ -19,10 +19,10 @@ the five with `Promise.allSettled`, and only then applied precedence.
 
 A string almost never matches more than one strategy. So every shorthand step
 waited the full timeout (5 seconds by default) for the strategies that would
-never match, even when the element was on the page from the start. We measured
-it on a real page in Chrome: `find: "Shorthand text target"` took 5,088–5,124
-ms per step, while the object form `find: { elementText: … }` on the same
-element took 75–82 ms. The shorthand is what `detectSteps` markup generates and
+never match. It waited even when the element was on the page from the start.
+We measured it on a real page in Chrome. `find: "Shorthand text target"` took
+5,088–5,124 ms per step. The object form `find: { elementText: … }` took
+75–82 ms on the same element. The shorthand is what `detectSteps` markup generates and
 what the docs teach first, so most users pay this on most steps.
 
 ## Decision Drivers
@@ -93,9 +93,9 @@ which is unaffected. The find docs now state the rule.
 
 * [test/find-shorthand-polling.test.js](../test/find-shorthand-polling.test.js)
   uses a fake driver with wdio's `$` and `waitForExist` contract. It pins a
-  prompt return for each strategy alone, precedence on one pass, polling for a
-  late element, the edge above, a full-timeout miss that re-polls, `timeout: 0`
-  checking once, and dropping rejected lookups.
+  prompt return for each strategy alone, precedence on one pass, and polling
+  for a late element. It also pins the edge above, a full-timeout miss that
+  re-polls, `timeout: 0` checking once, and dropping rejected lookups.
 * [test/core-core.test.js](../test/core-core.test.js) pins the real-browser
   timing. A shorthand hit returns in under 4 seconds, and a miss FAILs only after
   the full 5-second timeout.
