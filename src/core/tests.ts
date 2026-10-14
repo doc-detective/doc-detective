@@ -137,6 +137,7 @@ import {
 } from "../runtime/androidInstaller.js";
 import {
   buildAcquireDeviceDeps,
+  findUia2Helpers,
   checkEmulatorAcceleration,
   hostHasKvm,
   planDeviceAcquisition,
@@ -170,7 +171,12 @@ import {
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { setAppiumHome } from "./appium.js";
+import {
+  setAppiumHome,
+  appiumHomeForDriverPath,
+  useDriversArgs,
+  browserPoolDriverPackages,
+} from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -940,8 +946,11 @@ async function androidContextPreflight({
     }
   }
 
-  const deviceDeps = buildAcquireDeviceDeps(sdk!, abi, (m: string) =>
-    clog("debug", m)
+  const deviceDeps = buildAcquireDeviceDeps(
+    sdk!,
+    abi,
+    (m: string) => clog("debug", m),
+    uia2HelpersResolver(config)
   );
 
   // Device plan: every device the test needs must resolve (reuse an existing
@@ -1858,6 +1867,12 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       // await them together so the waits OVERLAP — total ≈ max(readiness)
       // instead of the sum of serial waits.
       const readinessWaits: Promise<boolean>[] = [];
+      // Load only the desktop browser drivers (ADR 01117): the shared home
+      // also holds the mobile drivers, which roughly doubled startup.
+      const useDrivers = useDriversArgs(
+        process.env.APPIUM_HOME!,
+        browserPoolDriverPackages(process.platform)
+      );
       for (let i = 0; i < serverCount; i++) {
         let display: string | undefined;
         if (useXvfbDisplays) {
@@ -1876,7 +1891,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           config,
           display,
           undefined,
-          GECKODRIVER_EXECUTABLE_ARGS
+          [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
         );
         appiumServers.push(server);
         const wait = appiumIsReady(server.port);
@@ -2949,6 +2964,21 @@ async function warmBrowserInstall({
   };
 }
 
+// Resolves the UiAutomator2 driver's helper APKs (and its version) from
+// wherever the driver is installed, for baking into clean snapshots (ADR
+// 01108). Lazy: the warm-phase boot can start before the driver install ends.
+function uia2HelpersResolver(config: any) {
+  return () => {
+    const entry = resolveHeavyDepPath("appium-uiautomator2-driver", {
+      cacheDir: config?.cacheDir,
+    });
+    const home = entry ? appiumHomeForDriverPath(entry) : null;
+    return home
+      ? findUia2Helpers(path.join(home, "node_modules", "appium-uiautomator2-driver"))
+      : null;
+  };
+}
+
 /**
  * Light per-run Android environment probe for warm tasks: SDK + emulator
  * binary + acceleration (or a running emulator). Null means "not ready" —
@@ -2966,8 +2996,11 @@ async function resolveAndroidWarmEnv(
     const abi = hostAbi();
     const sdk = detectAndroidSdk({ cacheDir: config?.cacheDir });
     if (!sdk?.emulator) return null;
-    const deviceDeps = buildAcquireDeviceDeps(sdk, abi, (m: string) =>
-      log(config, "debug", m)
+    const deviceDeps = buildAcquireDeviceDeps(
+      sdk,
+      abi,
+      (m: string) => log(config, "debug", m),
+      uia2HelpersResolver(config)
     );
     const running = await deviceDeps.listRunning();
     const capable =
@@ -3366,7 +3399,13 @@ async function prefetchMobileChromedriver({
         ANDROID_HOME: env.sdkRoot,
         ANDROID_SDK_ROOT: env.sdkRoot,
       },
-      CHROMEDRIVER_AUTODOWNLOAD_ARGS
+      [
+        ...CHROMEDRIVER_AUTODOWNLOAD_ARGS,
+        // Load only UiAutomator2 (ADR 01117).
+        ...useDriversArgs(pre.appiumHome, [
+          APP_DRIVER_PLATFORMS.android.driverPackage,
+        ]),
+      ]
     );
     driver = await startDriver(
       buildMobileBrowserCapabilities({
@@ -4284,8 +4323,16 @@ async function runContext({
       // Chromedriver autodownload is an Appium insecure feature; opt in
       // scoped to the uiautomator2 driver on this run-owned server so it can
       // fetch the chromedriver matching the device's Chrome.
-      const extraArgs =
-        mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : [];
+      const extraArgs = [
+        ...(mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : []),
+        // Load only the device's driver (ADR 01117).
+        ...useDriversArgs(appSession!.appiumHome!, [
+          (mobileTarget === "android"
+            ? APP_DRIVER_PLATFORMS.android
+            : APP_DRIVER_PLATFORMS.ios
+          ).driverPackage,
+        ]),
+      ];
       // Server start + device boot are environment work: any failure there
       // (port pressure, an emulator that can't finish booting on this host,
       // simctl trouble) is a gating SKIP with the reason named — never a
@@ -5674,21 +5721,32 @@ async function runStep({
                 /* best-effort */
               }
             }
+            // Load only this platform's app driver (ADR 01117).
+            const driverPackage = context?.platform
+              ? APP_DRIVER_PLATFORMS[context.platform]?.driverPackage
+              : undefined;
+            const extraArgs = driverPackage
+              ? useDriversArgs(appiumHome, [driverPackage])
+              : [];
             const start = async () => {
               const server = await startAppiumServer(
                 appiumEntry,
                 config,
                 undefined,
-                env
+                env,
+                extraArgs
               );
               return { port: server.port, process: server.process };
             };
             // iOS contexts share the run's pooled server for this exact launch
-            // environment (ADR 01115); teardown releases it via `release`.
+            // environment and argument list (ADR 01115); teardown releases it
+            // via `release`. Deliberately a different key from the mobile-web
+            // site: app servers also carry the ffmpeg PATH, so the two never
+            // share a server.
             const pool = appSession?.appServerPool;
-            // Deliberately a different key from the mobile-web site: app servers
-            // also carry the ffmpeg PATH, so the two never share a server.
-            if (pool) return pool.acquire(JSON.stringify({ appiumEntry, env }), start);
+            if (pool) {
+              return pool.acquire(JSON.stringify({ appiumEntry, env, extraArgs }), start);
+            }
             return start();
           },
           startDriver: (capabilities: any, port: number) =>
@@ -6288,7 +6346,18 @@ async function getRunner(options: any = {}) {
   }
   const appium = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+    [
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(appiumPort),
+      // Load only the desktop browser drivers (ADR 01117).
+      ...useDriversArgs(
+        process.env.APPIUM_HOME!,
+        browserPoolDriverPackages(process.platform)
+      ),
+    ],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),

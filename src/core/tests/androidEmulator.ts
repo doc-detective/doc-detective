@@ -19,6 +19,8 @@ import {
   CLEAN_SNAPSHOT_NAME,
   hasCleanSnapshot,
   discardCleanSnapshot,
+  readCleanSnapshotMeta,
+  writeCleanSnapshotMeta,
 } from "../../runtime/androidInstaller.js";
 import type { AndroidSdk } from "../../runtime/androidSdk.js";
 import { normalizeDeviceDescriptor } from "./mobileDevice.js";
@@ -45,6 +47,10 @@ export {
   checkEmulatorAcceleration,
   hostHasKvm,
   bootWithCleanSnapshot,
+  isCleanSnapshotStale,
+  findUia2Helpers,
+  bakeHelpersWith,
+  bestEffort,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -102,6 +108,88 @@ function parseAccelCheck({
 }): boolean {
   if (code !== 0) return false;
   return !/not installed|not usable|is not/i.test(text);
+}
+
+// --- Appium helpers baked into the clean snapshot (ADR 01108) ---
+
+// The UiAutomator2 driver version and the helper APKs it installs on a device
+// (the io.appium.settings helper and the UiAutomator2 server + test APKs),
+// found beside the driver package (nested or hoisted node_modules). Null when
+// the driver or its APKs aren't there.
+function findUia2Helpers(
+  driverRoot: string
+): { driverVersion: string; apks: string[] } | null {
+  let driverVersion: string | undefined;
+  try {
+    driverVersion = JSON.parse(
+      fs.readFileSync(path.join(driverRoot, "package.json"), "utf8")
+    ).version;
+  } catch {
+    return null;
+  }
+  const apks: string[] = [];
+  for (const pkg of ["io.appium.settings", "appium-uiautomator2-server"]) {
+    const before = apks.length;
+    for (const nodeModules of [path.join(driverRoot, "node_modules"), path.dirname(driverRoot)]) {
+      const dir = path.join(nodeModules, pkg, "apks");
+      let files: string[];
+      try {
+        files = fs.readdirSync(dir);
+      } catch {
+        continue;
+      }
+      apks.push(...files.filter((f) => f.endsWith(".apk")).map((f) => path.join(dir, f)));
+      break;
+    }
+    // Both packages or nothing: a partial set would be stamped as a complete
+    // bake and keep a stale server on the snapshot.
+    if (apks.length === before) return null;
+  }
+  return driverVersion ? { driverVersion, apks } : null;
+}
+
+// Install every helper APK on the device (`adb install -r -g`). Returns the
+// driver version they were baked for only once ALL succeed; a failed install
+// throws, so the snapshot never records a version its helpers don't match.
+async function bakeHelpersWith(
+  run: (args: string[]) => Promise<{ stdout: string }>,
+  udid: string,
+  found: { driverVersion: string; apks: string[] }
+): Promise<string> {
+  for (const apk of found.apks) {
+    const { stdout } = await run(["-s", udid, "install", "-r", "-g", apk]);
+    if (!/Success/.test(stdout)) {
+      throw new Error(`adb install ${path.basename(apk)}: ${stdout.trim()}`);
+    }
+  }
+  return found.driverVersion;
+}
+
+// Snapshot housekeeping must never abort a boot, but a silent failure leaves
+// slow boots unexplained — so log it. Returns whether the step succeeded.
+async function bestEffort(
+  step: () => unknown,
+  log: ((message: string) => void) | undefined,
+  what: string
+): Promise<boolean> {
+  try {
+    await step();
+    return true;
+  } catch (error: any) {
+    log?.(`Couldn't ${what}: ${error?.message ?? error}`);
+    return false;
+  }
+}
+
+// A clean snapshot built for another driver version holds stale helpers (an
+// old UiAutomator2 server Appium won't replace), so it must be retaken. With
+// no known driver version there's nothing to compare — keep the snapshot.
+function isCleanSnapshotStale(
+  meta: { driverVersion?: string } | null,
+  driverVersion: string | undefined
+): boolean {
+  if (!driverVersion) return false;
+  return meta?.driverVersion !== driverVersion;
 }
 
 // The adb commands that save the clean snapshot. Delete it through the
@@ -436,12 +524,15 @@ async function bootWithCleanSnapshot<T extends { outcome: BootOutcome }>({
   attempt,
   discard,
   settle,
+  prepare,
   save,
 }: {
   hasSnapshot: boolean;
   attempt: (opts: { snapshot: boolean }) => Promise<T>;
   discard: () => Promise<void>;
   settle: () => Promise<void>;
+  // Bake Appium's helpers into the device before the save (ADR 01108).
+  prepare: () => Promise<void>;
   save: () => Promise<void>;
 }): Promise<T> {
   if (hasSnapshot) {
@@ -459,6 +550,11 @@ async function bootWithCleanSnapshot<T extends { outcome: BootOutcome }>({
       await settle();
     } catch {
       /* best-effort: snapshot the unsettled device */
+    }
+    try {
+      await prepare();
+    } catch {
+      /* best-effort: without baked helpers Appium installs them per session */
     }
     try {
       await save();
@@ -849,12 +945,30 @@ async function realBootEmulator(
   port: number,
   env: NodeJS.ProcessEnv,
   timeout = 180000,
-  log?: (message: string) => void
+  log?: (message: string) => void,
+  // Lazy: in the warm phase the driver may still be installing at boot start.
+  helpers?: () => { driverVersion: string; apks: string[] } | null
 ): Promise<{ udid: string; process: any }> {
   const udid = udidForPort(port);
   const avdHome = env.ANDROID_AVD_HOME ?? androidAvdHome();
+  const name = String(desc.name);
+  let hasSnapshot = hasCleanSnapshot(name, { avdHome });
+  if (
+    hasSnapshot &&
+    isCleanSnapshotStale(readCleanSnapshotMeta(name, { avdHome }), helpers?.()?.driverVersion)
+  ) {
+    log?.(`The clean snapshot of "${name}" predates the current Appium driver; retaking it.`);
+    // Cold-boot either way; the retake's save replaces whatever is left.
+    await bestEffort(
+      () => discardCleanSnapshot(name, { avdHome }),
+      log,
+      `discard the stale clean snapshot of "${name}"`
+    );
+    hasSnapshot = false;
+  }
+  let bakedVersion: string | undefined;
   const result = await bootWithCleanSnapshot({
-    hasSnapshot: hasCleanSnapshot(String(desc.name), { avdHome }),
+    hasSnapshot,
     attempt: ({ snapshot }) => {
       log?.(
         snapshot
@@ -881,15 +995,45 @@ async function realBootEmulator(
     settle: async () => {
       await runTool(adbPath, ["-s", udid, "shell", "am", "wait-for-broadcast-idle"], 60000);
     },
+    // Fresh, intact copies of the driver's helper APKs, so every resume has
+    // them at the driver's version (Appium can't upgrade an installed server
+    // without aapt2, and past hard kills left some corrupted).
+    prepare: async () => {
+      const found = helpers?.();
+      if (!found) return;
+      // Set only after every install succeeds (bakeHelpersWith throws first).
+      // A failed bake still saves the snapshot; Appium then installs the
+      // helpers per session, as before ADR 01108.
+      await bestEffort(
+        async () => {
+          bakedVersion = await bakeHelpersWith(
+            (args) => runTool(adbPath, args, 120000),
+            udid,
+            found
+          );
+        },
+        log,
+        `bake Appium's helpers into the clean snapshot of "${desc.name}"`
+      );
+    },
     save: async () => {
       // Best-effort: an unconfirmed save leaves no snapshot, so the next boot
-      // is cold again and retakes it. Say so, or slow boots look unexplained.
+      // is cold again and retakes it. Say so, or slow boots look unexplained —
+      // and write no metadata for a snapshot that wasn't taken.
       const saved = await saveCleanSnapshotWith(
         (args) => runTool(adbPath, args, 120000),
         udid
       );
       if (!saved) {
         log?.(`Couldn't save the clean snapshot of "${desc.name}"; its next boot will be cold.`);
+      } else if (bakedVersion) {
+        // Without it the next boot sees no driver version and retakes the
+        // snapshot, so say why that happened.
+        await bestEffort(
+          () => writeCleanSnapshotMeta(name, { driverVersion: bakedVersion }, { avdHome }),
+          log,
+          `record the clean snapshot's driver version for "${desc.name}"`
+        );
       }
     },
   });
@@ -934,7 +1078,12 @@ async function shutdownEmulator(entry: DeviceEntry): Promise<void> {
 
 // Assemble the injected effect bundle for acquireDevice from a detected SDK.
 // The runContext wiring calls this; unit tests pass their own bundle instead.
-function buildAcquireDeviceDeps(sdk: AndroidSdk, abi: string, log?: (m: string) => void) {
+function buildAcquireDeviceDeps(
+  sdk: AndroidSdk,
+  abi: string,
+  log?: (m: string) => void,
+  helpers?: () => { driverVersion: string; apks: string[] } | null
+) {
   const adb = sdk.adb ?? "adb";
   const emulator = sdk.emulator ?? "emulator";
   const avdmanager = sdk.avdmanager ?? "avdmanager";
@@ -962,7 +1111,7 @@ function buildAcquireDeviceDeps(sdk: AndroidSdk, abi: string, log?: (m: string) 
     createAvd: (a: { name: string; systemImage: string; device: string }) =>
       realCreateAvd(avdmanager, a, env),
     boot: (desc: DeviceDescriptor, port: number) =>
-      realBootEmulator(emulator, adb, desc, port, env, undefined, log),
+      realBootEmulator(emulator, adb, desc, port, env, undefined, log, helpers),
     log,
   };
 }

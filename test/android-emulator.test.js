@@ -18,6 +18,10 @@ import {
   teardownDeviceRegistry,
   hostHasKvm,
   bootWithCleanSnapshot,
+  isCleanSnapshotStale,
+  findUia2Helpers,
+  bakeHelpersWith,
+  bestEffort,
   cleanSnapshotSaveCommands,
   saveCleanSnapshotWith,
   CLEAN_SNAPSHOT_NAME,
@@ -362,6 +366,9 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
       settle: async () => {
         calls.push("settle");
       },
+      prepare: async () => {
+        calls.push("prepare");
+      },
       discard: async () => {
         calls.push("discard");
       },
@@ -382,7 +389,7 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     const f = fakes([{ outcome: "booted", id: 1 }]);
     const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
     expect(r.outcome).to.equal("booted");
-    expect(f.calls).to.deep.equal(["cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["cold", "settle", "prepare", "save"]);
   });
 
   it("discards an unloadable snapshot, then retries cold and retakes it", async function () {
@@ -392,7 +399,7 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     ]);
     const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
     expect(r).to.deep.equal({ outcome: "booted", id: 2 });
-    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "prepare", "save"]);
   });
 
   it("treats a resume that never finishes booting as a bad snapshot (self-healing)", async function () {
@@ -404,7 +411,7 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     ]);
     const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
     expect(r).to.deep.equal({ outcome: "booted", id: 2 });
-    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "prepare", "save"]);
   });
 
   it("still boots cold when discarding the bad snapshot fails", async function () {
@@ -418,7 +425,7 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     };
     const r = await bootWithCleanSnapshot({ hasSnapshot: true, ...f });
     expect(r.outcome).to.equal("booted");
-    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["snapshot", "discard", "cold", "settle", "prepare", "save"]);
   });
 
   it("returns a failed cold boot as-is, without saving", async function () {
@@ -436,7 +443,7 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     };
     const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
     expect(r.outcome).to.equal("booted");
-    expect(f.calls).to.deep.equal(["cold", "settle", "save"]);
+    expect(f.calls).to.deep.equal(["cold", "settle", "prepare", "save"]);
   });
 
   it("keeps a booted device when the best-effort save fails", async function () {
@@ -446,6 +453,143 @@ describe("androidEmulator: bootWithCleanSnapshot (ADR 01106)", function () {
     };
     const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
     expect(r.outcome).to.equal("booted");
+  });
+
+  it("still saves the snapshot when preparing it (installing Appium's helpers) fails", async function () {
+    // Without baked helpers Appium installs them per session, as before.
+    const f = fakes([{ outcome: "booted", id: 1 }]);
+    f.prepare = async () => {
+      f.calls.push("prepare");
+      throw new Error("adb install failed");
+    };
+    const r = await bootWithCleanSnapshot({ hasSnapshot: false, ...f });
+    expect(r.outcome).to.equal("booted");
+    expect(f.calls).to.deep.equal(["cold", "settle", "prepare", "save"]);
+  });
+});
+
+describe("androidEmulator: bestEffort", function () {
+  // Snapshot housekeeping (discarding a stale snapshot, baking helpers,
+  // recording metadata) must never abort a boot, but its failures must be
+  // visible: a silent one leaves slow boots unexplained.
+  it("logs a failing step instead of throwing, and reports it failed", async function () {
+    const logs = [];
+    const ok = await bestEffort(
+      () => {
+        throw new Error("EPERM");
+      },
+      (m) => logs.push(m),
+      "discard the stale snapshot"
+    );
+    expect(ok).to.equal(false);
+    expect(logs).to.deep.equal(["Couldn't discard the stale snapshot: EPERM"]);
+  });
+
+  it("awaits a passing step, logs nothing, and reports it succeeded", async function () {
+    const logs = [];
+    let ran = false;
+    const ok = await bestEffort(
+      async () => {
+        ran = true;
+      },
+      (m) => logs.push(m),
+      "x"
+    );
+    expect([ok, ran, logs]).to.deep.equal([true, true, []]);
+  });
+});
+
+describe("androidEmulator: bakeHelpersWith (ADR 01108)", function () {
+  const found = { driverVersion: "8.7.0", apks: ["/a/settings.apk", "/a/server.apk"] };
+
+  it("installs every helper APK and returns the driver version they were baked for", async function () {
+    const installed = [];
+    const version = await bakeHelpersWith(async (args) => {
+      installed.push(args[args.length - 1]);
+      return { stdout: "Performing Streamed Install\nSuccess\n" };
+    }, "emulator-5554", found);
+    expect(version).to.equal("8.7.0");
+    expect(installed).to.deep.equal(found.apks);
+  });
+
+  it("throws on a failed install, so no driver version gets recorded for the snapshot", async function () {
+    let threw = false;
+    try {
+      await bakeHelpersWith(async (args) => ({
+        stdout: args[args.length - 1].endsWith("server.apk") ? "Failure [INSTALL_FAILED_INSUFFICIENT_STORAGE]" : "Success",
+      }), "emulator-5554", found);
+    } catch (error) {
+      threw = /server\.apk/.test(error.message);
+    }
+    expect(threw).to.equal(true);
+  });
+});
+
+describe("androidEmulator: isCleanSnapshotStale (ADR 01108)", function () {
+  it("is stale when it was built for another driver version, or records none", function () {
+    expect(isCleanSnapshotStale({ driverVersion: "8.6.0" }, "8.7.0")).to.equal(true);
+    expect(isCleanSnapshotStale(null, "8.7.0")).to.equal(true);
+  });
+
+  it("is current when the driver versions match", function () {
+    expect(isCleanSnapshotStale({ driverVersion: "8.7.0" }, "8.7.0")).to.equal(false);
+  });
+
+  it("is never stale when the driver version is unknown (don't churn snapshots)", function () {
+    expect(isCleanSnapshotStale({ driverVersion: "8.6.0" }, undefined)).to.equal(false);
+    expect(isCleanSnapshotStale(null, undefined)).to.equal(false);
+  });
+});
+
+describe("androidEmulator: findUia2Helpers (ADR 01108)", function () {
+  let root;
+  beforeEach(function () {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "dd-uia2-helpers-"));
+  });
+  afterEach(function () {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  const write = (p, content = "x") => {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, content);
+  };
+
+  it("finds the driver version, the settings helper, and the server APKs (nested layout)", function () {
+    const driver = path.join(root, "node_modules", "appium-uiautomator2-driver");
+    write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
+    const settings = path.join(driver, "node_modules", "io.appium.settings", "apks", "settings_apk-debug.apk");
+    const server = path.join(driver, "node_modules", "appium-uiautomator2-server", "apks", "appium-uiautomator2-server-v10.6.6.apk");
+    const serverTest = path.join(driver, "node_modules", "appium-uiautomator2-server", "apks", "appium-uiautomator2-server-debug-androidTest.apk");
+    for (const p of [settings, server, serverTest]) write(p);
+    const found = findUia2Helpers(driver);
+    expect(found.driverVersion).to.equal("8.7.0");
+    expect(found.apks.slice().sort()).to.deep.equal([server, serverTest, settings].sort());
+  });
+
+  it("finds hoisted helper packages next to the driver", function () {
+    const nm = path.join(root, "node_modules");
+    const driver = path.join(nm, "appium-uiautomator2-driver");
+    write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
+    const settings = path.join(nm, "io.appium.settings", "apks", "settings_apk-debug.apk");
+    const server = path.join(nm, "appium-uiautomator2-server", "apks", "appium-uiautomator2-server-v10.6.6.apk");
+    for (const p of [settings, server]) write(p);
+    expect(findUia2Helpers(driver).apks.slice().sort()).to.deep.equal([server, settings].sort());
+  });
+
+  it("returns null when the driver isn't there or has no helper APKs", function () {
+    expect(findUia2Helpers(path.join(root, "missing"))).to.equal(null);
+    const driver = path.join(root, "node_modules", "appium-uiautomator2-driver");
+    write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
+    expect(findUia2Helpers(driver)).to.equal(null);
+  });
+
+  it("returns null when either helper package has no APKs, so a partial set is never stamped as baked", function () {
+    // Baking only the settings helper would record the driver version while
+    // the stale UiAutomator2 server stayed on the snapshot.
+    const driver = path.join(root, "node_modules", "appium-uiautomator2-driver");
+    write(path.join(driver, "package.json"), JSON.stringify({ name: "appium-uiautomator2-driver", version: "8.7.0" }));
+    write(path.join(driver, "node_modules", "io.appium.settings", "apks", "settings_apk-debug.apk"));
+    expect(findUia2Helpers(driver)).to.equal(null);
   });
 });
 
