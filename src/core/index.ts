@@ -3,22 +3,33 @@ import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
 import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice } from "./telemLite.js";
+import { telemetryNotice, prewarmTelemetry, abortTelemetryWarmup } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
-// telem.js carries posthog-node (~95 modules), so it loads on the first send
-// instead of at startup. A run with telemetry.send === false never loads it.
+// telem.js carries posthog-node (~95 modules), so it loads when a run starts
+// (in the background) rather than at startup. A run with telemetry.send ===
+// false never loads it.
 let telemModule: Promise<typeof import("./telem.js")> | undefined;
+
+function loadTelemetry() {
+  if (!telemModule) {
+    telemModule = import("./telem.js");
+    // Loaded ahead of use; a failure surfaces at the send that awaits it.
+    telemModule.catch(() => {});
+  }
+  return telemModule;
+}
 
 async function sendTelemetry(config: any, command: string, results: any) {
   if (config?.telemetry?.send === false) return;
-  (await (telemModule ??= import("./telem.js"))).sendTelemetry(config, command, results);
+  (await loadTelemetry()).sendTelemetry(config, command, results);
 }
 
 async function awaitTelemetryFlush(): Promise<void> {
   if (telemModule) await (await telemModule).awaitTelemetryFlush();
+  abortTelemetryWarmup();
 }
 
 const supportMessage = `
@@ -85,6 +96,13 @@ async function runTests(config: any, options: any = {}) {
     if (resolvedTests) resolvedTests.config = config;
   } else {
     telemetryNotice(config);
+  }
+
+  // Load the telemetry client and warm its connection while the run works, so
+  // the end-of-run send doesn't pay for either (ADR 01132).
+  if (config?.telemetry?.send !== false) {
+    prewarmTelemetry(config);
+    loadTelemetry();
   }
 
   if (!resolvedTests) {

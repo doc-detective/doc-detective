@@ -1,7 +1,7 @@
 import os from "node:os";
 import { PostHog } from "posthog-node";
 import { createRequire } from "node:module";
-import { telemetryNotice } from "./telemLite.js";
+import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
 
 const require = createRequire(import.meta.url);
 
@@ -87,7 +87,7 @@ function sendTelemetry(config: any, command: string, results: any) {
   // Send telemetry
   const client = new PostHog(
     "phc_rjV0MH3nsAd45zFISLgaKAdAXbgDeXt2mOBV2EBHomB",
-    { host: "https://app.posthog.com" }
+    { host: POSTHOG_HOST, fetch: telemetryFetch }
   );
   client.capture(event);
   // Kick off the flush NOW (as soon as results are final) but DON'T await it
