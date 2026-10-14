@@ -985,6 +985,40 @@ export function hasCleanSnapshot(
   return fs.existsSync(path.join(cleanSnapshotDir(avdHome, name), "snapshot.pb"));
 }
 
+// What a clean snapshot was built for (ADR 01108), kept beside it so a
+// snapshot whose baked-in Appium helpers no longer match the driver is retaken.
+export interface CleanSnapshotMeta {
+  driverVersion?: string;
+}
+
+const CLEAN_SNAPSHOT_META = "doc-detective.json";
+
+/** The clean snapshot's metadata, or null when absent or unreadable. */
+export function readCleanSnapshotMeta(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): CleanSnapshotMeta | null {
+  try {
+    const parsed = JSON.parse(
+      fs.readFileSync(path.join(cleanSnapshotDir(avdHome, name), CLEAN_SNAPSHOT_META), "utf8")
+    );
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCleanSnapshotMeta(
+  name: string,
+  meta: CleanSnapshotMeta,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): void {
+  fs.writeFileSync(
+    path.join(cleanSnapshotDir(avdHome, name), CLEAN_SNAPSHOT_META),
+    JSON.stringify(meta)
+  );
+}
+
 /** Delete one AVD's clean snapshot (a bad one the boot couldn't resume). */
 export function discardCleanSnapshot(
   name: string,
