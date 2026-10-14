@@ -5,7 +5,64 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-export { runCode };
+export { runCode, pathNodeIsCurrentNode };
+
+// Whether the `node` that `spawnCommand("node", ...)` would run (via cmd.exe
+// or /bin/sh, with this process's env) is the Node running Doc Detective. If
+// so, its `--version` probe can only succeed, so runCode skips that spawn.
+// Mirrors the shells' lookup: cmd.exe tries the current directory first, then
+// each PATH entry (quotes stripped) with each PATHEXT extension; sh tries each
+// PATH entry, an empty one meaning the current directory, and needs the
+// execute bit. Anything else, or any error, answers false: probe as before.
+function pathNodeIsCurrentNode(
+  deps: {
+    env?: Record<string, string | undefined>;
+    platform?: string;
+    cwd?: string;
+    execPath?: string;
+    isFile?: (p: string) => boolean;
+    realpath?: (p: string) => string;
+  } = {}
+): boolean {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  const cwd = deps.cwd ?? process.cwd();
+  const win = platform === "win32";
+  const p = win ? path.win32 : path.posix;
+  const isFile =
+    deps.isFile ??
+    ((f: string) => {
+      try {
+        if (!fs.statSync(f).isFile()) return false;
+        if (!win) fs.accessSync(f, fs.constants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  const realpath = deps.realpath ?? ((f: string) => fs.realpathSync.native(f));
+  const entries = (env.PATH ?? env.Path ?? "").split(p.delimiter);
+  const dirs = win
+    ? [cwd, ...entries.map((d) => d.replace(/"/g, "")).filter(Boolean)]
+    : entries.map((d) => d || cwd);
+  const exts = win
+    ? (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)
+    : [""];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const candidate = p.join(dir, `node${ext}`);
+      if (!isFile(candidate)) continue;
+      try {
+        const found = realpath(candidate);
+        const current = realpath(deps.execPath ?? process.execPath);
+        return win ? found.toLowerCase() === current.toLowerCase() : found === current;
+      } catch {
+        return false;
+      }
+    }
+  }
+  return false;
+}
 
 // Create a temporary script file
 function createTempScript(code: string, language: string) {
@@ -160,7 +217,11 @@ async function runCode({
         command = `"${command}"`;
       }
     }
-    // Make sure the command is available
+    // Make sure the command is available. A bare `node` that resolves to the
+    // running Node needs no probe: it's this process's own binary.
+    if (!commandPreverified && command === "node" && pathNodeIsCurrentNode()) {
+      commandPreverified = true;
+    }
     if (!commandPreverified) {
       const commandExists = await spawnCommand(command, ["--version"]);
       if (commandExists.exitCode !== 0) {
