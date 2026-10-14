@@ -127,10 +127,10 @@ function planShard(files, shardIndex, totalShards) {
   const weightOf = (u) => pieces.get(u)?.seconds ?? SECONDS[u] ?? 2;
   const mine = partition(units, totalShards, weightOf)[shardIndex - 1];
   const whole = mine.filter((u) => !pieces.has(u));
-  const runs = whole.length > 0 ? [{ files: whole, args: [] }] : [];
+  const runs = [{ files: whole, args: [] }];
   for (const u of mine.filter((u) => pieces.has(u)))
     runs.push({ files: [pieces.get(u).file], args: pieces.get(u).args });
-  return runs;
+  return runs.filter((r) => r.files.length > 0);
 }
 
 /**
