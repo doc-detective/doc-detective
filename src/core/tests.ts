@@ -168,7 +168,12 @@ import {
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { setAppiumHome, appiumHomeForDriverPath } from "./appium.js";
+import {
+  setAppiumHome,
+  appiumHomeForDriverPath,
+  useDriversArgs,
+  browserPoolDriverPackages,
+} from "./appium.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -1872,12 +1877,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         // chrome-authored context to Firefox mid-run, so gating the flag on the
         // run's authored browsers would leave the capability illegal exactly
         // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+        // Load only the desktop browser drivers (ADR 01117): the shared home
+        // also holds the mobile drivers, which roughly doubled startup.
         const server = await spawnAppiumServer(
           appiumEntry,
           config,
           display,
           undefined,
-          GECKODRIVER_EXECUTABLE_ARGS
+          [
+            ...GECKODRIVER_EXECUTABLE_ARGS,
+            ...useDriversArgs(
+              process.env.APPIUM_HOME!,
+              browserPoolDriverPackages(process.platform)
+            ),
+          ]
         );
         appiumServers.push(server);
         const wait = appiumIsReady(server.port);
@@ -3360,7 +3373,13 @@ async function prefetchMobileChromedriver({
         ANDROID_HOME: env.sdkRoot,
         ANDROID_SDK_ROOT: env.sdkRoot,
       },
-      CHROMEDRIVER_AUTODOWNLOAD_ARGS
+      [
+        ...CHROMEDRIVER_AUTODOWNLOAD_ARGS,
+        // Load only UiAutomator2 (ADR 01117).
+        ...useDriversArgs(pre.appiumHome, [
+          APP_DRIVER_PLATFORMS.android.driverPackage,
+        ]),
+      ]
     );
     driver = await startDriver(
       buildMobileBrowserCapabilities({
@@ -4275,8 +4294,16 @@ async function runContext({
       // Chromedriver autodownload is an Appium insecure feature; opt in
       // scoped to the uiautomator2 driver on this run-owned server so it can
       // fetch the chromedriver matching the device's Chrome.
-      const extraArgs =
-        mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : [];
+      const extraArgs = [
+        ...(mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : []),
+        // Load only the device's driver (ADR 01117).
+        ...useDriversArgs(appSession!.appiumHome!, [
+          (mobileTarget === "android"
+            ? APP_DRIVER_PLATFORMS.android
+            : APP_DRIVER_PLATFORMS.ios
+          ).driverPackage,
+        ]),
+      ];
       // Server start + device boot are environment work: any failure there
       // (port pressure, an emulator that can't finish booting on this host,
       // simctl trouble) is a gating SKIP with the reason named — never a
@@ -5639,11 +5666,15 @@ async function runStep({
                 /* best-effort */
               }
             }
+            // Load only this platform's app driver (ADR 01117).
+            const driverPackage =
+              APP_DRIVER_PLATFORMS[context?.platform]?.driverPackage;
             const server = await startAppiumServer(
               appiumEntry,
               config,
               undefined,
-              env
+              env,
+              driverPackage ? useDriversArgs(appiumHome, [driverPackage]) : []
             );
             return { port: server.port, process: server.process };
           },
