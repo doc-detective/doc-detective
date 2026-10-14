@@ -109,6 +109,20 @@ describe("telemetry warm-up", function () {
     assert.equal((await send).status, 200);
   });
 
+  // A warm-up whose request ignores the abort (never settles) must not stall a
+  // later send once it has been cancelled.
+  it("after abortTelemetryWarmup, a send doesn't wait on the cancelled warm-up", async function () {
+    fetchStub.callsFake((url, init) =>
+      init?.method === "OPTIONS" ? new Promise(() => {}) : Promise.resolve(okResponse())
+    );
+    prewarmTelemetry({});
+    abortTelemetryWarmup();
+    const send = telemetryFetch(`${POSTHOG_HOST}/batch/`, { method: "POST" });
+    await new Promise((r) => setImmediate(r));
+    assert.equal(fetchStub.callCount, 2, "send is still waiting on the aborted warm-up");
+    assert.equal((await send).status, 200);
+  });
+
   it("swallows a failed warm-up (telemetry never fails a run)", async function () {
     fetchStub.callsFake(async () => {
       throw new Error("offline");
@@ -182,6 +196,26 @@ describe("telemetry warm-up", function () {
         setTelemetryLoader();
         process.off("unhandledRejection", onUnhandled);
       }
+    });
+
+    // A dry run returns early, and programmatic callers may never call
+    // awaitTelemetryFlush, so it must not leave a warm-up in flight.
+    it("a dry run starts no warm-up", async function () {
+      const spec = path.join(tmp, "shell.spec.json");
+      fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }));
+      const log = sinon.stub(console, "log"); // dry run prints the resolved tests
+      try {
+        await runTests({
+          input: [spec],
+          output: path.join(tmp, "out"),
+          dryRun: true,
+          telemetry: { send: true },
+        });
+      } finally {
+        log.restore();
+      }
+      const warmups = fetchStub.getCalls().filter((c) => c.args[1]?.method === "OPTIONS");
+      assert.equal(warmups.length, 0);
     });
 
     it("makes no PostHog request at all with telemetry.send false", async function () {

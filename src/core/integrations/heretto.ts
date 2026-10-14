@@ -1012,8 +1012,8 @@ import AdmZip from "adm-zip";
 
 // axios loads on first client creation, not at CLI startup. The factories below
 // are synchronous, so this is a lazy require rather than a dynamic import.
-const requireAxios = (): typeof import("axios").default =>
-  createRequire(import.meta.url)("axios");
+const requireFromHere = createRequire(import.meta.url);
+const requireAxios = (): typeof import("axios").default => requireFromHere("axios");
 
 // Constants
 const POLLING_INTERVAL_MS = 5000;

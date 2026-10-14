@@ -13,9 +13,9 @@ let warmupSettled: Promise<void> = Promise.resolve();
 // end-of-run flush reuses it and costs one round trip instead of DNS + TCP +
 // TLS + request (ADR 01132). OPTIONS rather than HEAD: PostHog answers HEAD
 // with `Connection: close`, which would throw the warm socket away. Sends no
-// event. ponytail: Node's fetch drops an idle socket after 4 s, so a run that
+// event. Caveat: Node's fetch drops an idle socket after 4 s, so a run that
 // outlasts that pays the cold handshake as before; a custom dispatcher with a
-// longer keep-alive is the upgrade path.
+// longer keep-alive would lift that limit.
 export function prewarmTelemetry(config: any) {
   if (config?.telemetry?.send === false) return;
   // One warm-up at a time: a back-to-back or concurrent runTests call cancels
@@ -45,10 +45,12 @@ export async function telemetryFetch(url: string, init?: any): Promise<any> {
 }
 
 // Cancel a warm-up that's still in flight so it can't hold the process open
-// after a run that ended without sending anything.
+// after a run that ended without sending anything. A later send goes out
+// immediately rather than waiting on the cancelled request.
 export function abortTelemetryWarmup() {
   warmup?.abort();
   warmup = undefined;
+  warmupSettled = Promise.resolve();
 }
 
 // The notice text is documented verbatim in docs/fern/pages/legal/telemetry.mdx

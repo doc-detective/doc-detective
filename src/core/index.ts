@@ -82,8 +82,10 @@ async function runTests(config: any, options: any = {}) {
 
   // Load the telemetry client and warm its connection while the run works, so
   // the end-of-run send doesn't pay for either (ADR 01132).
+  // A dry run skips the warm-up: it returns early, and a programmatic caller
+  // may never call awaitTelemetryFlush to cancel one left in flight.
   if (config?.telemetry?.send !== false) {
-    prewarmTelemetry(config);
+    if (!config.dryRun) prewarmTelemetry(config);
     loadTelemetry();
   }
 
