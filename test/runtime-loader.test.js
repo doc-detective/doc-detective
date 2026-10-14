@@ -925,10 +925,10 @@ describe("runtime/loader", function () {
       // the evaluation lands afterwards.
       expect(() => prefetchHeavyDep("dd-prefetch-flag", { cacheDir: tmpRoot })).to.not.throw();
       await waitFor(() => globalThis.__ddPrefetchFlag === 1);
-      expect(globalThis.__ddPrefetchFlag).to.equal(1);
+      expect(globalThis.__ddPrefetchFlag, "prefetch evaluation did not land in 200 ticks").to.equal(1);
       // The later real load shares the module-map entry: no second evaluation.
       await loadHeavyDep("dd-prefetch-flag", { ctx: { cacheDir: tmpRoot }, autoInstall: false });
-      expect(globalThis.__ddPrefetchFlag).to.equal(1);
+      expect(globalThis.__ddPrefetchFlag, "the later load re-evaluated the prefetched module").to.equal(1);
       delete globalThis.__ddPrefetchFlag;
     });
 
