@@ -25,6 +25,12 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   Second, the core fixture pass ("All core specs pass under concurrentRunners=2") still passes.
   Third, if unsure, run `git stash push -- src test`, `npm run compile`, and re-run one failing
   test. It fails identically on base.
+- **Firefox-pinned tests fail locally with `firefox unavailable; ran on chrome`.** Check the log
+  for `Process unexpectedly closed with status 0` and list `<cacheDir>/browsers/firefox/`. More
+  than one build there used to mean the runner launched the oldest one, even after repair
+  ([ADR 01118](../adrs/01118-detect-the-recorded-browser-build.md)). It now launches the build
+  `installed.json` records. If that build itself won't start, run
+  `doc-detective install browsers firefox --force`.
 - **Don't trust a browser-engine recording failure seen while another run was live.** Two
   doc-detective processes can run on one machine. That's the CLI while `npm test` runs, or parallel
   worktree sessions. They used to share the Chrome capture title and the download path whenever
