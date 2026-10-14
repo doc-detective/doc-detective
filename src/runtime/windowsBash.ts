@@ -7,9 +7,10 @@
 // Git Bash. Resolution order:
 //
 //   1. The cache copy: `<cacheDir>/tools/git-bash/<version>/usr/bin/bash.exe`.
-//   2. An existing Git for Windows install (`where.exe git` + well-known
-//      install locations). System32-rooted candidates are filtered — that's
-//      the WSL launcher, not bash.
+//   2. An existing Git for Windows install (`git` on PATH, found the way
+//      `where.exe git` finds it but in-process, + well-known install
+//      locations). System32-rooted candidates are filtered — that's the WSL
+//      launcher, not bash.
 //   3. A MinGit portable download into the cache (pinned version + sha256).
 //
 // Every resolved candidate is verified by executing `bash --version` and
@@ -42,6 +43,7 @@ export {
   getCachedBashPath,
   resolveWindowsBash,
   installBash,
+  whereLike,
 };
 export type { WindowsBashDeps };
 
@@ -198,7 +200,55 @@ async function defaultVerifyBash(bashPath: string): Promise<boolean> {
   );
 }
 
+// `where.exe <name>`'s directory order, without the ~80 ms spawn: the
+// current directory, then each PATH entry (trimmed, relative ones resolved
+// against cwd), matching a FILE named `<name>` or `<name><PATHEXT ext>`.
+// Entries where.exe skips (quoted, unexpanded %VARS%) never stat as
+// directories, so they drop out here too. Returns one hit per directory,
+// because bash candidates derive only from the hit's directory.
+async function whereLike(
+  name: string,
+  deps: {
+    env?: Record<string, string | undefined>;
+    cwd?: string;
+    isFile?: (p: string) => boolean | Promise<boolean>;
+  } = {}
+): Promise<string[]> {
+  const env = deps.env ?? process.env;
+  const cwd = deps.cwd ?? process.cwd();
+  const isFile =
+    deps.isFile ??
+    ((p: string) =>
+      fs.promises.stat(p).then(
+        (s) => s.isFile(),
+        () => false
+      ));
+  const exts = ["", ...(env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)];
+  const dirs = new Map<string, string>(); // lowercased → as written; keeps order
+  for (const entry of [cwd, ...(env.PATH ?? env.Path ?? "").split(";")]) {
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const dir = path.win32.resolve(cwd, trimmed);
+    if (!dirs.has(dir.toLowerCase())) dirs.set(dir.toLowerCase(), dir);
+  }
+  // Stat every candidate concurrently (hundreds of sequential stats on a
+  // long Windows PATH cost ~20 ms), then keep where.exe's order.
+  const perDir = await Promise.all(
+    [...dirs.values()].map(async (dir) => {
+      const candidates = exts.map((ext) => path.win32.join(dir, name + ext));
+      const found = await Promise.all(candidates.map((c) => isFile(c)));
+      return candidates.find((_, i) => found[i]);
+    })
+  );
+  return perDir.filter((hit): hit is string => hit !== undefined);
+}
+
+// In-process lookup first; the real `where.exe` only when it finds nothing,
+// so an unforeseen where.exe quirk can't send a machine with Git to the
+// MinGit download.
 async function defaultWhereGit(): Promise<string[]> {
+  const hits = await whereLike("git");
+  if (hits.length > 0) return hits;
   const result = await spawnCapture("where.exe", ["git"]);
   if (!result) return [];
   return result.stdout
