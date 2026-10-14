@@ -1,6 +1,6 @@
 import http from "node:http";
 import assert from "node:assert/strict";
-import { checkLink } from "../dist/core/tests/checkLink.js";
+import { checkLink, _setBaseBackoffMsForTests } from "../dist/core/tests/checkLink.js";
 import { replaceEnvs } from "../dist/core/utils.js";
 
 let server;
@@ -539,5 +539,41 @@ describe("checkLink live smoke (portal.prove.com)", function () {
     );
     // Diagnostic, not a regression gate.
     assert.ok(result.status === "PASS" || result.status === "FAIL");
+  });
+});
+
+describe("checkLink base backoff test seam", function () {
+  this.timeout(30000);
+
+  it("defaults to 1000ms, and the root hook shrinks it for the suite", function () {
+    // Reset to the product default; the return value is what the root hook
+    // (test/hooks.js) installed for this run.
+    const hookValue = _setBaseBackoffMsForTests();
+    try {
+      assert.ok(hookValue < 1000, `expected the root hook to shrink the backoff, got ${hookValue}`);
+      // The next call returns what the reset installed: the product default.
+      assert.equal(_setBaseBackoffMsForTests(hookValue), 1000);
+    } finally {
+      _setBaseBackoffMsForTests(hookValue);
+    }
+  });
+
+  it("uses the configured base for the exponential backoff", async function () {
+    const prev = _setBaseBackoffMsForTests(100);
+    try {
+      const id = `seam-${Date.now()}`;
+      const start = Date.now();
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: { url: `http://localhost:${serverPort}/flaky/${id}/2/503/200` } },
+      });
+      const elapsed = Date.now() - start;
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(flakyCounters[id], 3);
+      // Two retries sleep 100ms + 200ms, far below the 1s + 2s product default.
+      assert.ok(elapsed >= 280 && elapsed < 2500, `elapsed ${elapsed}ms`);
+    } finally {
+      _setBaseBackoffMsForTests(prev);
+    }
   });
 });

@@ -28,8 +28,21 @@ const DEFAULT_HEADERS: Record<string, string> = {
 
 // Initial request plus up to 3 retries, producing sleeps of 1s, 2s, 4s.
 const MAX_ATTEMPTS = 4;
-const BASE_BACKOFF_MS = 1000;
+const DEFAULT_BASE_BACKOFF_MS = 1000;
+let baseBackoffMs = DEFAULT_BASE_BACKOFF_MS;
 const MAX_RETRY_AFTER_MS = 10000;
+
+// Internal test seam, not a user-facing knob: the package `exports` map keeps
+// deep imports out of reach. The mocha root hook (test/hooks.js) shrinks the
+// base so retry tests don't sleep 1s + 2s + 4s each (ADR 01121). Called with no
+// argument it restores the product default. Returns the previous value.
+export function _setBaseBackoffMsForTests(
+  ms: number = DEFAULT_BASE_BACKOFF_MS
+): number {
+  const prev = baseBackoffMs;
+  baseBackoffMs = ms;
+  return prev;
+}
 
 function parseHeaderString(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -215,7 +228,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     if (!shouldRetry(last.statusCode)) break;
     if (attempt < MAX_ATTEMPTS - 1) {
       const backoff =
-        last.retryAfter ?? BASE_BACKOFF_MS * Math.pow(2, attempt);
+        last.retryAfter ?? baseBackoffMs * Math.pow(2, attempt);
       await sleep(backoff);
     }
   }
