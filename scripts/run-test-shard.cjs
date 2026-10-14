@@ -39,6 +39,34 @@ const WEIGHTS = {
   "app-recording.test.js": 3,
 };
 
+// 3+ shard packing (ADR 01127). WEIGHTS above predates measurement; it keeps
+// the 2-shard layout, and the pairings it encodes, exactly where they are.
+// At 3+ shards the packer uses measured seconds instead (windows-latest CI,
+// the slowest OS), because WEIGHTS badly underrates some files: runTests is
+// weight 1 but ~35-130 s, and core-screenshot weighs the same as
+// appium-port-conflict at twice the time. Unlisted files count 2 s.
+const SECONDS = {
+  "core-screenshot.test.js": 200,
+  "appium-port-conflict.test.js": 120,
+  "runTests.test.js": 80,
+  "checkLink.test.js": 27,
+  "debug-remaining-coverage.test.js": 25,
+  "cli-index-adapters-coverage.test.js": 21,
+  "browser-fallback-e2e.test.js": 14,
+  "concurrency.test.js": 14,
+  "background-process.test.js": 12,
+  "debug.test.js": 9,
+};
+
+// Also at 3+ shards, a file heavier than a third of the suite is split into
+// two pieces: the named top-level describe, and the rest of the file, each
+// with its measured seconds. core-core alone is ~250 s on windows-latest
+// (getRunner ~110 s, the rest ~140 s), against ~350 s per shard. A unit test
+// asserts the describe still exists at the top level.
+const SPLITS = {
+  "core-core.test.js": { describe: "getRunner() function", seconds: [110, 140] },
+};
+
 /**
  * Splits file names into `totalShards` buckets, deterministically: files are
  * sorted by (weight desc, name asc) and each is assigned to the currently
@@ -47,15 +75,16 @@ const WEIGHTS = {
  *
  * @param {string[]} files - base names of the test files
  * @param {number} totalShards
+ * @param {(name: string) => number} [weightOf] - defaults to WEIGHTS, else 1
  * @returns {string[][]} one array of file names per shard
  */
-function partition(files, totalShards) {
+function partition(files, totalShards, weightOf = (f) => WEIGHTS[f] ?? 1) {
   const buckets = Array.from({ length: totalShards }, () => ({
     files: [],
     weight: 0,
   }));
   const sorted = [...files].sort((a, b) => {
-    const diff = (WEIGHTS[b] ?? 1) - (WEIGHTS[a] ?? 1);
+    const diff = weightOf(b) - weightOf(a);
     return diff !== 0 ? diff : a.localeCompare(b);
   });
   for (const file of sorted) {
@@ -64,9 +93,42 @@ function partition(files, totalShards) {
       if (bucket.weight < lightest.weight) lightest = bucket;
     }
     lightest.files.push(file);
-    lightest.weight += WEIGHTS[file] ?? 1;
+    lightest.weight += weightOf(file);
   }
   return buckets.map((b) => [...b.files].sort());
+}
+
+/**
+ * The mocha invocations one shard runs: whole files share one run (no extra
+ * args); each describe-level piece of a split file gets its own run, since
+ * --grep applies to the whole mocha process.
+ *
+ * @param {string[]} files - base names of the test files
+ * @param {number} shardIndex - 1-based
+ * @param {number} totalShards
+ * @returns {{ files: string[], args: string[] }[]}
+ */
+function planShard(files, shardIndex, totalShards) {
+  if (totalShards < 3)
+    return [{ files: partition(files, totalShards)[shardIndex - 1], args: [] }].filter(
+      (r) => r.files.length > 0
+    );
+  const pieces = new Map(); // unit name -> { file, args, seconds }
+  for (const [file, { describe, seconds }] of Object.entries(SPLITS)) {
+    if (!files.includes(file)) continue;
+    const grep = ["--grep", `^${describe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} `];
+    pieces.set(`${file}#describe`, { file, args: grep, seconds: seconds[0] });
+    pieces.set(`${file}#rest`, { file, args: [...grep, "--invert"], seconds: seconds[1] });
+  }
+  const split = new Set([...pieces.values()].map((p) => p.file));
+  const units = [...files.filter((f) => !split.has(f)), ...pieces.keys()];
+  const weightOf = (u) => pieces.get(u)?.seconds ?? SECONDS[u] ?? 2;
+  const mine = partition(units, totalShards, weightOf)[shardIndex - 1];
+  const whole = mine.filter((u) => !pieces.has(u));
+  const runs = whole.length > 0 ? [{ files: whole, args: [] }] : [];
+  for (const u of mine.filter((u) => pieces.has(u)))
+    runs.push({ files: [pieces.get(u).file], args: pieces.get(u).args });
+  return runs;
 }
 
 /**
@@ -101,27 +163,35 @@ function main() {
     .readdirSync(testDir)
     .filter((f) => f.endsWith(".test.js"))
     .sort();
-  const shard = partition(files, totalShards)[shardIndex - 1];
-  if (shard.length === 0) {
+  const runs = planShard(files, shardIndex, totalShards);
+  if (runs.length === 0) {
     console.log(`shard ${shardIndex}/${totalShards}: no test files, nothing to run`);
     return;
   }
-  console.log(
-    `shard ${shardIndex}/${totalShards}: ${shard.length} of ${files.length} test files`
-  );
   // Spawn mocha via its resolved JS entry with an args array: cross-platform
   // (no .cmd shim, no shell globbing) and .mocharc.yml is picked up from cwd.
+  // Runs go one after another (each starts and stops its own test servers via
+  // the root hooks), every run executes even if an earlier one failed, and
+  // the shard fails if any run did.
   const mochaBin = require.resolve("mocha/bin/mocha.js");
-  const result = spawnSync(
-    process.execPath,
-    [mochaBin, "--exit", ...shard.map((f) => path.join("test", f))],
-    { stdio: "inherit" }
-  );
-  process.exit(result.status ?? 1);
+  let status = 0;
+  for (const run of runs) {
+    console.log(
+      `shard ${shardIndex}/${totalShards}: ${run.files.length} of ${files.length} test files` +
+        (run.args.length ? ` (${run.args.join(" ")})` : "")
+    );
+    const result = spawnSync(
+      process.execPath,
+      [mochaBin, "--exit", ...run.args, ...run.files.map((f) => path.join("test", f))],
+      { stdio: "inherit" }
+    );
+    if (result.status !== 0) status = result.status ?? 1;
+  }
+  process.exit(status);
 }
 
 if (require.main === module) {
   main();
 }
 
-module.exports = { partition, resolveShard, WEIGHTS };
+module.exports = { partition, planShard, resolveShard, WEIGHTS, SECONDS, SPLITS };

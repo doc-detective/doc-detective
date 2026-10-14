@@ -61,7 +61,8 @@ jobs:
         # cells' worth of matrix time (Windows/macOS node 22).
         node:
           - 24
-        # Each cell's mocha suite is split into two parallel shard jobs by
+        # Each cell's mocha suite is split into parallel shard jobs (two;
+        # three on Windows, below) by
         # scripts/run-test-shard.cjs (deterministic weighted partition of
         # test/*.test.js). Mocha's root hooks (test/hooks.js) start the 8092/
         # 8093 test servers per mocha process, so each shard self-provisions;
@@ -72,7 +73,20 @@ jobs:
           - 2
         # `include` entries only extend existing combinations when every listed
         # key matches one, so the node-22 cell must spell out both shards.
+        #
+        # windows-latest gets a third shard (`shards: 3`, ADR 01127): its mocha
+        # step ran 6-11 min per shard, the longest in the cell grid, and at
+        # 3 shards the runner packs by measured seconds and splits core-core
+        # by top-level describe. macOS stays at 2: its runners are a 5-slot
+        # pool shared with the iOS fixture legs, so a third job's setup costs
+        # more there than it saves. Every other cell runs `shards || 2`.
         include:
+          - os: windows-latest
+            shards: 3
+          - os: windows-latest
+            node: 24
+            shard: 3
+            shards: 3
           - os: ubuntu-latest
             node: 22
             shard: 1
@@ -131,7 +145,7 @@ jobs:
       # mocha half: it runs this shard's deterministic slice of test/*.test.js
       # (the two slices union to exactly the full glob — asserted by
       # test/run-test-shard.test.js).
-      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} 2
+      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} ${{ matrix.shards || 2 }}
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
