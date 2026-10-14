@@ -59,24 +59,26 @@ Starting after the spawn keeps the evaluation inside the readiness wait.
 ### Consequences
 
 * Good, because the time from Appium ready to the first step drops by about
-  300 ms per browser run (measured on Windows: median 1222 ms to 908 ms over
-  8 runs each).
+  300 ms per browser run. On Windows, the median fell from 1222 ms to 908 ms
+  over 8 runs each.
 * Good, because the first screenshot no longer pays the sharp load.
 * Neutral, because each module is still evaluated once per process.
 * Bad, because a run whose Appium server fails to start now also loads
   webdriverio, which it never uses. The cost is CPU time during a failure.
 * Bad, because the webdriverio target depends on its build layout. A unit
-  test asserts the `./node.js` sibling exists and is what the entry imports,
-  so an upgrade that moves it fails loudly instead of silently losing the
+  test asserts the `./node.js` sibling exists and is what the entry imports.
+  An upgrade that moves it fails loudly instead of silently losing the
   saving.
 
 ### Confirmation
 
 * [test/runtime-loader.test.js](../test/runtime-loader.test.js), the
-  `prefetchHeavyDep` block: the prefetch evaluates the dep once and the later
-  load reuses it; an evaluation error surfaces at the later load with no
-  unhandled rejection; a missing dep is a no-op that installs nothing; the
-  webdriverio target is the sibling its entry imports.
+  `prefetchHeavyDep` block:
+  * The prefetch evaluates the dep once, and the later load reuses it.
+  * An evaluation error surfaces at the later load, with no unhandled
+    rejection.
+  * A missing dep is a no-op that installs nothing.
+  * The webdriverio target is the sibling its entry imports.
 * [test/heavy-dep-prefetch.test.js](../test/heavy-dep-prefetch.test.js):
   `jobTakesScreenshot` gates the sharp prefetch.
 
