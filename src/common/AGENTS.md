@@ -58,6 +58,18 @@ When `validate()` is called:
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
 
+**Precompiled validators ([ADR 01138](../../adrs/01138-precompile-validators-with-ajv-standalone.md)):**
+`validate()` never compiles a schema at runtime. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which writes Ajv standalone code for every schema
+key to `dist/schemas/validators.cjs` (mutating set) and `validatorsCheck.cjs` (non-mutating
+probe set, loaded on first use). The Ajv options live in one place, `createAjv` in `src/ajv.ts`.
+Its `standalone: true` mode swaps `ajv-keywords`' closure-based `dynamicDefaults` for a
+code-generating equivalent that supports only `"uuid"`. A schema using any other dynamic
+default fails the build, and you then have to extend that keyword.
+`test/precompiledValidators.test.js` checks that the shipped files match a fresh generation. It
+also checks that every validator behaves like the runtime-compiled one across the corpus. The
+generated files are gitignored build output. Never commit or hand-edit them.
+
 ### Path Resolution (`resolvePaths.js`)
 
 **Resolves relative paths to absolute based on:**
@@ -104,8 +116,10 @@ are regenerated:
    suite reads this.
 2. **Root `dist/common`**, a separate copy the **runner** imports `validate` from. Regenerate
    it from the repo root with `npm run build`. That sequences `build:common`, which rebuilds
-   `src/common`, then `compile` and `copy:schemas`. Running `compile` and `copy:schemas` alone can
-   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
+   `src/common`, then `compile`, which runs `copy:schemas` between `tsc` and the CJS bundle.
+   Running `compile` alone can copy a **stale** `src/common/src/schemas/schemas.json`. It can
+   also copy stale precompiled validators from `src/common/dist/schemas/validators*.cjs`, if
+   `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
 
 Forgetting #2 has a clear symptom. `src/common` tests pass, but the runner (runTests and core
 fixtures) still validates against the stale schema. A fixture using a newly-added field then fails
