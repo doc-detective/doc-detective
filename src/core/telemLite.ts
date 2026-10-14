@@ -31,7 +31,10 @@ export function prewarmTelemetry(config: any) {
     // undici hands the socket back to its pool a turn after the body ends; a
     // request sent before that opens a new connection.
     .then(() => new Promise<void>((resolve) => setImmediate(resolve)))
-    .catch(() => undefined);
+    .catch((err) => {
+      // The send then goes out cold, as without a warm-up.
+      log(config, "debug", `Telemetry connection warm-up failed: ${err?.message ?? err}`);
+    });
 }
 
 // The PostHog client's fetch. A send that starts while the warm-up is still in

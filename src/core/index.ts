@@ -6,6 +6,7 @@ import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.j
 import {
   telemetryNotice,
   prewarmTelemetry,
+  abortTelemetryWarmup,
   loadTelemetry,
   sendRunTelemetry as sendTelemetry,
   flushRunTelemetry as awaitTelemetryFlush,
@@ -44,6 +45,20 @@ async function detectAndResolveTests({ config, detectApps = true }: any) {
 
 // Run tests defined in specifications and documentation source files.
 async function runTests(config: any, options: any = {}) {
+  let results: any;
+  try {
+    results = await runTestsAndReport(config, options);
+    return results;
+  } finally {
+    // Every path that returns results has sent telemetry, and that send owns
+    // the warm-up. Any other exit (no tests found, a throw) sends nothing, and
+    // a programmatic caller may never call awaitTelemetryFlush, so cancel the
+    // warm-up here (ADR 01132).
+    if (!results) abortTelemetryWarmup();
+  }
+}
+
+async function runTestsAndReport(config: any, options: any) {
   let resolvedTests: any;
   let results: any;
 

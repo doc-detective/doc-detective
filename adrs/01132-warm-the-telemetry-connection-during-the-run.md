@@ -47,6 +47,8 @@ Details that matter:
   waits behind an orphaned request.
 * A dry run starts no warm-up. It returns early, and a programmatic caller may never call
   `awaitTelemetryFlush` to cancel one.
+* `runTests` aborts the warm-up on any exit that sends nothing, such as a run that finds no tests
+  or one that throws.
 * `awaitTelemetryFlush` aborts a warm-up that's still in flight. A run that ends without sending
   anything, such as one with no tests, doesn't wait for it.
 

@@ -722,7 +722,8 @@ function isBrowserRequired({ test }: { test: any }): boolean {
 // browser, targets a mobile platform, or has a step that drives a browser or
 // opens/closes a surface. A deliberate superset of every availableApps reader in
 // this file, so a run where it's false never consults the list and can skip
-// detection (ADR 01133). Falls back to the test's steps for a stepless context.
+// detection (ADR 01133). Falls back to the test's steps only when a context has
+// no steps array; an explicit `steps: []` is a context with nothing to run.
 export function runNeedsAvailableApps(specs: any[]): boolean {
   const list = (v: any) => (Array.isArray(v) ? v : []);
   const stepNeedsApps = (step: any) =>

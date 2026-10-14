@@ -247,6 +247,25 @@ describe("telemetry warm-up", function () {
       assert.equal(warmups.length, 0);
     });
 
+    // A run that finds no tests returns null without sending anything, and a
+    // programmatic caller may never call awaitTelemetryFlush, so runTests
+    // itself must cancel the warm-up it started.
+    it("a run that finds no tests leaves no warm-up in flight", async function () {
+      const empty = path.join(tmp, "empty");
+      fs.mkdirSync(empty, { recursive: true });
+      fs.writeFileSync(path.join(empty, "notes.txt"), "nothing to test here");
+      const result = await runTests({
+        input: [empty],
+        output: path.join(tmp, "out"),
+        logLevel: "silent",
+        telemetry: { send: true },
+      });
+      assert.equal(result, null);
+      const warmups = fetchStub.getCalls().filter((c) => c.args[1]?.method === "OPTIONS");
+      assert.equal(warmups.length, 1, "expected the run to start a warm-up");
+      assert.equal(warmups[0].args[1].signal.aborted, true, "warm-up left in flight");
+    });
+
     it("makes no PostHog request at all with telemetry.send false", async function () {
       const before = fetchStub.callCount; // count only this run's requests
       await run({ send: false });
