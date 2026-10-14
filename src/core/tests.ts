@@ -200,6 +200,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// The runner's appiumIsReady call sites poll at this interval. A refused
+// /status on loopback fails in about a millisecond, so a tighter poll costs
+// nothing and trims the lag between Appium coming up and the run noticing
+// (ADR 01124). appiumIsReady's own 250ms default stays for callers that don't
+// pass `pollMs`.
+const APPIUM_READY_POLL_MS = 50;
+
 export {
   runSpecs,
   runViaApi,
@@ -5939,12 +5946,6 @@ const STATUS_PROBE_TIMEOUT_MS = 10000;
 // paying a fixed leading 1s sleep (the old loop slept before its first probe).
 // `probe`/`sleep` are injectable for hermetic unit tests; the overall timeout
 // cap (default 120s) is unchanged.
-// The runner's call sites poll at this interval. A refused /status on loopback
-// fails in about a millisecond, so a tighter poll costs nothing and trims the
-// lag between Appium coming up and the run noticing (ADR 01124). The 250ms
-// default below stays for callers that don't pass `pollMs`.
-const APPIUM_READY_POLL_MS = 50;
-
 async function appiumIsReady(
   port: number,
   timeoutMs: number = 120000,
