@@ -47,6 +47,7 @@ const WEIGHTS = {
 // appium-port-conflict at twice the time. Unlisted files count 2 s. When the
 // Windows shard jobs drift out of balance, refresh these from that cell's
 // mocha logs (per-file wall time between top-level describe headers).
+// Source: windows-latest shard logs of runs 38516518765 and 38345827777.
 const SECONDS = {
   "core-screenshot.test.js": 200,
   "appium-port-conflict.test.js": 120,
@@ -111,10 +112,10 @@ function partition(files, totalShards, weightOf = (f) => WEIGHTS[f] ?? 1) {
  * @returns {{ files: string[], args: string[] }[]}
  */
 function planShard(files, shardIndex, totalShards) {
-  if (totalShards < 3)
-    return [{ files: partition(files, totalShards)[shardIndex - 1], args: [] }].filter(
-      (r) => r.files.length > 0
-    );
+  if (totalShards < 3) {
+    const shardFiles = partition(files, totalShards)[shardIndex - 1];
+    return [{ files: shardFiles, args: [] }].filter((r) => r.files.length > 0);
+  }
   const pieces = new Map(); // unit name -> { file, args, seconds }
   for (const [file, { describe, seconds }] of Object.entries(SPLITS)) {
     if (!files.includes(file)) continue;

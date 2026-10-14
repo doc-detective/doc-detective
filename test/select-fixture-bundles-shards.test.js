@@ -52,7 +52,10 @@ describe("select-fixture-bundles spec-file shards", function () {
       });
 
       it("together with its owner covers the group dir exactly once", function () {
-        const onDisk = fs.readdirSync(path.join(ARTIFACTS, dir)).sort();
+        const onDisk = fs
+          .readdirSync(path.join(ARTIFACTS, dir))
+          .filter((n) => !n.startsWith(".") && n !== "node_modules")
+          .sort();
         const covered = [...inputs(ownerEntry), ...inputs(shardEntry)]
           .map((p) => {
             assert.ok(p.startsWith(`test/core-artifacts/${dir}/`), p);
@@ -72,6 +75,36 @@ describe("select-fixture-bundles spec-file shards", function () {
         );
         // The name-level selector still reports the owning bundle only.
         assert.equal(selectBundles([`test/core-artifacts/${dir}/x.spec.json`]), owner.name);
+      });
+
+      describe("with stray entries in the group dir", function () {
+        // Planted for the duration of this block, then removed.
+        const stray = [".DS_Store", ".doc-detective", "node_modules", "notes.txt", "nested"];
+        const at = (n) => path.join(ARTIFACTS, dir, n);
+        before(function () {
+          fs.writeFileSync(at(".DS_Store"), "");
+          fs.mkdirSync(at(".doc-detective"), { recursive: true });
+          fs.mkdirSync(at("node_modules"), { recursive: true });
+          fs.writeFileSync(at("notes.txt"), "not a spec");
+          fs.mkdirSync(at("nested"), { recursive: true });
+        });
+        after(function () {
+          for (const n of stray) fs.rmSync(at(n), { recursive: true, force: true });
+        });
+
+        it("skips dotfiles, dot-dirs, and node_modules", function () {
+          const names = inputs(selectMatrix([]).find((e) => e.name === owner.name));
+          for (const n of [".DS_Store", ".doc-detective", "node_modules"])
+            assert.ok(!names.some((p) => p.endsWith(`/${n}`)), `${n} must not be an input`);
+        });
+
+        it("forwards other entries, which doc-detective filters as dir discovery would", function () {
+          // A non-spec file goes through the same isValidSourceFile filter as a
+          // discovered one, and a subdirectory stays a (recursive) dir input.
+          const names = inputs(selectMatrix([]).find((e) => e.name === owner.name));
+          assert.ok(names.includes(`test/core-artifacts/${dir}/notes.txt`));
+          assert.ok(names.includes(`test/core-artifacts/${dir}/nested`));
+        });
       });
 
       it("does not run when only another group changes", function () {

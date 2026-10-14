@@ -78,6 +78,14 @@ function toMatrixEntry(b) {
 // A bundle's --input paths: its group dirs, except that a dir with shards is
 // listed entry by entry minus the specs its shards claim, and a shard lists
 // its claimed specs inside its owner's dir.
+//
+// Listing entries keeps discovery equivalent to passing the dir: doc-detective
+// runs explicit files through the same isValidSourceFile filter (extension +
+// spec validation) as files it finds in a dir, and a subdirectory entry stays
+// a dir input, discovered recursively as before. Two exceptions mirror what
+// dir discovery skips or should: anything under node_modules, and dotfiles and
+// dot-dirs (.DS_Store, a local run's .doc-detective/ reports).
+const isListable = (name) => !name.startsWith(".") && name !== "node_modules";
 function inputPaths(b) {
   const at = (dir, name) => `test/core-artifacts/${dir}/${name}`;
   if (b.shardOf) {
@@ -91,7 +99,7 @@ function inputPaths(b) {
   return b.dirs.flatMap((d) =>
     fs
       .readdirSync(path.join(__dirname, "..", "test", "core-artifacts", d))
-      .filter((name) => !claimed.has(name))
+      .filter((name) => isListable(name) && !claimed.has(name))
       .sort()
       .map((name) => at(d, name))
   );
