@@ -481,18 +481,37 @@ jobs:
   # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec;
   # DD_FIXTURE_MULTIDEVICE un-gates the phase A6 two-device spec (two more AVD
   # creations + serial boots — too heavy for the other legs).
+  #
+  # Three parallel legs, one runner each (ADR 01126). Run back to back in one
+  # job they made this the longest Linux job (~17 min); split, the longest leg
+  # is the apps-android group minus the two-device spec. The split is by the
+  # spec's own gate, not a file list: the apps-android leg leaves
+  # DD_FIXTURE_MULTIDEVICE empty (requires.env treats empty as unset), so the
+  # two-device spec lands SKIPPED there and any new spec runs there by default,
+  # while the multidevice leg runs only that spec with the gate set. Every leg
+  # still requires a PASS.
   fixtures-android-managed:
-    name: apps-android + mobile-web (ubuntu KVM, managed-boot)
+    name: ${{ matrix.leg.name }} (ubuntu KVM, managed-boot)
     needs: select
     if: needs.select.outputs.androidLegs != 'false'
     runs-on: ubuntu-latest
-    # Headroom for the second (mobile-web, phase A5) gated run, which boots the
-    # managed AVD again after the first run's sweep, plus the two serial
-    # two-device boots (phase A6).
-    timeout-minutes: 60
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        leg:
+          - name: apps-android
+            input: test/core-artifacts/apps-android
+            multidevice: ''
+          - name: apps-android-multidevice
+            input: test/core-artifacts/apps-android/android-two-devices.spec.json
+            multidevice: '1'
+          - name: mobile-web-android
+            input: test/core-artifacts/mobile-web-android
+            multidevice: ''
     env:
       DD_FIXTURE_PROVISION: '1'
-      DD_FIXTURE_MULTIDEVICE: '1'
+      DD_FIXTURE_MULTIDEVICE: ${{ matrix.leg.multidevice }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -532,24 +551,15 @@ jobs:
           node test/server/start.js &
           node test/server/wait-ready.js
 
-      - name: Run apps-android (Doc Detective boots the emulator)
+      # Doc Detective boots the AVD itself and sweeps it at run end. On the
+      # mobile-web leg (phase A5) it opens Chrome through the device session.
+      - name: Run ${{ matrix.leg.name }} (Doc Detective boots the emulator)
         run: |
           npx doc-detective runTests \
             --config test/core-artifacts/config.groups.json \
-            --input test/core-artifacts/apps-android \
-            --output dd-output-apps-android.json || true
-          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
-
-      # Mobile web (phase A5) on the managed-boot path: Doc Detective boots the
-      # AVD itself, opens Chrome through the device session, and sweeps the
-      # emulator at run end.
-      - name: Run mobile-web-android (Doc Detective boots the emulator)
-        run: |
-          npx doc-detective runTests \
-            --config test/core-artifacts/config.groups.json \
-            --input test/core-artifacts/mobile-web-android \
-            --output dd-output-mobile-web-android.json || true
-          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+            --input ${{ matrix.leg.input }} \
+            --output dd-output-${{ matrix.leg.name }}.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-${{ matrix.leg.name }}.json
 
       # continue-on-error: the diagnostic artifact upload runs AFTER the gate
       # step (real pass/fail), so a transient GitHub ArtifactService outage
@@ -560,10 +570,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: fixture-output-apps-android-managed
-          path: |
-            dd-output-apps-android.json
-            dd-output-mobile-web-android.json
+          name: fixture-output-${{ matrix.leg.name }}-managed
+          path: dd-output-${{ matrix.leg.name }}.json
           retention-days: 3
           if-no-files-found: warn
 
