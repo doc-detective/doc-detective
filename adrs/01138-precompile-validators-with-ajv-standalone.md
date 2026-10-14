@@ -115,7 +115,7 @@ Chosen: **A**.
 * Checks that a non-uuid dynamic default refuses to precompile.
 * Checks that `validate()` runs without loading Ajv's compiler (`ajv/dist/core.js`).
 
-During development, two one-off harnesses compared `validate()` itself between the pre-change and
+During development, two one-off scripts compared `validate()` itself between the pre-change and
 new builds. The first ran every call from the existing `validate.test.js` suite through both
 builds: 612 calls, 0 differences. The second ran every schema key against every corpus input,
 with `addDefaults` on and off and `structuredErrors` on: 52,596 calls, 0 differences. That run

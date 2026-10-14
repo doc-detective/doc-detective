@@ -70,6 +70,23 @@ default fails the build, and you then have to extend that keyword.
 also checks that every validator behaves like the runtime-compiled one across the corpus. The
 generated files are gitignored build output. Never commit or hand-edit them.
 
+Two hazards come with generation:
+
+- **Deep Ajv imports.** `src/ajv.ts` imports `ajv/dist/standalone`, `ajv/dist/compile/codegen`,
+  and `ajv/dist/compile/codegen/code` (`_Code`). Those paths are Ajv internals, not its semver
+  contract. The generated code also `require`s `ajv/dist/runtime/*` and the `ajv-keywords`
+  transform functions. So a minor Ajv or `ajv-keywords` bump can break the build. It can also
+  change the generated code. Every build regenerates the code, and the parity test fails on any
+  behavior change. Treat an Ajv bump as a change to verify, not a routine one. `ajv` keeps its
+  caret range on purpose. A pin would need a guard in
+  [test/dependency-pins.test.js](../../test/dependency-pins.test.js) and would stop compatible
+  fixes reaching consumers. The parity test is the safety net instead.
+- **Inlined function source.** The uuid dynamic default inlines `getRandomUUID.toString()` into
+  the generated code, so it must be self-contained, with no closures or imports. Generation runs
+  from the unminified `dist/ajv.js` that `tsc` emits. Keep it ahead of any minification or
+  bundling step. A minifier that renamed or rewrote the function first would ship its mangled
+  source.
+
 ### Path Resolution (`resolvePaths.js`)
 
 **Resolves relative paths to absolute based on:**
