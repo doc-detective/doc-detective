@@ -1,11 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getRuntimeDir } from "../runtime/cacheDir.js";
-import { createRequire } from "node:module";
-
-// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireFromHere = createRequire(import.meta.url);
-const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
+import { requireYaml } from "./lazyYaml.js";
 
 export {
   setAppiumHome,

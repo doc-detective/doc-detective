@@ -8,6 +8,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
+import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import sinon from "sinon";
 import {
   POSTHOG_HOST,
@@ -274,6 +276,84 @@ describe("telemetry warm-up", function () {
         .slice(before)
         .filter((c) => String(c.args[0]).startsWith(POSTHOG_HOST));
       assert.equal(posthogCalls.length, 0);
+    });
+
+    // The opt-out must hold for the EFFECTIVE config, not just what the caller
+    // passed: core setConfig still applies the DOC_DETECTIVE env override, and
+    // nothing may contact PostHog before that is known.
+    it("makes no PostHog request when DOC_DETECTIVE opts out, even if the caller didn't", async function () {
+      const saved = process.env.DOC_DETECTIVE;
+      process.env.DOC_DETECTIVE = JSON.stringify({ config: { telemetry: { send: false } } });
+      try {
+        const before = fetchStub.callCount;
+        const results = await run(undefined);
+        assert.equal(results.summary.steps.pass, 1);
+        const posthogCalls = fetchStub
+          .getCalls()
+          .slice(before)
+          .filter((c) => String(c.args[0]).startsWith(POSTHOG_HOST));
+        assert.deepEqual(posthogCalls.map((c) => c.args[1]?.method), []);
+      } finally {
+        if (saved === undefined) delete process.env.DOC_DETECTIVE;
+        else process.env.DOC_DETECTIVE = saved;
+      }
+    });
+  });
+
+  // Same guarantee end to end through the CLI, for both opt-out routes. A
+  // preload wraps fetch to record (and fake) every request, so nothing reaches
+  // the network either way.
+  describe("CLI opt-out", function () {
+    this.timeout(60000);
+    let tmp;
+    let hook;
+    let spec;
+    const bin = path.resolve("bin/doc-detective.js");
+    before(function () {
+      tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-telem-optout-"));
+      hook = path.join(tmp, "hook.mjs");
+      fs.writeFileSync(
+        hook,
+        `const urls = [];
+globalThis.fetch = async (url, init) => { urls.push((init?.method || "GET") + " " + url); return new Response("{}", { status: 200 }); };
+process.on("exit", () => process.stderr.write("FETCHES:" + JSON.stringify(urls) + "\\n"));
+`
+      );
+      spec = path.join(tmp, "shell.spec.json");
+      fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }));
+    });
+    after(function () {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    });
+
+    function cliFetches(configObj, env = {}) {
+      const config = path.join(tmp, "config.json");
+      fs.writeFileSync(config, JSON.stringify(configObj));
+      const res = spawnSync(
+        process.execPath,
+        ["--import", pathToFileURL(hook).href, bin, "--input", spec, "--config", config, "--output", path.join(tmp, "out"), "--logLevel", "silent"],
+        { cwd: tmp, encoding: "utf8", env: { ...process.env, CI: "1", ...env } }
+      );
+      const line = res.stderr.split(/\r?\n/).find((l) => l.startsWith("FETCHES:"));
+      assert.ok(line, `no fetch report; exit ${res.status}\n${res.stderr}`);
+      return JSON.parse(line.slice(8)).filter((u) => u.includes(POSTHOG_HOST));
+    }
+
+    it("a config file with telemetry.send false makes no PostHog request", function () {
+      assert.deepEqual(cliFetches({ telemetry: { send: false } }), []);
+    });
+
+    it("a DOC_DETECTIVE env opt-out makes no PostHog request", function () {
+      assert.deepEqual(
+        cliFetches({}, { DOC_DETECTIVE: JSON.stringify({ config: { telemetry: { send: false } } }) }),
+        []
+      );
+    });
+
+    it("with telemetry on, the CLI warms up and then sends", function () {
+      const calls = cliFetches({ telemetry: { send: true } });
+      assert.equal(calls[0], `OPTIONS ${POSTHOG_HOST}`);
+      assert.ok(calls.some((c) => c.startsWith(`POST ${POSTHOG_HOST}/batch`)), JSON.stringify(calls));
     });
   });
 });

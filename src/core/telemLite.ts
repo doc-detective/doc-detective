@@ -42,7 +42,7 @@ export function prewarmTelemetry(config: any) {
 // full handshake anyway, so it waits for the warm-up to settle and then reuses
 // its socket. Never waits on a failed warm-up; the flush's own timeout bounds
 // the total.
-export async function telemetryFetch(url: string, init?: any): Promise<any> {
+export async function telemetryFetch(url: string, init?: RequestInit): Promise<Response> {
   // Re-check after each wait: a newer warm-up may have replaced the one we
   // were waiting on, and the send should use its socket.
   let settled: Promise<void>;

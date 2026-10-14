@@ -33,7 +33,11 @@ const supportMessage = `
  * @returns {Promise<Object|null>} Resolved tests object or null if none found
  */
 async function detectAndResolveTests({ config, detectApps = true }: any) {
-  config = await setConfig({ config, detectApps });
+  return detectAndResolveFromConfig(await setConfig({ config, detectApps }));
+}
+
+// detectTests -> resolveTests for a config setConfig already produced.
+async function detectAndResolveFromConfig(config: any) {
   const detectedTests = await detectTests({ config });
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
@@ -95,14 +99,24 @@ async function runTestsAndReport(config: any, options: any) {
     telemetryNotice(config);
   }
 
-  // Load the telemetry client and warm its connection while the run works, so
-  // the end-of-run send doesn't pay for either (ADR 01132).
+  // Telemetry may contact PostHog only when both the caller's config and the
+  // effective config allow it. The effective config is what setConfig makes of
+  // the caller's, including the DOC_DETECTIVE env override, so nothing starts
+  // until it's known (ADR 01132). Once it is, load the client and warm its
+  // connection while the run works, so the end-of-run send pays for neither.
   // A dry run skips the warm-up: it returns early, and a programmatic caller
   // may never call awaitTelemetryFlush to cancel one left in flight.
-  if (config?.telemetry?.send !== false) {
-    if (!config.dryRun) prewarmTelemetry(config);
+  let telemetryOn = false;
+  const startTelemetry = (effectiveConfig: any) => {
+    telemetryOn =
+      config?.telemetry?.send !== false &&
+      effectiveConfig?.telemetry?.send !== false;
+    if (!telemetryOn) return;
+    if (!config.dryRun) prewarmTelemetry(effectiveConfig);
     loadTelemetry();
-  }
+  };
+  // Pre-resolved tests skip setConfig: the merged config above is effective.
+  if (resolvedTests) startTelemetry(config);
 
   // Whether the orchestration API runs this (tests execute remotely). Decided
   // once, here, because both deferred browser detection and the dispatch below
@@ -115,7 +129,9 @@ async function runTestsAndReport(config: any, options: any) {
   );
 
   if (!resolvedTests) {
-    resolvedTests = await detectAndResolveTests({ config, detectApps: false });
+    const effectiveConfig = await setConfig({ config, detectApps: false });
+    startTelemetry(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
@@ -148,9 +164,11 @@ async function runTestsAndReport(config: any, options: any) {
   if (config.dryRun) {
     console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
-    await sendTelemetry(config, "runTests:dryRun", {
-      specs: resolvedTests.specs.length,
-    });
+    if (telemetryOn) {
+      await sendTelemetry(config, "runTests:dryRun", {
+        specs: resolvedTests.specs.length,
+      });
+    }
     return resolvedTests;
   }
 
@@ -356,7 +374,7 @@ async function runTestsAndReport(config: any, options: any) {
   cleanTemp();
 
   // Send telemetry
-  await sendTelemetry(config, "runTests", results);
+  if (telemetryOn) await sendTelemetry(config, "runTests", results);
   log(config, "info", supportMessage);
 
   return results;

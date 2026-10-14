@@ -11,11 +11,7 @@ import type {
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
 import { fetchAgentToolsZip } from "../fetcher.js";
-import { createRequire } from "node:module";
-
-// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireFromHere = createRequire(import.meta.url);
-const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
+import { requireYaml } from "../../core/lazyYaml.js";
 
 export interface RunResult {
   stdout: string;

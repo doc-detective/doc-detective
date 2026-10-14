@@ -13,11 +13,7 @@ import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUti
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
-import { createRequire } from "node:module";
-
-// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireFromHere = createRequire(import.meta.url);
-const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
+import { requireYaml } from "./lazyYaml.js";
 
 // Bounded fan-out for the per-file parse pass. Detection is I/O-bound (reading
 // text/markdown files and remote before/after specs); overlapping those reads

@@ -21,11 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { setAppiumHome } from "../core/appium.js";
 import { resolveHeavyDepPath } from "../runtime/loader.js";
-import { createRequire } from "node:module";
-
-// yaml loads on first use rather than at CLI startup (see test/startup-modules.test.js).
-const requireFromHere = createRequire(import.meta.url);
-const requireYaml = (): typeof import("yaml") => requireFromHere("yaml");
+import { requireYaml } from "../core/lazyYaml.js";
 
 // The driver packages doc-detective installs. Order matches the browsers we
 // support (Chrome via chromium, Firefox via gecko).

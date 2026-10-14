@@ -30,14 +30,21 @@ we shrink it without losing events or sending anything when telemetry is off?
 
 ## Decision Outcome
 
-Chosen option: **A**. When `runTests` starts and telemetry isn't disabled, it starts loading the
-PostHog client in the background and sends one `OPTIONS https://app.posthog.com/` request. That
+Chosen option: **A**. Once `runTests` knows the effective config and telemetry isn't disabled, it
+starts loading the PostHog client in the background and sends one `OPTIONS https://app.posthog.com/` request. That
 request carries no event and opens the TLS connection while the run works. The PostHog client gets
 a `fetch` that waits for that warm-up to settle before sending. The batch POST therefore reuses the
 warm socket and costs one round trip. HTTP/1.1 carries one request per socket. Without the wait, a send
 issued during the warm-up would open a second connection.
 
 Details that matter:
+
+* The opt-out is a guarantee. Nothing contacts PostHog until `setConfig` has produced the
+  effective config, which includes the `DOC_DETECTIVE` environment override. Nothing does at all
+  if that config or the caller's sets `telemetry.send: false`. The end-of-run send follows the
+  same rule. Before this change, the send checked only the caller's config, so a `DOC_DETECTIVE`
+  opt-out still sent the event. On the CLI, the effective config is ready almost as soon
+  as the caller's. The warm-up still starts about 390 ms into the process.
 
 * `OPTIONS`, not `HEAD`. PostHog answers `HEAD` with `Connection: close`, which discards the socket.
 * The warm-up settles one event-loop turn after its body ends. undici returns the socket to its
@@ -68,7 +75,8 @@ Details that matter:
 ### Confirmation
 
 `test/telemetry-warmup.test.js` stubs `fetch` and asserts the following. `send: false` makes no
-request. The warm-up is an `OPTIONS` to the PostHog host. A send waits for an in-flight warm-up but
+request. That holds when it comes from the caller, from a config file through the CLI, or from the
+`DOC_DETECTIVE` environment override. The warm-up is an `OPTIONS` to the PostHog host. A send waits for an in-flight warm-up but
 not for a failed one. A real `runTests` issues the warm-up first and still delivers the `runTests`
 event in the batch POST. The existing `test/telem-coverage.test.js` still pins the 2 s flush bound.
 
