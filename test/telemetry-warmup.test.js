@@ -15,7 +15,7 @@ import {
   abortTelemetryWarmup,
   telemetryFetch,
 } from "../dist/core/telemLite.js";
-import { runTests, awaitTelemetryFlush } from "../dist/core/index.js";
+import { runTests, awaitTelemetryFlush, setTelemetryLoader } from "../dist/core/index.js";
 
 const okResponse = () => new Response("{}", { status: 200 });
 
@@ -161,6 +161,26 @@ describe("telemetry warm-up", function () {
         events.some((e) => e.event === "runTests" && e.distinct_id === "warmup-test"),
         `runTests event missing: ${JSON.stringify(events).slice(0, 300)}`
       );
+    });
+
+    // Telemetry must never fail a run: a telem.js that can't load (broken
+    // install) must not throw from runTests or awaitTelemetryFlush after the
+    // tests already ran, nor leave an unhandled rejection behind.
+    it("still returns results when the telemetry module fails to load", async function () {
+      const unhandled = [];
+      const onUnhandled = (reason) => unhandled.push(reason);
+      process.on("unhandledRejection", onUnhandled);
+      setTelemetryLoader(() => Promise.reject(new Error("telem.js failed to load")));
+      try {
+        const results = await run({ send: true });
+        assert.equal(results.summary.steps.pass, 1);
+        await awaitTelemetryFlush(); // must not throw
+        await new Promise((r) => setImmediate(r));
+        assert.deepEqual(unhandled, []);
+      } finally {
+        setTelemetryLoader();
+        process.off("unhandledRejection", onUnhandled);
+      }
     });
 
     it("makes no PostHog request at all with telemetry.send false", async function () {

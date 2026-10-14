@@ -6,29 +6,36 @@ import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.j
 import { telemetryNotice, prewarmTelemetry, abortTelemetryWarmup } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
 
-export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
+export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush, setTelemetryLoader };
 
 // telem.js carries posthog-node (~95 modules), so it loads when a run starts
 // (in the background) rather than at startup. A run with telemetry.send ===
 // false never loads it.
-let telemModule: Promise<typeof import("./telem.js")> | undefined;
+// Resolves to null when telem.js can't load: telemetry must never fail a run.
+let telemModule: Promise<typeof import("./telem.js") | null> | undefined;
+const defaultTelemetryLoader = () => import("./telem.js");
+let telemetryLoader: () => Promise<typeof import("./telem.js")> = defaultTelemetryLoader;
+
+// Test seam: swap how telem.js loads (e.g. to simulate a failed load), and drop
+// any already-loaded module. No argument restores the real loader.
+function setTelemetryLoader(loader?: () => Promise<typeof import("./telem.js")>) {
+  telemetryLoader = loader ?? defaultTelemetryLoader;
+  telemModule = undefined;
+}
 
 function loadTelemetry() {
-  if (!telemModule) {
-    telemModule = import("./telem.js");
-    // Loaded ahead of use; a failure surfaces at the send that awaits it.
-    telemModule.catch(() => {});
-  }
+  telemModule ??= telemetryLoader().catch(() => null);
   return telemModule;
 }
 
 async function sendTelemetry(config: any, command: string, results: any) {
   if (config?.telemetry?.send === false) return;
-  (await loadTelemetry()).sendTelemetry(config, command, results);
+  (await loadTelemetry())?.sendTelemetry(config, command, results);
 }
 
 async function awaitTelemetryFlush(): Promise<void> {
-  if (telemModule) await (await telemModule).awaitTelemetryFlush();
+  const telem = telemModule ? await telemModule : null;
+  if (telem) await telem.awaitTelemetryFlush();
   abortTelemetryWarmup();
 }
 

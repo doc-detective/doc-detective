@@ -1316,6 +1316,7 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
+  const { default: axios } = await import("axios");
   // Apply specFilter / testFilter before sending. Without this the API run
   // path silently ignores --test / --spec, since the orchestration server
   // sees the full unfiltered payload.
@@ -1365,7 +1366,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // Create run
   let createResponse;
   try {
-    createResponse = await (await import("axios")).default.post(apiUrl, resolvedTests, axiosConfig);
+    createResponse = await axios.post(apiUrl, resolvedTests, axiosConfig);
   } catch (error: any) {
     return {
       status: error.response?.status,
@@ -1382,7 +1383,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // Start run
   let startResponse;
   try {
-    startResponse = await (await import("axios")).default.post(
+    startResponse = await axios.post(
       `${apiUrl}/${runId}/start`,
       {},
       axiosConfig
@@ -1418,7 +1419,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
 
     // Poll for results
     try {
-      response = await (await import("axios")).default.get(`${apiUrl}/${runId}`, axiosConfig);
+      response = await axios.get(`${apiUrl}/${runId}`, axiosConfig);
     } catch (error: any) {
       return {
         status: error.response?.status,

@@ -605,15 +605,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       const stepLocations: Map<number, Map<number, { line: number; startIndex: number; endIndex: number }>> = new Map();
       if (rawContent && content.tests) {
         try {
-          const doc = requireYaml().parseDocument(rawContent);
+          const yaml = requireYaml();
+          const doc = yaml.parseDocument(rawContent);
           const lineStarts = getLineStarts(rawContent);
           const testsNode = doc.get("tests", true);
-          if (testsNode && requireYaml().isSeq(testsNode)) {
+          if (testsNode && yaml.isSeq(testsNode)) {
             for (let t = 0; t < testsNode.items.length; t++) {
               const testNode = testsNode.get(t, true);
-              if (!testNode || !requireYaml().isMap(testNode)) continue;
+              if (!testNode || !yaml.isMap(testNode)) continue;
               const stepsNode = testNode.get("steps", true);
-              if (!stepsNode || !requireYaml().isSeq(stepsNode)) continue;
+              if (!stepsNode || !yaml.isSeq(stepsNode)) continue;
               const test = content.tests[t];
               if (!test?.steps) continue;
               const testMap = new Map<number, { line: number; startIndex: number; endIndex: number }>();
