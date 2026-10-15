@@ -271,7 +271,7 @@ Without a `device`, an iOS app runs on the context's default simulator. Doc Dete
 - `name` is the simulator's identity. If a simulator with that name already exists, Doc Detective reuses it (booting it if needed); otherwise it creates one under that name. Reusing a name across steps and tests targets the same simulator.
 - `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). Doc Detective ignores it when `name` matches an existing simulator.
 - `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing simulator.
-- `headless` is a no-op on iOS: simulators boot without the Simulator UI on CI, so there's no window to suppress.
+- `headless` is a no-op on iOS. Once a simulator is running, Doc Detective opens it in the Simulator app, which spares the driver from rebooting it to show a window. Expect a Simulator window during the run, including on CI runners. If the window can't open, the run continues unaffected.
 
 Doc Detective only ever boots an iPhone or iPad simulator for an `ios` context, so a visionOS, watchOS, or tvOS simulator is never selected. At the end of a run, Doc Detective shuts down only the simulators it booted, leaving any you had already booted running.
 
