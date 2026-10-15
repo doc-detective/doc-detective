@@ -117,6 +117,20 @@ describe("Appium server reuse (ADR 01125)", function () {
       );
     });
 
+    it("handles the --allow-insecure=value form", function () {
+      assert.deepEqual(
+        allowSessionDiscovery(["--allow-insecure=*:custom_geckodriver_executable"]),
+        ["--allow-insecure=*:custom_geckodriver_executable,*:session_discovery"]
+      );
+    });
+
+    it("doesn't add the feature twice", function () {
+      const spaced = ["--allow-insecure", "*:a,*:session_discovery"];
+      const joined = ["--allow-insecure=*:session_discovery"];
+      assert.deepEqual(allowSessionDiscovery(spaced), spaced);
+      assert.deepEqual(allowSessionDiscovery(joined), joined);
+    });
+
     it("adds the flag when there is none", function () {
       assert.deepEqual(allowSessionDiscovery(["--use-drivers=gecko"]), [
         "--use-drivers=gecko",

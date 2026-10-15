@@ -219,6 +219,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
 // killTree is a hoisted function declaration, called only when a server dies.
 // Background kill failures log at debug under the last reusing run's config.
+// Used only for that log line, so last-writer-wins across concurrent runs is fine.
 let lastReuseConfig: unknown;
 const appiumServerCache = createServerCache({
   kill: (server) => killTree(server.process?.pid),
@@ -1901,10 +1902,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       const readinessWaits: Promise<boolean>[] = [];
       // Load only the desktop browser drivers (ADR 01117): the shared home
       // also holds the mobile drivers, which roughly doubled startup.
-      const useDrivers = useDriversArgs(
-        process.env.APPIUM_HOME!,
-        browserPoolDriverPackages(process.platform)
-      );
+      const poolDriverPackages = browserPoolDriverPackages(process.platform);
+      const useDrivers = useDriversArgs(process.env.APPIUM_HOME!, poolDriverPackages);
       // Every desktop pool server allows the geckodriver-path insecure
       // feature, not just the ones a Firefox context lands on: these servers
       // are shared across contexts and cross-browser fallback can route a
@@ -1921,7 +1920,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           args: serverArgs,
           env: process.env,
           appiumHome: process.env.APPIUM_HOME!,
-          packages: ["appium", ...browserPoolDriverPackages(process.platform)],
+          packages: ["appium", ...poolDriverPackages],
         });
       }
       for (let i = 0; i < serverCount; i++) {

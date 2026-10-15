@@ -31,6 +31,7 @@ const APPIUM_WATCHDOG_IMPORT =
 // environment it inherits (and passes to the browsers it starts, including
 // APPIUM_HOME), and the installed Appium and driver versions, so an upgrade
 // between runs gets a fresh server rather than one with stale code loaded.
+// Runs once per runSpecs pool setup, so the few small sync reads are deliberate.
 function appiumServerKey(opts: {
   entry: string;
   args: string[];
@@ -180,13 +181,21 @@ async function handBackServer(
 // takes one comma-separated list) rather than replacing it. The server binds
 // to 127.0.0.1, and the grant only lists sessions; the pool servers already
 // accept a caller-chosen geckodriver path, a far larger capability.
+// Handles both `--allow-insecure <list>` and `--allow-insecure=<list>`, and
+// leaves a list that already grants the feature alone.
 function allowSessionDiscovery(args: string[]): string[] {
-  const i = args.indexOf("--allow-insecure");
-  if (i === -1 || i + 1 >= args.length) {
-    return [...args, "--allow-insecure", "*:session_discovery"];
-  }
+  const feature = "*:session_discovery";
+  const withFeature = (list: string) =>
+    list.split(",").includes(feature) ? list : `${list},${feature}`;
   const out = [...args];
-  out[i + 1] = `${out[i + 1]},*:session_discovery`;
+  const eq = out.findIndex((a) => a.startsWith("--allow-insecure="));
+  if (eq !== -1) {
+    out[eq] = `--allow-insecure=${withFeature(out[eq].slice("--allow-insecure=".length))}`;
+    return out;
+  }
+  const i = out.indexOf("--allow-insecure");
+  if (i === -1 || i + 1 >= out.length) return [...out, "--allow-insecure", feature];
+  out[i + 1] = withFeature(out[i + 1]);
   return out;
 }
 
