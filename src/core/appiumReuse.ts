@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import axios from "axios";
+import type { ChildProcess } from "node:child_process";
 
 // Opt-in reuse of browser-pool Appium servers across runTests calls in one
 // process (ADR 01125). Off by default: a run's servers are its own and die
@@ -8,7 +9,7 @@ import axios from "axios";
 // back here, and the next run with an identical key takes them instead of
 // paying Appium startup again.
 
-type Server = { port: number; process: any; display?: string };
+export type Server = { port: number; process: ChildProcess | null; display?: string };
 type ServerCache = ReturnType<typeof createServerCache>;
 
 function reuseAppiumEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -58,13 +59,18 @@ function appiumServerKey(opts: {
   return JSON.stringify([opts.entry, opts.args, env, versions]);
 }
 
+// No process handle counts as exited: there's nothing to reuse.
 const exited = (s: Server) =>
-  s.process?.exitCode !== null || s.process?.signalCode !== null;
+  !s.process || s.process.exitCode !== null || s.process.signalCode !== null;
 
 // Idle servers must not keep the host process alive; servers in use are held
 // by the run's own I/O anyway.
+// Piped stdio streams are net.Sockets at runtime, which carry ref/unref.
+type Refable = { ref?: () => unknown; unref?: () => unknown } | null | undefined;
 function setRef(s: Server, ref: boolean) {
-  for (const h of [s.process, s.process?.stdin, s.process?.stdout, s.process?.stderr]) {
+  const p = s.process;
+  const handles: Refable[] = [p, p?.stdin, p?.stdout, p?.stderr] as Refable[];
+  for (const h of handles) {
     try {
       ref ? h?.ref?.() : h?.unref?.();
     } catch {
@@ -75,9 +81,14 @@ function setRef(s: Server, ref: boolean) {
 
 function createServerCache(deps: {
   kill: (server: Server) => Promise<unknown>;
+  // Called when a background kill (eviction, idle expiry) rejects.
+  onKillError?: (server: Server, err: unknown) => void;
   idleMs: number;
   maxIdle: number;
 }) {
+  const killQuietly = (server: Server) => {
+    deps.kill(server).catch((err) => deps.onKillError?.(server, err));
+  };
   const idle: Array<{ key: string; server: Server; timer: NodeJS.Timeout }> = [];
   const remove = (i: number) => {
     const [entry] = idle.splice(i, 1);
@@ -95,14 +106,16 @@ function createServerCache(deps: {
       return server;
     },
     park(key: string, server: Server): void {
-      if (idle.length >= deps.maxIdle) {
-        void deps.kill(server);
+      if (deps.maxIdle < 1) {
+        killQuietly(server);
         return;
       }
+      // At capacity, evict the oldest: take() hands out the newest first.
+      while (idle.length >= deps.maxIdle) killQuietly(remove(0));
       setRef(server, false);
       const timer = setTimeout(() => {
         const i = idle.findIndex((e) => e.server === server);
-        if (i !== -1) void deps.kill(remove(i));
+        if (i !== -1) killQuietly(remove(i));
       }, deps.idleMs);
       timer.unref();
       idle.push({ key, server, timer });

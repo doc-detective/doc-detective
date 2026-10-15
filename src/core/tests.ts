@@ -188,6 +188,7 @@ import {
   allowSessionDiscovery,
   APPIUM_WATCHDOG_IMPORT,
 } from "./appiumReuse.js";
+import type { Server as AppiumServer } from "./appiumReuse.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -217,8 +218,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Idle browser-pool Appium servers kept between runs in this process, only
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
 // killTree is a hoisted function declaration, called only when a server dies.
+// Background kill failures log at debug under the last reusing run's config.
+let lastReuseConfig: unknown;
 const appiumServerCache = createServerCache({
   kill: (server) => killTree(server.process?.pid),
+  onKillError: (server, err) =>
+    log(
+      lastReuseConfig ?? {},
+      "debug",
+      `Failed to close idle Appium server on port ${server.port}: ${(err as Error)?.message ?? err}`
+    ),
   idleMs: 60000,
   maxIdle: 4,
 });
@@ -1847,8 +1856,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // (see startAppSurface) and are excluded here, so an app-only run starts no
   // browser server. Non-driver runs start none.
   const browserPoolJobCount = browserJobCount(sizingJobs);
-  let appiumServers: Array<{ port: number; process: any; display?: string }> =
-    [];
+  let appiumServers: AppiumServer[] = [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
@@ -1907,6 +1915,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       if (reuseAppiumEnabled() && !useXvfbDisplays) {
         // Hand-back must be able to list leftover sessions.
         serverArgs = allowSessionDiscovery(serverArgs);
+        lastReuseConfig = config;
         reuseKey = appiumServerKey({
           entry: appiumEntry,
           args: serverArgs,
@@ -5993,7 +6002,7 @@ async function spawnAppiumServer(
   extraArgs?: string[],
   // Node args placed before the entry, e.g. the reuse watchdog (ADR 01125).
   nodeArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+): Promise<AppiumServer> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
@@ -6009,7 +6018,7 @@ async function spawnAppiumServer(
           ...(extraEnv ?? {}),
         }
       : process.env;
-  const proc: any = spawn(
+  const proc = spawn(
     process.execPath,
     [
       ...(nodeArgs ?? []),
@@ -6046,7 +6055,7 @@ async function startAppiumServer(
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
   extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+): Promise<AppiumServer> {
   const server = await spawnAppiumServer(
     appiumEntry,
     config,

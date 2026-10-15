@@ -148,15 +148,58 @@ describe("Appium server reuse (ADR 01125)", function () {
       assert.equal(cache.take("k"), undefined);
     });
 
-    it("kills servers beyond maxIdle instead of parking them", function () {
+    // At capacity, the oldest idle server goes and the incoming one is parked:
+    // take() hands out the most recent first, so keep the freshest.
+    it("evicts the oldest idle server at maxIdle and parks the new one", function () {
       const killed = [];
       const cache = createServerCache({ kill: async (s) => killed.push(s), idleMs: 60000, maxIdle: 1 });
       const a = fakeServer(3);
       const b = fakeServer(4);
       cache.park("k1", a);
       cache.park("k2", b);
-      assert.deepEqual(killed, [b]);
-      assert.equal(cache.take("k1"), a);
+      assert.deepEqual(killed, [a]);
+      assert.equal(cache.take("k1"), undefined);
+      assert.equal(cache.take("k2"), b);
+    });
+
+    it("evicts in park order when several servers are idle", function () {
+      const killed = [];
+      const cache = createServerCache({ kill: async (s) => killed.push(s), idleMs: 60000, maxIdle: 2 });
+      const [a, b, c, d] = [20, 21, 22, 23].map((p) => fakeServer(p));
+      cache.park("k", a);
+      cache.park("k", b);
+      cache.park("k", c);
+      cache.park("k", d);
+      assert.deepEqual(killed, [a, b]);
+      assert.deepEqual(cache.servers(), [c, d]);
+    });
+
+    // A failed kill must neither throw nor surface as an unhandled rejection.
+    it("reports a failed kill on the eviction and idle-timer paths", async function () {
+      const errors = [];
+      const unhandled = [];
+      const onUnhandled = (r) => unhandled.push(r);
+      process.on("unhandledRejection", onUnhandled);
+      try {
+        const cache = createServerCache({
+          kill: async () => {
+            throw new Error("kill failed");
+          },
+          onKillError: (s, err) => errors.push([s.port, err.message]),
+          idleMs: 20,
+          maxIdle: 1,
+        });
+        cache.park("k", fakeServer(30));
+        cache.park("k", fakeServer(31)); // evicts 30
+        await new Promise((r) => setTimeout(r, 80)); // 31 expires
+        assert.deepEqual(errors, [
+          [30, "kill failed"],
+          [31, "kill failed"],
+        ]);
+        assert.deepEqual(unhandled, []);
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
     });
 
     it("drain() kills every idle server", async function () {
@@ -235,6 +278,14 @@ describe("Appium server reuse (ADR 01125)", function () {
     it("kills a server whose process already exited", async function () {
       const { cache, killed } = setup();
       const s = fakeServer(13, { exited: true });
+      const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
+      assert.equal(outcome, "killed");
+      assert.deepEqual(killed, [s]);
+    });
+
+    it("kills a server with no process handle", async function () {
+      const { cache, killed } = setup();
+      const s = { port: 14, process: null };
       const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
       assert.equal(outcome, "killed");
       assert.deepEqual(killed, [s]);
