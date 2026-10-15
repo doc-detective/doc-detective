@@ -1,14 +1,15 @@
-# Manual single-leg fixture runner for iterating on platform-specific fixture
-# work from a machine that can't run that platform (e.g. developing macOS app
-# surfaces from a Windows box, or an iOS phase later). Mirrors one
-# (group x OS) leg of fixtures.yml without burning the full 30-job matrix:
+# Manual single-leg fixture runner: one (bundle x OS) leg of fixtures.yml,
+# without the full matrix. Use it to iterate on platform-specific fixtures from
+# a machine that can't run that platform, or to sample one leg's timing:
 #
-#   gh workflow run fixtures-debug.yml --ref <branch> -f os=macos-latest -f group=apps
-#   gh run watch
+#   gh workflow run fixtures-debug.yml --ref <branch> -f os=macos-latest -f bundle=apps-ios
 #
-# Keep the steps in sync with fixtures.yml — this is deliberately a copy of a
-# single leg, not a reusable-workflow call, because fixtures.yml pins its own
-# full matrix.
+# The steps below are a verbatim copy of fixtures.yml's fixture steps (comments
+# stripped; see fixtures.yml for what each one does), and the leg comes from
+# scripts/select-fixture-bundles.cjs, so a debug run is a faithful sample of the
+# gate leg. test/select-fixture-bundles.test.js fails if the two drift apart.
+# That includes the "Gate on results" PASS requirement, which follows the
+# gate's per-leg rule; there's deliberately no input to switch it off.
 
 name: Fixture Debug (single leg)
 
@@ -23,24 +24,52 @@ on:
           - macos-latest
           - windows-latest
           - ubuntu-latest
-      group:
-        description: Fixture group (directory under test/core-artifacts/)
+      bundle:
+        description: Fixture bundle name (see BUNDLES in scripts/select-fixture-bundles.cjs)
         type: string
-        default: apps
-      require_pass:
-        description: Fail if no spec actually PASSes (DD_FIXTURES_REQUIRE_PASS)
-        type: boolean
-        default: true
+        default: apps-ios
 
 permissions:
   contents: read
 
 jobs:
+  select:
+    name: Select the leg
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      leg: ${{ steps.pick.outputs.leg }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Pick the leg
+        id: pick
+        shell: bash
+        env:
+          # Free-form input: routed through env, never interpolated into the script.
+          BUNDLE: ${{ inputs.bundle }}
+          OS: ${{ inputs.os }}
+        run: |
+          leg=$( { printf '' | node scripts/select-fixture-bundles.cjs --legs-ios; printf '' | node scripts/select-fixture-bundles.cjs --legs-rest; } | node -e "
+            let s = '';
+            process.stdin.on('data', (d) => (s += d)).on('end', () => {
+              const legs = s.trim().split(/\r?\n/).flatMap((l) => JSON.parse(l).include);
+              const hit = legs.filter((l) => l.os === process.env.OS && l.bundle.name === process.env.BUNDLE);
+              if (hit.length !== 1) { console.error('no leg for ' + process.env.BUNDLE + ' on ' + process.env.OS); process.exit(1); }
+              console.log(JSON.stringify({ include: hit }));
+            });
+          ")
+          echo "leg: $leg"
+          echo "leg=$leg" >> "$GITHUB_OUTPUT"
+
   fixtures:
-    name: ${{ inputs.group }} (${{ inputs.os }})
-    runs-on: ${{ inputs.os }}
-    # iOS-flavored groups can cold-build WebDriverAgent; give them headroom.
-    timeout-minutes: ${{ (inputs.group == 'apps-ios' || inputs.group == 'mobile-web-ios') && 45 || 30 }}
+    needs: select
+    name: ${{ matrix.bundle.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
+    strategy:
+      matrix: ${{ fromJSON(needs.select.outputs.leg) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -48,15 +77,93 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
+          # Fixture runtime behavior is node-line-independent; the smoke +
+          # unit matrix in test.yml still exercises node 22 and 24. Pin the
+          # fixture jobs to one line to keep the job count at group x OS.
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
+
+      - name: Pre-boot iOS simulator (overlaps setup)
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        shell: bash
+        run: |
+          udid=$(xcrun simctl list devices available -j | node -e "
+            let s = '';
+            process.stdin.on('data', (d) => (s += d)).on('end', () => {
+              const { devices } = JSON.parse(s);
+              const modelNum = (name) => { const m = name.match(/iPhone (\d+)/); return m ? Number(m[1]) : 0; };
+              const c = [];
+              for (const [rt, list] of Object.entries(devices))
+                for (const d of list)
+                  if (d.isAvailable && /^iPhone/.test(d.name)) c.push({ rt, udid: d.udid, name: d.name });
+              c.sort((a, b) =>
+                b.rt.localeCompare(a.rt, undefined, { numeric: true }) ||  // newest runtime
+                modelNum(b.name) - modelNum(a.name) ||                     // highest model (SE -> 0, last)
+                b.name.length - a.name.length);                           // Pro Max > Pro > plain (proxy)
+              if (c[0]) console.log(c[0].udid);
+            });
+          ")
+          if [ -z "$udid" ]; then
+            echo "no available iPhone simulator found; skipping pre-boot"
+            exit 0
+          fi
+          # Only export PREBOOT_UDID when the boot command actually succeeds, so
+          # a failed boot doesn't make the wait step below block on a device
+          # that never started. `simctl boot` accepting the request (exit 0) is
+          # the signal; the async boot itself is what the wait step confirms.
+          echo "pre-booting simulator $udid"
+          if xcrun simctl boot "$udid"; then
+            echo "PREBOOT_UDID=$udid" >> "$GITHUB_ENV"
+          else
+            echo "simctl boot failed; skipping pre-boot (Doc Detective will boot its own)"
+          fi
+
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: '24'
 
       - run: npm ci
       - run: npm run build
 
       - name: Link local build
         run: npm link
+
+      - name: Read the Xcode version
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: xcode
+        shell: bash
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          # No entry has this exact key; the prefix picks the newest entry.
+          key: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-latest
+          restore-keys: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+
+      - name: Prebuild WebDriverAgent
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        run: node ./bin/doc-detective.js install ios --yes
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      - name: Key the WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-key
+        shell: bash
+        run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          key: ${{ steps.wda-key.outputs.key }}
 
       - name: Start test servers
         shell: bash
@@ -71,33 +178,49 @@ jobs:
           npm ls -g doc-detective || true
           npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
 
-      - name: Run ${{ inputs.group }} fixtures
-        # `ios: auto` lets the action cache the WebDriverAgent build for the
-        # apps-ios macOS leg (first cold WDA compile ~10 min; later runs restore
-        # it), which replaces the workflow-level cache.
+      - name: Wait for pre-booted simulator
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
+        shell: bash
+        # macOS runners have no GNU `timeout`, so the old `timeout 300 …` form
+        # failed instantly and never waited. perl's alarm survives exec.
+        run: perl -e 'alarm shift; exec @ARGV' 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+
+      - name: Run ${{ matrix.bundle.name }} fixtures
         uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        # The general matrix only asserts the SKIP paths. Disable the android
+        # lazy-install here so no general leg ever triggers a multi-GB SDK
+        # download, and turn OFF the action's KVM setup (`android: false`) — the
+        # real install/boot coverage lives in the KVM jobs below. `ios: 'false'`
+        # turns off the action's WDA build cache: the managed prebuild above
+        # (install ios + dd-cache) owns WDA now, keyed by driver AND Xcode
+        # version — leaving `ios: auto` on would set the derived-data env var,
+        # which overrides the managed products and double-builds WDA on cold
+        # weeks (and its driver-blind key is the ADR 01033 stale-cache mode).
+        # Retiring the action-side cache entirely is tracked in
+        # doc-detective/github-action.
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.bundle.android && '1' || '' }}
         with:
           version: ''
-          ios: auto
           working_directory: .
           config: test/core-artifacts/config.groups.json
-          input: test/core-artifacts/${{ inputs.group }}
+          input: ${{ matrix.bundle.input }}
+          android: 'false'
+          ios: 'false'
 
       - name: Gate on results
         shell: bash
         env:
-          DD_FIXTURES_REQUIRE_PASS: ${{ inputs.require_pass && '1' || '0' }}
-          # Route the free-form workflow_dispatch input through env rather than
-          # interpolating ${{ inputs.group }} straight into the shell body.
-          FIXTURE_GROUP: ${{ inputs.group }}
+          DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.bundle.name == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.bundle.name == 'apps-ios' || matrix.bundle.name == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
         run: |
-          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${FIXTURE_GROUP}.json"
-          node scripts/check-fixture-results.cjs "dd-output-${FIXTURE_GROUP}.json"
+          cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.bundle.name }}.json"
+          node scripts/check-fixture-results.cjs "dd-output-${{ matrix.bundle.name }}.json"
 
       - if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: fixture-output-${{ inputs.group }}-${{ inputs.os }}
-          path: dd-output-${{ inputs.group }}.json
+          name: fixture-output-${{ matrix.bundle.name }}-${{ matrix.os }}
+          path: dd-output-${{ matrix.bundle.name }}.json
           retention-days: 3
           if-no-files-found: warn

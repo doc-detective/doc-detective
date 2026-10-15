@@ -33,8 +33,8 @@ permissions:
 jobs:
   # Compute the fixture matrix for this run (ADR 01055). scripts/
   # select-fixture-bundles.cjs is the SINGLE SOURCE OF TRUTH for the bundle
-  # definitions; `--matrix` emits the JSON the matrix below consumes via
-  # fromJSON. Narrowing happens ONLY when a PR's change set is confined to
+  # definitions; `--legs-ios` / `--legs-rest` emit the JSON the matrices below
+  # consume via fromJSON. Narrowing happens ONLY when a PR's change set is confined to
   # fixture group directories; product/script/workflow/shared-infra changes,
   # non-PR triggers (the release gate calls this on push — no PR), and every
   # error path all fall back to the FULL matrix. Fail-safe by construction: an
@@ -50,7 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.pick.outputs.matrix }}
+      # {"include": [{os, bundle}, ...]} leg lists (ADR 01109): the macOS
+      # legs of the iOS bundles, and everything else.
+      iosLegs: ${{ steps.pick.outputs.iosLegs }}
+      restLegs: ${{ steps.pick.outputs.restLegs }}
       # "true"/"false": whether the heavy Android KVM legs run (ADR 01056).
       androidLegs: ${{ steps.pick.outputs.androidLegs }}
     steps:
@@ -64,7 +67,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          matrix=''
+          iosLegs=''
+          restLegs=''
           androidLegs=true
           # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
           # gh api (transient 5xx / rate limit) without tripping `set -e`, and
@@ -72,25 +76,50 @@ jobs:
           # matrix + legs on) instead of silently eating the job's 5-min budget.
           if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
             printf 'changed files:\n%s\n' "$files"
-            matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
+            iosLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --legs-ios || echo '')
+            restLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --legs-rest || echo '')
             androidLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --android-legs || echo true)
           fi
-          # Fail-safe: no PR, API/selector failure, or an empty/degenerate value
-          # → the full matrix (never zero fixtures). Empty stdin selects all.
-          if [ -z "$matrix" ] || [ "$matrix" = "[]" ]; then
+          # Fail-safe: no PR, API/selector failure, or an empty/degenerate rest
+          # list → the full grid (never zero fixtures). Empty stdin selects all.
+          # An empty string means the selector failed. Every selected bundle
+          # has non-macOS legs, so an empty `rest` list ({"include":[]}) also
+          # means something went wrong. An empty `ios` list is legitimate when
+          # narrowing drops the iOS bundles; the fixtures-ios job skips itself.
+          if [ -z "$iosLegs" ] || [ -z "$restLegs" ] || [ "$restLegs" = '{"include":[]}' ]; then
             echo "defaulting to the full fixture matrix"
-            matrix=$(printf '' | node scripts/select-fixture-bundles.cjs --matrix)
+            iosLegs=$(printf '' | node scripts/select-fixture-bundles.cjs --legs-ios)
+            restLegs=$(printf '' | node scripts/select-fixture-bundles.cjs --legs-rest)
           fi
           # androidLegs must be exactly false to skip the legs; anything else
           # (crash, empty, unexpected) coerces to true so the legs stay on.
           [ "$androidLegs" = "false" ] || androidLegs=true
-          echo "selected matrix: $matrix"
+          echo "iOS legs: $iosLegs"
+          echo "other legs: $restLegs"
           echo "android KVM legs: $androidLegs"
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "iosLegs=$iosLegs" >> "$GITHUB_OUTPUT"
+          echo "restLegs=$restLegs" >> "$GITHUB_OUTPUT"
           echo "androidLegs=$androidLegs" >> "$GITHUB_OUTPUT"
 
-  fixtures:
+  # Holds the non-iOS legs back ~1 min (ADR 01109). The macOS iOS legs are the
+  # gate's critical path (16-19 min), and GitHub doesn't hand out runner slots
+  # in matrix order, so when every leg queues at once the iOS legs often wait
+  # behind shorter ones for the ~5 macOS slots. Queueing them a minute earlier
+  # puts them ahead. The held-back legs finish well inside the iOS legs' time.
+  # It runs even when narrowing drops the iOS bundles (fixtures-ios then
+  # skips), costing those runs ~1 min; ADR 01109 accepts that.
+  # ponytail: a fixed sleep, not a real priority; replace it if GitHub ever
+  # offers job priority within a run.
+  stagger:
+    name: Queue the iOS legs first
     needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: sleep 60
+
+  fixtures:
+    needs: [select, stagger]
     name: ${{ matrix.bundle.name }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     # Default headroom is 20 min; entries that need more carry their own
@@ -103,20 +132,17 @@ jobs:
     timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
     strategy:
       fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-        # One (bundle x OS) job. The bundle list comes from select-fixture-
-        # bundles.cjs (`--matrix`) via the `select` job — the single source of
-        # truth for names, `input` (comma-joined group dirs; the action passes
-        # it verbatim to `--input`, which splits on commas), and the per-bundle
-        # timeout / android / prebootIos attributes. Bundle composition, the
-        # zero-spec-typo caution, and the iOS-solo rule are documented in that
-        # script and ADR 01048 / 01055.
-        bundle: ${{ fromJSON(needs.select.outputs.matrix) }}
-    steps:
+      # One job per (OS, bundle) leg, minus the macOS iOS legs, which run in
+      # fixtures-ios below. The legs come from select-fixture-bundles.cjs
+      # (`--legs-rest`) via the `select` job — the single source of truth for
+      # the OSes, bundle names, `input` (comma-joined group dirs; the action
+      # passes it verbatim to `--input`, which splits on commas), and the
+      # per-bundle timeout / android / prebootIos attributes. Bundle
+      # composition, the zero-spec-typo caution, and the iOS-solo rule are
+      # documented in that script and ADR 01048 / 01055 / 01105.
+      matrix: ${{ fromJSON(needs.select.outputs.restLegs) }}
+    # Anchored so fixtures-ios runs the identical step list (ADR 01109).
+    steps: &fixture-steps
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -202,17 +228,55 @@ jobs:
       - name: Link local build
         run: npm link
 
-      # iOS legs: prebuild WebDriverAgent into the dd-cache
-      # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
-      # skip on the keyed products the Sunday warmer built); one ~10-minute
-      # build on a cold one. Sessions then consume the products read-only via
-      # usePrebuiltWDA instead of compiling WDA inside the first XCUITest
-      # session — which is also why the action's `ios` WDA cache is off below.
+      # iOS legs: the WebDriverAgent products get their own cache (ADR 01116).
+      # The weekly dd-cache entry never re-saves once its key hits, so products
+      # for a driver or Xcode newer than the Sunday warm-up were rebuilt in
+      # every job all week. Restore the newest entry for this Xcode; the
+      # prebuild then reuses matching products or builds new ones, and the
+      # save step stores a changed product set under its own key.
+      - name: Read the Xcode version
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: xcode
+        shell: bash
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          # No entry has this exact key; the prefix picks the newest entry.
+          key: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-latest
+          restore-keys: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+
+      # Prebuild WebDriverAgent into the dd-cache
+      # (docs/design/ios-wda-prebuild.md). Seconds when the restored products
+      # match this driver and Xcode (check-and-skip); one build otherwise.
+      # Sessions then consume the products read-only instead of compiling WDA
+      # inside the first XCUITest session — which is also why the action's
+      # `ios` WDA cache is off below.
       - name: Prebuild WebDriverAgent
         if: runner.os == 'macOS' && matrix.bundle.prebootIos
         run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # `install ios` prunes stale keys, so the product dirs left identify the
+      # product set (one dir per Xcode x driver key).
+      - name: Key the WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-key
+        shell: bash
+        run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          key: ${{ steps.wda-key.outputs.key }}
 
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
@@ -245,7 +309,9 @@ jobs:
       - name: Wait for pre-booted simulator
         if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
         shell: bash
-        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+        # macOS runners have no GNU `timeout`, so the old `timeout 300 …` form
+        # failed instantly and never waited. perl's alarm survives exec.
+        run: perl -e 'alarm shift; exec @ARGV' 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
 
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see
@@ -309,6 +375,21 @@ jobs:
           path: dd-output-${{ matrix.bundle.name }}.json
           retention-days: 3
           if-no-files-found: warn
+
+  # The macOS legs of the iOS bundles, the gate's critical path (ADR 01109).
+  # Same steps as `fixtures` (the anchor), but queued as soon as `select`
+  # finishes, ahead of the legs that wait on `stagger`. Skips itself when
+  # narrowing drops both iOS bundles (an empty matrix is an error otherwise).
+  fixtures-ios:
+    needs: select
+    if: fromJSON(needs.select.outputs.iosLegs).include[0] != null
+    name: ${{ matrix.bundle.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.iosLegs) }}
+    steps: *fixture-steps
 
   # Native app surfaces phase A3b: the real Android PASS coverage. The emulator
   # only boots where hardware acceleration exists — a Linux runner with KVM — so

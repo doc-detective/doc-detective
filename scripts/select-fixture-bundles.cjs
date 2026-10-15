@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Computes the fixture matrix the PR gate should run for a change set (see
 // .github/workflows/fixtures.yml and ADR 01055). This is the SINGLE SOURCE OF
-// TRUTH for the bundle definitions — fixtures.yml builds its matrix from this
-// script's `--matrix` output via fromJSON, so there is no second copy to drift.
+// TRUTH for the bundle definitions and OSes — fixtures.yml builds its matrices
+// from this script's `--legs-ios` / `--legs-rest` output via fromJSON, so there
+// is no second copy to drift.
 //
 // Deliberately conservative: the ONLY narrowing case is a change set confined
 // entirely to fixture GROUP directories — then only the bundles owning the
@@ -18,12 +19,15 @@
 // directories under test/core-artifacts/; the CI-only attributes (timeout,
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
-  { name: "nav-capture", dirs: ["navigation", "capture"] },
-  { name: "interactions", dirs: ["interactions"] },
-  // `reporters` is shell-only (it spawns a nested CLI run), so it needs no
-  // browser or device and rides along with the other fast, headless groups.
-  { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },
-  { name: "proc-sessions", dirs: ["process", "sessions"] },
+  // The fast groups share one job per OS (ADR 01113): each job pays ~3-4 min
+  // of setup, more than these groups' fixtures take, and every extra macOS
+  // job competes with the iOS legs for the 5-slot macOS pool.
+  {
+    name: "general",
+    dirs: ["navigation", "capture", "interactions", "routing", "http", "guards",
+      "reporters", "process", "sessions"],
+    timeout: 30,
+  },
   { name: "recording", dirs: ["recording"] },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },
@@ -79,6 +83,24 @@ function selectMatrix(changedFiles) {
   return BUNDLES.filter((b) => keep === null || keep.has(b.name)).map(toMatrixEntry);
 }
 
+// The runner OSes every bundle runs on.
+const OSES = ["ubuntu-latest", "windows-latest", "macos-latest"];
+
+/**
+ * The OS x bundle legs for a change set, split in two (ADR 01109). `ios` holds
+ * the macOS legs of the prebootIos bundles, the gate's critical path. fixtures.yml
+ * queues them before `rest` so they aren't waiting on macOS slots held by
+ * shorter legs.
+ * @param {string[]} changedFiles
+ * @returns {{ios: {os: string, bundle: object}[], rest: {os: string, bundle: object}[]}}
+ */
+function selectLegs(changedFiles) {
+  const matrix = selectMatrix(changedFiles);
+  const legs = OSES.flatMap((os) => matrix.map((bundle) => ({ os, bundle })));
+  const first = (l) => l.os === "macos-latest" && l.bundle.prebootIos === true;
+  return { ios: legs.filter(first), rest: legs.filter((l) => !first(l)) };
+}
+
 // Returns the selected bundle names in matrix order, or null meaning "not
 // narrowable → all bundles". Null (not an empty array) is the all-signal so an
 // empty change set and a fully-confined-but-unmatched set stay distinct.
@@ -130,8 +152,10 @@ function androidLegsRelevant(changedFiles) {
 }
 
 function main() {
-  const mode = process.argv.includes("--matrix")
-    ? "matrix"
+  const mode = process.argv.includes("--legs-ios")
+    ? "legs-ios"
+    : process.argv.includes("--legs-rest")
+    ? "legs-rest"
     : process.argv.includes("--android-legs")
     ? "android"
     : "names";
@@ -143,12 +167,12 @@ function main() {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    // --matrix: single-line JSON array for a workflow matrix.
+    // --legs-ios / --legs-rest: a single-line {"include": [...]} matrix.
     // --android-legs: "true"/"false" for the KVM-leg `if:` guards.
     // Default: comma names, for humans and any name-only consumer.
     const out =
-      mode === "matrix"
-        ? JSON.stringify(selectMatrix(files))
+      mode === "legs-ios" || mode === "legs-rest"
+        ? JSON.stringify({ include: selectLegs(files)[mode === "legs-ios" ? "ios" : "rest"] })
         : mode === "android"
         ? String(androidLegsRelevant(files))
         : selectBundles(files);
@@ -164,6 +188,8 @@ module.exports = {
   selectBundles,
   selectMatrix,
   androidLegsRelevant,
+  selectLegs,
   toMatrixEntry,
   BUNDLES,
+  OSES,
 };
