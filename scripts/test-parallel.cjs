@@ -91,23 +91,27 @@ async function main() {
       }
     }
   }
+  // Set process.exitCode and return rather than process.exit(), so piped
+  // stdout/stderr flush fully. Nothing is left holding the event loop: the
+  // shards have exited and the servers are stopped.
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   if (interrupted) {
     // 130 = 128 + SIGINT. Killed shards report null, not a real failure.
     console.log(`test:parallel interrupted after ${secs}s`);
-    process.exit(130);
+    process.exitCode = 130;
+    return;
   }
   statuses.forEach((s, i) =>
     console.log(`shard ${i + 1}/${total}: ${s === 0 ? "passed" : `FAILED (exit ${s})`}`)
   );
   console.log(`test:parallel finished in ${secs}s`);
-  process.exit(combinedExit(statuses));
+  process.exitCode = combinedExit(statuses);
 }
 
 if (require.main === module) {
   main().catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   });
 }
 

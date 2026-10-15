@@ -10,6 +10,8 @@ installFreezeAllowance(Mocha, freezeAllowanceMs(process.platform, process.env));
 // checkLink retries 429/5xx with a 1s/2s/4s backoff. Shrink the base so retry
 // tests assert attempt counts and outcomes without the wall-clock wait.
 // Retry-After still takes precedence. Product default stays 1000ms (ADR 01121).
+// Module level, not a before(): it runs once when mocha loads this root-hook
+// file, before any test file is imported or any suite runs.
 _setBaseBackoffMsForTests(10);
 
 // Canonical two-server topology (8092 main / 8093 API) lives in

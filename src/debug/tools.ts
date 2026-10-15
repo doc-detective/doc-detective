@@ -162,24 +162,37 @@ function runWithTimeout(
 
 // The spawned system-tool probes are memoized per process, keyed on the PATH
 // they resolve against: re-spawning six `--version` commands on every dump
-// returns the same answers (ADR 01123). A set with a timed-out probe, or one
-// that rejected, isn't kept, so a transient failure can't stick. `run` is
-// injectable for tests; exported for testing.
+// returns the same answers (ADR 01123). A set in which ANY attempt timed out
+// (including a python3 attempt the python fallback papered over), or one that
+// rejected, isn't kept, so a transient failure can't stick. `probe` and `run`
+// are injectable for tests; both functions are exported for testing.
+type Probe = (name: string, command: string) => Promise<ToolResult>;
+export type SystemProbeSet = { results: ToolResult[]; timedOut: boolean };
+
 const systemProbeMemo = new Map<string, Promise<ToolResult[]>>();
 
-function runSystemProbes(): Promise<ToolResult[]> {
-  return Promise.all([
-    probeTool("npm", "npm --version"),
-    probeTool("npx", "npx --version"),
-    probePython(),
-    probeTool("java", "java -version"),
-    probeTool("git", "git --version"),
-    probeTool("docker", "docker --version"),
+export async function runSystemProbes(
+  probe: Probe = probeTool
+): Promise<SystemProbeSet> {
+  let timedOut = false;
+  const tracked: Probe = async (name, command) => {
+    const result = await probe(name, command);
+    if (result.version.startsWith("<timed out")) timedOut = true;
+    return result;
+  };
+  const results = await Promise.all([
+    tracked("npm", "npm --version"),
+    tracked("npx", "npx --version"),
+    probePython(tracked),
+    tracked("java", "java -version"),
+    tracked("git", "git --version"),
+    tracked("docker", "docker --version"),
   ]);
+  return { results, timedOut };
 }
 
 export function probeSystemTools(
-  run: () => Promise<ToolResult[]> = runSystemProbes
+  run: () => Promise<SystemProbeSet> = () => runSystemProbes()
 ): Promise<ToolResult[]> {
   const env = envWithoutNodeModulesBin();
   const pathKey = Object.keys(env).find((k) => k.toLowerCase() === "path");
@@ -187,10 +200,8 @@ export function probeSystemTools(
   let memo = systemProbeMemo.get(key);
   if (!memo) {
     memo = run().then(
-      (results) => {
-        if (results.some((r) => r.version.startsWith("<timed out"))) {
-          systemProbeMemo.delete(key);
-        }
+      ({ results, timedOut }) => {
+        if (timedOut) systemProbeMemo.delete(key);
         return results;
       },
       (error) => {
@@ -205,24 +216,33 @@ export function probeSystemTools(
 
 // The probe set the debug dump runs. Order is the print order. `cacheDir`
 // (from config) lets the appium probe see cache-installed runtime deps.
+// System-tool results are picked by name, so adding a probe can't shift them.
 export async function probeAllTools(cacheDir?: string): Promise<ToolResult[]> {
-  const [npm, npx, python, java, git, docker] = await probeSystemTools();
+  const byName = new Map((await probeSystemTools()).map((r) => [r.name, r]));
+  const pick = (name: string): ToolResult => {
+    const result = byName.get(name);
+    /* c8 ignore next 3 */
+    if (!result) {
+      throw new Error(`probeAllTools: no "${name}" result from the system probes`);
+    }
+    return result;
+  };
   return [
     { name: "node", version: process.version },
-    npm,
-    npx,
-    python,
-    java,
+    pick("npm"),
+    pick("npx"),
+    pick("python"),
+    pick("java"),
     // Synchronous metadata reads (nothing spawned), so returned directly.
     probeFfmpeg(),
     probeAppium(cacheDir),
-    git,
-    docker,
+    pick("git"),
+    pick("docker"),
   ];
 }
 
-async function probePython(): Promise<ToolResult> {
-  const py3 = await probeTool("python3", "python3 --version");
+async function probePython(probe: Probe = probeTool): Promise<ToolResult> {
+  const py3 = await probe("python3", "python3 --version");
   // This early-return branch is genuinely exercised whenever python3
   // resolves on PATH (confirmed directly: calling probeAllTools() in this
   // environment returns {name:"python", version:"Python 3.x..."} via THIS
@@ -238,19 +258,10 @@ async function probePython(): Promise<ToolResult> {
   if (py3.version !== "<not found>" && !py3.version.startsWith("<timed out")) {
     return { name: "python", version: py3.version };
   }
-  /* c8 ignore start */
-  // The python3 -> python fallback only fires when python3 is genuinely
-  // absent from PATH. `probeTool`'s literal command strings
-  // ("python3 --version") aren't parameterized, so there's no way to
-  // redirect the probe to a fake binary without stubbing `child_process`'s
-  // `spawn` (a NAMED import — unstubbable). Corrupting PATH globally to
-  // hide the real python3 for this one probe would risk destabilizing
-  // every other probeTool()/spawn call sharing the same process env in
-  // this test run (npm/npx/git/docker), so it's intentionally not
-  // attempted here.
-  const py = await probeTool("python", "python --version");
+  // The python3 -> python fallback, for hosts without python3 or where it
+  // timed out. Covered through an injected `probe` in debug-tools-memo.test.js.
+  const py = await probe("python", "python --version");
   return { name: "python", version: py.version, notes: py.notes };
-  /* c8 ignore stop */
 }
 
 function probeFfmpeg(): ToolResult {

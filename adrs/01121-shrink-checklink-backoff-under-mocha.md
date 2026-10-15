@@ -10,10 +10,18 @@ decision-makers: hawkeyexl
 
 `checkLink` retries a 429 or 5xx response up to three times. Without a
 `Retry-After` header it sleeps `1000ms * 2^attempt` between attempts, so
-1s, 2s, then 4s. That is right for real sites. In the mocha suite it isn't:
-`test/checkLink.test.js` spent about 27 of its 28 seconds asleep. Three tests
-paid the full 7s each, and they assert attempt counts and outcomes, not
-elapsed time.
+1s, 2s, then 4s. That is right for real sites. In the mocha suite it isn't.
+Measured locally, `test/checkLink.test.js` took 31.9s wall, and its tests
+reported about 28s. Five tests slept on the computed backoff:
+
+* 7s each for three tests that exhaust all three retries. One expects a FAIL
+  on an unaccepted 429, one passes on the fourth attempt, and one falls back
+  to HEAD.
+* 3s for a test that passes after two 503s.
+* 1s for a test that passes after one 429.
+
+That's 25s. The `Retry-After` test waits about 2s more. These tests assert
+attempt counts and outcomes, not elapsed time.
 
 How can the suite skip that wait without changing the product default or
 adding a knob users could find?
@@ -42,8 +50,8 @@ to `DEFAULT_BASE_BACKOFF_MS` (1000). `_setBaseBackoffMsForTests(ms)` sets it and
 returns the previous value. With no argument it restores 1000. The package
 `exports` map exposes only `.` and `./cli`, so users can't deep-import the
 setter. `src/runtime/heavyDeps.ts`'s `_resetCacheForTests` already uses this
-pattern. `test/hooks.js` sets the base to 10ms for every mocha run, so the
-retry sleeps total 70ms instead of 7s.
+pattern. `test/hooks.js` sets the base to 10ms for every mocha run, so a
+test that exhausts all three retries sleeps 70ms instead of 7s.
 
 ### Consequences
 

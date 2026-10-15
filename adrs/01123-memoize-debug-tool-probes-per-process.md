@@ -40,10 +40,13 @@ Chosen option: **1**.
 `probeSystemTools` caches one promise for the six spawned probes. The key is
 the `PATH` value the probes actually run with, after `envWithoutNodeModulesBin`
 strips the `node_modules/.bin` segments. Concurrent callers share the in-flight
-promise. If any probe in the set timed out, the entry is dropped, so the next
-dump probes again. The `node` version, the ffmpeg metadata read, and the Appium
-metadata read still run on every call, because Appium depends on `cacheDir` and
-reads cost nothing. `probeTool` itself isn't memoized.
+promise. If any attempt in the set timed out, the entry is dropped, so the next
+dump probes again. That includes a `python3` attempt that timed out before the
+`python` fallback answered. A rejected set is dropped too, and the caller still
+sees the error. `probeAllTools` picks each system-tool result by name, not by
+position. The `node` version, the ffmpeg metadata read, and the Appium metadata
+read still run on every call, because Appium depends on `cacheDir` and reads
+cost nothing. `probeTool` itself isn't memoized.
 
 ### Consequences
 
@@ -55,10 +58,12 @@ reads cost nothing. `probeTool` itself isn't memoized.
 
 ### Confirmation
 
-[test/debug-tools-memo.test.js](../test/debug-tools-memo.test.js) asserts that
-a second call returns the memoized system-tool entries in the same order. It
-also asserts that the Appium entry is rebuilt per call, that a changed `PATH`
-re-probes, and that a rejected probe set isn't kept.
+[test/debug-tools-memo.test.js](../test/debug-tools-memo.test.js) drives the
+memo with injected probe results, so no live spawn timing is involved. It
+asserts reuse for an unchanged `PATH` and a re-probe for a changed one. It also
+asserts that timed-out and rejected sets aren't kept, and that a `python3`
+timeout is flagged when the fallback answers. A live call checks the print
+order and that the Appium entry is rebuilt per call.
 
 ## Pros and Cons of the Options
 
