@@ -1,3 +1,23 @@
+## [4.40.2](https://github.com/doc-detective/doc-detective/compare/v4.40.1...v4.40.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* **appium:** report retried session starts ([9d2dfe0](https://github.com/doc-detective/doc-detective/commit/9d2dfe05e2cda84566c5ee700a156c99503ef8b5))
+* **ios:** address review findings on the server pool and WDA launch ([377acc0](https://github.com/doc-detective/doc-detective/commit/377acc0707c73292326535bb86de2d27c18175d6))
+* **ios:** decide app-server reuse at teardown, not over HTTP ([56be1f8](https://github.com/doc-detective/doc-detective/commit/56be1f8d855736819f96edce81c835a9db19b726))
+* **ios:** keep possibly-open sessions' servers out of the pool ([5533908](https://github.com/doc-detective/doc-detective/commit/553390890d5f6bb2f20b7d99dd47e825c60c41ab)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+* **ios:** make a pooled server's release idempotent ([6080c06](https://github.com/doc-detective/doc-detective/commit/6080c06bc62efd54944a3f478df12599f50b39b0)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+* **ios:** use the direct WDA launch only on a known iOS 17+ simulator ([0f22414](https://github.com/doc-detective/doc-detective/commit/0f224145179527c239e6c560d6df715580c41467)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+
+
+### Performance Improvements
+
+* **ios:** launch the prebuilt WebDriverAgent without xcodebuild ([402563d](https://github.com/doc-detective/doc-detective/commit/402563db185402f3eaf763033314249183eec5d1))
+* **ios:** open the Simulator window before the first session ([6e07a76](https://github.com/doc-detective/doc-detective/commit/6e07a76793ceb41bea09f1f900cde5430e28a4a3))
+* **ios:** reuse one Appium server across iOS contexts ([b048285](https://github.com/doc-detective/doc-detective/commit/b048285802d801ed238c28077ba414264eb575c3))
+* **ios:** skip the device log capture Doc Detective never reads ([14fd597](https://github.com/doc-detective/doc-detective/commit/14fd5970db72bf06c360c245672eb4ce8156e211))
+
 ## [4.40.1](https://github.com/doc-detective/doc-detective/compare/v4.40.0...v4.40.1) (2026-10-14)
 
 
