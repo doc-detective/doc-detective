@@ -177,6 +177,17 @@ import {
   useDriversArgs,
   browserPoolDriverPackages,
 } from "./appium.js";
+import {
+  reuseAppiumEnabled,
+  appiumServerKey,
+  createServerCache,
+  takeServer,
+  handBackServer,
+  probeStatus,
+  listSessions,
+  allowSessionDiscovery,
+  APPIUM_WATCHDOG_IMPORT,
+} from "./appiumReuse.js";
 import { contentHash } from "../common/src/detectTests.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -203,6 +214,15 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Idle browser-pool Appium servers kept between runs in this process, only
+// when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
+// killTree is a hoisted function declaration, called only when a server dies.
+const appiumServerCache = createServerCache({
+  kill: (server) => killTree(server.process?.pid),
+  idleMs: 60000,
+  maxIdle: 4,
+});
+
 export {
   runSpecs,
   runViaApi,
@@ -228,6 +248,7 @@ export {
   buildAutoRecordStep,
   specIsRouted,
   killTree,
+  appiumServerCache,
   jobDisplayResources,
   buildWarmPlanDeps,
   warmBrowserInstall,
@@ -1837,6 +1858,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+  // Set only when this run takes and hands back idle servers (ADR 01125).
+  // Xvfb runs never reuse: their displays die with the run.
+  let reuseKey: string | undefined;
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
@@ -1873,25 +1897,47 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         process.env.APPIUM_HOME!,
         browserPoolDriverPackages(process.platform)
       );
+      // Every desktop pool server allows the geckodriver-path insecure
+      // feature, not just the ones a Firefox context lands on: these servers
+      // are shared across contexts and cross-browser fallback can route a
+      // chrome-authored context to Firefox mid-run, so gating the flag on the
+      // run's authored browsers would leave the capability illegal exactly
+      // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+      let serverArgs = [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers];
+      if (reuseAppiumEnabled() && !useXvfbDisplays) {
+        // Hand-back must be able to list leftover sessions.
+        serverArgs = allowSessionDiscovery(serverArgs);
+        reuseKey = appiumServerKey({
+          entry: appiumEntry,
+          args: serverArgs,
+          env: process.env,
+          appiumHome: process.env.APPIUM_HOME!,
+          packages: ["appium", ...browserPoolDriverPackages(process.platform)],
+        });
+      }
       for (let i = 0; i < serverCount; i++) {
+        const reused = reuseKey
+          ? await takeServer(appiumServerCache, reuseKey, { isReady: probeStatus })
+          : undefined;
+        if (reused) {
+          log(config, "debug", `Reusing idle Appium server on port ${reused.port}.`);
+          appiumServers.push(reused);
+          continue;
+        }
         let display: string | undefined;
         if (useXvfbDisplays) {
           display = xvfbDisplay(i);
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        // Every desktop pool server allows the geckodriver-path insecure
-        // feature, not just the ones a Firefox context lands on: these servers
-        // are shared across contexts and cross-browser fallback can route a
-        // chrome-authored context to Firefox mid-run, so gating the flag on the
-        // run's authored browsers would leave the capability illegal exactly
-        // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+        // A reusable server exits once this process dies (ADR 01125).
         const server = await spawnAppiumServer(
           appiumEntry,
           config,
           display,
           undefined,
-          [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
+          serverArgs,
+          reuseKey ? ["--import", APPIUM_WATCHDOG_IMPORT] : undefined
         );
         appiumServers.push(server);
         const wait = appiumIsReady(server.port);
@@ -2260,8 +2306,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // (shells out to `taskkill /T /F` on Windows); firing it without
     // awaiting let the run finish before the browser was really dead,
     // orphaning it.
+    // With reuse on (ADR 01125), a server with no sessions left goes back to
+    // the cache instead; one that still has a session is killed the same way.
     await Promise.all(
-      appiumServers.map((server) => {
+      appiumServers.map(async (server) => {
+        if (reuseKey) {
+          const outcome = await handBackServer(appiumServerCache, reuseKey, server, {
+            listSessions,
+          });
+          log(
+            config,
+            "debug",
+            outcome === "parked"
+              ? `Keeping idle Appium server on port ${server.port} for reuse.`
+              : `Closed Appium server on port ${server.port}`
+          );
+          return;
+        }
         log(config, "debug", `Closing Appium server on port ${server.port}`);
         return killTree(server.process?.pid);
       })
@@ -5929,7 +5990,9 @@ async function spawnAppiumServer(
   extraEnv?: Record<string, string>,
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
-  extraArgs?: string[]
+  extraArgs?: string[],
+  // Node args placed before the entry, e.g. the reuse watchdog (ADR 01125).
+  nodeArgs?: string[]
 ): Promise<{ port: number; process: any; display?: string }> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
@@ -5948,7 +6011,15 @@ async function spawnAppiumServer(
       : process.env;
   const proc: any = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(port), ...(extraArgs ?? [])],
+    [
+      ...(nodeArgs ?? []),
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(port),
+      ...(extraArgs ?? []),
+    ],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),

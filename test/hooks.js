@@ -6,6 +6,11 @@ import { freezeAllowanceMs, installFreezeAllowance } from "./freeze-allowance.js
 // timeout a fixed cushion there so a freeze can't fail an innocent test.
 installFreezeAllowance(Mocha, freezeAllowanceMs(process.platform, process.env));
 
+// The suite reuses idle browser-pool Appium servers across runTests calls
+// (ADR 01125), saving ~1.6s per browser run. An explicit value wins, so
+// DOC_DETECTIVE_REUSE_APPIUM=false runs the suite on the default path.
+process.env.DOC_DETECTIVE_REUSE_APPIUM ??= "true";
+
 // Canonical two-server topology (8092 main / 8093 API) lives in
 // test/server/instances.js so the standalone CI launcher (test/server/start.js)
 // stays in lockstep with this mocha harness — the per-feature Action jobs must

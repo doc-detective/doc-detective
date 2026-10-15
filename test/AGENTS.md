@@ -5,6 +5,7 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
 
 ## Local environment gotchas
 
+- **The suite reuses Appium servers.** [hooks.js](hooks.js) sets `DOC_DETECTIVE_REUSE_APPIUM=true` unless it's already set, so browser runs share idle browser-pool servers ([ADR 01125](../adrs/01125-opt-in-appium-server-reuse-across-runs.md)). The variable is test-only. To run on the user default path, set `DOC_DETECTIVE_REUSE_APPIUM=false`.
 - **Port 8092 collisions.** The mocha hooks ([hooks.js](hooks.js)) start the test servers via
   `createTestServers()`, whose ports are hardcoded in [server/instances.js](server/instances.js)
   (8092 main, 8093 API). On `EADDRINUSE` the hooks log `Test server (<name>) already running` and
