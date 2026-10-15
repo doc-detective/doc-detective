@@ -131,6 +131,14 @@ describe("Appium server reuse (ADR 01125)", function () {
       assert.deepEqual(allowSessionDiscovery(joined), joined);
     });
 
+    it("gives a dangling --allow-insecure the feature instead of adding a second flag", function () {
+      assert.deepEqual(allowSessionDiscovery(["--use-drivers=gecko", "--allow-insecure"]), [
+        "--use-drivers=gecko",
+        "--allow-insecure",
+        "*:session_discovery",
+      ]);
+    });
+
     it("adds the flag when there is none", function () {
       assert.deepEqual(allowSessionDiscovery(["--use-drivers=gecko"]), [
         "--use-drivers=gecko",

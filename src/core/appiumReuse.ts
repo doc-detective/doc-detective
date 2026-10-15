@@ -194,7 +194,13 @@ function allowSessionDiscovery(args: string[]): string[] {
     return out;
   }
   const i = out.indexOf("--allow-insecure");
-  if (i === -1 || i + 1 >= out.length) return [...out, "--allow-insecure", feature];
+  if (i === -1) return [...out, "--allow-insecure", feature];
+  // A dangling flag (last arg, or followed by another flag) takes the feature
+  // as its value, so the result never carries two --allow-insecure flags.
+  if (i + 1 >= out.length || out[i + 1].startsWith("--")) {
+    out.splice(i + 1, 0, feature);
+    return out;
+  }
   out[i + 1] = withFeature(out[i + 1]);
   return out;
 }
