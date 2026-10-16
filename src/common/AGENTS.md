@@ -137,6 +137,9 @@ are regenerated:
    Running `compile` alone can copy a **stale** `src/common/src/schemas/schemas.json`. It can
    also copy stale precompiled validators from `src/common/dist/schemas/validators*.cjs`, if
    `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
+   Root `npm run watch` builds `src/common` once at startup, then reruns only `compile` on `.ts`
+   changes. A schema edit during watch leaves the schemas and validators stale. Rerun
+   `npm run build:common`, or restart watch, after editing a schema.
 
 Forgetting #2 has a clear symptom. `src/common` tests pass, but the runner (runTests and core
 fixtures) still validates against the stale schema. A fixture using a newly-added field then fails
