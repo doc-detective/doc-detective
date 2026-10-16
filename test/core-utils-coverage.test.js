@@ -1410,6 +1410,21 @@ describe("core/utils coverage", function () {
       assert.equal(await classifyContextRetry([alive(REAL), alive("data:,")]), null);
     });
 
+    it("does NOT retry an unnavigated primary when the context never navigated", async function () {
+      // A context with no goTo (say, process-surface steps only) legitimately
+      // leaves its browser on `data:,`, so its FAIL is real and must stand
+      // (ADR 01119). Broken sessions still retry regardless.
+      assert.equal(await classifyContextRetry([alive("data:,")], { navigated: false }), null);
+      assert.equal(
+        await classifyContextRetry([dead()], { navigated: false }),
+        "session-died"
+      );
+      assert.equal(
+        await classifyContextRetry([alive("data:,")], { navigated: true }),
+        "unnavigated"
+      );
+    });
+
     it("prefers a dead session over an unnavigated primary", async function () {
       // A dead session is the stronger, more actionable signal; both retry, but
       // only one of them is worth logging as 'never navigated'.

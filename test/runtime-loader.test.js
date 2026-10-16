@@ -1,5 +1,7 @@
 import {
   loadHeavyDep,
+  prefetchHeavyDep,
+  heavyDepPrefetchTarget,
   ensureRuntimeInstalled,
   resolveHeavyDepPath,
   resolveHeavyDepPathInCache,
@@ -878,6 +880,102 @@ describe("runtime/loader", function () {
         deps: { spawn: makeFakeSpawner(), logger: () => {} },
       });
       expect(fs.existsSync(manifestDir)).to.equal(false);
+    });
+  });
+
+  // ADR 01135: the runner starts heavy imports while Appium boots, so the
+  // import cost overlaps the idle readiness wait instead of following it.
+  describe("prefetchHeavyDep", function () {
+    // A throwaway CJS package in this test's runtime cache whose body runs
+    // `body` on evaluation.
+    function seedCachePackage(name, body) {
+      const runtimeDir = getRuntimeDir({ cacheDir: tmpRoot });
+      fs.mkdirSync(path.join(runtimeDir, "node_modules", name), { recursive: true });
+      fs.writeFileSync(
+        path.join(runtimeDir, "package.json"),
+        JSON.stringify({ name: "rt-cache", private: true, version: "0.0.0" })
+      );
+      fs.writeFileSync(
+        path.join(runtimeDir, "node_modules", name, "package.json"),
+        JSON.stringify({ name, version: "1.0.0", main: "index.js" })
+      );
+      fs.writeFileSync(path.join(runtimeDir, "node_modules", name, "index.js"), body);
+    }
+    const tick = () => new Promise((r) => setTimeout(r, 0));
+    async function waitFor(predicate) {
+      for (let i = 0; i < 200 && !predicate(); i++) await tick();
+    }
+    let rejections;
+    const onRejection = (reason) => rejections.push(reason);
+    beforeEach(function () {
+      rejections = [];
+      process.on("unhandledRejection", onRejection);
+    });
+    afterEach(function () {
+      process.off("unhandledRejection", onRejection);
+    });
+
+    it("starts evaluating the dep in the background and returns synchronously", async function () {
+      seedCachePackage(
+        "dd-prefetch-flag",
+        "globalThis.__ddPrefetchFlag = (globalThis.__ddPrefetchFlag || 0) + 1;"
+      );
+      delete globalThis.__ddPrefetchFlag;
+      // Fire-and-forget: the call itself completes without throwing, and
+      // the evaluation lands afterwards.
+      expect(() => prefetchHeavyDep("dd-prefetch-flag", { cacheDir: tmpRoot })).to.not.throw();
+      await waitFor(() => globalThis.__ddPrefetchFlag === 1);
+      expect(globalThis.__ddPrefetchFlag, "prefetch evaluation did not land in 200 ticks").to.equal(1);
+      // The later real load shares the module-map entry: no second evaluation.
+      await loadHeavyDep("dd-prefetch-flag", { ctx: { cacheDir: tmpRoot }, autoInstall: false });
+      expect(globalThis.__ddPrefetchFlag, "the later load re-evaluated the prefetched module").to.equal(1);
+      delete globalThis.__ddPrefetchFlag;
+    });
+
+    it("a failing early import rejects nothing itself and surfaces at the real load", async function () {
+      seedCachePackage("dd-prefetch-boom", "throw new Error('dd-prefetch-boom at eval');");
+      prefetchHeavyDep("dd-prefetch-boom", { cacheDir: tmpRoot });
+      for (let i = 0; i < 20; i++) await tick();
+      expect(rejections).to.deep.equal([]);
+      let caught;
+      try {
+        await loadHeavyDep("dd-prefetch-boom", { ctx: { cacheDir: tmpRoot }, autoInstall: false });
+      } catch (err) {
+        caught = err;
+      }
+      expect(String(caught?.message)).to.match(/dd-prefetch-boom at eval/);
+    });
+
+    it("is a silent no-op for a dep that isn't installed (never installs)", async function () {
+      expect(() =>
+        prefetchHeavyDep("@doc-detective/definitely-not-installed", { cacheDir: tmpRoot })
+      ).to.not.throw();
+      for (let i = 0; i < 20; i++) await tick();
+      expect(rejections).to.deep.equal([]);
+      expect(
+        fs.existsSync(path.join(getRuntimeDir({ cacheDir: tmpRoot }), "node_modules"))
+      ).to.equal(false);
+    });
+
+    it("targets webdriverio's deferred node.js graph, which exists next to its entry", function () {
+      // webdriverio's CJS entry defers its real module graph to `./node.js`,
+      // imported only inside remote(). Prefetching just the entry would warm
+      // ~3 ms of a ~350 ms load, so the target must be that sibling. Fails
+      // loudly if a webdriverio upgrade moves it.
+      const entry = resolveHeavyDepPath("webdriverio");
+      if (!entry) this.skip();
+      const target = heavyDepPrefetchTarget("webdriverio");
+      expect(target).to.equal(path.join(path.dirname(entry), "node.js"));
+      expect(fs.existsSync(target)).to.equal(true);
+      expect(fs.readFileSync(entry, "utf8")).to.include('import("./node.js")');
+    });
+
+    it("targets other deps' resolved entry", function () {
+      if (!resolveHeavyDepPath("pngjs")) this.skip();
+      expect(heavyDepPrefetchTarget("pngjs")).to.equal(resolveHeavyDepPath("pngjs"));
+      expect(heavyDepPrefetchTarget("@doc-detective/definitely-not-installed")).to.equal(
+        null
+      );
     });
   });
 });

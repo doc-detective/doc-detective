@@ -8,7 +8,7 @@ import fs from "node:fs";
 // optional package on disk — webdriverio is an optionalDependency that npm may
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
-import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { resolveTheme } from "./annotations/model.js";
 import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
@@ -740,6 +740,13 @@ export function browserJobCount(jobs: any[]): number {
   if (!Array.isArray(jobs)) return 0;
   return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
     .length;
+}
+
+// Whether a job's context has a screenshot step: gates the sharp prefetch
+// during Appium's boot (ADR 01135).
+export function jobTakesScreenshot(job: any): boolean {
+  const steps = job?.context?.steps;
+  return Array.isArray(steps) && steps.some((s: any) => s?.screenshot !== undefined);
 }
 
 // Evaluate a context's `requires` capability gate. Returns null when the gate
@@ -1913,6 +1920,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         wait.catch(() => {});
         readinessWaits.push(wait);
       }
+      if (sizingJobs.some(jobTakesScreenshot))
+        prefetchHeavyDep("sharp", { cacheDir: config?.cacheDir });
       await Promise.all(readinessWaits);
       for (const server of appiumServers) {
         log(config, "debug", `Appium is ready on port ${server.port}.`);
@@ -5212,7 +5221,11 @@ async function runContext({
       // retry warning the wrapper already logs. The alive-but-unusable cases do,
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
-      const retryReason = await classifyContextRetry(probeDrivers);
+      const retryReason = await classifyContextRetry(probeDrivers, {
+        navigated: contextReport.steps.some(
+          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
+        ),
+      });
       if (retryReason) {
         sessionDiedMidRun = true;
         if (retryReason === "page-broken") {
@@ -5974,6 +5987,8 @@ async function spawnAppiumServer(
   });
   proc.stdout.on("data", () => {});
   proc.stderr.on("data", () => {});
+  // Overlap webdriverio's ~350 ms import with Appium's boot (ADR 01135).
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
   return { port, process: proc, display };
 }
 
@@ -6383,6 +6398,7 @@ async function getRunner(options: any = {}) {
   appium.on("error", (err: any) => {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir }); // ADR 01135
 
   // Wait for Appium to be ready. Same kill-on-throw guard as in
   // runSpecs above — without it, a startup timeout would leave an
