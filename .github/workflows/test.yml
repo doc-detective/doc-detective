@@ -61,28 +61,57 @@ jobs:
         # cells' worth of matrix time (Windows/macOS node 22).
         node:
           - 24
-        # Each cell's mocha suite is split into two parallel shard jobs by
-        # scripts/run-test-shard.cjs (deterministic weighted partition of
-        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the 8092/
-        # 8093 test servers per mocha process, so each shard self-provisions;
-        # the coverage-merge job unions the shards' raw-coverage artifacts, and
-        # the union equals the unsharded suite's coverage.
+        # Each cell's mocha suite runs as parallel shard jobs, split by
+        # scripts/run-test-shard.cjs (a deterministic partition of
+        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the
+        # 8092/8093 test servers per mocha process, so each shard provisions
+        # its own. The coverage-merge job unions the shards' raw-coverage
+        # artifacts, and the union equals the unsharded suite's coverage.
+        #
+        # Shard counts (`shards`, ADR 01127): 3 on windows-latest, whose
+        # mocha step ran 6-11 min per shard, the longest in the grid. At 3
+        # shards the runner packs by measured seconds and splits core-core
+        # by top-level describe. 2 everywhere else: macOS runners are a
+        # 5-slot pool shared with the iOS fixture legs, so a third job's
+        # setup costs more there than it saves.
         shard:
           - 1
           - 2
-        # `include` entries only extend existing combinations when every listed
-        # key matches one, so the node-22 cell must spell out both shards.
+        # Every cell states its shard count. It can't be a base `shards`
+        # dimension, because `include` can't overwrite a base value, so
+        # Windows could never say 3. The first three entries extend the base
+        # cells per OS. The rest add cells (Windows shard 3, node 22), and
+        # spell out every key, since `include` only extends a combination
+        # when every listed key matches it.
         include:
+          - os: ubuntu-latest
+            shards: 2
+          - os: macos-latest
+            shards: 2
+          - os: windows-latest
+            shards: 3
+          - os: windows-latest
+            node: 24
+            shard: 3
+            shards: 3
           - os: ubuntu-latest
             node: 22
             shard: 1
+            shards: 2
           - os: ubuntu-latest
             node: 22
             shard: 2
+            shards: 2
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      # Windows: keep npm's cache on D:, before setup-node restores into it.
+      # C: is slow at small-file I/O (see the dd-cache action).
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
 
       - uses: actions/setup-node@v4
         with:
@@ -100,8 +129,13 @@ jobs:
         with:
           node: ${{ matrix.node }}
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      # build:ci = build minus regenerating the committed, type-only
+      # generated types, so the JS under test is identical. The two
+      # coverage-ratchet jobs below (both required) still run the full
+      # build, so a stale committed type still fails the gate
+      # (test/build-ci-contract.test.js).
+      - run: npm run build:ci
       # Pre-warm the lazy-install cache so tests that drive Chrome through
       # the lower-level runSpecs/getRunner paths (and therefore bypass the
       # JIT pre-flight in runTests) still find a browser. The published
@@ -120,7 +154,7 @@ jobs:
       # mocha half: it runs this shard's deterministic slice of test/*.test.js
       # (the two slices union to exactly the full glob — asserted by
       # test/run-test-shard.test.js).
-      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} 2
+      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} ${{ matrix.shards }}
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
@@ -187,7 +221,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run build:common
       # build:common no longer runs the suite (it builds artifacts only, so the
       # ~40 fixture/shard jobs that just need dist do not pay for — or flake on —
@@ -236,7 +270,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       # Build so dist/**/*.js + sourcemaps + src/** exist: c8 report remaps each
       # raw dist entry through its sourcemap back to the original src/** file,
       # exactly as the single-OS job did.
