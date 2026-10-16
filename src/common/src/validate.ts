@@ -1,19 +1,23 @@
-import { schemasReferenced } from "./schemas/referenced.js";
-import { ValidateFunction, ErrorObject } from "ajv";
-import { createAjv } from "./ajv.js";
+import type { ValidateFunction, ErrorObject } from "ajv";
+import validators from "./schemas/validators.cjs";
 
-// The MUTATING validator: `useDefaults` fills in schema defaults and
-// `coerceTypes` rewrites values in place. Both mutate the data they validate,
-// which is why every validation runs against a clone.
-const ajv = createAjv({ mutating: true });
+// Validators are precompiled at build time from `schemasReferenced` ($refs
+// intact) by Ajv standalone code generation (createAjv/standaloneValidatorFiles
+// in ajv.ts, written by scripts/generateValidators.js), so no schema compiles
+// at runtime and the Ajv compiler never loads. test/precompiledValidators.test.js
+// proves they validate exactly like the runtime-compiled schemas. ADR 01138.
+//
+// The MUTATING set: `useDefaults` fills in schema defaults and `coerceTypes`
+// rewrites values in place. Both mutate the data they validate, which is why
+// every validation runs against a clone.
+const ajv = validators.mutating;
 
-// A second, NON-mutating Ajv used only to *probe* which compatible schema an
+// A second, NON-mutating set used only to *probe* which compatible schema an
 // object matches. It has `useDefaults`/`coerceTypes` OFF, so it never touches
 // the data — that lets us try every candidate schema against the caller's
 // object directly, with no per-candidate clone. The winning schema is then
-// re-run through the mutating `ajv` on a single clone to reproduce the exact
-// defaults/coercions the old code produced. Schemas compile lazily on first
-// use, so this instance only pays for the candidates actually probed.
+// re-run through the mutating set on a single clone to reproduce the exact
+// defaults/coercions the old code produced. Loaded on first probe.
 //
 // It deliberately runs without `useDefaults`, so neither static nor dynamic
 // (`dynamicDefaults`) defaults apply. A consequence: any compatible schema whose VALIDITY depends on a default —
@@ -22,36 +26,17 @@ const ajv = createAjv({ mutating: true });
 // match this probe and instead falls to the mutating-probe fallback in
 // `validate()`. That fallback replays the exact old behavior, so this is a
 // correctness-preserving performance split, not a gap.
-const ajvCheck = createAjv({ mutating: false });
+const ajvCheck = () => validators.loadCheck();
 
 /**
- * Look up a schema's validator. Compiles from `schemasReferenced` ($refs
- * intact) rather than the dereferenced `schemas`, so a subschema shared by
- * several schemas (step_v3 inside test_v3, spec_v3, config_v3, ...) compiles
- * once instead of once per inlined copy. `schemasReferenced` is built to
- * validate identically (test/schemasReferenced.test.js). The set is registered
- * on first use, not at import. Unknown keys return undefined without reaching
- * Ajv, whose plain-object lookup throws on inherited names like `constructor`.
+ * Look up a schema's precompiled validator. Unknown keys, including inherited
+ * names like `constructor`, return undefined.
  */
-const registered = new WeakSet<object>();
-
 function getValidator(
-  instance: typeof ajv,
+  set: Record<string, ValidateFunction>,
   key: string,
 ): ValidateFunction | undefined {
-  if (!Object.hasOwn(schemasReferenced.schemas, key)) return undefined;
-  if (!registered.has(instance)) {
-    // Mark first: if an addSchema throws, later calls fail on the missing
-    // schema instead of re-adding and masking the error with "already exists".
-    // That leaves the instance registered-but-incomplete for good, which is
-    // intended: the bundle is a build artifact, so a throw here is a build bug.
-    registered.add(instance);
-    for (const [name, schema] of Object.entries(schemasReferenced.schemas)) {
-      instance.addSchema(schema, name);
-    }
-    instance.addSchema(schemasReferenced.noDefaults);
-  }
-  return instance.getSchema(key);
+  return Object.hasOwn(set, key) ? set[key] : undefined;
 }
 
 /**
@@ -230,10 +215,10 @@ export function validate({
     // is always a mutating match too, so this fast path is exact for any
     // candidate whose validity doesn't depend on a default/coercion.
     let matchedSchemaKey = compatibleSchemasList.find((key) => {
-      // Every compatible key is a known schema (getValidator registers it on
-      // first use), so the validator is always defined — assert it, matching the
+      // Every compatible key is a known schema with a precompiled validator,
+      // so the validator is always defined — assert it, matching the
       // `matchedCheck!` non-null assertion below.
-      const probe = getValidator(ajvCheck, key)!;
+      const probe = getValidator(ajvCheck(), key)!;
       return probe(object) as boolean;
     });
     if (!matchedSchemaKey) {
