@@ -1,3 +1,27 @@
+## [4.40.4](https://github.com/doc-detective/doc-detective/compare/v4.40.3...v4.40.4) (2026-10-16)
+
+
+### Bug Fixes
+
+* **find:** honor a matching selector first in shorthand find ([cb8992c](https://github.com/doc-detective/doc-detective/commit/cb8992c40760389a305fd57764b9e9928a2664da))
+* **find:** keep text-first precedence for shorthand find ([df25bec](https://github.com/doc-detective/doc-detective/commit/df25bec5f77b4a0e4577138ae245eeec2c1a612e))
+* **find:** make regex find linear and poll instead of sleeping ([e53b4b2](https://github.com/doc-detective/doc-detective/commit/e53b4b2388b2259a35c2325ac4f8076dad782596))
+* **find:** quote shorthand id/testid lookups as XPath literals ([5918de5](https://github.com/doc-detective/doc-detective/commit/5918de5c45333412d1b84bdc54a76d400518fd0c))
+* **find:** re-check higher regex scans before accepting a lower hit ([4497fd8](https://github.com/doc-detective/doc-detective/commit/4497fd88b0f6246c4d10ffe331c41a7a3a7348dc)), closes [div#messages](https://github.com/div/issues/messages)
+* **find:** stop shorthand find/click from waiting out the full timeout ([fb287fb](https://github.com/doc-detective/doc-detective/commit/fb287fb48db0c72c8e55788753123dbc784dac58))
+
+
+### Performance Improvements
+
+* **common:** precompile validators with Ajv standalone code ([55ad52e](https://github.com/doc-detective/doc-detective/commit/55ad52e00ab1376f1bf971078fd86502caffb304))
+* **detect:** dedup qualified input files with a Set ([def7827](https://github.com/doc-detective/doc-detective/commit/def7827e5330b6711557dd0c184fd9eb41d43564))
+* **detect:** log the detected-spec dump at debug, not info ([62c4b84](https://github.com/doc-detective/doc-detective/commit/62c4b840287d243f9d5ae07b0c6adfdce63d03d9))
+* **runCode:** resolve relative PATH entries against cwd in the node check ([29f7b6c](https://github.com/doc-detective/doc-detective/commit/29f7b6cc33ac47cfeea6c71380e15a4878e02e5f))
+* **runCode:** skip the node --version probe when PATH's node is this node ([fc24077](https://github.com/doc-detective/doc-detective/commit/fc24077ae76208beaf59301e8e2e248211d11ab8))
+* **runner:** prefetch webdriverio and sharp while Appium boots ([944b4d0](https://github.com/doc-detective/doc-detective/commit/944b4d0458d9b0c4292a18832aa86d497226b556))
+* **windows-bash:** find git on PATH in-process instead of where.exe ([7a305dc](https://github.com/doc-detective/doc-detective/commit/7a305dc4bc4f6dad0b46af00a9fa8cb53463fd91))
+* **windows-bash:** match where.exe with PATHEXT unset; pin bare-name parity ([8eded48](https://github.com/doc-detective/doc-detective/commit/8eded487687a3d7c958a349d5682138b60a1b115))
+
 ## [4.40.3](https://github.com/doc-detective/doc-detective/compare/v4.40.2...v4.40.3) (2026-10-16)
 
 
