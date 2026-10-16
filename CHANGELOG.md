@@ -1,3 +1,11 @@
+## [4.40.3](https://github.com/doc-detective/doc-detective/compare/v4.40.2...v4.40.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **browsers:** launch the browser build installed.json records ([709150a](https://github.com/doc-detective/doc-detective/commit/709150a225818981f8fe0de20948fafd8bb50f9e))
+* **retries:** don't retry a context as unnavigated when it never ran a goTo ([7a1786a](https://github.com/doc-detective/doc-detective/commit/7a1786a2670723939c3dc027f85715296f615b22))
+
 ## [4.40.2](https://github.com/doc-detective/doc-detective/compare/v4.40.1...v4.40.2) (2026-10-15)
 
 
