@@ -7,7 +7,7 @@ The `swipe` action moves a virtual finger (or pointer) across a browser or app s
 
 `swipe` is the movement subset of [`dragAndDrop`](draganddrop). `dragAndDrop` locates two elements and moves between them, while `swipe` moves between two points. You author those points directly, or Doc Detective computes them from a direction shorthand.
 
-**The direction is the finger's motion.** Swiping `up` moves content up, revealing content further down the page. That's the gesture you make to read more. Swiping `left` reveals content to the right, such as the next carousel card.
+**The direction is the finger's motion.** Swiping `up` moves content up, revealing content further down the page. That's the gesture you make to read more. Swiping `left` reveals content to the right, such as a carousel card waiting past the right edge.
 
 ## Forms
 
@@ -58,6 +58,74 @@ Point coordinates are pixels from the surface's top-left corner. That origin is 
 | `surface` | string or object | The browser or app surface to swipe. Omit to act on the active surface (the most recently opened, focused, or explicitly targeted browser tab or app window). App surfaces use the object form (`{ "app": "…" }`). On Windows/macOS, add a `window` selector to swipe a specific window of the app (see [App windows](find#app-windows)). |
 
 See the [swipe schema reference](/reference/schemas/swipe) for the full shapes.
+
+## Examples
+
+The docs tests don't run these examples, because the test fixtures don't include a browser surface or app that responds to swipes. For runnable forms, see [Forms](#forms).
+
+### Swipe down, left, or right
+
+Swap `direction` for `down`, `left`, or `right`. `down` reveals content above, and `right` reveals content to the left. With no `distance`, a directional swipe covers half the surface (`0.5`):
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Swipe left to reveal the carousel card to the right",
+          "swipe": { "direction": "left" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Swipe a specific surface
+
+Set `surface` to swipe outside the active surface: a browser tab, or an app window on Windows or macOS. Set `duration` (default `500` ms) to slow the gesture:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Slowly swipe down 30% of the gallery tab",
+          "swipe": {
+            "direction": "down",
+            "distance": 0.3,
+            "duration": 800,
+            "surface": { "browser": "chrome", "tab": "gallery" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+A point-to-point swipe takes the same `surface`:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Drag across the app window from left to right",
+          "swipe": {
+            "from": { "x": 40, "y": 300 },
+            "to": { "x": 360, "y": 300 },
+            "surface": { "app": "myapp" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Surface behavior
 
