@@ -238,9 +238,9 @@ describe("findStrategies coverage (phase 13)", function () {
   // --- findElementByShorthand: exact-match path -------------------------
 
   describe("findElementByShorthand (exact match)", function () {
-    it("honors precedence when every strategy matches (selector first)", async function () {
-      // driver.$ resolves the same element for every query; the selector
-      // wins by precedence (selector > elementText > …, ADR 01130).
+    it("finds by elementText and honors precedence over other strategies", async function () {
+      // driver.$ resolves the same element for every query; textResult wins
+      // by precedence (elementText is checked first).
       const el = makeElement({ elementId: "found" });
       const driver = makeDriver({ $: () => Promise.resolve(el) });
       const res = await findElementByShorthand({
@@ -249,7 +249,7 @@ describe("findStrategies coverage (phase 13)", function () {
         driver,
       });
       assert.equal(res.element, el);
-      assert.equal(res.foundBy, "selector");
+      assert.equal(res.foundBy, "elementText");
     });
 
     it("falls through to selector when text/aria/id/testId queries fail", async function () {

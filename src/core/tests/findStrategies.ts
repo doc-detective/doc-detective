@@ -123,8 +123,15 @@ async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern:
 }
 
 async function findElementByShorthand({ string, timeout = 5000, driver }: { string: any; timeout?: number; driver: any }) {
-  // Find an element based on a string that could be a selector, text, aria label, id, or test id
-  // Exact match precedence: selector > elementText > elementAria > elementId > elementTestId
+  // Find an element based on a string that could be a selector, text, aria
+  // label, id, or test id.
+  // - Exact match (ADR 01130): elementText > elementAria > elementId >
+  //   elementTestId > selector. Text wins over the selector on purpose: a bare
+  //   word like "Title" or "Search" is also a CSS type selector for an HTML
+  //   element, and must keep finding the element with that text.
+  // - `/regex/`: a regex match against an element's own text (reported as
+  //   foundBy "selector") > aria-label, then text, of every element
+  //   ("elementAria") > id ("elementId") > data-testid ("elementTestId").
 
   // If regex, find element by regex across all attribute types
   if (string.startsWith("/") && string.endsWith("/")) {
@@ -172,9 +179,7 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
   // per-strategy `waitForExist({ timeout })` would make every strategy that
   // never matches burn the whole timeout before precedence could be applied.
   const textLiteral = xpathLiteral(normalizeText(string));
-  // Listed in precedence order: selector > elementText > elementAria >
-  // elementId > elementTestId. A matching selector is the most specific signal
-  // an author can give, so it wins (ADR 01130).
+  // Listed in lookup order; `precedence` below decides the winner.
   const strategies: { foundBy: string; query: string; dropped?: boolean }[] = [
     { foundBy: "selector", query: string },
     {
@@ -193,6 +198,9 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     { foundBy: "elementId", query: `//*[@id=${xpathLiteral(string)}]` },
     { foundBy: "elementTestId", query: `//*[@data-testid=${xpathLiteral(string)}]` },
   ];
+  // Indexes into `strategies`, highest first: elementText > elementAria >
+  // elementId > elementTestId > selector.
+  const precedence = [1, 2, 3, 4, 0];
   // wdio's `$` resolves an element without an `elementId` when nothing matches
   // yet; that strategy is polled again. A lookup that throws gives that
   // strategy up for the rest of the call, as the old per-strategy `.catch`
@@ -210,9 +218,7 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
   // Zero-timeout existence check: the element must still be there, as the old
   // `waitForExist` guaranteed. It doesn't wait.
   const confirmed = (el: any) =>
-    Promise.resolve()
-      .then(() => el.waitForExist({ timeout: 0 }))
-      .then(
+    el.waitForExist({ timeout: 0 }).then(
       () => true,
       () => false
     );
@@ -223,19 +229,20 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     const found = await Promise.all(
       strategies.map((s) => (s.dropped ? null : lookup(s)))
     );
-    for (let i = 0; i < strategies.length; i++) {
+    for (let p = 0; p < precedence.length; p++) {
+      const i = precedence[p];
       if (!found[i] || !(await confirmed(found[i]))) continue;
       // A lower-precedence hit: look the higher strategies up once more
       // before accepting it, so one that rendered a moment later on this pass
-      // (a selector, above all) still wins. One extra lookup, never a wait.
+      // still wins, as it did when every strategy waited out the timeout.
+      // One extra lookup, never a wait.
+      const above = precedence.slice(0, p);
       const higher = await Promise.all(
-        strategies
-          .slice(0, i)
-          .map((s) => (s.dropped ? null : lookup(s)))
+        above.map((j) => (strategies[j].dropped ? null : lookup(strategies[j])))
       );
-      for (let h = 0; h < higher.length; h++) {
+      for (let h = 0; h < above.length; h++) {
         if (higher[h] && (await confirmed(higher[h]))) {
-          return { element: higher[h], foundBy: strategies[h].foundBy };
+          return { element: higher[h], foundBy: strategies[above[h]].foundBy };
         }
       }
       return { element: found[i], foundBy: strategies[i].foundBy };

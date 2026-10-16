@@ -1,6 +1,6 @@
 {
   "specId": "findShorthandStrategies",
-  "description": "String-shorthand find/click resolves through every strategy (selector, elementText, elementAria, elementId, elementTestId) by polling all of them together and returning as soon as one matches (ADR 01130). Precedence between strategies present at the same time is selector > elementText > elementAria > elementId > elementTestId. The not-found permutation (FAIL after the full timeout) can't be a fixture under the PASS/SKIPPED gate; core-core.test.js covers it.",
+  "description": "String-shorthand find/click resolves through every strategy (elementText, elementAria, elementId, elementTestId, selector) by polling all of them together and returning as soon as one matches (ADR 01130). Precedence between strategies present at the same time is elementText > elementAria > elementId > elementTestId > selector. The not-found permutation (FAIL after the full timeout) can't be a fixture under the PASS/SKIPPED gate; core-core.test.js covers it.",
   "tests": [
     {
       "testId": "find-shorthand-each-strategy",
@@ -40,10 +40,16 @@
           "assertions": "$$outputs.element.tag == \"p\""
         },
         {
-          "stepId": "find-shorthand-precedence-selector-over-text",
-          "description": "\"#shorthand-dual\" is a CSS selector for the <div> and the exact text of a <p>; a matching selector wins.",
+          "stepId": "find-shorthand-precedence-text-over-selector",
+          "description": "\"#shorthand-dual\" is a CSS selector for the <div> and the exact text of a <p>; elementText outranks the selector, so the <p> wins.",
           "find": "#shorthand-dual",
-          "assertions": "$$outputs.element.text == \"dual by selector\""
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "stepId": "find-shorthand-bare-tag-word-finds-text",
+          "description": "\"Title\" is also a CSS type selector for the page's <title>; the element whose text is \"Title\" wins.",
+          "find": "Title",
+          "assertions": "$$outputs.element.tag == \"p\""
         },
         {
           "click": "#start-late"

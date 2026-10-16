@@ -20,10 +20,14 @@
     <span id="shorthand-precedence">id holder</span>
     <p>shorthand-precedence</p>
 
-    <!-- Selector first: "#shorthand-dual" is a CSS selector for the <div> AND
-         the exact text of the <p>. A matching selector wins, so the <div> must. -->
+    <!-- Text over selector: "#shorthand-dual" is a CSS selector for the <div>
+         AND the exact text of the <p>. Text outranks the selector, so the <p>
+         must win (ADR 01130). -->
     <p>#shorthand-dual</p>
     <div id="shorthand-dual">dual by selector</div>
+    <!-- "Title" is also a CSS type selector for the <title> in <head>. The
+         text match must still win. -->
+    <p>Title</p>
 
     <button id="start-late" onclick="scheduleLate()">Start late arrival</button>
 

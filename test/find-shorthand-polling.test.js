@@ -106,10 +106,10 @@ describe("findElementByShorthand polling (ADR 01130)", function () {
       timeout: 3000,
       driver,
     });
-    // selector > elementText > elementAria > elementId > elementTestId.
-    assert.equal(res.foundBy, "selector");
+    // elementText > elementAria > elementId > elementTestId > selector.
+    assert.equal(res.foundBy, "elementText");
 
-    const driver2 = makeDriver({ elementTestId: 0, elementId: 0 });
+    const driver2 = makeDriver({ selector: 0, elementTestId: 0, elementId: 0 });
     const res2 = await findElementByShorthand({
       string: "thing",
       timeout: 3000,
@@ -118,37 +118,37 @@ describe("findElementByShorthand polling (ADR 01130)", function () {
     assert.equal(res2.foundBy, "elementId");
   });
 
-  it("a matching selector beats a text match on the same pass", async function () {
+  it("a text match beats a selector match on the same pass", async function () {
     const driver = makeDriver({ selector: 0, elementText: 0 });
     const res = await findElementByShorthand({
       string: "thing",
       timeout: 3000,
       driver,
     });
-    assert.equal(res.foundBy, "selector");
-    assert.equal(res.element.strategy, "selector");
+    assert.equal(res.foundBy, "elementText");
+    assert.equal(res.element.strategy, "elementText");
   });
 
-  it("text still wins when no selector matches", async function () {
-    const driver = makeDriver({ elementText: 0, elementAria: 0, elementId: 0 });
+  it("the selector still wins when nothing else matches", async function () {
+    const driver = makeDriver({ selector: 0 });
     const res = await findElementByShorthand({
       string: "thing",
       timeout: 3000,
       driver,
     });
-    assert.equal(res.foundBy, "elementText");
+    assert.equal(res.foundBy, "selector");
   });
 
-  it("re-checks the selector before accepting a lower hit, so a selector that appears a moment later on the same pass wins", async function () {
-    // The selector's first lookup misses and its second one hits: the pass
-    // finds text, then the re-check finds the selector.
-    let selectorCalls = 0;
-    const base = makeDriver({ elementText: 0 });
+  it("re-checks higher strategies before accepting a selector hit, so a text match that appears a moment later on the same pass wins", async function () {
+    // The text strategy's first lookup misses and its second one hits: the
+    // pass finds the selector, then the re-check finds the text.
+    let textCalls = 0;
+    const base = makeDriver({ selector: 0 });
     const driver = {
       $: async (query) => {
         const el = await base.$(query);
-        if (el.strategy === "selector" && ++selectorCalls >= 2) {
-          el.elementId = "id-selector";
+        if (el.strategy === "elementText" && ++textCalls >= 2) {
+          el.elementId = "id-elementText";
           el.waitForExist = async () => true;
         }
         return el;
@@ -159,8 +159,8 @@ describe("findElementByShorthand polling (ADR 01130)", function () {
       timeout: 3000,
       driver,
     });
-    assert.equal(res.foundBy, "selector");
-    assert.equal(selectorCalls, 2, "expected exactly one re-check, not a wait");
+    assert.equal(res.foundBy, "elementText");
+    assert.equal(textCalls, 2, "expected exactly one re-check, not a wait");
   });
 
   it("keeps polling until a late element appears", async function () {
@@ -173,13 +173,13 @@ describe("findElementByShorthand polling (ADR 01130)", function () {
   });
 
   it("returns the highest-precedence strategy present when the first match appears (a later higher-precedence match doesn't win)", async function () {
-    // elementText matches immediately; the selector would match at 600ms. The
+    // The selector matches immediately; elementText would match at 600ms. The
     // first poll that finds anything decides, after one re-check (ADR 01130).
-    const driver = makeDriver({ elementText: 0, selector: 600 });
+    const driver = makeDriver({ selector: 0, elementText: 600 });
     const { res, ms } = await timed(() =>
       findElementByShorthand({ string: "thing", timeout: 3000, driver })
     );
-    assert.equal(res.foundBy, "elementText");
+    assert.equal(res.foundBy, "selector");
     assert.ok(ms < 500, `expected an immediate match, took ${ms}ms`);
   });
 
