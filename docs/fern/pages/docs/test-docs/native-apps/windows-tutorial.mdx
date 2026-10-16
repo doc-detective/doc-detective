@@ -203,7 +203,38 @@ The run also leaves new files in the folder, including:
 
 Doc Detective also archives a copy of the results, plus an HTML report, in a `.doc-detective` folder it creates alongside them. You can ignore it for this tutorial. To learn what each reporter writes, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
-If the summary shows the test as skipped instead of passed, check the reason in the results file. See [Troubleshooting](#troubleshooting).
+If Doc Detective can't run the test on your machine, for example because the machine isn't running Windows, it skips the test instead. The summary then counts the test as `Skipped` rather than `Passed`, reports no steps, and ends with a warning:
+
+```text
+===== Doc Detective Results Summary =====
+
+Specs:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Tests:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Contexts:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Steps:
+Total: 0
+Passed: 0
+Failed: 0
+
+⚠️  All items were skipped. No specs passed or failed. ⚠️
+```
+
+A skipped test isn't a failure, so the run still exits with code `0`. But the test didn't check anything either, so a skipped run doesn't mean your doc is correct. To find out why Doc Detective skipped the test, read the reason in the results file. See [Troubleshooting](#troubleshooting).
 
 ## See what a failure looks like
 
@@ -230,7 +261,7 @@ A test is useful because it fails when the app no longer matches the doc. To see
 
 This is what happens when a release renames a control that your docs mention. The failed step points you to the instruction that's now wrong.
 
-By default, `doc-detective` still exits with code `0` when a test fails. To make a failed test return a nonzero exit code, for example in a script or a CI job, add the `--exit-on-fail` flag.
+By default, `doc-detective` still exits with code `0` when a test fails. To make a failed test return a nonzero exit code, for example in a script or a CI job, add the `--exit-on-fail` flag. A skipped test doesn't count as a failure, so it never triggers a nonzero exit code.
 
 ## Put the test in your how-to
 
@@ -275,7 +306,9 @@ A separate spec file works, but a test that sits inside the how-to it checks is 
     doc-detective --input copy-characters.md
     ```
 
-Doc Detective reads the `test` and `step` comments and runs them in order. Each comment must fit on one line. In an MDX file, write the same comments in JSX form, such as `{/* step {...} */}`. Two settings in the `test` comment matter here:
+Doc Detective reads the `test` and `step` comments and runs them in order. The inline test follows the how-to's own steps, so it differs from the spec file in two ways. It clicks **Copy**, as step 3 tells the reader to, instead of only checking that the button exists. It also leaves out the `type` step, because the procedure doesn't ask the reader to type anything.
+
+Each comment must fit on one line. In an MDX file, write the same comments in JSX form, such as `{/* step {...} */}`. Two settings in the `test` comment matter here:
 
 - `runOn` limits the test to Windows, as in the spec file.
 - `detectSteps: false` tells Doc Detective to run only the steps you wrote. Without it, Doc Detective also infers steps from the Markdown itself. See [Detected tests](/docs/test-docs/detected).
