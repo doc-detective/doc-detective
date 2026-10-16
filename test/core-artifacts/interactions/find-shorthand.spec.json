@@ -1,6 +1,6 @@
 {
   "specId": "findShorthandStrategies",
-  "description": "String-shorthand find/click resolves through every strategy (elementText, elementAria, elementId, elementTestId, selector) by polling all of them together and returning as soon as one matches (ADR 01130). Precedence between strategies present at the same time is elementText > elementAria > elementId > elementTestId > selector. The not-found permutation (FAIL after the full timeout) can't be a fixture under the PASS/SKIPPED gate; core-core.test.js covers it.",
+  "description": "String-shorthand find/click resolves through every strategy (selector, elementText, elementAria, elementId, elementTestId) by polling all of them together and returning as soon as one matches (ADR 01130). Precedence between strategies present at the same time is selector > elementText > elementAria > elementId > elementTestId. The not-found permutation (FAIL after the full timeout) can't be a fixture under the PASS/SKIPPED gate; core-core.test.js covers it.",
   "tests": [
     {
       "testId": "find-shorthand-each-strategy",
@@ -38,6 +38,12 @@
           "description": "Text and id both match at once; elementText outranks elementId, so the <p> wins over the <span>.",
           "find": "shorthand-precedence",
           "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "stepId": "find-shorthand-precedence-selector-over-text",
+          "description": "\"#shorthand-dual\" is a CSS selector for the <div> and the exact text of a <p>; a matching selector wins.",
+          "find": "#shorthand-dual",
+          "assertions": "$$outputs.element.text == \"dual by selector\""
         },
         {
           "click": "#start-late"

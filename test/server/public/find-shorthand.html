@@ -20,6 +20,11 @@
     <span id="shorthand-precedence">id holder</span>
     <p>shorthand-precedence</p>
 
+    <!-- Selector first: "#shorthand-dual" is a CSS selector for the <div> AND
+         the exact text of the <p>. A matching selector wins, so the <div> must. -->
+    <p>#shorthand-dual</p>
+    <div id="shorthand-dual">dual by selector</div>
+
     <button id="start-late" onclick="scheduleLate()">Start late arrival</button>
 
     <div id="messages"></div>
