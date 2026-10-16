@@ -41,7 +41,7 @@ async function detectTests({ config }: { config: any }) {
 
   const specs = await parseTests({ config, files });
   log(config, "debug", `SPECS:`);
-  log(config, "info", specs);
+  log(config, "debug", specs); // ADR 01136: debug, like its header
 
   return specs;
 }
@@ -99,11 +99,11 @@ function buildAllowedExtensions(config: any): Set<string> {
   return allowed;
 }
 
-async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: any[]; source: string; allowedExtensions: Set<string> }) {
+async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
   log(config, "debug", `validation: ${source}`);
   const allowed = allowedExtensions;
-  // Already in files array
-  if (files.indexOf(source) >= 0) return false;
+  // Already qualified (Set mirror of qualifyFiles' `files` array: O(1) lookup)
+  if (files.has(source)) return false;
   // Is JSON or YAML but isn't a valid spec-formatted object
   if (
     path.extname(source) === ".json" ||
@@ -262,6 +262,8 @@ async function processDitaMap({ config, source }: { config: any; source: string 
 async function qualifyFiles({ config }: { config: any }) {
   let dirs: string[] = [];
   let files: string[] = [];
+  // Same members as `files`, for the dedup check in isValidSourceFile.
+  const seen = new Set<string>();
   // Each sequence entry carries its phase so config-level beforeAny / afterAll
   // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
   // heretto splices inherit the triggering entry's phase. The per-file phase is
@@ -439,8 +441,9 @@ async function qualifyFiles({ config }: { config: any }) {
     // referenced once relative and once absolute could slip through twice with a
     // mismatched phase.
     const resolved = path.resolve(source);
-    if (isFile && (await isValidSourceFile({ config, files, allowedExtensions, source: resolved }))) {
+    if (isFile && (await isValidSourceFile({ config, files: seen, allowedExtensions, source: resolved }))) {
       files.push(resolved);
+      seen.add(resolved);
       if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
       dirs = [];
@@ -477,10 +480,11 @@ async function qualifyFiles({ config }: { config: any }) {
           }
           if (
             isFile &&
-            (await isValidSourceFile({ config, files, allowedExtensions, source: content }))
+            (await isValidSourceFile({ config, files: seen, allowedExtensions, source: content }))
           ) {
             const resolved = path.resolve(content);
             files.push(resolved);
+            seen.add(resolved);
             if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
           } else if (isDir && config.recursive) {
             dirs.push(content);
