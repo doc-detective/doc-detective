@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "4.40.1",
+  "version": "4.40.2",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -23,6 +23,7 @@
     "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
     "compile": "npm run clean && tsc && node scripts/generateValidators.js && node scripts/createCjsWrapper.js",
     "build": "npm run dereferenceSchemas && npm run generate:types && npm run compile",
+    "build:ci": "npm run dereferenceSchemas && npm run compile",
     "test": "mocha",
     "test:coverage": "c8 mocha",
     "test:coverage:html": "c8 --reporter=html mocha",

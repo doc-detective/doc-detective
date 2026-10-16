@@ -433,6 +433,26 @@ describe("managed WDA locator (session consumption)", function () {
     ).to.equal(String(NOW));
   });
 
+  it("returns the runner app for direct launch only on driver 12+ (ADR 01110)", function () {
+    for (const [driverVersion, direct] of [["12.15.0", true], ["10.8.1", false]]) {
+      const env = makeLocatorEnv();
+      env.options.resolveDriverVersion = () => driverVersion;
+      const key = `xcode-16.4-16F6-driver-${driverVersion}`;
+      const keyDir = path.join(env.wdaRootDir, key);
+      const runnerApp = path.join(keyDir, "DerivedData", "Build", "Products",
+        "Debug-iphonesimulator", "WebDriverAgentRunner-Runner.app");
+      env.fs.files.set(runnerApp, "<app>");
+      env.fs.files.set(path.join(keyDir, "products.json"), JSON.stringify({
+        key, driverVersion, xcode: { version: "16.4", build: "16F6" }, runnerApp,
+        builtAt: "2026-07-01T00:00:00.000Z",
+      }));
+
+      const hit = locateManagedWda(env.options);
+      expect(hit, driverVersion).to.not.equal(null);
+      expect(hit.runnerAppPath, driverVersion).to.equal(direct ? runnerApp : undefined);
+    }
+  });
+
   it("hits on a relocated cache: marker's stale absolute path is ignored, layout wins", function () {
     const env = makeLocatorEnv();
     const keyDir = path.join(env.wdaRootDir, HIT_KEY);

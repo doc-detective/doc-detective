@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.40.1",
+  "version": "4.40.2",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -46,6 +46,7 @@
     "watch": "nodemon --watch src --ext ts --exec \"npm run compile\"",
     "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const d=p.join('dist','common','src','schemas');fs.mkdirSync(d,{recursive:true});fs.copyFileSync(p.join('src','common','src','schemas','schemas.json'),p.join(d,'schemas.json'));for(const f of ['validators.cjs','validatorsCheck.cjs'])fs.copyFileSync(p.join('src','common','dist','schemas',f),p.join(d,f));\"",
     "build": "npm run build:common && npm run compile",
+    "build:ci": "npm --prefix src/common run build:ci && npm run compile",
     "mocha": "mocha",
     "test": "mocha --exit test/*.test.js && npm run test:common",
     "test:common": "cd src/common && npm test",
