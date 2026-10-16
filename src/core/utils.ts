@@ -1048,16 +1048,22 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 //     comes from a Map's values(), whose iteration order is insertion order per
 //     the language spec, not an implementation detail.
 //
-// See adrs/01082-retries-mid-session-context-retry.md and
-// adrs/01084-retry-unnavigated-context.md.
+//   • ...and only when the context actually tried to navigate. A context that
+//     ran no goTo (process-surface steps only) is legitimately on `data:,`, so
+//     its FAIL is real; retrying it re-runs steps that aren't idempotent.
+//
+// See adrs/01082-retries-mid-session-context-retry.md,
+// adrs/01084-retry-unnavigated-context.md and
+// adrs/01119-no-unnavigated-retry-without-navigation.md.
 async function classifyContextRetry(
-  probeDrivers: any[]
+  probeDrivers: any[],
+  { navigated = true }: { navigated?: boolean } = {}
 ): Promise<ContextRetryReason | null> {
   for (const probeDriver of probeDrivers) {
     if (!(await isSessionAlive(probeDriver))) return "session-died";
     if (await isPageBroken(probeDriver)) return "page-broken";
   }
-  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  if (navigated && (await isPageUnnavigated(probeDrivers[0]))) return "unnavigated";
   return null;
 }
 
