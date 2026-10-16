@@ -19,9 +19,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import YAML from "yaml";
 import { setAppiumHome } from "../core/appium.js";
 import { resolveHeavyDepPath } from "../runtime/loader.js";
+import { requireYaml } from "../core/lazyYaml.js";
 
 // The driver packages doc-detective installs. Order matches the browsers we
 // support (Chrome via chromium, Firefox via gecko).
@@ -57,7 +57,7 @@ export interface AppiumDiagnostics {
 // document. Falls back to the short driver key when an entry omits pkgName.
 // Pure (takes the YAML text) so it's unit-testable without a filesystem.
 export function registeredDriverPkgNames(manifestText: string): string[] {
-  const doc = YAML.parse(manifestText);
+  const doc = requireYaml().parse(manifestText);
   const drivers = doc?.drivers;
   if (!drivers || typeof drivers !== "object") return [];
   const names: string[] = [];

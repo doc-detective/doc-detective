@@ -389,10 +389,12 @@ defaultFileTypes = {
  * Sets up and validates the configuration object for Doc Detective
  * @async
  * @param {Object} config - The configuration object to process
+ * @param {boolean} [detectApps=true] - Populate `environment.apps`. runTests
+ *   passes false and detects after resolution, only when the run needs it.
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
-async function setConfig({ config }: any) {
+async function setConfig({ config, detectApps = true }: any) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
 
@@ -575,7 +577,10 @@ async function setConfig({ config }: any) {
   // browser-cache scan, and the driver-presence probing (the work that pushes
   // dryRun.test.js past its mocha timeout on a starved windows+node22 runner)
   // with no effect on resolved output or execution.
-  config.environment.apps = config.dryRun ? [] : await getAvailableApps({ config });
+  // `detectApps: false` defers the same detection to runTests, which runs it
+  // only when a resolved context can use it (ADR 01133).
+  config.environment.apps =
+    config.dryRun || !detectApps ? [] : await getAvailableApps({ config });
 
   // Resolve concurrent runners configuration
   config.concurrentRunners = resolveConcurrentRunners(config);
