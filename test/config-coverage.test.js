@@ -23,6 +23,7 @@ import {
   patchAppCache,
   verifyAppDrivers,
   detectInstalledBrowserDrivers,
+  selectInstalledBuild,
 } from "../dist/core/config.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
@@ -83,6 +84,33 @@ describe("config.ts — pure helpers", function () {
       assert.equal(resolveConcurrentRunners({ concurrentRunners: "nope" }), 1);
       assert.equal(resolveConcurrentRunners({}), 1);
       assert.equal(resolveConcurrentRunners({ concurrentRunners: -5 }), 1);
+    });
+  });
+
+  describe("selectInstalledBuild", function () {
+    // Two builds of one browser can coexist in the cache (an old one the
+    // installer failed to prune). The scan lists them in directory order, so
+    // the stale build came first and won (ADR 01118).
+    const scanned = [
+      { browser: "firefox", buildId: "nightly_154.0a1", executablePath: "old" },
+      { browser: "chrome", buildId: "150.0.7871.115", executablePath: "c" },
+      { browser: "firefox", buildId: "nightly_160.0a1", executablePath: "new" },
+    ];
+
+    it("prefers the build installed.json records over scan order", function () {
+      assert.equal(
+        selectInstalledBuild(scanned, "firefox", "nightly_160.0a1").executablePath,
+        "new"
+      );
+    });
+
+    it("falls back to the first scanned build when the record is absent or names no scanned build", function () {
+      assert.equal(selectInstalledBuild(scanned, "firefox", undefined).executablePath, "old");
+      assert.equal(selectInstalledBuild(scanned, "firefox", "nightly_999").executablePath, "old");
+    });
+
+    it("returns undefined when the browser isn't installed", function () {
+      assert.equal(selectInstalledBuild(scanned, "chromedriver", "1"), undefined);
     });
   });
 

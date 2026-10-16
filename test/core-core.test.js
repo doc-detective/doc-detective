@@ -3019,6 +3019,60 @@ describe("getRunner() function", function () {
     }
   });
 
+  it("a process-only context on Chrome FAILs on its real assertion without an unnavigated retry", async () => {
+    // Chrome parks a session that never ran a goTo on `data:,`. That's the
+    // legitimate state of a context with no browser steps, so its FAIL must
+    // stand (ADR 01119). Retrying re-ran the background start, which collided
+    // with the still-running process and masked the real failure.
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "chrome", headless: true }],
+              browserFallback: "off",
+            },
+          ],
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: { name: "ttp-chrome-repl", waitUntil: { stdio: "/>/" } },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-chrome-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-chrome-repl" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const ran = result.specs[0].tests[0].contexts.find(
+        (c) => c.result !== "SKIPPED"
+      );
+      assert.ok(ran, "expected the runner's platform context to run");
+      assert.equal(ran.retries, undefined, "context must not be retried");
+      assert.equal(ran.steps[0].result, "PASS");
+      assert.equal(ran.steps[1].result, "FAIL");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("a tty:true background SKIPs (with a node-pty reason) when node-pty can't be loaded", async function () {
     // Phase 2: when `background.tty` is set but the optional `node-pty` dep can't
     // be resolved or installed, the runShell step must SKIP (graceful

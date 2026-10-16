@@ -41,17 +41,28 @@ runs:
     # config.cacheDir isolation many unit tests rely on, and some suites
     # delete the var mid-run. node's fs.symlinkSync(..., 'junction') needs no
     # admin on Windows and degrades to a plain symlink on POSIX.
+    #
+    # On Windows the persistent dir lives on D: when the runner has one. The
+    # hosted image's C: is slow at creating many small files: extracting the
+    # ~400 MB entry into C:\Users\runneradmin took ~70 s, against ~4 s to
+    # download it. D: (where the workspace already lives) extracts it several
+    # times faster. Everywhere else the dir stays at ~/.dd-cache, and that
+    # literal stays the actions/cache `path`, because the path string is part
+    # of the cache version: changing it would orphan every existing entry.
     - name: Persist the default Doc Detective cache dir
+      id: persist
       shell: bash
       run: |
         node -e "
           const fs = require('fs'), os = require('os'), path = require('path');
-          const persist = path.join(os.homedir(), '.dd-cache');
+          const onD = process.platform === 'win32' && fs.existsSync('D:/');
+          const persist = onD ? 'D:/dd-cache' : path.join(os.homedir(), '.dd-cache');
           const link = path.join(os.homedir(), '.doc-detective');
           fs.mkdirSync(persist, { recursive: true });
           fs.rmSync(link, { recursive: true, force: true });
           fs.symlinkSync(persist, link, 'junction');
           console.log(link, '->', persist);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'path=' + (onD ? persist : '~/.dd-cache') + '\n');
         "
 
     # ISO week ("GGGG-WW") in pure node so every OS computes it identically
@@ -86,7 +97,7 @@ runs:
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       id: cache
       with:
-        path: ~/.dd-cache
+        path: ${{ steps.persist.outputs.path }}
         key: dd-cache-${{ runner.os }}-${{ steps.week.outputs.week }}-node${{ inputs.node }}-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           dd-cache-${{ runner.os }}-${{ steps.week.outputs.week }}-node${{ inputs.node }}-
