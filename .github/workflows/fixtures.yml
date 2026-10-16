@@ -33,8 +33,8 @@ permissions:
 jobs:
   # Compute the fixture matrix for this run (ADR 01055). scripts/
   # select-fixture-bundles.cjs is the SINGLE SOURCE OF TRUTH for the bundle
-  # definitions; `--matrix` emits the JSON the matrix below consumes via
-  # fromJSON. Narrowing happens ONLY when a PR's change set is confined to
+  # definitions; `--legs-ios` / `--legs-rest` emit the JSON the matrices below
+  # consume via fromJSON. Narrowing happens ONLY when a PR's change set is confined to
   # fixture group directories; product/script/workflow/shared-infra changes,
   # non-PR triggers (the release gate calls this on push — no PR), and every
   # error path all fall back to the FULL matrix. Fail-safe by construction: an
@@ -50,7 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.pick.outputs.matrix }}
+      # {"include": [{os, bundle}, ...]} leg lists (ADR 01109): the macOS
+      # legs of the iOS bundles, and everything else.
+      iosLegs: ${{ steps.pick.outputs.iosLegs }}
+      restLegs: ${{ steps.pick.outputs.restLegs }}
       # "true"/"false": whether the heavy Android KVM legs run (ADR 01056).
       androidLegs: ${{ steps.pick.outputs.androidLegs }}
     steps:
@@ -64,7 +67,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          matrix=''
+          iosLegs=''
+          restLegs=''
           androidLegs=true
           # Only a PR context can narrow. `if files=$(...)` tolerates a non-zero
           # gh api (transient 5xx / rate limit) without tripping `set -e`, and
@@ -72,25 +76,50 @@ jobs:
           # matrix + legs on) instead of silently eating the job's 5-min budget.
           if [ -n "$PR" ] && files=$(timeout 120 gh api "repos/${{ github.repository }}/pulls/$PR/files?per_page=100" --paginate --jq '.[].filename'); then
             printf 'changed files:\n%s\n' "$files"
-            matrix=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --matrix || echo '')
+            iosLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --legs-ios || echo '')
+            restLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --legs-rest || echo '')
             androidLegs=$(printf '%s\n' "$files" | node scripts/select-fixture-bundles.cjs --android-legs || echo true)
           fi
-          # Fail-safe: no PR, API/selector failure, or an empty/degenerate value
-          # → the full matrix (never zero fixtures). Empty stdin selects all.
-          if [ -z "$matrix" ] || [ "$matrix" = "[]" ]; then
+          # Fail-safe: no PR, API/selector failure, or an empty/degenerate rest
+          # list → the full grid (never zero fixtures). Empty stdin selects all.
+          # An empty string means the selector failed. Every selected bundle
+          # has non-macOS legs, so an empty `rest` list ({"include":[]}) also
+          # means something went wrong. An empty `ios` list is legitimate when
+          # narrowing drops the iOS bundles; the fixtures-ios job skips itself.
+          if [ -z "$iosLegs" ] || [ -z "$restLegs" ] || [ "$restLegs" = '{"include":[]}' ]; then
             echo "defaulting to the full fixture matrix"
-            matrix=$(printf '' | node scripts/select-fixture-bundles.cjs --matrix)
+            iosLegs=$(printf '' | node scripts/select-fixture-bundles.cjs --legs-ios)
+            restLegs=$(printf '' | node scripts/select-fixture-bundles.cjs --legs-rest)
           fi
           # androidLegs must be exactly false to skip the legs; anything else
           # (crash, empty, unexpected) coerces to true so the legs stay on.
           [ "$androidLegs" = "false" ] || androidLegs=true
-          echo "selected matrix: $matrix"
+          echo "iOS legs: $iosLegs"
+          echo "other legs: $restLegs"
           echo "android KVM legs: $androidLegs"
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "iosLegs=$iosLegs" >> "$GITHUB_OUTPUT"
+          echo "restLegs=$restLegs" >> "$GITHUB_OUTPUT"
           echo "androidLegs=$androidLegs" >> "$GITHUB_OUTPUT"
 
-  fixtures:
+  # Holds the non-iOS legs back ~1 min (ADR 01109). The macOS iOS legs are the
+  # gate's critical path (16-19 min), and GitHub doesn't hand out runner slots
+  # in matrix order, so when every leg queues at once the iOS legs often wait
+  # behind shorter ones for the ~5 macOS slots. Queueing them a minute earlier
+  # puts them ahead. The held-back legs finish well inside the iOS legs' time.
+  # It runs even when narrowing drops the iOS bundles (fixtures-ios then
+  # skips), costing those runs ~1 min; ADR 01109 accepts that.
+  # ponytail: a fixed sleep, not a real priority; replace it if GitHub ever
+  # offers job priority within a run.
+  stagger:
+    name: Queue the iOS legs first
     needs: select
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: sleep 60
+
+  fixtures:
+    needs: [select, stagger]
     name: ${{ matrix.bundle.name }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     # Default headroom is 20 min; entries that need more carry their own
@@ -103,23 +132,26 @@ jobs:
     timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
     strategy:
       fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-        # One (bundle x OS) job. The bundle list comes from select-fixture-
-        # bundles.cjs (`--matrix`) via the `select` job — the single source of
-        # truth for names, `input` (comma-joined group dirs; the action passes
-        # it verbatim to `--input`, which splits on commas), and the per-bundle
-        # timeout / android / prebootIos attributes. Bundle composition, the
-        # zero-spec-typo caution, and the iOS-solo rule are documented in that
-        # script and ADR 01048 / 01055.
-        bundle: ${{ fromJSON(needs.select.outputs.matrix) }}
-    steps:
+      # One job per (OS, bundle) leg, minus the macOS iOS legs, which run in
+      # fixtures-ios below. The legs come from select-fixture-bundles.cjs
+      # (`--legs-rest`) via the `select` job — the single source of truth for
+      # the OSes, bundle names, `input` (comma-joined group dirs; the action
+      # passes it verbatim to `--input`, which splits on commas), and the
+      # per-bundle timeout / android / prebootIos attributes. Bundle
+      # composition, the zero-spec-typo caution, and the iOS-solo rule are
+      # documented in that script and ADR 01048 / 01055 / 01105.
+      matrix: ${{ fromJSON(needs.select.outputs.restLegs) }}
+    # Anchored so fixtures-ios runs the identical step list (ADR 01109).
+    steps: &fixture-steps
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      # Windows: keep npm's cache on D:, before setup-node restores into it.
+      # C: is slow at small-file I/O (see the dd-cache action).
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -193,26 +225,64 @@ jobs:
         with:
           node: '24'
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
 
       # Expose the freshly-built package so the action's `npx doc-detective`
       # (run with an empty `version`, see below) resolves THIS build instead of
       # fetching the published one from the registry.
       - name: Link local build
-        run: npm link
+        run: npm link --no-audit --no-fund
 
-      # iOS legs: prebuild WebDriverAgent into the dd-cache
-      # (docs/design/ios-wda-prebuild.md). Seconds on a warm week (check-and-
-      # skip on the keyed products the Sunday warmer built); one ~10-minute
-      # build on a cold one. Sessions then consume the products read-only via
-      # usePrebuiltWDA instead of compiling WDA inside the first XCUITest
-      # session — which is also why the action's `ios` WDA cache is off below.
+      # iOS legs: the WebDriverAgent products get their own cache (ADR 01116).
+      # The weekly dd-cache entry never re-saves once its key hits, so products
+      # for a driver or Xcode newer than the Sunday warm-up were rebuilt in
+      # every job all week. Restore the newest entry for this Xcode; the
+      # prebuild then reuses matching products or builds new ones, and the
+      # save step stores a changed product set under its own key.
+      - name: Read the Xcode version
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: xcode
+        shell: bash
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          # No entry has this exact key; the prefix picks the newest entry.
+          key: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-latest
+          restore-keys: wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+
+      # Prebuild WebDriverAgent into the dd-cache
+      # (docs/design/ios-wda-prebuild.md). Seconds when the restored products
+      # match this driver and Xcode (check-and-skip); one build otherwise.
+      # Sessions then consume the products read-only instead of compiling WDA
+      # inside the first XCUITest session — which is also why the action's
+      # `ios` WDA cache is off below.
       - name: Prebuild WebDriverAgent
         if: runner.os == 'macOS' && matrix.bundle.prebootIos
         run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
+      # `install ios` prunes stale keys, so the product dirs left identify the
+      # product set (one dir per Xcode x driver key).
+      - name: Key the WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        id: wda-key
+        shell: bash
+        run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Save WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.dd-cache/ios/wda
+          key: ${{ steps.wda-key.outputs.key }}
 
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
@@ -225,14 +295,28 @@ jobs:
           node test/server/wait-ready.js
 
       # Diagnostic: make the CI log show which doc-detective the action will run,
-      # so a silent fallback to the published package is visible. The linked
-      # build's version and the global link should both point at this checkout.
+      # so a silent fallback to the published package is visible. The action's
+      # bare `npx doc-detective` resolves the global link `npm link` made, so
+      # print where that link points and warn when it isn't this checkout.
+      # Deliberately not `npm ls -g` / `npx … --version`: those walk the whole
+      # global tree and boot the full CLI, which cost up to ~80 s on Windows,
+      # while this reads one symlink and one package.json.
       - name: Resolution diagnostic
         shell: bash
         run: |
-          echo "local package version: $(node -p 'require("./package.json").version')"
-          npm ls -g doc-detective || true
-          npx --no-install doc-detective --version || echo "(bare npx --version not supported; non-fatal)"
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const link = path.join(process.argv[1], "doc-detective");
+            let target = "(missing)", version = "(none)";
+            try {
+              target = fs.realpathSync(link);
+              version = require(path.join(target, "package.json")).version;
+            } catch {}
+            console.log("local package version:", require(path.resolve("package.json")).version);
+            console.log("global link:", link, "->", target, "@", version);
+            if (target !== fs.realpathSync("."))
+              console.log("::warning::the global doc-detective is not this checkout; npx may run the published package");
+          ' "$(npm root -g)"
 
       # Block on the pre-booted simulator reaching `Booted`. This wait is NOT
       # additive on the happy path — Doc Detective's first startSurface would
@@ -245,7 +329,9 @@ jobs:
       - name: Wait for pre-booted simulator
         if: runner.os == 'macOS' && matrix.bundle.prebootIos && env.PREBOOT_UDID != ''
         shell: bash
-        run: timeout 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
+        # macOS runners have no GNU `timeout`, so the old `timeout 300 …` form
+        # failed instantly and never waited. perl's alarm survives exec.
+        run: perl -e 'alarm shift; exec @ARGV' 300 xcrun simctl bootstatus "$PREBOOT_UDID" || echo "bootstatus did not confirm within 5 min (non-fatal; Doc Detective will cope)"
 
       # Run the group through the Doc Detective GitHub Action, against the linked
       # local build (version: "" → bare `npx doc-detective`, see
@@ -310,6 +396,21 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
+  # The macOS legs of the iOS bundles, the gate's critical path (ADR 01109).
+  # Same steps as `fixtures` (the anchor), but queued as soon as `select`
+  # finishes, ahead of the legs that wait on `stagger`. Skips itself when
+  # narrowing drops both iOS bundles (an empty matrix is an error otherwise).
+  fixtures-ios:
+    needs: select
+    if: fromJSON(needs.select.outputs.iosLegs).include[0] != null
+    name: ${{ matrix.bundle.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.bundle.timeout || 20 }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.iosLegs) }}
+    steps: *fixture-steps
+
   # Native app surfaces phase A3b: the real Android PASS coverage. The emulator
   # only boots where hardware acceleration exists — a Linux runner with KVM — so
   # these two jobs live outside the general matrix (which SKIPs android
@@ -344,9 +445,9 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm link
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
+      - run: npm link --no-audit --no-fund
 
       # The install/activity fixture is gated on this file (requires.files); the
       # sample is Appium's stable ApiDemos APK (io.appium.android.apis).
@@ -461,18 +562,37 @@ jobs:
   # run end. DD_FIXTURE_PROVISION un-gates the create-and-boot provisioning spec;
   # DD_FIXTURE_MULTIDEVICE un-gates the phase A6 two-device spec (two more AVD
   # creations + serial boots — too heavy for the other legs).
+  #
+  # Three parallel legs, one runner each (ADR 01126). Run back to back in one
+  # job they made this the longest Linux job (~17 min); split, the longest leg
+  # is the apps-android group minus the two-device spec. The split is by the
+  # spec's own gate, not a file list: the apps-android leg leaves
+  # DD_FIXTURE_MULTIDEVICE empty (requires.env treats empty as unset), so the
+  # two-device spec lands SKIPPED there and any new spec runs there by default,
+  # while the multidevice leg runs only that spec with the gate set. Every leg
+  # still requires a PASS.
   fixtures-android-managed:
-    name: apps-android + mobile-web (ubuntu KVM, managed-boot)
+    name: ${{ matrix.leg.name }} (ubuntu KVM, managed-boot)
     needs: select
     if: needs.select.outputs.androidLegs != 'false'
     runs-on: ubuntu-latest
-    # Headroom for the second (mobile-web, phase A5) gated run, which boots the
-    # managed AVD again after the first run's sweep, plus the two serial
-    # two-device boots (phase A6).
-    timeout-minutes: 60
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        leg:
+          - name: apps-android
+            input: test/core-artifacts/apps-android
+            multidevice: ''
+          - name: apps-android-multidevice
+            input: test/core-artifacts/apps-android/android-two-devices.spec.json
+            multidevice: '1'
+          - name: mobile-web-android
+            input: test/core-artifacts/mobile-web-android
+            multidevice: ''
     env:
       DD_FIXTURE_PROVISION: '1'
-      DD_FIXTURE_MULTIDEVICE: '1'
+      DD_FIXTURE_MULTIDEVICE: ${{ matrix.leg.multidevice }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -482,9 +602,9 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm link
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
+      - run: npm link --no-audit --no-fund
 
       - name: Enable KVM
         run: |
@@ -512,24 +632,15 @@ jobs:
           node test/server/start.js &
           node test/server/wait-ready.js
 
-      - name: Run apps-android (Doc Detective boots the emulator)
+      # Doc Detective boots the AVD itself and sweeps it at run end. On the
+      # mobile-web leg (phase A5) it opens Chrome through the device session.
+      - name: Run ${{ matrix.leg.name }} (Doc Detective boots the emulator)
         run: |
           npx doc-detective runTests \
             --config test/core-artifacts/config.groups.json \
-            --input test/core-artifacts/apps-android \
-            --output dd-output-apps-android.json || true
-          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-apps-android.json
-
-      # Mobile web (phase A5) on the managed-boot path: Doc Detective boots the
-      # AVD itself, opens Chrome through the device session, and sweeps the
-      # emulator at run end.
-      - name: Run mobile-web-android (Doc Detective boots the emulator)
-        run: |
-          npx doc-detective runTests \
-            --config test/core-artifacts/config.groups.json \
-            --input test/core-artifacts/mobile-web-android \
-            --output dd-output-mobile-web-android.json || true
-          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-mobile-web-android.json
+            --input ${{ matrix.leg.input }} \
+            --output dd-output-${{ matrix.leg.name }}.json || true
+          DD_FIXTURES_REQUIRE_PASS=1 node scripts/check-fixture-results.cjs dd-output-${{ matrix.leg.name }}.json
 
       # continue-on-error: the diagnostic artifact upload runs AFTER the gate
       # step (real pass/fail), so a transient GitHub ArtifactService outage
@@ -540,10 +651,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: fixture-output-apps-android-managed
-          path: |
-            dd-output-apps-android.json
-            dd-output-mobile-web-android.json
+          name: fixture-output-${{ matrix.leg.name }}-managed
+          path: dd-output-${{ matrix.leg.name }}.json
           retention-days: 3
           if-no-files-found: warn
 
@@ -570,11 +679,11 @@ jobs:
           node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:ci
       # Expose the freshly-built package so the action's bare `npx doc-detective`
       # (version: '') resolves THIS build instead of the published one.
-      - run: npm link
+      - run: npm link --no-audit --no-fund
 
       # The action enables KVM (android: auto detects the android specs) and runs
       # the linked local build — no manual KVM step, no `install android`. Doc

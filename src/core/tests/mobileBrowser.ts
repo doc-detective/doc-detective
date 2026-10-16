@@ -155,12 +155,15 @@ function buildMobileBrowserCapabilities({
   udid,
   cacheDir,
   timeout,
+  iosMajor,
   locateWda = () => locateManagedWda({ ctx: { cacheDir } }),
 }: {
   platform: MobileTarget;
   udid: string;
   cacheDir: string;
   timeout?: number;
+  // The simulator's iOS major version, when known (picks the WDA launch mode).
+  iosMajor?: number;
   // Injected in tests; the default reads the managed WDA products under the
   // resolved cache root.
   locateWda?: () => ManagedWdaHit | null;
@@ -195,6 +198,9 @@ function buildMobileBrowserCapabilities({
     "appium:udid": udid,
     "appium:newCommandTimeout": 600,
     "wdio:enforceWebDriverClassic": true,
+    // Doc Detective never reads device or Safari logs; starting the capture
+    // costs 5-12 s per session (ADR 01112).
+    "appium:skipLogCapture": true,
   };
   // The first-ever XCUITest session cold-builds WebDriverAgent via
   // xcodebuild (~10 min on CI). App surfaces carry an authored startSurface
@@ -209,6 +215,6 @@ function buildMobileBrowserCapabilities({
   // Same derived-data contract as iOS app sessions: env override wins,
   // else managed prebuilt products are consumed read-only — one shared
   // helper so the two builders cannot drift.
-  applyManagedWdaCapabilities(capabilities, locateWda);
+  applyManagedWdaCapabilities(capabilities, locateWda, iosMajor);
   return capabilities;
 }

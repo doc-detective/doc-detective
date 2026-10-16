@@ -28,6 +28,7 @@ import {
   appWindowRect,
 } from "./appWindows.js";
 import { normalizeDeviceDescriptor } from "./androidEmulator.js";
+import { iosMajorOfRuntime } from "./iosSimulator.js";
 import { APP_GESTURES } from "./appGestures.js";
 import { isMobileTargetPlatform } from "./mobilePlatform.js";
 import {
@@ -63,6 +64,7 @@ export {
   buildAppLocator,
   closeAppSurface,
   teardownAppSession,
+  createAppServerPool,
   snapshotAppServerDescendants,
   reapConsoleOrphans,
   listWindowsDescendantPids,
@@ -71,7 +73,7 @@ export {
   invalidateStaleAppiumManifest,
   probeIosToolchain,
 };
-export type { AppSessionState, AppSurfaceEntry };
+export type { AppSessionState, AppSurfaceEntry, AppServerPool };
 
 type AppIdentifierKind = "path" | "aumid" | "id";
 
@@ -427,6 +429,9 @@ interface AppDriverPlatform {
       // iOS only: locate managed prebuilt WDA products (injected by the
       // caller so config-resolved cache context and test stubs both flow).
       locateWda?: () => ManagedWdaHit | null;
+      // iOS only: the simulator's iOS major version, when known (picks the
+      // WDA launch mode; ADR 01110).
+      iosMajor?: number;
     }
   ): Record<string, any>;
   // Whether elementText and elementAria's accessible name map to the SAME
@@ -618,6 +623,9 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         "appium:automationName": "XCUITest",
         "appium:newCommandTimeout": 600,
         "wdio:enforceWebDriverClassic": true,
+        // Doc Detective never reads device logs; starting the capture costs
+        // 5-12 s per session (ADR 01112). driverOptions can turn it back on.
+        "appium:skipLogCapture": true,
       };
       if (classifyAppIdentifier(appId) === "id") {
         capabilities["appium:bundleId"] = appId;
@@ -639,7 +647,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       // builder and the mobile-web one cannot drift. No bare locator default
       // here: the caller threads a config-aware locator via extras, and its
       // absence means "no managed consumption", never "guess a cache root".
-      applyManagedWdaCapabilities(capabilities, extras?.locateWda);
+      applyManagedWdaCapabilities(capabilities, extras?.locateWda, extras?.iosMajor);
       return capabilities;
     },
     unsupportedFields: [
@@ -711,7 +719,9 @@ interface AppSurfaceEntry {
 // (no browser driver), so ffmpeg captures — including autoRecord — ride the
 // existing per-session recording machinery unchanged.
 interface AppSessionState {
-  server?: { port: number; process: any };
+  // `release` is set when the server came from the run's app server pool
+  // (ADR 01115): teardown hands it back instead of killing it.
+  server?: { port: number; process: any; release?: () => void };
   appiumEntry?: string;
   appiumHome?: string;
   surfaces: Map<string, AppSurfaceEntry>;
@@ -744,6 +754,13 @@ interface AppSessionState {
   // simulator (keyed in deviceSessions like Android), so no SDK-root env is
   // needed — simctl/xcrun are on PATH.
   iosSimulatorRegistry?: any;
+  // The run's app server pool (ADR 01115). Set for iOS contexts; Android
+  // contexts keep a server per context.
+  appServerPool?: AppServerPool;
+  // Set when a session on this context's app server outside `surfaces` /
+  // `deviceSessions` (the mobile-web browser session) failed to close, so
+  // teardown kills a pooled server instead of returning it.
+  sessionLeftOpen?: boolean;
   iosSimulatorDeps?: any;
 }
 
@@ -1304,6 +1321,7 @@ async function startAppSurface({
       // (and installs, when `install` is set) the app.
       const capabilities = platformDriver.buildCapabilities(descriptor, appId, {
         udid: acquired.entry.udid,
+        iosMajor: iosMajorOfRuntime(acquired.entry.runtime),
         locateWda:
           serverDeps.locateWda ??
           (() => locateManagedWda({ ctx: { cacheDir: config?.cacheDir } })),
@@ -1315,6 +1333,9 @@ async function startAppSurface({
           appSession.server.port
         );
       } catch (error: any) {
+        // A client-side timeout can abort while the server is still creating
+        // the session, so treat it as possibly open (ADR 01115).
+        appSession.sessionLeftOpen = true;
         result.status = "FAIL";
         result.description = `Couldn't launch app "${appId}" on the ${targetNoun} "${deviceName}": ${error?.message ?? error}.`;
         return result;
@@ -1548,7 +1569,8 @@ async function closeAppSurface({
 }: {
   entry: AppSurfaceEntry;
   appSession: AppSessionState;
-}): Promise<void> {
+}): Promise<boolean> {
+  // Resolves false when deleting the session failed (it may still be open).
   appSession.surfaces.delete(entry.name);
   if (appSession.activeApp === entry.name) appSession.activeApp = undefined;
   // Window selectors may have left the session rooted at a dialog (Windows
@@ -1570,12 +1592,14 @@ async function closeAppSurface({
       // Idempotent: the app may already be gone.
     }
     if (session?.foregroundApp === entry.appId) session.foregroundApp = undefined;
-    return;
+    return true;
   }
   try {
     await entry.driver.deleteSession();
+    return true;
   } catch {
     // Idempotent: the app/session may already be gone.
+    return false;
   }
 }
 
@@ -1712,6 +1736,61 @@ async function reapConsoleOrphans(
   return reaped;
 }
 
+interface PooledAppServer {
+  port: number;
+  process: any;
+  key: string;
+}
+
+// Run-level pool of app Appium servers (ADR 01115). Starting a server and
+// killing it again cost 5-15 s per context; contexts that run one after
+// another on the same launch environment (`key`) reuse one instead. A held
+// server is never handed to a second context, an idle one whose process
+// exited is dropped, and `drain` gives the run-end teardown every server once.
+function createAppServerPool() {
+  const idle: PooledAppServer[] = [];
+  const all = new Set<PooledAppServer>();
+  const isAlive = (s: PooledAppServer) =>
+    s.process?.exitCode == null && s.process?.signalCode == null;
+  return {
+    async acquire(
+      key: string,
+      start: () => Promise<{ port: number; process: any }>
+    ): Promise<{ port: number; process: any; release: () => void }> {
+      let server: PooledAppServer | undefined;
+      // Most recently released first (LIFO), so the warmest server is reused.
+      for (let i = idle.length - 1; i >= 0 && !server; i--) {
+        if (idle[i].key !== key) continue;
+        const [candidate] = idle.splice(i, 1);
+        if (isAlive(candidate)) server = candidate;
+        else all.delete(candidate);
+      }
+      if (!server) {
+        server = { ...(await start()), key };
+        all.add(server);
+      }
+      const held = server;
+      let released = false;
+      // Once per hand-out: a second release must not list the server as idle
+      // twice. A drained server (no longer in `all`) never goes back.
+      const release = () => {
+        if (released || !all.has(held)) return;
+        released = true;
+        idle.push(held);
+      };
+      return { port: held.port, process: held.process, release };
+    },
+    drain(): PooledAppServer[] {
+      const servers = [...all];
+      all.clear();
+      idle.length = 0;
+      return servers;
+    },
+  };
+}
+
+type AppServerPool = ReturnType<typeof createAppServerPool>;
+
 // Context teardown: close every remaining app surface, end each shared Android
 // device session, then stop the app session's Appium server. Killing only what
 // we launched is the driver's contract (deleteSession terminates driver-
@@ -1728,19 +1807,31 @@ async function teardownAppSession(
   tools: ConsoleOrphanTools = {}
 ): Promise<void> {
   if (!appSession) return;
+  let closedCleanly = !appSession.sessionLeftOpen;
   for (const entry of [...appSession.surfaces.values()]) {
-    await closeAppSurface({ entry, appSession });
+    if (!(await closeAppSurface({ entry, appSession }))) closedCleanly = false;
   }
-  // End the shared Android device sessions (one per device) after all their
-  // surfaces are closed. The emulators themselves are swept at run level.
+  // End the shared device sessions (one per device) after all their surfaces
+  // are closed. The emulators/simulators themselves are swept at run level.
   for (const session of appSession.deviceSessions?.values() ?? []) {
     try {
       await session.driver.deleteSession();
     } catch {
       // best-effort
+      closedCleanly = false;
     }
   }
   appSession.deviceSessions?.clear();
+  // A pooled server stays up for the next context, but only if every session
+  // closed: one left open could keep the device claimed. Skip the orphan sweep
+  // too: it force-kills the server's live descendants. Otherwise the server
+  // is killed below like a per-context one (ADR 01115).
+  if (appSession.server?.release && closedCleanly) {
+    const { release } = appSession.server;
+    appSession.server = undefined;
+    release();
+    return;
+  }
   if (appSession.server) {
     const serverPid = appSession.server.process?.pid;
     const orphanSnapshot = await snapshotAppServerDescendants(serverPid, tools);
