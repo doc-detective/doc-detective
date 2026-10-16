@@ -58,6 +58,35 @@ When `validate()` is called:
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
 
+**Precompiled validators ([ADR 01138](../../adrs/01138-precompile-validators-with-ajv-standalone.md)):**
+`validate()` never compiles a schema at runtime. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which writes Ajv standalone code for every schema
+key to `dist/schemas/validators.cjs` (mutating set) and `validatorsCheck.cjs` (non-mutating
+probe set, loaded on first use). The Ajv options live in one place, `createAjv` in `src/ajv.ts`.
+Its `standalone: true` mode swaps `ajv-keywords`' closure-based `dynamicDefaults` for a
+code-generating equivalent that supports only `"uuid"`. A schema using any other dynamic
+default fails the build, and you then have to extend that keyword.
+`test/precompiledValidators.test.js` checks that the shipped files match a fresh generation. It
+also checks that every validator behaves like the runtime-compiled one across the corpus. The
+generated files are gitignored build output. Never commit or hand-edit them.
+
+Two hazards come with generation:
+
+- **Deep Ajv imports.** `src/ajv.ts` imports `ajv/dist/standalone`, `ajv/dist/compile/codegen`,
+  and `ajv/dist/compile/codegen/code` (`_Code`). Those paths are Ajv internals, not its semver
+  contract. The generated code also `require`s `ajv/dist/runtime/*` and the `ajv-keywords`
+  transform functions. So a minor Ajv or `ajv-keywords` bump can break the build. It can also
+  change the generated code. Every build regenerates the code, and the parity test fails on any
+  behavior change. Treat an Ajv bump as a change to verify, not a routine one. `ajv` keeps its
+  caret range on purpose. A pin would need a guard in
+  [test/dependency-pins.test.js](../../test/dependency-pins.test.js) and would stop compatible
+  fixes reaching consumers. The parity test is the safety net instead.
+- **Inlined function source.** The uuid dynamic default inlines `getRandomUUID.toString()` into
+  the generated code, so it must be self-contained, with no closures or imports. Generation runs
+  from the unminified `dist/ajv.js` that `tsc` emits. Keep it ahead of any minification or
+  bundling step. A minifier that renamed or rewrote the function first would ship its mangled
+  source.
+
 ### Path Resolution (`resolvePaths.js`)
 
 **Resolves relative paths to absolute based on:**
@@ -104,8 +133,13 @@ are regenerated:
    suite reads this.
 2. **Root `dist/common`**, a separate copy the **runner** imports `validate` from. Regenerate
    it from the repo root with `npm run build`. That sequences `build:common`, which rebuilds
-   `src/common`, then `compile` and `copy:schemas`. Running `compile` and `copy:schemas` alone can
-   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
+   `src/common`, then `compile`, which runs `copy:schemas` between `tsc` and the CJS bundle.
+   Running `compile` alone can copy a **stale** `src/common/src/schemas/schemas.json`. It can
+   also copy stale precompiled validators from `src/common/dist/schemas/validators*.cjs`, if
+   `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
+   Root `npm run watch` builds `src/common` once at startup, then reruns only `compile` on `.ts`
+   changes. A schema edit during watch leaves the schemas and validators stale. Rerun
+   `npm run build:common`, or restart watch, after editing a schema.
 
 Forgetting #2 has a clear symptom. `src/common` tests pass, but the runner (runTests and core
 fixtures) still validates against the stale schema. A fixture using a newly-added field then fails

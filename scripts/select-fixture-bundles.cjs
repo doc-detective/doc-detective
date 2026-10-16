@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Computes the fixture matrix the PR gate should run for a change set (see
 // .github/workflows/fixtures.yml and ADR 01055). This is the SINGLE SOURCE OF
-// TRUTH for the bundle definitions — fixtures.yml builds its matrix from this
-// script's `--matrix` output via fromJSON, so there is no second copy to drift.
+// TRUTH for the bundle definitions and OSes — fixtures.yml builds its matrices
+// from this script's `--legs-ios` / `--legs-rest` output via fromJSON, so there
+// is no second copy to drift.
 //
 // Deliberately conservative: the ONLY narrowing case is a change set confined
 // entirely to fixture GROUP directories — then only the bundles owning the
@@ -14,17 +15,42 @@
 // Zero runtime dependencies on purpose: the CI `select` job runs this straight
 // from a checkout, before any npm install.
 
+const fs = require("fs");
+const path = require("path");
+
 // One entry per fixture bundle, in matrix order. `dirs` are the fixture group
 // directories under test/core-artifacts/; the CI-only attributes (timeout,
 // android, prebootIos) travel with each bundle into the matrix.
 const BUNDLES = [
-  { name: "nav-capture", dirs: ["navigation", "capture"] },
-  { name: "interactions", dirs: ["interactions"] },
-  // `reporters` is shell-only (it spawns a nested CLI run), so it needs no
-  // browser or device and rides along with the other fast, headless groups.
-  { name: "web-plumbing", dirs: ["routing", "http", "guards", "reporters"] },
-  { name: "proc-sessions", dirs: ["process", "sessions"] },
+  // The fast groups share one job per OS (ADR 01113): each job pays ~3-4 min
+  // of setup, more than these groups' fixtures take, and every extra macOS
+  // job competes with the iOS legs for the 5-slot macOS pool.
+  {
+    name: "general",
+    dirs: ["navigation", "capture", "interactions", "routing", "http", "guards",
+      "reporters", "process", "sessions"],
+    timeout: 30,
+  },
   { name: "recording", dirs: ["recording"] },
+  // Spec-file shard (ADR 01126). Recordings serialize on one display mutex
+  // inside a run, so the group's only parallelism is a second runner. This
+  // job takes the listed specs; "recording" takes every OTHER entry in the
+  // dir, read from disk at matrix time, so a new spec lands there with no
+  // edit here. The split balances CI timings (~250 s per job on Windows and
+  // macOS; recording-permutations alone is ~165 s). A shard owns no dir, so
+  // the one-bundle-per-dir guard and dir-based narrowing are unchanged, and
+  // selectMatrix runs it whenever its owner runs.
+  {
+    name: "recording-2",
+    dirs: [],
+    shardOf: "recording",
+    specs: [
+      "above-variation.spec.json",
+      "annotate-timeout.spec.json",
+      "recording-permutations.spec.json",
+      "stale-headless.spec.json",
+    ],
+  },
   { name: "apps", dirs: ["apps"], timeout: 30 },
   { name: "android-skip", dirs: ["apps-android", "mobile-web-android"], android: true },
   // prebootIos is load-bearing beyond the simulator pre-boot: fixtures.yml
@@ -46,14 +72,54 @@ for (const bundle of BUNDLES)
 // --input value (the action passes it verbatim to `--input`, which splits on
 // commas); the optional CI attributes are included only when set.
 function toMatrixEntry(b) {
-  const entry = {
-    name: b.name,
-    input: b.dirs.map((d) => `test/core-artifacts/${d}`).join(","),
-  };
+  const entry = { name: b.name, input: inputPaths(b).join(",") };
   if (b.timeout) entry.timeout = b.timeout;
   if (b.android) entry.android = true;
   if (b.prebootIos) entry.prebootIos = true;
   return entry;
+}
+
+// A bundle's --input paths: its group dirs, except that a dir with shards is
+// listed entry by entry minus the specs its shards claim, and a shard lists
+// its claimed specs inside its owner's dir.
+//
+// Listing entries keeps discovery equivalent to passing the dir: doc-detective
+// runs explicit files through the same isValidSourceFile filter (extension +
+// spec validation) as files it finds in a dir, and a subdirectory entry stays
+// a dir input, discovered recursively as before. Two exceptions mirror what
+// dir discovery skips or should: anything under node_modules, and dotfiles and
+// dot-dirs (.DS_Store, a local run's .doc-detective/ reports).
+/**
+ * The entry names of a group dir a sharded owner forwards as inputs.
+ * @param {string} groupPath - absolute path of the group dir
+ * @param {Set<string>} claimed - spec names its shards take
+ * @returns {string[]}
+ */
+function listedEntries(groupPath, claimed) {
+  return fs
+    .readdirSync(groupPath)
+    .filter((name) => !name.startsWith(".") && name !== "node_modules" && !claimed.has(name))
+    .sort();
+}
+
+function inputPaths(b) {
+  const at = (dir, name) => `test/core-artifacts/${dir}/${name}`;
+  if (b.shardOf) {
+    const owner = BUNDLES.find((o) => o.name === b.shardOf);
+    if (!owner) throw new Error(`shard ${b.name}: no bundle named "${b.shardOf}"`);
+    // A shard's owner has exactly one dir (asserted in select-fixture-bundles-shards.test.js).
+    const dir = owner.dirs[0];
+    return b.specs.map((s) => at(dir, s));
+  }
+  const claimed = new Set(
+    BUNDLES.filter((s) => s.shardOf === b.name).flatMap((s) => s.specs)
+  );
+  if (claimed.size === 0) return b.dirs.map((d) => `test/core-artifacts/${d}`);
+  return b.dirs.flatMap((d) =>
+    listedEntries(path.join(__dirname, "..", "test", "core-artifacts", d), claimed).map(
+      (name) => at(d, name)
+    )
+  );
 }
 
 /**
@@ -76,7 +142,27 @@ function selectBundles(changedFiles) {
 function selectMatrix(changedFiles) {
   const names = selectedNames(changedFiles);
   const keep = names === null ? null : new Set(names);
-  return BUNDLES.filter((b) => keep === null || keep.has(b.name)).map(toMatrixEntry);
+  return BUNDLES.filter(
+    (b) => keep === null || keep.has(b.name) || keep.has(b.shardOf)
+  ).map(toMatrixEntry);
+}
+
+// The runner OSes every bundle runs on.
+const OSES = ["ubuntu-latest", "windows-latest", "macos-latest"];
+
+/**
+ * The OS x bundle legs for a change set, split in two (ADR 01109). `ios` holds
+ * the macOS legs of the prebootIos bundles, the gate's critical path. fixtures.yml
+ * queues them before `rest` so they aren't waiting on macOS slots held by
+ * shorter legs.
+ * @param {string[]} changedFiles
+ * @returns {{ios: {os: string, bundle: object}[], rest: {os: string, bundle: object}[]}}
+ */
+function selectLegs(changedFiles) {
+  const matrix = selectMatrix(changedFiles);
+  const legs = OSES.flatMap((os) => matrix.map((bundle) => ({ os, bundle })));
+  const first = (l) => l.os === "macos-latest" && l.bundle.prebootIos === true;
+  return { ios: legs.filter(first), rest: legs.filter((l) => !first(l)) };
 }
 
 // Returns the selected bundle names in matrix order, or null meaning "not
@@ -130,8 +216,10 @@ function androidLegsRelevant(changedFiles) {
 }
 
 function main() {
-  const mode = process.argv.includes("--matrix")
-    ? "matrix"
+  const mode = process.argv.includes("--legs-ios")
+    ? "legs-ios"
+    : process.argv.includes("--legs-rest")
+    ? "legs-rest"
     : process.argv.includes("--android-legs")
     ? "android"
     : "names";
@@ -143,12 +231,12 @@ function main() {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    // --matrix: single-line JSON array for a workflow matrix.
+    // --legs-ios / --legs-rest: a single-line {"include": [...]} matrix.
     // --android-legs: "true"/"false" for the KVM-leg `if:` guards.
     // Default: comma names, for humans and any name-only consumer.
     const out =
-      mode === "matrix"
-        ? JSON.stringify(selectMatrix(files))
+      mode === "legs-ios" || mode === "legs-rest"
+        ? JSON.stringify({ include: selectLegs(files)[mode === "legs-ios" ? "ios" : "rest"] })
         : mode === "android"
         ? String(androidLegsRelevant(files))
         : selectBundles(files);
@@ -161,9 +249,12 @@ if (require.main === module) {
 }
 
 module.exports = {
+  listedEntries,
   selectBundles,
   selectMatrix,
   androidLegsRelevant,
+  selectLegs,
   toMatrixEntry,
   BUNDLES,
+  OSES,
 };

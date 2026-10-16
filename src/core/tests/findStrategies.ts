@@ -51,8 +51,12 @@ async function setElementOutputs({ element }: { element: any }) {
   return outputs;
 }
 
-async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
-  await driver.pause(timeout);
+// The four regex scans below each check the page ONCE; findElementByShorthand
+// polls them up to the timeout (ADR 01131). Matching uses the driver's
+// getText() (WebDriver Get Element Text: rendered text, so hidden content is
+// dropped, whitespace collapsed, and CSS text-transform applied). In-page
+// textContent/innerText would disagree on those cases, so it isn't used.
+async function findElementByRegex({ pattern, driver }: { pattern: any; driver: any }) {
   // Find an element based on a regex pattern in text. Candidates are elements
   // with a non-empty DIRECT text node (`text()[normalize-space()]`), i.e. that
   // contribute their own text. This includes framework-fragmented elements
@@ -71,8 +75,7 @@ async function findElementByRegex({ pattern, timeout, driver }: { pattern: any; 
   return { element: null, foundBy: null };
 }
 
-async function findElementByAriaRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
-  await driver.pause(timeout);
+async function findElementByAriaRegex({ pattern, driver }: { pattern: any; driver: any }) {
   // Find an element based on a regex pattern in accessible name
   // WebDriverIO's aria selector uses accessible name
   const elements = await driver.$$("//*");
@@ -96,8 +99,7 @@ async function findElementByAriaRegex({ pattern, timeout, driver }: { pattern: a
   return { element: null, foundBy: null };
 }
 
-async function findElementByIdRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
-  await driver.pause(timeout);
+async function findElementByIdRegex({ pattern, driver }: { pattern: any; driver: any }) {
   // Find an element based on a regex pattern in id attribute
   const elements = await driver.$$("//*[@id]");
   for (const element of elements) {
@@ -109,8 +111,7 @@ async function findElementByIdRegex({ pattern, timeout, driver }: { pattern: any
   return { element: null, foundBy: null };
 }
 
-async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern: any; timeout: any; driver: any }) {
-  await driver.pause(timeout);
+async function findElementByTestIdRegex({ pattern, driver }: { pattern: any; driver: any }) {
   // Find an element based on a regex pattern in data-testid attribute
   const elements = await driver.$$("//*[@data-testid]");
   for (const element of elements) {
@@ -123,135 +124,139 @@ async function findElementByTestIdRegex({ pattern, timeout, driver }: { pattern:
 }
 
 async function findElementByShorthand({ string, timeout = 5000, driver }: { string: any; timeout?: number; driver: any }) {
-  // Find an element based on a string that could be a selector, text, aria label, id, or test id
-  // Uses parallel search with precedence: selector > elementText > elementAria > elementId > elementTestId
+  // Find an element based on a string that could be a selector, text, aria
+  // label, id, or test id.
+  // - Exact match (ADR 01130): elementText > elementAria > elementId >
+  //   elementTestId > selector. Text wins over the selector on purpose: a bare
+  //   word like "Title" or "Search" is also a CSS type selector for an HTML
+  //   element, and must keep finding the element with that text.
+  // - `/regex/`: a regex match against an element's own text (reported as
+  //   foundBy "selector") > aria-label, then text, of every element
+  //   ("elementAria") > id ("elementId") > data-testid ("elementTestId").
 
   // If regex, find element by regex across all attribute types
   if (string.startsWith("/") && string.endsWith("/")) {
     const pattern = new RegExp(string.slice(1, -1));
 
-    // Perform parallel searches for regex pattern
-    const searches = [
-      {
-        type: "selector",
-        promise: findElementByRegex({ pattern, timeout, driver }),
-      },
-      {
-        type: "elementText",
-        promise: findElementByRegex({ pattern, timeout, driver }),
-      },
-      {
-        type: "elementAria",
-        promise: findElementByAriaRegex({ pattern, timeout, driver }),
-      },
-      {
-        type: "elementId",
-        promise: findElementByIdRegex({ pattern, timeout, driver }),
-      },
-      {
-        type: "elementTestId",
-        promise: findElementByTestIdRegex({ pattern, timeout, driver }),
-      },
+    // Scans in precedence order. The text scan used to run twice, labeled
+    // "selector" and then "elementText"; both were the same scan, so a text
+    // hit always reported "selector". It runs once now and keeps that label.
+    const scans = [
+      { type: "selector", scan: findElementByRegex },
+      { type: "elementAria", scan: findElementByAriaRegex },
+      { type: "elementId", scan: findElementByIdRegex },
+      { type: "elementTestId", scan: findElementByTestIdRegex },
     ];
 
-    const results = await Promise.allSettled(searches.map((s) => s.promise));
-
-    // Apply precedence order
-    for (let i = 0; i < searches.length; i++) {
-      if (results[i].status === "fulfilled" && (results[i] as PromiseFulfilledResult<any>).value.element) {
-        return { element: (results[i] as PromiseFulfilledResult<any>).value.element, foundBy: searches[i].type };
+    // Poll instead of sleeping the whole timeout before a single scan (ADR
+    // 01131). Each pass runs the scans in order and stops at the first hit,
+    // which is what running them all and applying precedence returned. A scan
+    // that throws counts as no match on that pass, as Promise.allSettled did.
+    // do/while so `timeout: 0` scans once, now (ADR 01090).
+    const run = async (i: number) =>
+      (await scans[i].scan({ pattern, driver }).catch(() => ({ element: null })))
+        .element;
+    const startTime = Date.now();
+    do {
+      for (let i = 0; i < scans.length; i++) {
+        const element = await run(i);
+        if (!element) continue;
+        // A lower-precedence hit means the higher scans missed earlier in this
+        // pass. Content can render (or a stale getText can clear) while the
+        // pass is still running, and the aria scan's text fallback walks every
+        // element, so it can match a late element's container. Re-check the
+        // higher scans before settling; the first hit wins (ADR 01131).
+        for (let h = 0; h < i; h++) {
+          const higher = await run(h);
+          if (higher) return { element: higher, foundBy: scans[h].type };
+        }
+        return { element, foundBy: scans[i].type };
       }
-    }
+      if (Date.now() - startTime >= timeout) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } while (Date.now() - startTime < timeout);
 
     return { element: null, foundBy: null };
   }
 
-  // Perform parallel searches for exact match across all five attribute types
-  const selectorPromise = driver
-    .$(string)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
+  // Exact match across all five strategies, polled together (ADR 01130). Each
+  // poll looks every strategy up once without waiting, and the first poll that
+  // finds anything returns the highest-precedence match present on it. A
+  // per-strategy `waitForExist({ timeout })` would make every strategy that
+  // never matches burn the whole timeout before precedence could be applied.
   const textLiteral = xpathLiteral(normalizeText(string));
-  const textPromise = driver
-    // Match the element's FULL normalized text, not its first text node — a
-    // framework-fragmented heading (e.g. text nodes ["", "Title", ""]) has an
-    // empty first node and would never match `normalize-space(text())` (ADR 01061).
-    // `not(.//*[…])` keeps the INNERMOST match: a wrapping ancestor whose whole
-    // text also equals the string (a single-child container) must not shadow the
-    // leaf, or clicks/`outputs.element` would target the container.
-    .$(
-      `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`
-    )
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
+  // Listed in lookup order; `precedence` below decides the winner.
+  const strategies: { foundBy: string; query: string; dropped?: boolean }[] = [
+    { foundBy: "selector", query: string },
+    {
+      foundBy: "elementText",
+      // Match the element's FULL normalized text, not its first text node — a
+      // framework-fragmented heading (e.g. text nodes ["", "Title", ""]) has an
+      // empty first node and would never match `normalize-space(text())` (ADR 01061).
+      // `not(.//*[…])` keeps the INNERMOST match: a wrapping ancestor whose whole
+      // text also equals the string (a single-child container) must not shadow the
+      // leaf, or clicks/`outputs.element` would target the container.
+      query: `//*[normalize-space(.)=${textLiteral} and not(.//*[normalize-space(.)=${textLiteral}])]`,
+    },
+    { foundBy: "elementAria", query: `aria/${string}` },
+    // xpathLiteral leaves a quote-free string as `"…"` (the old query) and
+    // keeps a string containing `"` a valid XPath literal.
+    { foundBy: "elementId", query: `//*[@id=${xpathLiteral(string)}]` },
+    { foundBy: "elementTestId", query: `//*[@data-testid=${xpathLiteral(string)}]` },
+  ];
+  // Indexes into `strategies`, highest first: elementText > elementAria >
+  // elementId > elementTestId > selector.
+  const precedence = [1, 2, 3, 4, 0];
+  // wdio's `$` resolves an element without an `elementId` when nothing matches
+  // yet; that strategy is polled again. A lookup that throws gives that
+  // strategy up for the rest of the call, as the old per-strategy `.catch`
+  // did.
+  const lookup = async (strategy: (typeof strategies)[number]) => {
+    try {
+      const el = await driver.$(strategy.query);
+      return el.elementId ? el : null;
+    } catch {
+      strategy.dropped = true;
+      return null;
+    }
+  };
 
-  const ariaPromise = driver
-    .$(`aria/${string}`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
+  // Zero-timeout existence check: the element must still be there, as the old
+  // `waitForExist` guaranteed. It doesn't wait.
+  const confirmed = (el: any) =>
+    el.waitForExist({ timeout: 0 }).then(
+      () => true,
+      () => false
+    );
 
-  const idPromise = driver
-    .$(`//*[@id="${string}"]`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
-  const testIdPromise = driver
-    .$(`//*[@data-testid="${string}"]`)
-    .then(async (el: any) => {
-      await el.waitForExist({ timeout });
-      return el;
-    })
-    .catch(() => null);
-
-  // Wait for all promises to resolve
-  const results = await Promise.allSettled([
-    selectorPromise,
-    textPromise,
-    ariaPromise,
-    idPromise,
-    testIdPromise,
-  ]);
-
-  // Extract results
-  const selectorResult =
-    results[0].status === "fulfilled" ? results[0].value : null;
-  const textResult =
-    results[1].status === "fulfilled" ? results[1].value : null;
-  const ariaResult =
-    results[2].status === "fulfilled" ? results[2].value : null;
-  const idResult = results[3].status === "fulfilled" ? results[3].value : null;
-  const testIdResult =
-    results[4].status === "fulfilled" ? results[4].value : null;
-
-  // Apply precedence order: elementText > elementAria > elementId > elementTestId > selector
-  if (textResult && textResult.elementId) {
-    return { element: textResult, foundBy: "elementText" };
-  }
-  if (ariaResult && ariaResult.elementId) {
-    return { element: ariaResult, foundBy: "elementAria" };
-  }
-  if (idResult && idResult.elementId) {
-    return { element: idResult, foundBy: "elementId" };
-  }
-  if (testIdResult && testIdResult.elementId) {
-    return { element: testIdResult, foundBy: "elementTestId" };
-  }
-  if (selectorResult && selectorResult.elementId) {
-    return { element: selectorResult, foundBy: "selector" };
-  }
+  const startTime = Date.now();
+  // do/while so `timeout: 0` means "check once, now" (ADR 01090).
+  do {
+    const found = await Promise.all(
+      strategies.map((s) => (s.dropped ? null : lookup(s)))
+    );
+    for (let p = 0; p < precedence.length; p++) {
+      const i = precedence[p];
+      if (!found[i] || !(await confirmed(found[i]))) continue;
+      // A lower-precedence hit: look the higher strategies up once more
+      // before accepting it, so one that rendered a moment later on this pass
+      // still wins, as it did when every strategy waited out the timeout.
+      // One extra lookup, never a wait.
+      const above = precedence.slice(0, p);
+      const higher = await Promise.all(
+        above.map((j) => (strategies[j].dropped ? null : lookup(strategies[j])))
+      );
+      for (let h = 0; h < above.length; h++) {
+        if (higher[h] && (await confirmed(higher[h]))) {
+          return { element: higher[h], foundBy: strategies[above[h]].foundBy };
+        }
+      }
+      return { element: found[i], foundBy: strategies[i].foundBy };
+    }
+    if (strategies.every((s) => s.dropped)) break;
+    if (Date.now() - startTime >= timeout) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } while (Date.now() - startTime < timeout);
 
   // No matching elements
   return { element: null, foundBy: null };
@@ -592,10 +597,6 @@ async function findElementByCriteria({
           continue;
         }
         try {
-          // Check if element is valid and exists in DOM
-          const exists = await element.isExisting();
-          if (!exists) continue;
-
           // Build array of check promises to run in parallel
           const checks: any[] = [];
           const checkTypes: any[] = [];
@@ -688,8 +689,14 @@ async function findElementByCriteria({
             }
           }
 
-          // If all checks passed, we found our element
+          // If all checks passed, confirm the element still exists, then
+          // we found our element. The existence check runs only for matches:
+          // wdio's isExisting() re-runs the whole candidate query (`$$`), so
+          // calling it first on every candidate made the scan O(n²) (ADR
+          // 01131). Both are reads, so the order doesn't change which
+          // candidates pass.
           if (allChecksPassed) {
+            if (!(await element.isExisting())) continue;
             matchedElements.push(element);
             // `foundBy` describes the FIRST match, so it means the same thing
             // whether or not `all` was set — later matches must not rewrite it.

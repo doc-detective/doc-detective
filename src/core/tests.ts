@@ -8,7 +8,7 @@ import fs from "node:fs";
 // optional package on disk — webdriverio is an optionalDependency that npm may
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
-import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { resolveTheme } from "./annotations/model.js";
 import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
@@ -96,9 +96,11 @@ import {
   isAppDriverRequired,
   stepTargetsAppSurface,
   teardownAppSession,
+  createAppServerPool,
   APP_DRIVER_PLATFORMS,
   probeIosToolchain,
   type AppSessionState,
+  type AppServerPool,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
 import {
@@ -153,6 +155,7 @@ import {
   acquireSimulator,
   createSimulatorRegistry,
   teardownSimulatorRegistry,
+  iosMajorOfRuntime,
   type SimulatorRegistry,
 } from "./tests/iosSimulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
@@ -230,8 +233,8 @@ export {
   warmBrowserInstall,
   prefetchMobileChromedriver,
   appiumIsReady,
+  driverStart,
 };
-// exports.driverStart = driverStart;
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
@@ -755,6 +758,13 @@ export function browserJobCount(jobs: any[]): number {
   if (!Array.isArray(jobs)) return 0;
   return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
     .length;
+}
+
+// Whether a job's context has a screenshot step: gates the sharp prefetch
+// during Appium's boot (ADR 01135).
+export function jobTakesScreenshot(job: any): boolean {
+  const steps = job?.context?.steps;
+  return Array.isArray(steps) && steps.some((s: any) => s?.screenshot !== undefined);
 }
 
 // Evaluate a context's `requires` capability gate. Returns null when the gate
@@ -1933,6 +1943,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         wait.catch(() => {});
         readinessWaits.push(wait);
       }
+      if (sizingJobs.some(jobTakesScreenshot))
+        prefetchHeavyDep("sharp", { cacheDir: config?.cacheDir });
       await Promise.all(readinessWaits);
       for (const server of appiumServers) {
         log(config, "debug", `Appium is ready on port ${server.port}.`);
@@ -1985,6 +1997,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // shut down (launch-ownership).
   const simulatorRegistry: SimulatorRegistry = createSimulatorRegistry();
 
+  // Run-level pool of iOS app Appium servers (ADR 01115): sequential iOS
+  // contexts reuse one server instead of starting and killing their own.
+  // Drained in the `finally` below.
+  const appServerPool: AppServerPool = createAppServerPool();
+
   // One resource registry per run, shared by the warm phase, every phase's
   // flat pool, AND the routed sequencer — so warm's cache-mutating tasks,
   // flat-pool recordings, and routed-spec recordings all contend on the same
@@ -2034,7 +2051,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     (async () => {
       await killAllRegistered();
       await Promise.all(
-        appiumServers.map((server) => killTree(server.process?.pid))
+        [...appiumServers, ...appServerPool.drain()].map((server) =>
+          killTree(server.process?.pid)
+        )
       );
       for (const xvfb of xvfbProcesses) {
         try {
@@ -2132,6 +2151,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2222,6 +2242,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           platform,
           markAutoRecord,
           limit,
@@ -2287,6 +2308,19 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         return killTree(server.process?.pid);
       })
     );
+    // Close the pooled iOS app servers (ADR 01115) through the same teardown a
+    // per-context server gets, so the Windows orphan sweep still applies.
+    for (const server of appServerPool.drain()) {
+      log(config, "debug", `Closing app Appium server on port ${server.port}`);
+      // A fresh state with no `release` sends teardown down the kill path.
+      const owner = createAppSessionState();
+      owner.server = { port: server.port, process: server.process };
+      try {
+        await teardownAppSession(owner, (pid) => killTree(pid));
+      } catch (error: any) {
+        log(config, "debug", `Couldn't close app Appium server: ${error?.message ?? error}`);
+      }
+    }
     // Tear down any Xvfb virtual displays started for recording.
     for (const xvfb of xvfbProcesses) {
       try {
@@ -2403,6 +2437,7 @@ async function runRoutedSpec({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   platform,
   markAutoRecord,
   limit,
@@ -2424,6 +2459,7 @@ async function runRoutedSpec({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -2611,6 +2647,7 @@ async function runRoutedSpec({
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -3917,6 +3954,7 @@ async function runContext({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   logPrefix = "",
 }: {
   config: any;
@@ -3934,6 +3972,7 @@ async function runContext({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -4080,6 +4119,7 @@ async function runContext({
       appSession.appiumHome = pre.appiumHome;
       appSession.iosSimulatorRegistry = simulatorRegistry;
       appSession.iosSimulatorDeps = pre.simulatorDeps;
+      appSession.appServerPool = appServerPool;
       gateBrowserName = pre.mobileWebBrowserName;
       /* c8 ignore stop */
     }
@@ -4341,14 +4381,29 @@ async function runContext({
       // FAIL — matching the mobile rule that every environment gap SKIPs.
       let acquired: any;
       try {
-        const server = await startAppiumServer(
-          appSession!.appiumEntry!,
-          config,
-          undefined,
-          env,
-          extraArgs
-        );
-        appSession!.server = { port: server.port, process: server.process };
+        const start = async () =>
+          startAppiumServer(
+            appSession!.appiumEntry!,
+            config,
+            undefined,
+            env,
+            extraArgs
+          );
+        // iOS shares the run's pooled server for this launch environment
+        // (ADR 01115); `release` hands it back at context teardown.
+        const pool = appSession!.appServerPool;
+        const server: { port: number; process: any; release?: () => void } =
+          pool
+            ? await pool.acquire(
+                JSON.stringify({ appiumEntry: appSession!.appiumEntry, env, extraArgs }),
+                start
+              )
+            : await start();
+        appSession!.server = {
+          port: server.port,
+          process: server.process,
+          release: server.release,
+        };
         const desc = normalizeDeviceDescriptor({
           contextDevice: context.device,
           platform: mobileTarget as "android" | "ios",
@@ -4394,12 +4449,18 @@ async function runContext({
         // The resolved cache root (not the raw config field, which is
         // usually unset) — the chromedriver autodownload dir lives here.
         cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
+        // iOS: the simulator's version picks the WDA launch mode (ADR 01110).
+        iosMajor: iosMajorOfRuntime(acquired.entry.runtime),
       });
       try {
         driver = await driverStart(capabilities, appSession!.server.port, 2, {
           cacheDir: config?.cacheDir,
+          log: (m) => clog("warning", m),
         });
       } catch (error: any) {
+        // A client-side timeout can abort while the server is still creating
+        // the session, so keep a pooled server out of reuse (ADR 01115).
+        appSession!.sessionLeftOpen = true;
         // A capable host that can't open the device browser is an
         // environment gap (the absent-browser precedent): SKIP with the
         // likely cause named, never FAIL.
@@ -5183,7 +5244,11 @@ async function runContext({
       // retry warning the wrapper already logs. The alive-but-unusable cases do,
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
-      const retryReason = await classifyContextRetry(probeDrivers);
+      const retryReason = await classifyContextRetry(probeDrivers, {
+        navigated: contextReport.steps.some(
+          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
+        ),
+      });
       if (retryReason) {
         sessionDiedMidRun = true;
         if (retryReason === "page-broken") {
@@ -5251,17 +5316,22 @@ async function runContext({
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
     // can't leak sessions while sibling contexts keep running.
+    // A session left open (a failed delete) must keep a pooled iOS app server
+    // from being reused: the mobile-web session runs on it (ADR 01115).
+    let sessionsClosed = true;
     if (browserSessions) {
-      await sweepSessions(browserSessions);
+      sessionsClosed = await sweepSessions(browserSessions);
     } else if (driver) {
       // Registry creation is unconditional after a driver starts, so this
       // fallback only runs if the start path threw between the two.
       try {
         await driver.deleteSession();
       } catch (error: any) {
+        sessionsClosed = false;
         clog("error", `Failed to delete driver session: ${error.message}`);
       }
     }
+    if (appSession && !sessionsClosed) appSession.sessionLeftOpen = true;
     // Tear down app surfaces: close every remaining app session (the driver
     // terminates apps it launched) and stop the app Appium server. Tree-kill
     // in callback form so the server process is actually gone before the
@@ -5701,17 +5771,35 @@ async function runStep({
             const driverPackage = context?.platform
               ? APP_DRIVER_PLATFORMS[context.platform]?.driverPackage
               : undefined;
-            const server = await startAppiumServer(
-              appiumEntry,
-              config,
-              undefined,
-              env,
-              driverPackage ? useDriversArgs(appiumHome, [driverPackage]) : []
-            );
-            return { port: server.port, process: server.process };
+            const extraArgs = driverPackage
+              ? useDriversArgs(appiumHome, [driverPackage])
+              : [];
+            const start = async () => {
+              const server = await startAppiumServer(
+                appiumEntry,
+                config,
+                undefined,
+                env,
+                extraArgs
+              );
+              return { port: server.port, process: server.process };
+            };
+            // iOS contexts share the run's pooled server for this exact launch
+            // environment and argument list (ADR 01115); teardown releases it
+            // via `release`. Deliberately a different key from the mobile-web
+            // site: app servers also carry the ffmpeg PATH, so the two never
+            // share a server.
+            const pool = appSession?.appServerPool;
+            if (pool) {
+              return pool.acquire(JSON.stringify({ appiumEntry, env, extraArgs }), start);
+            }
+            return start();
           },
           startDriver: (capabilities: any, port: number) =>
-            driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+            driverStart(capabilities, port, 2, {
+              cacheDir: config?.cacheDir,
+              log: (m) => log(config, "warning", m),
+            }),
           // Mobile device acquisition (boot/create-and-boot, or reuse), bound
           // to the run-level registry stashed on the app session. Android uses
           // the emulator layer; iOS uses the simctl simulator layer. Both
@@ -5922,6 +6010,8 @@ async function spawnAppiumServer(
   });
   proc.stdout.on("data", () => {});
   proc.stderr.on("data", () => {});
+  // Overlap webdriverio's ~350 ms import with Appium's boot (ADR 01135).
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
   return { port, process: proc, display };
 }
 
@@ -6009,7 +6099,14 @@ async function driverStart(
   capabilities: any,
   port: number,
   maxAttempts: number = 4,
-  ctx: { cacheDir?: string } = {}
+  ctx: {
+    cacheDir?: string;
+    // Reports each failed attempt that gets retried (a hung iOS launch
+    // otherwise shows as a silent stall up to the startup ceiling).
+    log?: (message: string) => void;
+    // Test seam for the WebDriver client.
+    remote?: (options: any) => Promise<any>;
+  } = {}
 ) {
   // Retryable session-creation failures (transient races/contention, plus the
   // client-side timeout abort for slow-startup native sessions) are enumerated
@@ -6046,7 +6143,7 @@ async function driverStart(
       const attemptCaps = driverPortCapability(capabilities)
         ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
-      const driver: any = await wdio.remote({
+      const driver: any = await (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -6068,6 +6165,10 @@ async function driverStart(
       if (!isRetryableSessionError(String(err && err.message), startupCeiling))
         throw err;
       if (attempt < maxAttempts) {
+        const reason = String(err?.message ?? err).split("\n")[0];
+        ctx.log?.(
+          `Session start attempt ${attempt} of ${maxAttempts} failed (${reason}); retrying.`
+        );
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
     }
@@ -6316,6 +6417,7 @@ async function getRunner(options: any = {}) {
   appium.on("error", (err: any) => {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir }); // ADR 01135
 
   // Wait for Appium to be ready. Same kill-on-throw guard as in
   // runSpecs above — without it, a startup timeout would leave an
