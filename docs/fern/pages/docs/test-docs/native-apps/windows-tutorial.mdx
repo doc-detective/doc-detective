@@ -342,7 +342,7 @@ Doc Detective matches controls by their UI Automation properties:
 | --- | --- | --- |
 | Its visible text or label | `elementText` | Name |
 | A developer-assigned ID | `elementId` | AutomationId |
-| Its type, such as `button` | `elementAria` | ControlType |
+| Its control type, such as `button` | `elementAria` | ControlType (in browsers, `elementAria` matches the accessible name instead) |
 | A combination of type and properties | `selector` (XPath), such as `//Button[@Name="Save"]` | Control type and any property |
 
 The name a control shows on screen isn't always its UI Automation name. To see a control's properties, use an inspection tool such as [Accessibility Insights for Windows](https://accessibilityinsights.io/docs/windows/overview/) or Inspect, which ships with the Windows SDK. Hover over the control and read its Name, AutomationId, and ControlType values.
