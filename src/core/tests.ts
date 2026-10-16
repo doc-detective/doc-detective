@@ -8,7 +8,7 @@ import fs from "node:fs";
 // optional package on disk — webdriverio is an optionalDependency that npm may
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
-import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { resolveTheme } from "./annotations/model.js";
 import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
@@ -47,8 +47,8 @@ import {
   guardBlankDocumentNavigation,
   realizeViewport,
   isViewportFloored,
+  loadAxios,
 } from "./utils.js";
-import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
@@ -189,7 +189,7 @@ import {
   APPIUM_WATCHDOG_IMPORT,
 } from "./appiumReuse.js";
 import type { Server as AppiumServer } from "./appiumReuse.js";
-import { contentHash } from "../common/src/detectTests.js";
+import { contentHash } from "../common/src/textUtils.js";
 import { resolveExpression } from "./expressions.js";
 import {
   evaluateCustomAssertions,
@@ -752,6 +752,32 @@ function isBrowserRequired({ test }: { test: any }): boolean {
   );
 }
 
+// Whether any context in `specs` could read the available-apps list: it names a
+// browser, targets a mobile platform, or has a step that drives a browser or
+// opens/closes a surface. A deliberate superset of every availableApps reader in
+// this file, so a run where it's false never consults the list and can skip
+// detection (ADR 01133). Falls back to the test's steps only when a context has
+// no steps array; an explicit `steps: []` is a context with nothing to run.
+export function runNeedsAvailableApps(specs: any[]): boolean {
+  const list = (v: any) => (Array.isArray(v) ? v : []);
+  const stepNeedsApps = (step: any) =>
+    Boolean(step) &&
+    typeof step === "object" &&
+    (step.startSurface !== undefined ||
+      step.closeSurface !== undefined ||
+      driverActions.some((key) => step[key] !== undefined));
+  return list(specs).some((spec: any) =>
+    list(spec?.tests).some((test: any) =>
+      list(test?.contexts).some(
+        (context: any) =>
+          Boolean(context?.browser) ||
+          isMobileTargetPlatform(context?.platform) ||
+          list(Array.isArray(context?.steps) ? context.steps : test?.steps).some(stepNeedsApps)
+      )
+    )
+  );
+}
+
 // Size the browser Appium server pool: the number of concurrent runner jobs
 // that will actually create a BROWSER session. App-only jobs are excluded —
 // they provision their own per-context Appium server (homed where the native
@@ -763,6 +789,13 @@ export function browserJobCount(jobs: any[]): number {
   if (!Array.isArray(jobs)) return 0;
   return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
     .length;
+}
+
+// Whether a job's context has a screenshot step: gates the sharp prefetch
+// during Appium's boot (ADR 01135).
+export function jobTakesScreenshot(job: any): boolean {
+  const steps = job?.context?.steps;
+  return Array.isArray(steps) && steps.some((s: any) => s?.screenshot !== undefined);
 }
 
 // Evaluate a context's `requires` capability gate. Returns null when the gate
@@ -1326,6 +1359,7 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
+  const axios = await loadAxios();
   // Apply specFilter / testFilter before sending. Without this the API run
   // path silently ignores --test / --spec, since the orchestration server
   // sees the full unfiltered payload.
@@ -1523,10 +1557,16 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     };
   }
 
-  // Get runner details
+  // Get runner details. Browser detection is skipped when no context can use
+  // its result (ADR 01133); APPIUM_HOME is still set, as detection would have.
+  const needsApps = runNeedsAvailableApps(specs);
+  if (!needsApps) {
+    log(config, "debug", "No context in this run uses a browser; skipping browser detection.");
+    setAppiumHome({ cacheDir: config?.cacheDir });
+  }
   const runnerDetails = {
     environment: getEnvironment(),
-    availableApps: await getAvailableApps({ config }),
+    availableApps: needsApps ? await getAvailableApps({ config }) : [],
     allowUnsafeSteps: await allowUnsafeSteps({ config }),
   };
 
@@ -1929,6 +1969,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           : undefined;
         if (reused) {
           log(config, "debug", `Reusing idle Appium server on port ${reused.port}.`);
+          // A spawn would prefetch webdriverio (ADR 01135); a reused server
+          // skips the spawn, so start the import here instead.
+          prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
           appiumServers.push(reused);
           continue;
         }
@@ -1957,6 +2000,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         wait.catch(() => {});
         readinessWaits.push(wait);
       }
+      if (sizingJobs.some(jobTakesScreenshot))
+        prefetchHeavyDep("sharp", { cacheDir: config?.cacheDir });
       await Promise.all(readinessWaits);
       for (const server of appiumServers) {
         log(config, "debug", `Appium is ready on port ${server.port}.`);
@@ -5271,7 +5316,11 @@ async function runContext({
       // retry warning the wrapper already logs. The alive-but-unusable cases do,
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
-      const retryReason = await classifyContextRetry(probeDrivers);
+      const retryReason = await classifyContextRetry(probeDrivers, {
+        navigated: contextReport.steps.some(
+          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
+        ),
+      });
       if (retryReason) {
         sessionDiedMidRun = true;
         if (retryReason === "page-broken") {
@@ -6043,6 +6092,8 @@ async function spawnAppiumServer(
   });
   proc.stdout.on("data", () => {});
   proc.stderr.on("data", () => {});
+  // Overlap webdriverio's ~350 ms import with Appium's boot (ADR 01135).
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
   return { port, process: proc, display };
 }
 
@@ -6103,7 +6154,7 @@ async function appiumIsReady(
         // Bound each probe: without a per-request timeout a hung /status
         // response would block this await indefinitely, and the overall
         // `timeoutMs` guard (checked only between probes) could never fire.
-        const resp = await axios.get(`http://127.0.0.1:${p}/status`, {
+        const resp = await (await loadAxios()).get(`http://127.0.0.1:${p}/status`, {
           timeout: STATUS_PROBE_TIMEOUT_MS,
         });
         return resp.status === 200;
@@ -6448,6 +6499,7 @@ async function getRunner(options: any = {}) {
   appium.on("error", (err: any) => {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir }); // ADR 01135
 
   // Wait for Appium to be ready. Same kill-on-throw guard as in
   // runSpecs above — without it, a startup timeout would leave an

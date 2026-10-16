@@ -1,3 +1,55 @@
+## [4.40.4](https://github.com/doc-detective/doc-detective/compare/v4.40.3...v4.40.4) (2026-10-16)
+
+
+### Bug Fixes
+
+* **find:** honor a matching selector first in shorthand find ([cb8992c](https://github.com/doc-detective/doc-detective/commit/cb8992c40760389a305fd57764b9e9928a2664da))
+* **find:** keep text-first precedence for shorthand find ([df25bec](https://github.com/doc-detective/doc-detective/commit/df25bec5f77b4a0e4577138ae245eeec2c1a612e))
+* **find:** make regex find linear and poll instead of sleeping ([e53b4b2](https://github.com/doc-detective/doc-detective/commit/e53b4b2388b2259a35c2325ac4f8076dad782596))
+* **find:** quote shorthand id/testid lookups as XPath literals ([5918de5](https://github.com/doc-detective/doc-detective/commit/5918de5c45333412d1b84bdc54a76d400518fd0c))
+* **find:** re-check higher regex scans before accepting a lower hit ([4497fd8](https://github.com/doc-detective/doc-detective/commit/4497fd88b0f6246c4d10ffe331c41a7a3a7348dc)), closes [div#messages](https://github.com/div/issues/messages)
+* **find:** stop shorthand find/click from waiting out the full timeout ([fb287fb](https://github.com/doc-detective/doc-detective/commit/fb287fb48db0c72c8e55788753123dbc784dac58))
+
+
+### Performance Improvements
+
+* **common:** precompile validators with Ajv standalone code ([55ad52e](https://github.com/doc-detective/doc-detective/commit/55ad52e00ab1376f1bf971078fd86502caffb304))
+* **detect:** dedup qualified input files with a Set ([def7827](https://github.com/doc-detective/doc-detective/commit/def7827e5330b6711557dd0c184fd9eb41d43564))
+* **detect:** log the detected-spec dump at debug, not info ([62c4b84](https://github.com/doc-detective/doc-detective/commit/62c4b840287d243f9d5ae07b0c6adfdce63d03d9))
+* **runCode:** resolve relative PATH entries against cwd in the node check ([29f7b6c](https://github.com/doc-detective/doc-detective/commit/29f7b6cc33ac47cfeea6c71380e15a4878e02e5f))
+* **runCode:** skip the node --version probe when PATH's node is this node ([fc24077](https://github.com/doc-detective/doc-detective/commit/fc24077ae76208beaf59301e8e2e248211d11ab8))
+* **runner:** prefetch webdriverio and sharp while Appium boots ([944b4d0](https://github.com/doc-detective/doc-detective/commit/944b4d0458d9b0c4292a18832aa86d497226b556))
+* **windows-bash:** find git on PATH in-process instead of where.exe ([7a305dc](https://github.com/doc-detective/doc-detective/commit/7a305dc4bc4f6dad0b46af00a9fa8cb53463fd91))
+* **windows-bash:** match where.exe with PATHEXT unset; pin bare-name parity ([8eded48](https://github.com/doc-detective/doc-detective/commit/8eded487687a3d7c958a349d5682138b60a1b115))
+
+## [4.40.3](https://github.com/doc-detective/doc-detective/compare/v4.40.2...v4.40.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **browsers:** launch the browser build installed.json records ([709150a](https://github.com/doc-detective/doc-detective/commit/709150a225818981f8fe0de20948fafd8bb50f9e))
+* **retries:** don't retry a context as unnavigated when it never ran a goTo ([7a1786a](https://github.com/doc-detective/doc-detective/commit/7a1786a2670723939c3dc027f85715296f615b22))
+
+## [4.40.2](https://github.com/doc-detective/doc-detective/compare/v4.40.1...v4.40.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* **appium:** report retried session starts ([9d2dfe0](https://github.com/doc-detective/doc-detective/commit/9d2dfe05e2cda84566c5ee700a156c99503ef8b5))
+* **ios:** address review findings on the server pool and WDA launch ([377acc0](https://github.com/doc-detective/doc-detective/commit/377acc0707c73292326535bb86de2d27c18175d6))
+* **ios:** decide app-server reuse at teardown, not over HTTP ([56be1f8](https://github.com/doc-detective/doc-detective/commit/56be1f8d855736819f96edce81c835a9db19b726))
+* **ios:** keep possibly-open sessions' servers out of the pool ([5533908](https://github.com/doc-detective/doc-detective/commit/553390890d5f6bb2f20b7d99dd47e825c60c41ab)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+* **ios:** make a pooled server's release idempotent ([6080c06](https://github.com/doc-detective/doc-detective/commit/6080c06bc62efd54944a3f478df12599f50b39b0)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+* **ios:** use the direct WDA launch only on a known iOS 17+ simulator ([0f22414](https://github.com/doc-detective/doc-detective/commit/0f224145179527c239e6c560d6df715580c41467)), closes [#733](https://github.com/doc-detective/doc-detective/issues/733)
+
+
+### Performance Improvements
+
+* **ios:** launch the prebuilt WebDriverAgent without xcodebuild ([402563d](https://github.com/doc-detective/doc-detective/commit/402563db185402f3eaf763033314249183eec5d1))
+* **ios:** open the Simulator window before the first session ([6e07a76](https://github.com/doc-detective/doc-detective/commit/6e07a76793ceb41bea09f1f900cde5430e28a4a3))
+* **ios:** reuse one Appium server across iOS contexts ([b048285](https://github.com/doc-detective/doc-detective/commit/b048285802d801ed238c28077ba414264eb575c3))
+* **ios:** skip the device log capture Doc Detective never reads ([14fd597](https://github.com/doc-detective/doc-detective/commit/14fd5970db72bf06c360c245672eb4ce8156e211))
+
 ## [4.40.1](https://github.com/doc-detective/doc-detective/compare/v4.40.0...v4.40.1) (2026-10-14)
 
 

@@ -1004,10 +1004,16 @@ export { HerettoUploader };
 // Functions for downloading content from Heretto CMS during test detection.
 // Ported from the standalone resolver package.
 
-import axios, { AxiosInstance } from "axios";
+import type { AxiosInstance } from "axios";
+import { createRequire } from "node:module";
 import os from "node:os";
 import crypto from "node:crypto";
 import AdmZip from "adm-zip";
+
+// axios loads on first client creation, not at CLI startup. The factories below
+// are synchronous, so this is a lazy require rather than a dynamic import.
+const requireFromHere = createRequire(import.meta.url);
+const requireAxios = (): typeof import("axios").default => requireFromHere("axios");
 
 // Constants
 const POLLING_INTERVAL_MS = 5000;
@@ -1039,7 +1045,7 @@ export function createApiClient(herettoConfig: any): AxiosInstance {
     herettoConfig.username,
     herettoConfig.apiToken
   );
-  return axios.create({
+  return requireAxios().create({
     baseURL: getBaseUrl(herettoConfig.organizationId),
     timeout: API_REQUEST_TIMEOUT_MS,
     headers: {
@@ -1054,7 +1060,7 @@ export function createRestApiClient(herettoConfig: any): AxiosInstance {
     herettoConfig.username,
     herettoConfig.apiToken
   );
-  return axios.create({
+  return requireAxios().create({
     baseURL: `https://${herettoConfig.organizationId}.heretto.com`,
     timeout: API_REQUEST_TIMEOUT_MS,
     headers: {

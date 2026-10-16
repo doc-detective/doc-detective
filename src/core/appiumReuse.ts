@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import axios from "axios";
+// axios loads lazily, keeping startup light (test/startup-modules.test.js).
+import { loadAxios } from "./utils.js";
 import type { ChildProcess } from "node:child_process";
 
 // Opt-in reuse of browser-pool Appium servers across runTests calls in one
@@ -208,7 +209,7 @@ function allowSessionDiscovery(args: string[]): string[] {
 // Single /status probe for a server that's supposed to be up already.
 async function probeStatus(port: number): Promise<boolean> {
   try {
-    const resp = await axios.get(`http://127.0.0.1:${port}/status`, { timeout: 2000 });
+    const resp = await (await loadAxios()).get(`http://127.0.0.1:${port}/status`, { timeout: 2000 });
     return resp.status === 200;
   } catch {
     return false;
@@ -216,7 +217,7 @@ async function probeStatus(port: number): Promise<boolean> {
 }
 
 async function listSessions(port: number): Promise<unknown[]> {
-  const resp = await axios.get(`http://127.0.0.1:${port}/appium/sessions`, {
+  const resp = await (await loadAxios()).get(`http://127.0.0.1:${port}/appium/sessions`, {
     timeout: 2000,
   });
   const value = resp.data?.value;

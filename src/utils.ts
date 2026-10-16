@@ -2,12 +2,11 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir } from "./core/utils.js";
+import { getRunOutputDir, loadAxios } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import axios from "axios";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -208,7 +207,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
     log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
 
     // Make GET request to the specified URL with token in header
-    const response = await axios.get(`${apiConfig.url}/resolved-tests`, {
+    const response = await (await loadAxios()).get(`${apiConfig.url}/resolved-tests`, {
       headers: {
         "x-runner-token": apiConfig.token,
       },
@@ -1224,7 +1223,7 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
 
-    const response = await axios.post(url, payload, {
+    const response = await (await loadAxios()).post(url, payload, {
       headers: {
         "x-runner-token": apiConfig.token,
       },

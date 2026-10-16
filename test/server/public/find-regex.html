@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Regex Test Page</title>
+</head>
+<body>
+    <h1>Find Regex Test Page</h1>
+    <!-- Regex find matches against the driver's rendered text (WebDriver Get
+         Element Text), not the DOM's textContent (ADR 01131). Each block pins
+         a case where the two disagree, so a change that swapped in textContent
+         would pick a different element or none. -->
+
+    <!-- Hidden first: textContent would pick this; rendered text is "". -->
+    <p style="display:none">Hidden regex target 1</p>
+    <p>Visible regex target 2</p>
+
+    <!-- Whitespace: rendered text collapses the runs; textContent keeps them. -->
+    <p>   collapsed      regex      spacing   </p>
+
+    <!-- CSS text-transform: rendered text is upper case; textContent isn't. -->
+    <p style="text-transform: uppercase">shouted regex text</p>
+
+    <!-- Text in a non-first text node (framework-fragmented, ADR 01061). -->
+    <h2 id="fragmented"></h2>
+
+    <!-- Attribute-only matches for the shorthand's other regex strategies. -->
+    <button aria-label="Regex aria label 7">X</button>
+    <div id="regex-id-42">id holder</div>
+    <div data-testid="regex-testid-9">testid holder</div>
+
+    <button id="start-late" onclick="scheduleLate()">Start late regex</button>
+    <div id="messages"></div>
+
+    <script>
+        const h2 = document.getElementById("fragmented");
+        h2.appendChild(document.createTextNode(""));
+        h2.appendChild(document.createTextNode("Fragmented regex heading"));
+        h2.appendChild(document.createTextNode(""));
+
+        // Late arrival: started by a click so goTo's settle wait can't absorb
+        // it; the regex find must keep polling until it renders.
+        function scheduleLate() {
+            setTimeout(() => {
+                const p = document.createElement("p");
+                p.textContent = "Late regex arrival 5";
+                document.getElementById("messages").appendChild(p);
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

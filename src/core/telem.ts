@@ -1,7 +1,7 @@
 import os from "node:os";
-import { log } from "./utils.js";
 import { PostHog } from "posthog-node";
 import { createRequire } from "node:module";
+import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
 
 const require = createRequire(import.meta.url);
 
@@ -10,23 +10,6 @@ const platformMap: Record<string, string> = {
   darwin: "mac",
   linux: "linux",
 };
-
-// TODO: Add link to docs
-function telemetryNotice(config: any) {
-  if (config?.telemetry?.send === false) {
-    log(
-      config,
-      "info",
-      "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
-    );
-  } else {
-    log(
-      config,
-      "info",
-      "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
-    );
-  }
-}
 
 // meta = {
 //   distribution: "doc-detective", // doc-detective, core
@@ -104,7 +87,7 @@ function sendTelemetry(config: any, command: string, results: any) {
   // Send telemetry
   const client = new PostHog(
     "phc_rjV0MH3nsAd45zFISLgaKAdAXbgDeXt2mOBV2EBHomB",
-    { host: "https://app.posthog.com" }
+    { host: POSTHOG_HOST, fetch: telemetryFetch }
   );
   client.capture(event);
   // Kick off the flush NOW (as soon as results are final) but DON'T await it

@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers };
+export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -389,10 +389,12 @@ defaultFileTypes = {
  * Sets up and validates the configuration object for Doc Detective
  * @async
  * @param {Object} config - The configuration object to process
+ * @param {boolean} [detectApps=true] - Populate `environment.apps`. runTests
+ *   passes false and detects after resolution, only when the run needs it.
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
-async function setConfig({ config }: any) {
+async function setConfig({ config, detectApps = true }: any) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
 
@@ -575,7 +577,10 @@ async function setConfig({ config }: any) {
   // browser-cache scan, and the driver-presence probing (the work that pushes
   // dryRun.test.js past its mocha timeout on a starved windows+node22 runner)
   // with no effect on resolved output or execution.
-  config.environment.apps = config.dryRun ? [] : await getAvailableApps({ config });
+  // `detectApps: false` defers the same detection to runTests, which runs it
+  // only when a resolved context can use it (ADR 01133).
+  config.environment.apps =
+    config.dryRun || !detectApps ? [] : await getAvailableApps({ config });
 
   // Resolve concurrent runners configuration
   config.concurrentRunners = resolveConcurrentRunners(config);
@@ -893,6 +898,25 @@ async function probeBrowserEnvironment({
   return { installedBrowsers, installedDrivers, browserDetectionFailed };
 }
 
+// Pick one scanned build of `name`. Several can coexist in the cache (an old
+// build the installer failed to prune), and the scan lists them in directory
+// order, which put the stale one first. Prefer the build installed.json records,
+// the one the installer validated and that repair refreshes (ADR 01118).
+interface ScannedBuild {
+  browser: string;
+  buildId: string;
+  executablePath: string;
+}
+
+function selectInstalledBuild<T extends ScannedBuild>(
+  installedBrowsers: T[],
+  name: string,
+  recordedBuildId: string | undefined
+): T | undefined {
+  const builds = installedBrowsers.filter((b) => b.browser === name);
+  return builds.find((b) => b.buildId === recordedBuildId) ?? builds[0];
+}
+
 async function getAvailableApps({ config }: any) {
   // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
   // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
@@ -918,15 +942,19 @@ async function getAvailableApps({ config }: any) {
   // partially downloaded driver passes presence checks yet can't start a
   // session.
   const descriptors: AppDriverDescriptor[] = [];
+  let recorded: Record<string, any> = {};
+  try {
+    recorded = readInstalledRecord({ cacheDir: config?.cacheDir }).browsers || {};
+  } catch {
+    // No usable record: fall back to scan order.
+  }
+  const pick = (name: string) =>
+    selectInstalledBuild(installedBrowsers, name, recorded[name]?.installedVersion);
 
   // Detect Chrome
-  const chrome = installedBrowsers.find(
-    (browser: any) => browser.browser === "chrome"
-  );
+  const chrome = pick("chrome");
   const chromeVersion = chrome?.buildId;
-  const chromedriver = installedBrowsers.find(
-    (browser: any) => browser.browser === "chromedriver"
-  );
+  const chromedriver = pick("chromedriver");
   const appiumChromium = installedDrivers.chromium;
 
   if (chrome && chromedriver && appiumChromium) {
@@ -943,9 +971,7 @@ async function getAvailableApps({ config }: any) {
   }
 
   // Detect Firefox
-  const firefox = installedBrowsers.find(
-    (browser: any) => browser.browser === "firefox"
-  );
+  const firefox = pick("firefox");
   const appiumFirefox = installedDrivers.gecko;
 
   if (firefox && appiumFirefox) {

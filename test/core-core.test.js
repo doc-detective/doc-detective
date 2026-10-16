@@ -646,6 +646,48 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
+    // The not-found permutation of interactions/find-shorthand.spec.json: it
+    // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: "Shorthand text target" },
+            { find: "No such shorthand target" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "find-shorthand-"));
+    const tempFilePath = path.join(tempDir, "find-shorthand.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const context = result.specs[0].tests[0].contexts.find(
+        (c) => c.steps && c.steps.length
+      );
+      assert.ok(context, "expected a context that ran steps");
+      const [, hit, miss] = context.steps;
+      assert.equal(hit.result, "PASS");
+      // Pre-ADR 01130 every shorthand hit took the full 5s default timeout.
+      assert.ok(
+        hit.durationMs < 4000,
+        `shorthand hit took ${hit.durationMs}ms; it must not wait out the timeout`
+      );
+      assert.equal(miss.result, "FAIL");
+      assert.equal(miss.outputs.found, false);
+      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.ok(
+        miss.durationMs >= 5000,
+        `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [
@@ -2974,6 +3016,60 @@ describe("getRunner() function", function () {
       );
     } finally {
       fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a process-only context on Chrome FAILs on its real assertion without an unnavigated retry", async () => {
+    // Chrome parks a session that never ran a goTo on `data:,`. That's the
+    // legitimate state of a context with no browser steps, so its FAIL must
+    // stand (ADR 01119). Retrying re-ran the background start, which collided
+    // with the still-running process and masked the real failure.
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "chrome", headless: true }],
+              browserFallback: "off",
+            },
+          ],
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: { name: "ttp-chrome-repl", waitUntil: { stdio: "/>/" } },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-chrome-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-chrome-repl" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const ran = result.specs[0].tests[0].contexts.find(
+        (c) => c.result !== "SKIPPED"
+      );
+      assert.ok(ran, "expected the runner's platform context to run");
+      assert.equal(ran.retries, undefined, "context must not be retried");
+      assert.equal(ran.steps[0].result, "PASS");
+      assert.equal(ran.steps[1].result, "FAIL");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 

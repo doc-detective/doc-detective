@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "4.40.1",
+  "version": "4.40.4",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -42,10 +42,11 @@
     "build:common": "cd src/common && npm run build",
     "docs:build-schema-refs": "node docs/.scripts/buildSchemaReferencesV4.js",
     "docs:build-cli-ref": "node docs/.scripts/buildCliReference.js",
-    "compile": "tsc && node scripts/createCjsWrapper.js",
-    "watch": "nodemon --watch src --ext ts --exec \"npm run compile\"",
-    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const s=p.join('src','common','src','schemas','schemas.json');const d=p.join('dist','common','src','schemas','schemas.json');fs.mkdirSync(p.dirname(d),{recursive:true});fs.copyFileSync(s,d);\"",
-    "build": "npm run build:common && npm run compile && npm run copy:schemas",
+    "compile": "tsc && npm run copy:schemas && node scripts/createCjsWrapper.js",
+    "watch": "npm run build:common && nodemon --watch src --ext ts --exec \"npm run compile\"",
+    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const d=p.join('dist','common','src','schemas');fs.mkdirSync(d,{recursive:true});fs.copyFileSync(p.join('src','common','src','schemas','schemas.json'),p.join(d,'schemas.json'));for(const f of ['validators.cjs','validatorsCheck.cjs'])fs.copyFileSync(p.join('src','common','dist','schemas',f),p.join(d,f));\"",
+    "build": "npm run build:common && npm run compile",
+    "build:ci": "npm --prefix src/common run build:ci && npm run compile",
     "mocha": "mocha",
     "test": "mocha --exit test/*.test.js && npm run test:common",
     "test:common": "cd src/common && npm test",

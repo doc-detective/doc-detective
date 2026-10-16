@@ -1,9 +1,16 @@
-import { setConfig } from "./config.js";
+import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp } from "./utils.js";
-import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice, sendTelemetry, awaitTelemetryFlush } from "./telem.js";
+import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
+import {
+  telemetryNotice,
+  prewarmTelemetry,
+  abortTelemetryWarmup,
+  loadTelemetry,
+  sendRunTelemetry as sendTelemetry,
+  flushRunTelemetry as awaitTelemetryFlush,
+} from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
@@ -25,8 +32,12 @@ const supportMessage = `
  * @param {Object} options.config - The configuration object
  * @returns {Promise<Object|null>} Resolved tests object or null if none found
  */
-async function detectAndResolveTests({ config }: any) {
-  config = await setConfig({ config });
+async function detectAndResolveTests({ config, detectApps = true }: any) {
+  return detectAndResolveFromConfig(await setConfig({ config, detectApps }));
+}
+
+// detectTests -> resolveTests for a config setConfig already produced.
+async function detectAndResolveFromConfig(config: any) {
   const detectedTests = await detectTests({ config });
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
@@ -38,6 +49,20 @@ async function detectAndResolveTests({ config }: any) {
 
 // Run tests defined in specifications and documentation source files.
 async function runTests(config: any, options: any = {}) {
+  let results: any;
+  try {
+    results = await runTestsAndReport(config, options);
+    return results;
+  } finally {
+    // Every path that returns results has sent telemetry, and that send owns
+    // the warm-up. Any other exit (no tests found, a throw) sends nothing, and
+    // a programmatic caller may never call awaitTelemetryFlush, so cancel the
+    // warm-up here (ADR 01132).
+    if (!results) abortTelemetryWarmup();
+  }
+}
+
+async function runTestsAndReport(config: any, options: any) {
   let resolvedTests: any;
   let results: any;
 
@@ -74,13 +99,58 @@ async function runTests(config: any, options: any = {}) {
     telemetryNotice(config);
   }
 
-  if (!resolvedTests) {
-    resolvedTests = await detectAndResolveTests({ config });
+  // Telemetry may contact PostHog only when both the caller's config and the
+  // effective config allow it. The effective config is what setConfig makes of
+  // the caller's, including the DOC_DETECTIVE env override, so nothing starts
+  // until it's known (ADR 01132). Once it is, load the client and warm its
+  // connection while the run works, so the end-of-run send pays for neither.
+  // A dry run skips the warm-up: it returns early, and a programmatic caller
+  // may never call awaitTelemetryFlush to cancel one left in flight.
+  let telemetryOn = false;
+  const startTelemetry = (effectiveConfig: any) => {
+    telemetryOn =
+      config?.telemetry?.send !== false &&
+      effectiveConfig?.telemetry?.send !== false;
+    if (!telemetryOn) return;
+    if (!config.dryRun) prewarmTelemetry(effectiveConfig);
+    loadTelemetry();
+  };
+  // The config every run decision below reads. Pre-resolved tests skip
+  // setConfig, so the merged config above is already effective; otherwise it's
+  // setConfig's output, which adds the DOC_DETECTIVE env override.
+  let effectiveConfig = config;
+  // Whether the orchestration API runs this (tests execute remotely). Read from
+  // the effective config, so an API key that only arrives through setConfig
+  // still counts; both deferred browser detection and the dispatch below
+  // depend on it.
+  const runsViaApi = (c: any) =>
+    Boolean(!process.env.DOC_DETECTIVE_API && c?.integrations?.docDetectiveApi?.apiKey);
+  let willRunViaApi = false;
+
+  if (resolvedTests) {
+    startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
+  } else {
+    effectiveConfig = await setConfig({ config, detectApps: false });
+    startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
+    }
+    // Browser detection, deferred from setConfig so a run whose contexts
+    // can't use it skips it (ADR 01133). Any run that can still gets the same
+    // environment.apps, as do API-dispatched runs, which send the resolved
+    // config to the API.
+    const resolvedConfig = resolvedTests.config;
+    if (
+      !resolvedConfig.dryRun &&
+      (willRunViaApi || runNeedsAvailableApps(resolvedTests.specs))
+    ) {
+      resolvedConfig.environment.apps = await getAvailableApps({ config: resolvedConfig });
     }
   }
 
@@ -97,9 +167,11 @@ async function runTests(config: any, options: any = {}) {
   if (config.dryRun) {
     console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
-    sendTelemetry(config, "runTests:dryRun", {
-      specs: resolvedTests.specs.length,
-    });
+    if (telemetryOn) {
+      await sendTelemetry(config, "runTests:dryRun", {
+        specs: resolvedTests.specs.length,
+      });
+    }
     return resolvedTests;
   }
 
@@ -114,15 +186,9 @@ async function runTests(config: any, options: any = {}) {
   // browser is already detectable (e.g., the legacy ./browser-snapshots/
   // pre-warm is still in place), we skip the install entirely.
   //
-  // Skipped entirely for API-backed runs: the orchestration API executes
-  // tests remotely, so installing browsers/runtime locally would burn
-  // network and disk for nothing.
-  const willRunViaApi = Boolean(
-    !process.env.DOC_DETECTIVE_API &&
-      config.integrations &&
-      config.integrations.docDetectiveApi &&
-      config.integrations.docDetectiveApi.apiKey
-  );
+  // Skipped entirely for API-backed runs (willRunViaApi, above): the
+  // orchestration API executes tests remotely, so installing browsers/runtime
+  // locally would burn network and disk for nothing.
   if (willRunViaApi) {
     log(
       config,
@@ -288,12 +354,12 @@ async function runTests(config: any, options: any = {}) {
   }
   /* c8 ignore stop */
 
-  // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
+  // If the effective config carries an API key, run tests via API instead of locally
   if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
-      apiKey: config.integrations.docDetectiveApi.apiKey,
+      apiKey: effectiveConfig.integrations.docDetectiveApi.apiKey,
     });
   } else {
     // Run test specs locally
@@ -311,7 +377,7 @@ async function runTests(config: any, options: any = {}) {
   cleanTemp();
 
   // Send telemetry
-  sendTelemetry(config, "runTests", results);
+  if (telemetryOn) await sendTelemetry(config, "runTests", results);
   log(config, "info", supportMessage);
 
   return results;

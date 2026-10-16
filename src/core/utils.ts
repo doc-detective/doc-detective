@@ -4,7 +4,6 @@ import path from "node:path";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
-import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
   loadHeavyDep,
@@ -16,6 +15,14 @@ import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+
+// axios (~70 modules with its deps) loads on first use rather than at CLI
+// startup (see test/startup-modules.test.js). Cached, so hot paths pay the
+// dynamic import once.
+let axiosModule: Promise<typeof import("axios").default> | undefined;
+export function loadAxios(): Promise<typeof import("axios").default> {
+  return (axiosModule ??= import("axios").then((m) => m.default));
+}
 
 export {
   outputResults,
@@ -653,7 +660,7 @@ async function waitForHttp(
       // Cap the per-request timeout to the time left so a single hung request
       // can't block past the overall readiness deadline (e.g. timeout: 600).
       const remaining = deadline - Date.now();
-      const resp = await axios.get(url, {
+      const resp = await (await loadAxios()).get(url, {
         validateStatus: () => true,
         timeout: Math.max(1, Math.min(5000, remaining)),
       });
@@ -1048,16 +1055,22 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 //     comes from a Map's values(), whose iteration order is insertion order per
 //     the language spec, not an implementation detail.
 //
-// See adrs/01082-retries-mid-session-context-retry.md and
-// adrs/01084-retry-unnavigated-context.md.
+//   • ...and only when the context actually tried to navigate. A context that
+//     ran no goTo (process-surface steps only) is legitimately on `data:,`, so
+//     its FAIL is real; retrying it re-runs steps that aren't idempotent.
+//
+// See adrs/01082-retries-mid-session-context-retry.md,
+// adrs/01084-retry-unnavigated-context.md and
+// adrs/01119-no-unnavigated-retry-without-navigation.md.
 async function classifyContextRetry(
-  probeDrivers: any[]
+  probeDrivers: any[],
+  { navigated = true }: { navigated?: boolean } = {}
 ): Promise<ContextRetryReason | null> {
   for (const probeDriver of probeDrivers) {
     if (!(await isSessionAlive(probeDriver))) return "session-died";
     if (await isPageBroken(probeDriver)) return "page-broken";
   }
-  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  if (navigated && (await isPageUnnavigated(probeDrivers[0]))) return "unnavigated";
   return null;
 }
 
@@ -1485,7 +1498,7 @@ async function fetchFile(
       // change; expanding SSRF coverage there belongs in its own PR.
       await assertUrlHostIsPublic(fileURL);
     }
-    const response = await axios.get(
+    const response = await (await loadAxios()).get(
       fileURL,
       opts.binary ? FETCH_BINARY_DEFAULTS : undefined
     );

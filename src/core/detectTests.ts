@@ -8,12 +8,19 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import YAML from "yaml";
 import { validate } from "../common/src/validate.js";
-import { detectTests as parseContent, getLineNumber, getLineStarts, contentHash } from "../common/src/detectTests.js";
+import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
+import { requireYaml } from "./lazyYaml.js";
+
+// common's parseContent pulls in the yaml parser, so it loads on the first file
+// that needs it, once per process, instead of at module load.
+let parseContentModule: Promise<typeof import("../common/src/detectTests.js").detectTests> | undefined;
+function loadParseContent() {
+  return (parseContentModule ??= import("../common/src/detectTests.js").then((m) => m.detectTests));
+}
 
 // Bounded fan-out for the per-file parse pass. Detection is I/O-bound (reading
 // text/markdown files and remote before/after specs); overlapping those reads
@@ -41,7 +48,7 @@ async function detectTests({ config }: { config: any }) {
 
   const specs = await parseTests({ config, files });
   log(config, "debug", `SPECS:`);
-  log(config, "info", specs);
+  log(config, "debug", specs); // ADR 01136: debug, like its header
 
   return specs;
 }
@@ -99,11 +106,11 @@ function buildAllowedExtensions(config: any): Set<string> {
   return allowed;
 }
 
-async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: any[]; source: string; allowedExtensions: Set<string> }) {
+async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
   log(config, "debug", `validation: ${source}`);
   const allowed = allowedExtensions;
-  // Already in files array
-  if (files.indexOf(source) >= 0) return false;
+  // Already qualified (Set mirror of qualifyFiles' `files` array: O(1) lookup)
+  if (files.has(source)) return false;
   // Is JSON or YAML but isn't a valid spec-formatted object
   if (
     path.extname(source) === ".json" ||
@@ -124,7 +131,7 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
     }
     let content: any;
     try {
-      content = ext === "json" ? JSON.parse(rawContent) : YAML.parse(rawContent);
+      content = ext === "json" ? JSON.parse(rawContent) : requireYaml().parse(rawContent);
     } catch {
       // Parse failure => not a spec. Mirrors readFile's raw-string fallback,
       // which the object guard below then rejects.
@@ -262,6 +269,8 @@ async function processDitaMap({ config, source }: { config: any; source: string 
 async function qualifyFiles({ config }: { config: any }) {
   let dirs: string[] = [];
   let files: string[] = [];
+  // Same members as `files`, for the dedup check in isValidSourceFile.
+  const seen = new Set<string>();
   // Each sequence entry carries its phase so config-level beforeAny / afterAll
   // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
   // heretto splices inherit the triggering entry's phase. The per-file phase is
@@ -439,8 +448,9 @@ async function qualifyFiles({ config }: { config: any }) {
     // referenced once relative and once absolute could slip through twice with a
     // mismatched phase.
     const resolved = path.resolve(source);
-    if (isFile && (await isValidSourceFile({ config, files, allowedExtensions, source: resolved }))) {
+    if (isFile && (await isValidSourceFile({ config, files: seen, allowedExtensions, source: resolved }))) {
       files.push(resolved);
+      seen.add(resolved);
       if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
     } else if (isDir) {
       dirs = [];
@@ -477,10 +487,11 @@ async function qualifyFiles({ config }: { config: any }) {
           }
           if (
             isFile &&
-            (await isValidSourceFile({ config, files, allowedExtensions, source: content }))
+            (await isValidSourceFile({ config, files: seen, allowedExtensions, source: content }))
           ) {
             const resolved = path.resolve(content);
             files.push(resolved);
+            seen.add(resolved);
             if (!phaseByFile.has(resolved)) phaseByFile.set(resolved, phase);
           } else if (isDir && config.recursive) {
             dirs.push(content);
@@ -525,7 +536,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           if (extension === "json") {
             content = JSON.parse(rawContent);
           } else {
-            content = YAML.parse(rawContent);
+            content = requireYaml().parse(rawContent);
           }
         } catch (err: any) {
           console.warn(`Failed to read/parse ${file}: ${err.message}`);
@@ -601,15 +612,16 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       const stepLocations: Map<number, Map<number, { line: number; startIndex: number; endIndex: number }>> = new Map();
       if (rawContent && content.tests) {
         try {
-          const doc = YAML.parseDocument(rawContent);
+          const yaml = requireYaml();
+          const doc = yaml.parseDocument(rawContent);
           const lineStarts = getLineStarts(rawContent);
           const testsNode = doc.get("tests", true);
-          if (testsNode && YAML.isSeq(testsNode)) {
+          if (testsNode && yaml.isSeq(testsNode)) {
             for (let t = 0; t < testsNode.items.length; t++) {
               const testNode = testsNode.get(t, true);
-              if (!testNode || !YAML.isMap(testNode)) continue;
+              if (!testNode || !yaml.isMap(testNode)) continue;
               const stepsNode = testNode.get("steps", true);
-              if (!stepsNode || !YAML.isSeq(stepsNode)) continue;
+              if (!stepsNode || !yaml.isSeq(stepsNode)) continue;
               const test = content.tests[t];
               if (!test?.steps) continue;
               const testMap = new Map<number, { line: number; startIndex: number; endIndex: number }>();
@@ -857,7 +869,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Parse content using common's detectTests. testIdBase keys generated
       // testIds to the spec's stable path-derived ID instead of the absolute
       // file path.
-      const tests = await parseContent({
+      const tests = await (await loadParseContent())({
         config: config,
         content: content,
         fileType: fileType,

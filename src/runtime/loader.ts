@@ -293,6 +293,40 @@ export async function loadHeavyDep<T = unknown>(
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
+// Deps whose entry defers the real module graph to a lazy sibling import:
+// webdriverio's CJS entry loads `./node.js` (~350 ms) only inside remote().
+const PREFETCH_SIBLING: Record<string, string> = { webdriverio: "node.js" };
+
+/**
+ * The file `prefetchHeavyDep` imports for `name`: its resolved entry (same
+ * shim → cache resolution as loadHeavyDep), or the deferred sibling module
+ * the entry imports later. `null` when the dep doesn't resolve.
+ */
+export function heavyDepPrefetchTarget(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  const entry = resolveHeavyDepPath(name, ctx);
+  if (!entry) return null;
+  const sibling = PREFETCH_SIBLING[name];
+  return sibling ? path.join(path.dirname(entry), sibling) : entry;
+}
+
+/**
+ * Start importing an installed heavy dep in the background so its load
+ * overlaps idle time, e.g. Appium's boot (ADR 01135). Never installs, never
+ * throws, never rejects. The real load later shares Node's module-map entry,
+ * so a failure still surfaces where that load is awaited, as before.
+ */
+export function prefetchHeavyDep(name: string, ctx: CacheDirContext = {}): void {
+  try {
+    const target = heavyDepPrefetchTarget(name, ctx);
+    if (target) import(pathToFileURL(target).href).catch(() => {});
+  } catch {
+    // Best-effort: a prefetch must never change the caller's behavior.
+  }
+}
+
 export interface EnsureRuntimeInstalledOptions {
   ctx?: CacheDirContext;
   deps?: LoaderDeps;

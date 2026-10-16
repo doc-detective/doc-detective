@@ -1,0 +1,102 @@
+{
+  "specId": "findShorthandStrategies",
+  "description": "String-shorthand find/click resolves through every strategy (elementText, elementAria, elementId, elementTestId, selector) by polling all of them together and returning as soon as one matches (ADR 01130). Precedence between strategies present at the same time is elementText > elementAria > elementId > elementTestId > selector. The not-found permutation (FAIL after the full timeout) can't be a fixture under the PASS/SKIPPED gate; core-core.test.js covers it.",
+  "tests": [
+    {
+      "testId": "find-shorthand-each-strategy",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-shorthand.html"
+        },
+        {
+          "stepId": "find-shorthand-by-text",
+          "find": "Shorthand text target",
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "stepId": "find-shorthand-by-aria",
+          "find": "Shorthand aria target",
+          "assertions": "$$outputs.element.text == \"A\""
+        },
+        {
+          "stepId": "find-shorthand-by-id",
+          "find": "shorthand-id-target",
+          "assertions": "$$outputs.element.text == \"I\""
+        },
+        {
+          "stepId": "find-shorthand-by-testid",
+          "find": "shorthand-testid-target",
+          "assertions": "$$outputs.element.text == \"T\""
+        },
+        {
+          "stepId": "find-shorthand-by-selector",
+          "find": ".shorthand-selector-target",
+          "assertions": "$$outputs.element.text == \"S\""
+        },
+        {
+          "stepId": "find-shorthand-precedence-text-over-id",
+          "description": "Text and id both match at once; elementText outranks elementId, so the <p> wins over the <span>.",
+          "find": "shorthand-precedence",
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "stepId": "find-shorthand-precedence-text-over-selector",
+          "description": "\"#shorthand-dual\" is a CSS selector for the <div> and the exact text of a <p>; elementText outranks the selector, so the <p> wins.",
+          "find": "#shorthand-dual",
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "stepId": "find-shorthand-bare-tag-word-finds-text",
+          "description": "\"Title\" is also a CSS type selector for the page's <title>; the element whose text is \"Title\" wins.",
+          "find": "Title",
+          "assertions": "$$outputs.element.tag == \"p\""
+        },
+        {
+          "click": "#start-late"
+        },
+        {
+          "stepId": "find-shorthand-late-arrival",
+          "description": "Nothing matches until ~1.5s after the click; the shorthand find keeps polling within its 5s timeout.",
+          "find": "Shorthand late arrival",
+          "assertions": "$$outputs.element.tag == \"p\""
+        }
+      ]
+    },
+    {
+      "testId": "click-shorthand-each-strategy",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-shorthand.html"
+        },
+        {
+          "stepId": "click-shorthand-by-aria",
+          "click": "Shorthand aria target"
+        },
+        {
+          "find": "Aria click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-id",
+          "click": "shorthand-id-target"
+        },
+        {
+          "find": "Id click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-testid",
+          "click": "shorthand-testid-target"
+        },
+        {
+          "find": "TestId click landed"
+        },
+        {
+          "stepId": "click-shorthand-by-selector",
+          "click": ".shorthand-selector-target"
+        },
+        {
+          "find": "Selector click landed"
+        }
+      ]
+    }
+  ]
+}

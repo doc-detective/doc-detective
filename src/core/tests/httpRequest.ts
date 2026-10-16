@@ -1,5 +1,4 @@
 import { validate } from "../../common/src/validate.js";
-import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import _Ajv from "ajv";
@@ -9,6 +8,7 @@ import {
   log,
   calculateFractionalDifference,
   replaceEnvs,
+  loadAxios,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -327,7 +327,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   let response: any = {};
   if (!step?.httpRequest?.openApi?.mockResponse) {
     // Perform request
-    response = await axios(request)
+    response = await (await loadAxios())(request)
       .then((response: any) => {
         return response;
       })

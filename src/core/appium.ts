@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import YAML from "yaml";
 import { getRuntimeDir } from "../runtime/cacheDir.js";
+import { requireYaml } from "./lazyYaml.js";
 
 export {
   setAppiumHome,
@@ -33,7 +33,7 @@ function useDriversArgs(appiumHome: string, packages: string[]): string[] {
   let registered: Record<string, { pkgName?: string } | undefined> | undefined;
   if (manifestText !== undefined) {
     try {
-      registered = YAML.parse(manifestText)?.drivers ?? {};
+      registered = requireYaml().parse(manifestText)?.drivers ?? {};
     } catch {
       return [];
     }
