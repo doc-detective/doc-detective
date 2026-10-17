@@ -124,6 +124,16 @@ describe("Appium server reuse (ADR 01125)", function () {
       );
     });
 
+    it("gives an empty list just the feature, with no leading comma", function () {
+      assert.deepEqual(allowSessionDiscovery(["--allow-insecure", ""]), [
+        "--allow-insecure",
+        "*:session_discovery",
+      ]);
+      assert.deepEqual(allowSessionDiscovery(["--allow-insecure="]), [
+        "--allow-insecure=*:session_discovery",
+      ]);
+    });
+
     it("doesn't add the feature twice", function () {
       const spaced = ["--allow-insecure", "*:a,*:session_discovery"];
       const joined = ["--allow-insecure=*:session_discovery"];
@@ -429,6 +439,21 @@ describe("driverStart reports session starts to the reuse cache (ADR 01125)", fu
     assert.equal(core.appiumServerCache.isUnclean(port), true);
     await core.appiumServerCache.discard({ port, process: null });
     assert.equal(core.appiumServerCache.isUnclean(port), false);
+  });
+
+  it("settles the start when remote throws synchronously", async function () {
+    const port = 59993;
+    await assert.rejects(
+      core.driverStart({ browserName: "x" }, port, 1, {
+        remote: () => {
+          throw new Error("sync boom");
+        },
+      })
+    );
+    // Recorded as failed, not left counted as in flight forever.
+    assert.equal(core.appiumServerCache.isUnclean(port), true);
+    assert.equal(core.appiumServerCache.inFlight(port), 0);
+    core.appiumServerCache.resetPort(port);
   });
 
   it("leaves the port clean when every start succeeds", async function () {

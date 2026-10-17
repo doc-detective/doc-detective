@@ -220,7 +220,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // killTree is a hoisted function declaration, called only when a server dies.
 // Background kill failures log at debug under the last reusing run's config.
 // Used only for that log line, so last-writer-wins across concurrent runs is fine.
-let lastReuseConfig: unknown;
+// Only logLevel is read (by log()).
+let lastReuseConfig: { logLevel?: string } | undefined;
 const appiumServerCache = createServerCache({
   kill: (server) => killTree(server.process?.pid),
   onKillError: (server, err) =>
@@ -6244,7 +6245,8 @@ async function driverStart(
       // start may still register a session on this server, so it must not be
       // handed to a later run (ADR 01125).
       const settle = appiumServerCache.sessionStarting(port);
-      const driver: any = await (ctx.remote ?? wdio.remote)({
+      // Start from a resolved promise so a synchronous throw still settles.
+      const driver: any = await Promise.resolve().then(() => (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -6253,7 +6255,7 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
-      }).then(
+      })).then(
         (d: any) => {
           settle(true);
           return d;

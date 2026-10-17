@@ -131,6 +131,9 @@ function createServerCache(deps: {
       timer.unref();
       idle.push({ key, server, timer });
     },
+    // Kills idle servers only. Parked servers never carry per-port session
+    // state (only clean ones park), and resetPort() clears a port on each
+    // fresh spawn.
     async drain(): Promise<void> {
       const servers = idle.splice(0).map((e) => {
         clearTimeout(e.timer);
@@ -160,6 +163,9 @@ function createServerCache(deps: {
     // A freshly spawned server on `port` has no history, whatever ran there before.
     resetPort(port: number): void {
       forget(port);
+    },
+    inFlight(port: number): number {
+      return inFlight.get(port) ?? 0;
     },
     isUnclean(port: number): boolean {
       return failed.has(port) || (inFlight.get(port) ?? 0) > 0;
@@ -220,7 +226,7 @@ async function handBackServer(
 function allowSessionDiscovery(args: string[]): string[] {
   const feature = "*:session_discovery";
   const withFeature = (list: string) =>
-    list.split(",").includes(feature) ? list : `${list},${feature}`;
+    !list ? feature : list.split(",").includes(feature) ? list : `${list},${feature}`;
   const out = [...args];
   const eq = out.findIndex((a) => a.startsWith("--allow-insecure="));
   if (eq !== -1) {
