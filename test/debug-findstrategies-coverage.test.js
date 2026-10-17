@@ -395,9 +395,9 @@ describe("findStrategies coverage (phase 13)", function () {
       });
       const driver = makeDriver({
         $$: (q) => {
-          // Only the plain //* query (aria scan) returns the element; the
+          // Only the aria scan's query returns the element; the
           // text/id/testid xpaths return nothing.
-          if (q === "//*") return [ariaEl];
+          if (q === "//*[@aria-label or not(text()[normalize-space()])]") return [ariaEl];
           return [];
         },
       });
@@ -443,7 +443,7 @@ describe("findStrategies coverage (phase 13)", function () {
         attributes: {}, // no aria-label
       });
       const driver = makeDriver({
-        $$: (q) => (q === "//*" ? [el] : []),
+        $$: (q) => (q === "//*[@aria-label or not(text()[normalize-space()])]" ? [el] : []),
       });
       const res = await findElementByShorthand({
         string: "/Fallback text \\d+/",
@@ -466,7 +466,7 @@ describe("findStrategies coverage (phase 13)", function () {
         },
       });
       const driver = makeDriver({
-        $$: (q) => (q === "//*" ? [boom] : []),
+        $$: (q) => (q === "//*[@aria-label or not(text()[normalize-space()])]" ? [boom] : []),
       });
       const res = await findElementByShorthand({
         string: "/anything/",
