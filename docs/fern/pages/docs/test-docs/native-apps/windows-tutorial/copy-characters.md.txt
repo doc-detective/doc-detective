@@ -1,0 +1,22 @@
+# Copy special characters with Character Map
+
+<!-- test {"testId":"copy-characters","detectSteps":false,"runOn":[{"platforms":["windows"]}]} -->
+
+1. Open Character Map.
+
+   <!-- step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} -->
+
+2. Pick a character, and then select the **Select** button.
+
+   <!-- step {"click":{"elementText":"Select"}} -->
+
+3. Check that the character appears in the **Characters to copy** box, and then select the **Copy** button.
+
+   <!-- step {"click":{"elementText":"Copy"}} -->
+
+   ![Character Map with a character in the Characters to copy box](images/charmap.png)
+
+   <!-- step {"screenshot":"images/charmap.png"} -->
+   <!-- step {"closeSurface":{"app":"charmap"}} -->
+
+<!-- test end -->

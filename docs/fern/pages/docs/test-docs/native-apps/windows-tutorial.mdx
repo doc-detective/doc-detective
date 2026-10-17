@@ -39,6 +39,10 @@ This tutorial uses Character Map (`charmap.exe`) because it ships with every edi
 
 Doc Detective runs on Node.js and installs with npm, the package manager that comes with Node.js.
 
+{/* Inline tests on this page. windows-tutorial-install runs on every platform, so the Linux docs CI job checks the version commands. windows-tutorial-walkthrough and windows-tutorial-get-startapps run only on Windows, in PowerShell as the tutorial does, so the Linux docs CI job skips them. Verify edits to them locally on a Windows machine. The npm install and Set-ExecutionPolicy steps sit in test ignore blocks, with the reason next to each. */}
+{/* The walkthrough follows the reader in a charmap-docs folder next to this page, which it removes at the end. It copies the samples from windows-tutorial/, which the page renders with <Code src>. They use a .txt extension so Doc Detective doesn't also run them in place. If you edit a sample, update the steps that depend on it: the step counts in windows-tutorial-run-spec (6) and windows-tutorial-run-howto (5), and the Select/Choose replacement in windows-tutorial-break-click and windows-tutorial-restore-click. */}
+{/* test {"testId":"windows-tutorial-install","detectSteps":false} */}
+
 1. Install [Node.js](https://nodejs.org/) v22.22.0 or later on the v22 line, or v24 or later.
 2. Open a new terminal window, so it picks up the updated `PATH`.
 3. Check that Node.js is installed:
@@ -46,6 +50,8 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
     ```powershell
     node --version
     ```
+
+    {/* step {"stepId":"windows-tutorial-node-version","description":"Check that Node.js is installed.","runShell":{"command":"node --version","stdio":"/^v\\d+\\.\\d+\\.\\d+/"}} */}
 
     The command prints the version number, such as `v24.1.0`.
 
@@ -55,6 +61,11 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
     npm i -g doc-detective
     ```
 
+    {/* Not run in the docs gate: a global npm install changes the machine's environment and would replace the npm-linked local build that the docs CI job tests. */}
+    {/* test ignore start */}
+    {/* step {"stepId":"windows-tutorial-npm-install","description":"Install Doc Detective globally.","runShell":{"command":"npm i -g doc-detective","timeout":600000}} */}
+    {/* test ignore end */}
+
     The install also downloads the browsers and other assets that browser tests use, so it can take a few minutes.
 
 5. Check that Doc Detective is installed:
@@ -63,7 +74,11 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
     doc-detective --version
     ```
 
+    {/* step {"stepId":"windows-tutorial-cli-version","description":"Check that Doc Detective is installed.","runShell":{"command":"doc-detective --version","stdio":"/\\d+\\.\\d+\\.\\d+/"}} */}
+
     The command prints the installed version.
+
+{/* test end */}
 
 If PowerShell blocks the `npm` or `doc-detective` command, see [Troubleshooting](#troubleshooting).
 
@@ -73,6 +88,9 @@ The [Installation](/docs/get-started/installation) page also describes a Docker 
 
 Create a folder for the tutorial and a test spec inside it.
 
+{/* test {"testId":"windows-tutorial-walkthrough","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+{/* step {"stepId":"windows-tutorial-reset-folder","description":"Remove a charmap-docs folder that an earlier run left behind.","runShell":{"command":"if (Test-Path charmap-docs) { Remove-Item -Recurse -Force charmap-docs }","shell":"powershell","workingDirectory":"."}} */}
+
 1. Create a folder and move into it:
 
     ```powershell
@@ -80,68 +98,13 @@ Create a folder for the tutorial and a test spec inside it.
     cd charmap-docs
     ```
 
+    {/* step {"stepId":"windows-tutorial-mkdir","description":"Create the tutorial folder and move into it.","runShell":{"command":"mkdir charmap-docs; cd charmap-docs","shell":"powershell","workingDirectory":".","stdio":"charmap-docs"}} */}
+
 2. In your text editor, create a file named `charmap.spec.json` in that folder and paste in this test:
 
-{/* The step comments below mirror the charmap.spec.json sample. Update both together. This test runs only on Windows, so the Linux docs CI job skips it. Verify edits locally on a Windows machine. docs/.gitignore excludes the charmap.png it writes. */}
-{/* test {"testId":"windows-tutorial-charmap","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+    <Code src="windows-tutorial/charmap.spec.json.txt" title="charmap.spec.json" language="json" />
 
-```json title="charmap.spec.json"
-{
-  "tests": [
-    {
-      "testId": "charmap-copy-characters",
-      "runOn": [
-        {
-          "platforms": ["windows"]
-        }
-      ],
-      "steps": [
-        {
-          "description": "Open Character Map and wait for the Select button.",
-          "startSurface": {
-            "app": "C:\\Windows\\System32\\charmap.exe",
-            "timeout": 120000,
-            "waitUntil": {
-              "find": { "elementText": "Select" }
-            }
-          }
-        },
-        {
-          "description": "Select the highlighted character.",
-          "click": { "elementText": "Select" }
-        },
-        {
-          "description": "Type more characters into the Characters to copy box.",
-          "type": {
-            "keys": ["AB"],
-            "selector": "//Edit[@Name=\"Characters to copy :\"]"
-          }
-        },
-        {
-          "description": "Check that the Copy button is present.",
-          "find": { "elementText": "Copy" }
-        },
-        {
-          "description": "Take a screenshot of the window.",
-          "screenshot": "charmap.png"
-        },
-        {
-          "description": "Close Character Map.",
-          "closeSurface": { "app": "charmap" }
-        }
-      ]
-    }
-  ]
-}
-```
-
-{/* step {"stepId":"windows-tutorial-start","description":"Open Character Map and wait for the Select button.","startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} */}
-{/* step {"stepId":"windows-tutorial-select","description":"Select the highlighted character.","click":{"elementText":"Select"}} */}
-{/* step {"stepId":"windows-tutorial-type","description":"Type more characters into the Characters to copy box.","type":{"keys":["AB"],"selector":"//Edit[@Name=\"Characters to copy :\"]"}} */}
-{/* step {"stepId":"windows-tutorial-find-copy","description":"Check that the Copy button is present.","find":{"elementText":"Copy"}} */}
-{/* step {"stepId":"windows-tutorial-screenshot","description":"Take a screenshot of the window.","screenshot":"charmap.png"} */}
-{/* step {"stepId":"windows-tutorial-close","description":"Close Character Map.","closeSurface":{"app":"charmap"}} */}
-{/* test end */}
+    {/* step {"stepId":"windows-tutorial-save-spec","description":"Save the charmap.spec.json sample in the folder, as the reader does by pasting it.","runShell":{"command":"Copy-Item ../windows-tutorial/charmap.spec.json.txt charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
 
 3. Save the file.
 
@@ -165,6 +128,9 @@ The steps between `startSurface` and `closeSurface` don't say which app to act o
     ```powershell
     doc-detective --input charmap.spec.json
     ```
+
+    {/* step {"stepId":"windows-tutorial-run-spec","description":"Run the test and check that all six steps pass.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 6\\r?\\n[^\\n]*Passed: 6/"}} */}
+    {/* step {"stepId":"windows-tutorial-check-screenshot","description":"Check that the run saved charmap.png next to the spec file.","runShell":{"command":"Test-Path charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 2. Wait for the run to finish, and don't use the mouse or keyboard while it runs. Character Map opens, a character appears in the **Characters to copy** box followed by `AB`, and then the window closes.
 
@@ -249,15 +215,23 @@ A test is useful because it fails when the app no longer matches the doc. To see
     }
     ```
 
+    {/* step {"stepId":"windows-tutorial-break-click","description":"Change Select to Choose in the click step.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(click[^S]+)Select', '$1Choose' | Set-Content charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
+
 2. Run the test again:
 
     ```powershell
     doc-detective --input charmap.spec.json
     ```
 
+    {/* step {"stepId":"windows-tutorial-run-failing","description":"Run the test again and check that one step fails and the run still exits with code 0.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[\\s\\S]*Failed: 1/"}} */}
+    {/* step {"stepId":"windows-tutorial-exit-on-fail","description":"Check that --exit-on-fail, described after this procedure, makes the failing run exit with a nonzero code.","runShell":{"command":"doc-detective --input charmap.spec.json --exit-on-fail","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"exitCodes":[1]}} */}
+    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close Character Map if a failed run left it open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+
     The summary reports one failed step, and the steps after it as skipped. Under **Failed Items**, the terminal lists the step that failed. The results file describes why: Doc Detective couldn't find an element with the text `Choose`.
 
 3. Change `Choose` back to `Select` and save the file.
+
+    {/* step {"stepId":"windows-tutorial-restore-click","description":"Change Choose back to Select in the click step.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(click[^S]+)Choose', '$1Select' | Set-Content charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
 
 This is what happens when a release renames a control that your docs mention. The failed step points you to the instruction that's now wrong.
 
@@ -269,35 +243,9 @@ A separate spec file works, but a test that sits inside the how-to it checks is 
 
 1. In the `charmap-docs` folder, create a file named `copy-characters.md` with this content:
 
-{/* The Markdown sample below documents inline-test syntax for readers to copy. Its comments would otherwise be extracted as steps from this page, so the block is wrapped in an ignore block. */}
-{/* test ignore start */}
+    <Code src="windows-tutorial/copy-characters.md.txt" title="copy-characters.md" language="markdown" />
 
-```markdown title="copy-characters.md"
-# Copy special characters with Character Map
-
-<!-- test {"testId":"copy-characters","detectSteps":false,"runOn":[{"platforms":["windows"]}]} -->
-
-1. Open Character Map.
-
-   <!-- step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} -->
-
-2. Select a character, and then select **Select**.
-
-   <!-- step {"click":{"elementText":"Select"}} -->
-
-3. Check that the character appears in the **Characters to copy** box, and then select **Copy**.
-
-   <!-- step {"click":{"elementText":"Copy"}} -->
-
-   ![Character Map with a character in the Characters to copy box](images/charmap.png)
-
-   <!-- step {"screenshot":"images/charmap.png"} -->
-   <!-- step {"closeSurface":{"app":"charmap"}} -->
-
-<!-- test end -->
-```
-
-{/* test ignore end */}
+    {/* step {"stepId":"windows-tutorial-save-howto","description":"Save the copy-characters.md sample in the folder, as the reader does.","runShell":{"command":"Copy-Item ../windows-tutorial/copy-characters.md.txt copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs"}} */}
 
 2. Save the file.
 3. Run Doc Detective on the how-to:
@@ -305,6 +253,9 @@ A separate spec file works, but a test that sits inside the how-to it checks is 
     ```powershell
     doc-detective --input copy-characters.md
     ```
+
+    {/* step {"stepId":"windows-tutorial-run-howto","description":"Run the how-to and check that all five inline steps pass.","runShell":{"command":"doc-detective --input copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 5\\r?\\n[^\\n]*Passed: 5/"}} */}
+    {/* step {"stepId":"windows-tutorial-check-howto-screenshot","description":"Check that the run created images/charmap.png for the how-to's image link.","runShell":{"command":"Test-Path images/charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 Doc Detective reads the `test` and `step` comments and runs them in order. The inline test follows the how-to's own steps, so it differs from the spec file in two ways. It clicks **Copy**, as step 3 tells the reader to, instead of only checking that the button exists. It also leaves out the `type` step, because the procedure doesn't ask the reader to type anything.
 
@@ -319,6 +270,10 @@ On later runs, Doc Detective compares each new screenshot with the existing file
 
 To run every test in a folder at once, pass the folder instead of a file, such as `doc-detective --input .`.
 
+{/* step {"stepId":"windows-tutorial-run-folder","description":"Run every test in the folder and check that both tests run.","runShell":{"command":"doc-detective --input .","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Tests:[^\\n]*\\nTotal: 2/"}} */}
+{/* step {"stepId":"windows-tutorial-remove-folder","description":"Remove the charmap-docs folder so later docs runs don't pick up its tests.","runShell":{"command":"Remove-Item -Recurse -Force charmap-docs","shell":"powershell","workingDirectory":"."}} */}
+{/* test end */}
+
 ## Test your own app
 
 To point the test at your own app, change the app identifier and the controls the steps look for.
@@ -329,6 +284,10 @@ How you name the app in `startSurface` depends on how it's installed:
 
 - **A desktop app with an `.exe` file**: Use the full path to the executable, such as `C:\\Program Files\\Contoso\\Contoso.exe`. To find the path, right-click the app's shortcut, select **Properties**, and copy the **Target** value.
 - **A Microsoft Store or other packaged (UWP) app**: Use its AppUserModelID, such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`. To list the IDs of installed apps, run `Get-StartApps` in PowerShell and copy the `AppID` value.
+
+  {/* test {"testId":"windows-tutorial-get-startapps","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+  {/* step {"stepId":"windows-tutorial-get-startapps","description":"List installed apps and check that the output has an AppID column.","runShell":{"command":"Get-StartApps","shell":"powershell","stdio":"AppID"}} */}
+  {/* test end */}
 
 Some built-in apps install an `.exe` file that only hands off to the Store version. For example, `notepad.exe` behaves this way on Windows 11. The process that Doc Detective launches never owns a window, so the test can't find any controls. Use the AppUserModelID for those apps instead.
 
@@ -407,6 +366,13 @@ The `requires.files` setting skips the test on machines where the app isn't inst
 
 - **Cause:** PowerShell's execution policy blocks the script files that npm installs for `npm` and `doc-detective`.
 - **Solution:** Run the command from Command Prompt instead, or allow local scripts for your user account with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, and then open a new terminal.
+
+  {/* Not run in the docs gate: Set-ExecutionPolicy changes the user's PowerShell security policy, which a test shouldn't do to the machine it runs on. */}
+  {/* test ignore start */}
+  {/* test {"testId":"windows-tutorial-execution-policy","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+  {/* step {"stepId":"windows-tutorial-execution-policy","description":"Allow local scripts for the current user.","runShell":{"command":"Set-ExecutionPolicy -Scope CurrentUser RemoteSigned","shell":"powershell"}} */}
+  {/* test end */}
+  {/* test ignore end */}
 
 **The test is skipped instead of run**
 
