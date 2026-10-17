@@ -2,7 +2,7 @@
 
 Design for replacing regex-only test detection with structure-aware (AST-backed) detection via
 **semantic selectors**, while keeping regex detection fully supported. Decision record:
-[ADR 01082](../../adrs/01082-semantic-selector-test-detection.md).
+[ADR 01139](../../adrs/01139-semantic-selector-test-detection.md).
 
 ## Context
 
@@ -625,7 +625,7 @@ existing behavior.
 
 ## Phasing (one PR per phase; red→green TDD; ADR + fixtures + docs per repo rules)
 
-1. **Foundation** — ADR 01082; `require(esm)` smoke check from compiled CJS; selector shapes in
+1. **Foundation** — ADR 01139; `require(esm)` smoke check from compiled CJS; selector shapes in
    `config_v3.schema.json` (flattened single property table, `anyOf` regex | `oneOf` kind,
    strict per-kind option objects); this design doc.
 2. **Markdown backend + selector engine** — `src/common/src/detect/` module (backend interface,
