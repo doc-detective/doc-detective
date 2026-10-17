@@ -39,7 +39,7 @@ This tutorial uses Character Map (`charmap.exe`) because it ships with every edi
 
 Doc Detective runs on Node.js and installs with npm, the package manager that comes with Node.js.
 
-{/* Inline tests on this page. windows-tutorial-install runs on every platform, so the Linux docs CI job checks the version commands. windows-tutorial-walkthrough and windows-tutorial-get-startapps run only on Windows, in PowerShell as the tutorial does, so the Linux docs CI job skips them. Verify edits to them locally on a Windows machine. The npm install and Set-ExecutionPolicy steps sit in test ignore blocks, with the reason next to each. */}
+{/* Inline tests on this page. windows-tutorial-install runs on every platform. windows-tutorial-walkthrough and windows-tutorial-get-startapps run only on Windows, in PowerShell as the tutorial does. The Test docs (Windows) job in .github/workflows/test-docs.yml runs all three on a windows-latest runner and fails if any Windows test is skipped. The Linux job runs only windows-tutorial-install. The npm install and Set-ExecutionPolicy steps sit in test ignore blocks, with the reason next to each. */}
 {/* The walkthrough follows the reader in a charmap-docs folder next to this page, which it removes at the end. It copies the samples from windows-tutorial/, which the page renders with <Code src>. They use a .txt extension so Doc Detective doesn't also run them in place. If you edit a sample, update the steps that depend on it: the step counts in windows-tutorial-run-spec (6) and windows-tutorial-run-howto (5), and the Select/Choose replacement in windows-tutorial-break-click and windows-tutorial-restore-click. */}
 {/* test {"testId":"windows-tutorial-install","detectSteps":false} */}
 
@@ -61,7 +61,7 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
     npm i -g doc-detective
     ```
 
-    {/* Not run in the docs gate: a global npm install changes the machine's environment and would replace the npm-linked local build that the docs CI job tests. */}
+    {/* Not run in the docs gate: a global npm install changes the machine's environment and would replace the npm-linked local build that the docs CI jobs test. */}
     {/* test ignore start */}
     {/* step {"stepId":"windows-tutorial-npm-install","description":"Install Doc Detective globally.","runShell":{"command":"npm i -g doc-detective","timeout":600000}} */}
     {/* test ignore end */}
