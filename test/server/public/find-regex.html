@@ -22,7 +22,9 @@
     <!-- CSS text-transform: rendered text is upper case; textContent isn't. -->
     <p style="text-transform: uppercase">shouted regex text</p>
 
-    <!-- Text in a non-first text node (framework-fragmented, ADR 01061). -->
+    <!-- Text in a non-first text node (framework-fragmented, ADR 01061).
+         The text()[normalize-space()] predicate finds it; the old
+         normalize-space(text()) read only the empty first node. -->
     <h2 id="fragmented"></h2>
 
     <!-- Attribute-only matches for the shorthand's other regex strategies. -->

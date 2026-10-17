@@ -437,11 +437,11 @@ function sdkRetryBackoffMs(attempt: number): number {
 
 /* c8 ignore start */
 // Real inter-attempt wait; injected as a no-op in tests so they never block.
+// Never unref() this timer: during `install android` the pending retry is the
+// only thing keeping the event loop alive, and an unref'd backoff let the
+// process exit 0 mid-retry with the image never installed (#754).
 function realSleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    if (typeof timer.unref === "function") timer.unref();
-  });
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 /* c8 ignore stop */
 
