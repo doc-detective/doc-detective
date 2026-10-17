@@ -1,3 +1,19 @@
+## [4.40.6](https://github.com/doc-detective/doc-detective/compare/v4.40.5...v4.40.6) (2026-10-17)
+
+
+### Bug Fixes
+
+* **android:** keep the process alive through the SDK retry backoff ([#760](https://github.com/doc-detective/doc-detective/issues/760)) ([307bb37](https://github.com/doc-detective/doc-detective/commit/307bb37eb25d20929b94d49e1a8f3ab67bb071dd)), closes [#754](https://github.com/doc-detective/doc-detective/issues/754)
+
+
+### Performance Improvements
+
+* **appium:** opt-in Appium server reuse across runTests calls ([#746](https://github.com/doc-detective/doc-detective/issues/746)) ([07343a3](https://github.com/doc-detective/doc-detective/commit/07343a3d4d0bc95f5f80e52ab578fb1e062227a6))
+* **appium:** poll Appium readiness every 50ms at runner call sites ([089007a](https://github.com/doc-detective/doc-detective/commit/089007aeaa8b0f74c352445634e6168ecedb0b5e))
+* **debug:** evict the tool-probe memo entry when the probe set rejects ([9d448e0](https://github.com/doc-detective/doc-detective/commit/9d448e0e2e82bb12f75300c9584464f7692defa2))
+* **debug:** memoize spawned tool-version probes per process ([918a434](https://github.com/doc-detective/doc-detective/commit/918a43456e603b8653e454d4f332a8e946a32883))
+* **find:** per-element existence check and narrower aria regex scan ([#761](https://github.com/doc-detective/doc-detective/issues/761)) ([a9f76d1](https://github.com/doc-detective/doc-detective/commit/a9f76d1977ecead863e84503789a82df9b4b90d4)), closes [#750](https://github.com/doc-detective/doc-detective/issues/750) [#757](https://github.com/doc-detective/doc-detective/issues/757)
+
 ## [4.40.5](https://github.com/doc-detective/doc-detective/compare/v4.40.4...v4.40.5) (2026-10-16)
 
 
