@@ -107,7 +107,9 @@ jobs:
 
       # Fail when the run found no specs, found no Windows contexts, or any
       # context that targets Windows was SKIPPED. On this runner every Windows
-      # test must run.
+      # test must run. A spec skipped at spec level (for example a spec-level
+      # runOn for another platform) reports no contexts, so it counts toward
+      # neither list.
       - name: Require every Windows test to run
         if: always()
         shell: node {0}

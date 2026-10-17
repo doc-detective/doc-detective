@@ -215,7 +215,7 @@ A test is useful because it fails when the app no longer matches the doc. To see
     }
     ```
 
-    {/* step {"stepId":"windows-tutorial-break-click","description":"Change Select to Choose in the click step.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(click[^S]+)Select', '$1Choose' | Set-Content charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
+    {/* step {"stepId":"windows-tutorial-break-click","description":"Change Select to Choose in the click step, and check that the change landed.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22)Select(?=\\x22)', '$1Choose' | Set-Content charmap.spec.json; (Get-Content -Raw charmap.spec.json) -match '\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22Choose\\x22'","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 2. Run the test again:
 
@@ -232,7 +232,7 @@ A test is useful because it fails when the app no longer matches the doc. To see
 
 3. Change `Choose` back to `Select` and save the file.
 
-    {/* step {"stepId":"windows-tutorial-restore-click","description":"Change Choose back to Select in the click step.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(click[^S]+)Choose', '$1Select' | Set-Content charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
+    {/* step {"stepId":"windows-tutorial-restore-click","description":"Change Choose back to Select in the click step, and check that the change landed.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22)Choose(?=\\x22)', '$1Select' | Set-Content charmap.spec.json; (Get-Content -Raw charmap.spec.json) -match '\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22Select\\x22'","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 This is what happens when a release renames a control that your docs mention. The failed step points you to the instruction that's now wrong.
 
