@@ -981,6 +981,58 @@ describe("android installer: SDK install self-repair", function () {
     expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
   });
 
+  // #754: the real backoff must keep the process alive. An unref'd timer let
+  // `install android` exit 0 mid-retry when nothing else was pending.
+  it("keeps the process alive through the real backoff (child process)", async function () {
+    this.timeout(15000);
+    const { execFileSync } = await import("node:child_process");
+    const { pathToFileURL } = await import("node:url");
+    const mod = pathToFileURL(
+      path.resolve("dist/runtime/androidInstaller.js")
+    ).href;
+    const script = `
+      const { runSdkInstallWithRetry } = await import(${JSON.stringify(mod)});
+      let calls = 0;
+      await runSdkInstallWithRetry(
+        () => ++calls === 1
+          ? Promise.reject(new Error("Error on ZipFile unknown archive"))
+          : Promise.resolve("ok"),
+        "sdkmanager", ["x"], {}, { maxAttempts: 2 }
+      );
+      process.stdout.write("retried:" + calls);
+    `;
+    const out = execFileSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+    });
+    expect(out).to.equal("retried:2");
+  });
+
+  it("exits non-zero after the real backoff when every attempt fails (child process)", async function () {
+    this.timeout(15000);
+    const { spawnSync } = await import("node:child_process");
+    const { pathToFileURL } = await import("node:url");
+    const mod = pathToFileURL(
+      path.resolve("dist/runtime/androidInstaller.js")
+    ).href;
+    const script = `
+      const { runSdkInstallWithRetry } = await import(${JSON.stringify(mod)});
+      let calls = 0;
+      try {
+        await runSdkInstallWithRetry(
+          () => { calls++; return Promise.reject(new Error("unknown archive")); },
+          "sdkmanager", ["x"], {}, { maxAttempts: 2 }
+        );
+      } finally {
+        process.stdout.write("attempts:" + calls);
+      }
+    `;
+    const res = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+    });
+    expect(res.stdout).to.equal("attempts:2"); // reached the last attempt
+    expect(res.status).to.equal(1); // the final rejection fails the process
+  });
+
   it("rethrows a non-transient failure immediately (no retry, no mask)", async function () {
     let calls = 0;
     let threw;
