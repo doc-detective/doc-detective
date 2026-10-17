@@ -1,0 +1,358 @@
+/**
+ * Selector matching: declarative matchers (kind-as-key markup definitions)
+ * evaluated against a backend's semantic nodes.
+ */
+
+import { SemanticKind, SemanticNode } from "./types.js";
+
+export const SELECTOR_KINDS: SemanticKind[] = [
+  "comment",
+  "codeBlock",
+  "link",
+  "image",
+  "strong",
+  "emphasis",
+  "text",
+  "element",
+];
+
+export interface SelectorDefinition {
+  kind: SemanticKind;
+  options: Record<string, any>;
+}
+
+export interface SelectorMatch {
+  node: SemanticNode;
+  /** Match span; may extend past the node for context/chained matches. */
+  startIndex: number;
+  endIndex: number;
+  /** Capture groups from the kind's matches/contentMatches regex. */
+  groups: RegExpMatchArray | null;
+  /** Chained node from followedBy.then, when configured. */
+  then: { node: SemanticNode; groups: RegExpMatchArray | null } | null;
+}
+
+export interface SelectorContext {
+  content: string;
+  nodes: SemanticNode[];
+}
+
+// Selector regexes come from validated fileType config; cache compilations
+// and treat invalid patterns as non-matching.
+const compiledCache = new Map<string, RegExp | null>();
+function compile(pattern: string, flags = ""): RegExp | null {
+  const key = pattern + "\u0000" + flags;
+  const cached = compiledCache.get(key);
+  if (cached !== undefined) return cached;
+  let re: RegExp | null;
+  try {
+    re = new RegExp(pattern, flags);
+  } catch {
+    re = null;
+  }
+  compiledCache.set(key, re);
+  return re;
+}
+
+/** True when the compiled pattern matches the subject; invalid patterns never match. */
+function testPattern(pattern: string, subject: string): boolean {
+  const re = compile(pattern);
+  return re ? re.test(subject) : false;
+}
+
+/** Optional node fields normalize to "" for matching. */
+const str = (value: string | undefined): string => value ?? "";
+
+/**
+ * Identifies a selector-mode markup definition (or bare selector node) and
+ * normalizes scalar shorthands. Returns null for regex-mode definitions and
+ * objects with no selector kind key.
+ */
+export function getSelectorDefinition(def: any): SelectorDefinition | null {
+  if (!def || typeof def !== "object" || def.regex) return null;
+  for (const kind of SELECTOR_KINDS) {
+    if (def[kind] === undefined) continue;
+    const raw = def[kind];
+    let options: Record<string, any>;
+    if (raw && typeof raw === "object") {
+      options = raw;
+    } else if (kind === "codeBlock") {
+      options = { language: String(raw) };
+    } else if (kind === "element") {
+      options = { tag: String(raw) };
+    } else {
+      options = {};
+    }
+    return { kind, options };
+  }
+  return null;
+}
+
+/** Attribute matchers: `true` requires existence, strings are regexes. */
+function matchAttributes(
+  matchers: Record<string, any>,
+  attributes: Record<string, string | true> | undefined
+): boolean {
+  for (const [name, matcher] of Object.entries(matchers)) {
+    const value = attributes?.[name];
+    if (value === undefined) return false;
+    if (matcher !== true && !testPattern(String(matcher), String(value))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Matches one node against a selector. Returns zero or more matches: text
+ * selectors yield one match per `matches` occurrence; every other kind
+ * yields at most one.
+ */
+export function matchSelector(
+  node: SemanticNode,
+  kind: SemanticKind,
+  options: Record<string, any>,
+  ctx: SelectorContext
+): SelectorMatch[] {
+  if (node.kind !== kind) return [];
+
+  const base: SelectorMatch = {
+    node,
+    startIndex: node.startIndex,
+    endIndex: node.endIndex,
+    groups: null,
+    then: null,
+  };
+
+  // Kind-specific field filters.
+  switch (kind) {
+    case "comment":
+    case "text": {
+      const subject = kind === "comment" ? str(node.content) : str(node.text);
+      if (options.excludes && testPattern(options.excludes, subject)) return [];
+      if (options.matches) {
+        if (kind === "text") {
+          // One match per occurrence, with source-mapped spans.
+          const re = compile(options.matches, "g");
+          if (!re) return [];
+          const results: SelectorMatch[] = [];
+          for (const m of subject.matchAll(re)) {
+            results.push({
+              node,
+              startIndex: node.startIndex + m.index!,
+              endIndex: node.startIndex + m.index! + m[0].length,
+              groups: m,
+              then: null,
+            });
+          }
+          return results;
+        }
+        const re = compile(options.matches);
+        const m = re ? re.exec(subject) : null;
+        if (!m) return [];
+        base.groups = m;
+      }
+      return [base];
+    }
+    case "codeBlock": {
+      if (options.language !== undefined) {
+        const languages = Array.isArray(options.language)
+          ? options.language
+          : [options.language];
+        if (!languages.includes(str(node.language))) return [];
+      }
+      const meta = str(node.meta);
+      if (options.metaMatches && !testPattern(options.metaMatches, meta)) {
+        return [];
+      }
+      if (options.metaExcludes && testPattern(options.metaExcludes, meta)) {
+        return [];
+      }
+      if (options.attributes && !matchAttributes(options.attributes, node.attributes)) {
+        return [];
+      }
+      if (!applyContentFilters(node, options, base)) return [];
+      return [base];
+    }
+    case "link": {
+      if (options.url && !testPattern(options.url, str(node.url))) return [];
+      if (options.text && !testPattern(options.text, str(node.text))) return [];
+      if (options.attributes && !matchAttributes(options.attributes, node.attributes)) {
+        return [];
+      }
+      return applyContext(node, options, ctx, base);
+    }
+    case "image": {
+      if (options.src && !testPattern(options.src, str(node.src))) return [];
+      if (options.alt && !testPattern(options.alt, str(node.alt))) return [];
+      if (options.attributes && !matchAttributes(options.attributes, node.attributes)) {
+        return [];
+      }
+      return applyContext(node, options, ctx, base);
+    }
+    case "strong":
+    case "emphasis": {
+      if (options.text && !testPattern(options.text, str(node.text))) return [];
+      return applyContext(node, options, ctx, base);
+    }
+    case "element": {
+      if (options.tag !== undefined) {
+        const tags = Array.isArray(options.tag) ? options.tag : [options.tag];
+        if (!tags.includes(str(node.tag))) return [];
+      }
+      if (options.attributes && !matchAttributes(options.attributes, node.attributes)) {
+        return [];
+      }
+      if (!applyContentFilters(node, options, base)) return [];
+      return applyContext(node, options, ctx, base);
+    }
+  }
+  /* c8 ignore next 2 - all kinds are handled above */
+  return [];
+}
+
+/** contentMatches/contentExcludes for codeBlock and element kinds. */
+function applyContentFilters(
+  node: SemanticNode,
+  options: Record<string, any>,
+  base: SelectorMatch
+): boolean {
+  const subject = str(node.content);
+  if (options.contentExcludes && testPattern(options.contentExcludes, subject)) {
+    return false;
+  }
+  if (options.contentMatches) {
+    const re = compile(options.contentMatches);
+    const m = re ? re.exec(subject) : null;
+    if (!m) return false;
+    base.groups = m;
+  }
+  return true;
+}
+
+/**
+ * precededBy/followedBy context. String forms extend the match span over the
+ * matched context (mirroring legacy regex spans) when the match touches the
+ * node; the `{ text, then }` form chains a second node.
+ */
+function applyContext(
+  node: SemanticNode,
+  options: Record<string, any>,
+  ctx: SelectorContext,
+  base: SelectorMatch
+): SelectorMatch[] {
+  if (options.precededBy) {
+    const re = compile(options.precededBy, "g");
+    if (!re) return [];
+    let touching: RegExpMatchArray | null = null;
+    let matched = false;
+    for (const m of node.precedingText.matchAll(re)) {
+      matched = true;
+      if (m.index! + m[0].length === node.precedingText.length) {
+        touching = m;
+      }
+    }
+    if (!matched) return [];
+    if (touching) {
+      base.startIndex =
+        node.startIndex - (node.precedingText.length - touching.index!);
+    }
+  }
+
+  const followedBy = options.followedBy;
+  if (typeof followedBy === "string") {
+    const re = compile(followedBy, "g");
+    if (!re) return [];
+    let touching: RegExpMatchArray | null = null;
+    let matched = false;
+    for (const m of node.followingText.matchAll(re)) {
+      matched = true;
+      if (m.index === 0) touching = m;
+    }
+    if (!matched) return [];
+    if (touching) {
+      base.endIndex = node.endIndex + touching[0].length;
+    }
+  } else if (followedBy && typeof followedBy === "object") {
+    // Chain to the FIRST non-text node after this one in the same block.
+    // Only that immediate sibling is considered — there is no fallback to
+    // later candidates if it doesn't match the `then` selector. This keeps
+    // chains to adjacent "verb <a> connector <b>" shapes (per ADR 01139);
+    // patterns needing a non-adjacent target should use regex markup instead.
+    const next = ctx.nodes.find(
+      (candidate) =>
+        candidate.blockId === node.blockId &&
+        candidate !== node &&
+        candidate.kind !== "text" &&
+        candidate.startIndex >= node.endIndex
+    );
+    if (!next) return [];
+    if (followedBy.text) {
+      const between = ctx.content.slice(node.endIndex, next.startIndex);
+      if (!testPattern(followedBy.text, between)) return [];
+    }
+    const thenDef = getSelectorDefinition(followedBy.then);
+    if (!thenDef) return [];
+    const thenMatches = matchSelector(next, thenDef.kind, thenDef.options, ctx);
+    if (thenMatches.length === 0) return [];
+    base.then = { node: next, groups: thenMatches[0].groups };
+    base.endIndex = thenMatches[0].endIndex;
+  }
+
+  return [base];
+}
+
+/** Documented default capture order per kind, used when `captures` is omitted. */
+const DEFAULT_CAPTURES: Record<SemanticKind, string[]> = {
+  comment: ["content"],
+  codeBlock: ["language", "content"],
+  link: ["text", "url"],
+  image: ["src", "alt"],
+  strong: ["text"],
+  emphasis: ["text"],
+  text: ["match.1"],
+  element: ["content"],
+};
+
+/**
+ * Resolves one capture/field path against a match. Missing node fields and
+ * attributes resolve to "". Missing `match.<n>` groups resolve to undefined —
+ * mirroring RegExpMatchArray holes so replaceNumericVariables drops action
+ * fields that reference an unparticipating group, exactly as regex-mode
+ * definitions behave.
+ */
+export function resolveFieldPath(
+  path: string,
+  match: SelectorMatch
+): string | undefined {
+  if (path.startsWith("then.")) {
+    if (!match.then) return "";
+    return resolveFieldPath(path.slice(5), {
+      node: match.then.node,
+      startIndex: match.then.node.startIndex,
+      endIndex: match.then.node.endIndex,
+      groups: match.then.groups,
+      then: null,
+    });
+  }
+  if (path.startsWith("match.")) {
+    return match.groups?.[Number(path.slice(6))];
+  }
+  if (path.startsWith("attributes.")) {
+    const value = match.node.attributes?.[path.slice(11)];
+    return value === undefined ? "" : String(value);
+  }
+  const value = (match.node as any)[path];
+  return value === undefined || value === null ? "" : String(value);
+}
+
+/** Resolves the capture list (or the kind's default) to $1..$n values. */
+export function resolveCaptures(
+  paths: string[] | undefined,
+  kind: SemanticKind,
+  match: SelectorMatch
+): Array<string | undefined> {
+  return (paths ?? DEFAULT_CAPTURES[kind]).map((path) =>
+    resolveFieldPath(path, match)
+  );
+}

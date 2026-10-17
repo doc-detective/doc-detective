@@ -9,7 +9,7 @@
  */
 export type LoadVariables = string;
 export type DeviceByName = string;
-export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita";
+export type FileTypePredefined = "markdown" | "mdx" | "asciidoc" | "html" | "dita";
 export type FileTypeCustom = (
   | {
       [k: string]: unknown;
@@ -25,7 +25,7 @@ export type FileTypeCustom = (
   /**
    * Base template to extend.
    */
-  extends?: "markdown" | "asciidoc" | "html";
+  extends?: "markdown" | "mdx" | "asciidoc" | "html" | "dita";
   /**
    * File extensions to use with type.
    */
@@ -33,11 +33,445 @@ export type FileTypeCustom = (
   inlineStatements?: InlineStatementDefinition;
   /**
    * Markup definitions for the file type.
+   */
+  markup?: MarkupDefinition[];
+  [k: string]: unknown;
+};
+/**
+ * Where inline statements live: the string "comment" (all comment nodes), or a selector node whose matched nodes are read as statements. `value` names the node field holding the statement text (defaults to the node's own content).
+ */
+export type StatementContainer =
+  | "comment"
+  | ((
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+    ) & {
+      comment?: ContentFilterSelector;
+      codeBlock?: string | CodeBlockSelector;
+      link?: LinkSelectorChained;
+      image?: ImageSelectorChained;
+      strong?: StrongEmphasisSelectorChained;
+      emphasis?: StrongEmphasisSelectorChained1;
+      text?: ContentFilterSelector1;
+      element?: string | ElementSelectorChained;
+      /**
+       * Field path holding the statement text, e.g. `attributes.value`. Defaults to the node's own content.
+       */
+      value?: string;
+    });
+export type MarkupDefinition = (
+  | {
+      [k: string]: unknown;
+    }
+  | (
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+      | {
+          [k: string]: unknown;
+        }
+    )
+) & {
+  /**
+   * Name of the markup definition
+   */
+  name?: string;
+  /**
+   * Regular expressions to match the markup type.
+   */
+  regex?: string | [string, ...string[]];
+  comment?: ContentFilterSelector2;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector1;
+  link?: LinkSelector;
+  image?: ImageSelector;
+  strong?: StrongEmphasisSelector;
+  emphasis?: StrongEmphasisSelector1;
+  text?: ContentFilterSelector11;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelector;
+  /**
+   * Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.
    *
    * @minItems 1
    */
-  markup?: [MarkupDefinition, ...MarkupDefinition[]];
-  [k: string]: unknown;
+  captures?: [string, ...string[]];
+  /**
+   * If `true`, all matches are combined into a single string.
+   */
+  batchMatches?: boolean;
+  /**
+   * Actions to perform when the markup type is detected.
+   */
+  actions?:
+    | (
+        | "annotate"
+        | "checkLink"
+        | "click"
+        | "find"
+        | "goTo"
+        | "httpRequest"
+        | "loadCookie"
+        | "loadVariables"
+        | "record"
+        | "runCode"
+        | "runShell"
+        | "saveCookie"
+        | "screenshot"
+        | "stopRecord"
+        | "type"
+        | "wait"
+      )
+    | (
+        | (
+            | "annotate"
+            | "checkLink"
+            | "click"
+            | "find"
+            | "goTo"
+            | "httpRequest"
+            | "loadCookie"
+            | "loadVariables"
+            | "record"
+            | "runCode"
+            | "runShell"
+            | "saveCookie"
+            | "screenshot"
+            | "stopRecord"
+            | "type"
+            | "wait"
+          )
+        | Step
+      )[];
+};
+/**
+ * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
+ */
+export type PrecedingContextMatcher = string;
+/**
+ * Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.
+ */
+export type FollowingContextMatcher =
+  | string
+  | {
+      /**
+       * Regular expression the sibling text between this node and the chained node must match.
+       */
+      text?: string;
+      then: SelectorNode;
+    };
+export type SelectorNode = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  comment?: ContentFilterSelector3;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector2;
+  link?: LinkSelectorChained1;
+  image?: ImageSelectorChained1;
+  strong?: StrongEmphasisSelectorChained2;
+  emphasis?: StrongEmphasisSelectorChained3;
+  text?: ContentFilterSelector4;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelectorChained1;
+};
+/**
+ * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
+ */
+export type PrecedingContextMatcher1 = string;
+/**
+ * Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.
+ */
+export type FollowingContextMatcher1 =
+  | string
+  | {
+      /**
+       * Regular expression the sibling text between this node and the chained node must match.
+       */
+      text?: string;
+      then: SelectorNode1;
+    };
+export type SelectorNode1 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  comment?: ContentFilterSelector5;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector3;
+  link?: LinkSelectorChained2;
+  image?: ImageSelectorChained2;
+  strong?: StrongEmphasisSelectorChained4;
+  emphasis?: StrongEmphasisSelectorChained5;
+  text?: ContentFilterSelector6;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelectorChained2;
+};
+/**
+ * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
+ */
+export type PrecedingContextMatcher2 = string;
+/**
+ * Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.
+ */
+export type FollowingContextMatcher2 =
+  | string
+  | {
+      /**
+       * Regular expression the sibling text between this node and the chained node must match.
+       */
+      text?: string;
+      then: SelectorNode2;
+    };
+export type SelectorNode2 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  comment?: ContentFilterSelector7;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector4;
+  link?: LinkSelectorChained3;
+  image?: ImageSelectorChained3;
+  strong?: StrongEmphasisSelectorChained6;
+  emphasis?: StrongEmphasisSelectorChained7;
+  text?: ContentFilterSelector8;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelectorChained3;
+};
+/**
+ * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
+ */
+export type PrecedingContextMatcher3 = string;
+/**
+ * Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.
+ */
+export type FollowingContextMatcher3 =
+  | string
+  | {
+      /**
+       * Regular expression the sibling text between this node and the chained node must match.
+       */
+      text?: string;
+      then: SelectorNode3;
+    };
+export type SelectorNode3 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  comment?: ContentFilterSelector9;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector5;
+  link?: LinkSelectorChained4;
+  image?: ImageSelectorChained4;
+  strong?: StrongEmphasisSelectorChained8;
+  emphasis?: StrongEmphasisSelectorChained9;
+  text?: ContentFilterSelector10;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelectorChained4;
+};
+/**
+ * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
+ */
+export type PrecedingContextMatcher4 = string;
+/**
+ * Regular expression matched against the sibling text immediately after the node, or an object chaining a second node for sequence patterns. Chained-node fields are exposed as `then.<field>` capture paths.
+ */
+export type FollowingContextMatcher4 =
+  | string
+  | {
+      /**
+       * Regular expression the sibling text between this node and the chained node must match.
+       */
+      text?: string;
+      then: SelectorNode4;
+    };
+export type SelectorNode4 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  comment?: ContentFilterSelector12;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector6;
+  link?: LinkSelectorChained5;
+  image?: ImageSelectorChained5;
+  strong?: StrongEmphasisSelectorChained10;
+  emphasis?: StrongEmphasisSelectorChained11;
+  text?: ContentFilterSelector13;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelectorChained5;
 };
 /**
  * A step in a test.
@@ -20271,6 +20705,12 @@ export interface DeviceDescriptor {
  */
 export interface InlineStatementDefinition {
   /**
+   * Statement containers for structurally parsed file types: which semantic nodes are read as potential inline statements. Coexists with the regex statement properties below.
+   *
+   * @minItems 1
+   */
+  in?: [StatementContainer, ...StatementContainer[]];
+  /**
    * Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement.
    */
   testStart?: string | [string, ...string[]];
@@ -20279,7 +20719,7 @@ export interface InlineStatementDefinition {
    */
   testEnd?: string | [string, ...string[]];
   /**
-   * Regular expressions that indicates that the following content should be ignored for testing purposes.
+   * Regular expressions that indicate that the following content should be ignored for testing purposes.
    */
   ignoreStart?: string | [string, ...string[]];
   /**
@@ -20292,63 +20732,971 @@ export interface InlineStatementDefinition {
   step?: string | [string, ...string[]];
   [k: string]: unknown;
 }
-export interface MarkupDefinition {
+/**
+ * Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.
+ */
+export interface ContentFilterSelector {
   /**
-   * Name of the markup definition
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
    */
-  name?: string;
+  matches?: string;
   /**
-   * Regular expressions to match the markup type.
+   * Regular expression the node's content must not match.
    */
-  regex?: string | [string, ...string[]];
+  excludes?: string;
+}
+export interface CodeBlockSelector {
   /**
-   * If `true`, all matches are combined into a single string.
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
    */
-  batchMatches?: boolean;
+  language?: string | [string, ...string[]];
   /**
-   * Actions to perform when the markup type is detected.
+   * Regular expression the info-string tail (after the language) must match.
    */
-  actions?:
-    | (
-        | "annotate"
-        | "checkLink"
-        | "click"
-        | "find"
-        | "goTo"
-        | "httpRequest"
-        | "loadCookie"
-        | "loadVariables"
-        | "record"
-        | "runCode"
-        | "runShell"
-        | "saveCookie"
-        | "screenshot"
-        | "stopRecord"
-        | "type"
-        | "wait"
-      )
-    | (
-        | (
-            | "annotate"
-            | "checkLink"
-            | "click"
-            | "find"
-            | "goTo"
-            | "httpRequest"
-            | "loadCookie"
-            | "loadVariables"
-            | "record"
-            | "runCode"
-            | "runShell"
-            | "saveCookie"
-            | "screenshot"
-            | "stopRecord"
-            | "type"
-            | "wait"
-          )
-        | Step
-      )[];
-  [k: string]: unknown;
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers {
+  [k: string]: true | string;
+}
+/**
+ * Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.
+ */
+export interface LinkSelectorChained {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers1;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers1 {
+  [k: string]: true | string;
+}
+/**
+ * Match an image node. Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ImageSelectorChained {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers2;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers2 {
+  [k: string]: true | string;
+}
+/**
+ * Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.
+ */
+export interface StrongEmphasisSelectorChained {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.
+ */
+export interface StrongEmphasisSelectorChained1 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.
+ */
+export interface ContentFilterSelector1 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers3;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers3 {
+  [k: string]: true | string;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector2 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector1 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers4;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers4 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelector {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers5;
+  precededBy?: PrecedingContextMatcher;
+  followedBy?: FollowingContextMatcher;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers5 {
+  [k: string]: true | string;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector3 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector2 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers6;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers6 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelectorChained1 {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers7;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers7 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelectorChained1 {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers8;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers8 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelectorChained2 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelectorChained3 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector4 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained1 {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers9;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers9 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelector {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers10;
+  precededBy?: PrecedingContextMatcher1;
+  followedBy?: FollowingContextMatcher1;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers10 {
+  [k: string]: true | string;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector5 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector3 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers11;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers11 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelectorChained2 {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers12;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers12 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelectorChained2 {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers13;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers13 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelectorChained4 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelectorChained5 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector6 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained2 {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers14;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers14 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelector {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+  precededBy?: PrecedingContextMatcher2;
+  followedBy?: FollowingContextMatcher2;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector7 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector4 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers15;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers15 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelectorChained3 {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers16;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers16 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelectorChained3 {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers17;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers17 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelectorChained6 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelectorChained7 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector8 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained3 {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers18;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers18 {
+  [k: string]: true | string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelector1 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+  precededBy?: PrecedingContextMatcher3;
+  followedBy?: FollowingContextMatcher3;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector9 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector5 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers19;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers19 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelectorChained4 {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers20;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers20 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelectorChained4 {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers21;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers21 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelectorChained8 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelectorChained9 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector10 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained4 {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers22;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers22 {
+  [k: string]: true | string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector11 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface ElementSelector {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers23;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+  precededBy?: PrecedingContextMatcher4;
+  followedBy?: FollowingContextMatcher4;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers23 {
+  [k: string]: true | string;
+}
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
+export interface ContentFilterSelector12 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+export interface CodeBlockSelector6 {
+  /**
+   * Info-string language(s) to match. An empty string matches bare fences with no language.
+   */
+  language?: string | [string, ...string[]];
+  /**
+   * Regular expression the info-string tail (after the language) must match.
+   */
+  metaMatches?: string;
+  /**
+   * Regular expression the info-string tail must not match.
+   */
+  metaExcludes?: string;
+  attributes?: AttributeMatchers24;
+  /**
+   * Regular expression the block content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the block content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers24 {
+  [k: string]: true | string;
+}
+/**
+ * Match hyperlink nodes.
+ */
+export interface LinkSelectorChained5 {
+  /**
+   * Regular expression the link destination must match.
+   */
+  url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
+  text?: string;
+  attributes?: AttributeMatchers25;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers25 {
+  [k: string]: true | string;
+}
+/**
+ * Match image nodes.
+ */
+export interface ImageSelectorChained5 {
+  /**
+   * Regular expression the image source must match.
+   */
+  src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
+  alt?: string;
+  attributes?: AttributeMatchers26;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers26 {
+  [k: string]: true | string;
+}
+/**
+ * Match bold/strong text nodes.
+ */
+export interface StrongEmphasisSelectorChained10 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match italic/emphasis text nodes.
+ */
+export interface StrongEmphasisSelectorChained11 {
+  /**
+   * Regular expression the node's text must match.
+   */
+  text?: string;
+}
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
+export interface ContentFilterSelector13 {
+  /**
+   * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  matches?: string;
+  /**
+   * Regular expression the node's content must not match.
+   */
+  excludes?: string;
+}
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
+export interface ElementSelectorChained5 {
+  /**
+   * Element/component name(s) to match.
+   */
+  tag?: string | [string, ...string[]];
+  attributes?: AttributeMatchers27;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
+  contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
+  contentExcludes?: string;
+}
+/**
+ * Map of attribute name to matcher: an exact/regex string, or `true` to require that the attribute exists. For Markdown/MDX, attributes come from Kramdown/Pandoc-style attribute lists (`{: .cls #id key="val"}`): classes normalize to `class`, IDs to `id`.
+ */
+export interface AttributeMatchers27 {
+  [k: string]: true | string;
 }
 export interface Common {
   /**
@@ -28427,6 +29775,10 @@ export interface IdIsRequiredForUpdates {
 }
 export interface FileTypeExecutable {
   /**
+   * Name of the file type.
+   */
+  name?: string;
+  /**
    * File extensions to use with type.
    */
   extensions: string | [string, ...string[]];
@@ -28434,7 +29786,6 @@ export interface FileTypeExecutable {
    * `runShell` step to perform for this file type. Use $1 as a placeholder for the file path.
    */
   runShell?: RunShell2;
-  [k: string]: unknown;
 }
 export interface RunShellCommandDetailed1 {
   /**

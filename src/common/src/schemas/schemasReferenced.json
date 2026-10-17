@@ -7161,6 +7161,7 @@
         "fileTypes": {
           "default": [
             "markdown",
+            "mdx",
             "asciidoc",
             "html",
             "dita"
@@ -7175,6 +7176,7 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
                       "html",
                       "dita"
@@ -7202,8 +7204,10 @@
                         "type": "string",
                         "enum": [
                           "markdown",
+                          "mdx",
                           "asciidoc",
-                          "html"
+                          "html",
+                          "dita"
                         ]
                       },
                       "extensions": {
@@ -7218,7 +7222,6 @@
                       },
                       "markup": {
                         "type": "array",
-                        "minItems": 1,
                         "items": {
                           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupDefinition"
                         }
@@ -7230,7 +7233,11 @@
                     "required": [
                       "extensions"
                     ],
+                    "additionalProperties": false,
                     "properties": {
+                      "name": {
+                        "type": "string"
+                      },
                       "extensions": {
                         "anyOf": [
                           {
@@ -7497,6 +7504,7 @@
           },
           "markupDefinition": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
@@ -7508,31 +7516,569 @@
                   }
                 ]
               },
+              "comment": {
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "codeBlock": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                  }
+                ]
+              },
+              "link": {
+                "$ref": "#/components/schemas/selectorLink"
+              },
+              "image": {
+                "$ref": "#/components/schemas/selectorImage"
+              },
+              "strong": {
+                "$ref": "#/components/schemas/selectorEmphasis"
+              },
+              "emphasis": {
+                "$ref": "#/components/schemas/selectorEmphasis"
+              },
+              "text": {
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "element": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElement"
+                  }
+                ]
+              },
+              "captures": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
+                }
+              },
               "batchMatches": {
                 "type": "boolean",
                 "default": false
               },
               "actions": {
-                "anyOf": [
+                "$ref": "#/components/schemas/markupActions"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "regex"
+                ]
+              },
+              {
+                "oneOf": [
                   {
-                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    "required": [
+                      "comment"
+                    ]
                   },
                   {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-                        },
-                        {
-                          "$ref": "step_v3.nodefaults.schema.json#"
-                        }
-                      ]
-                    }
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
                   }
                 ]
               }
+            ]
+          },
+          "markupActions": {
+            "anyOf": [
+              {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    },
+                    {
+                      "$ref": "step_v3.nodefaults.schema.json#"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "selectorContentFilter": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "matches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "excludes": {
+                "type": "string",
+                "minLength": 1
+              }
             }
+          },
+          "selectorAttributes": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "const": true
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "selectorCodeBlock": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "language": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "metaMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metaExcludes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "selectorLink": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorImage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "src": {
+                "type": "string",
+                "minLength": 1
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorEmphasis": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorElement": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorPrecededBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "selectorFollowedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "then"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "then": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorNode"
+                  }
+                }
+              }
+            ]
+          },
+          "selectorNode": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "comment": {
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "codeBlock": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                  }
+                ]
+              },
+              "link": {
+                "$ref": "#/components/schemas/selectorLinkCore"
+              },
+              "image": {
+                "$ref": "#/components/schemas/selectorImageCore"
+              },
+              "strong": {
+                "$ref": "#/components/schemas/selectorEmphasisCore"
+              },
+              "emphasis": {
+                "$ref": "#/components/schemas/selectorEmphasisCore"
+              },
+              "text": {
+                "$ref": "#/components/schemas/selectorContentFilter"
+              },
+              "element": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElementCore"
+                  }
+                ]
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
+            ]
+          },
+          "selectorLinkCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              }
+            }
+          },
+          "selectorImageCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "src": {
+                "type": "string",
+                "minLength": 1
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              }
+            }
+          },
+          "selectorEmphasisCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "selectorElementCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "statementContainer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "comment"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "comment": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+                  },
+                  "codeBlock": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                      }
+                    ]
+                  },
+                  "link": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorLinkCore"
+                  },
+                  "image": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorImageCore"
+                  },
+                  "strong": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+                  },
+                  "emphasis": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+                  },
+                  "text": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+                  },
+                  "element": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElementCore"
+                      }
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  }
+                ]
+              }
+            ]
           },
           "markupActionString": {
             "type": "string",
@@ -7558,6 +8104,13 @@
           "inlineStatements": {
             "type": "object",
             "properties": {
+              "in": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/statementContainer"
+                }
+              },
               "testStart": {
                 "anyOf": [
                   {
@@ -14355,6 +14908,7 @@
                     "type": "string",
                     "enum": [
                       "markdown",
+                      "mdx",
                       "asciidoc",
                       "html",
                       "dita"
@@ -14382,8 +14936,10 @@
                         "type": "string",
                         "enum": [
                           "markdown",
+                          "mdx",
                           "asciidoc",
-                          "html"
+                          "html",
+                          "dita"
                         ]
                       },
                       "extensions": {
@@ -14398,7 +14954,6 @@
                       },
                       "markup": {
                         "type": "array",
-                        "minItems": 1,
                         "items": {
                           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupDefinition"
                         }
@@ -14410,7 +14965,11 @@
                     "required": [
                       "extensions"
                     ],
+                    "additionalProperties": false,
                     "properties": {
+                      "name": {
+                        "type": "string"
+                      },
                       "extensions": {
                         "anyOf": [
                           {
@@ -14658,6 +15217,7 @@
           },
           "markupDefinition": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
@@ -14669,30 +15229,568 @@
                   }
                 ]
               },
+              "comment": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+              },
+              "codeBlock": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                  }
+                ]
+              },
+              "link": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorLink"
+              },
+              "image": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorImage"
+              },
+              "strong": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasis"
+              },
+              "emphasis": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasis"
+              },
+              "text": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+              },
+              "element": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElement"
+                  }
+                ]
+              },
+              "captures": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+|then\\.(?:content|text|language|meta|url|title|src|alt|tag|attributes\\..+|match\\.[0-9]+))$"
+                }
+              },
               "batchMatches": {
                 "type": "boolean"
               },
               "actions": {
-                "anyOf": [
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "regex"
+                ]
+              },
+              {
+                "oneOf": [
                   {
-                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    "required": [
+                      "comment"
+                    ]
                   },
                   {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
-                        },
-                        {
-                          "$ref": "step_v3.nodefaults.schema.json#"
-                        }
-                      ]
-                    }
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
                   }
                 ]
               }
+            ]
+          },
+          "markupActions": {
+            "anyOf": [
+              {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActionString"
+                    },
+                    {
+                      "$ref": "step_v3.nodefaults.schema.json#"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "selectorContentFilter": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "matches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "excludes": {
+                "type": "string",
+                "minLength": 1
+              }
             }
+          },
+          "selectorAttributes": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "const": true
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "selectorCodeBlock": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "language": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "metaMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metaExcludes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "selectorLink": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorImage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "src": {
+                "type": "string",
+                "minLength": 1
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorEmphasis": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "precededBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorElement": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              },
+              "precededBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorPrecededBy"
+              },
+              "followedBy": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorFollowedBy"
+              }
+            }
+          },
+          "selectorPrecededBy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "selectorFollowedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "then"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "then": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorNode"
+                  }
+                }
+              }
+            ]
+          },
+          "selectorNode": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "comment": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+              },
+              "codeBlock": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                  }
+                ]
+              },
+              "link": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorLinkCore"
+              },
+              "image": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorImageCore"
+              },
+              "strong": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+              },
+              "emphasis": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+              },
+              "text": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+              },
+              "element": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElementCore"
+                  }
+                ]
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
+            ]
+          },
+          "selectorLinkCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              }
+            }
+          },
+          "selectorImageCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "src": {
+                "type": "string",
+                "minLength": 1
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              }
+            }
+          },
+          "selectorEmphasisCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "selectorElementCore": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "anyOf": [
+                  {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                  }
+                ]
+              },
+              "attributes": {
+                "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorAttributes"
+              },
+              "contentMatches": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contentExcludes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "statementContainer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "comment"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "comment": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+                  },
+                  "codeBlock": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorCodeBlock"
+                      }
+                    ]
+                  },
+                  "link": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorLinkCore"
+                  },
+                  "image": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorImageCore"
+                  },
+                  "strong": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+                  },
+                  "emphasis": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorEmphasisCore"
+                  },
+                  "text": {
+                    "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorContentFilter"
+                  },
+                  "element": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "$ref": "config_v3.nodefaults.schema.json#/components/schemas/selectorElementCore"
+                      }
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  }
+                ]
+              }
+            ]
           },
           "markupActionString": {
             "type": "string",
@@ -14718,6 +15816,13 @@
           "inlineStatements": {
             "type": "object",
             "properties": {
+              "in": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "config_v3.nodefaults.schema.json#/components/schemas/statementContainer"
+                }
+              },
               "testStart": {
                 "anyOf": [
                   {

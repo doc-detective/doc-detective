@@ -253,6 +253,9 @@ navigation:
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
+                  - page: Selectors
+                    path: pages/docs/input-formats/selectors.mdx
+                    slug: selectors
               - page: Test across platforms & browsers
                 path: pages/docs/config/contexts.mdx
                 slug: platforms-and-browsers
