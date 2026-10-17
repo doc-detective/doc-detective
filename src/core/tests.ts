@@ -203,6 +203,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// The runner's appiumIsReady call sites poll at this interval. A refused
+// /status on loopback fails in about a millisecond, so a tighter poll costs
+// nothing and trims the lag between Appium coming up and the run noticing
+// (ADR 01124). appiumIsReady's own 250ms default stays for callers that don't
+// pass `pollMs`.
+const APPIUM_READY_POLL_MS = 50;
+
 export {
   runSpecs,
   runViaApi,
@@ -233,6 +240,7 @@ export {
   warmBrowserInstall,
   prefetchMobileChromedriver,
   appiumIsReady,
+  APPIUM_READY_POLL_MS,
   driverStart,
 };
 
@@ -1934,7 +1942,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
         );
         appiumServers.push(server);
-        const wait = appiumIsReady(server.port);
+        const wait = appiumIsReady(server.port, undefined, {
+          pollMs: APPIUM_READY_POLL_MS,
+        });
         // Attach a no-op catch so that once Promise.all rejects on the FIRST
         // failing server, the other still-pending readiness rejections don't
         // surface as unhandled promise rejections. Promise.all still sees the
@@ -6032,7 +6042,9 @@ async function startAppiumServer(
     extraArgs
   );
   try {
-    await appiumIsReady(server.port);
+    await appiumIsReady(server.port, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
@@ -6063,8 +6075,10 @@ async function appiumIsReady(
   deps: {
     probe?: (port: number) => Promise<boolean>;
     sleep?: (ms: number) => Promise<void>;
+    pollMs?: number;
   } = {}
 ) {
+  const pollMs = deps.pollMs ?? 250;
   const probe =
     deps.probe ??
     (async (p: number) => {
@@ -6090,7 +6104,7 @@ async function appiumIsReady(
         `Appium server on port ${port} failed to start within ${timeoutMs / 1000} seconds`
       );
     }
-    await sleep(250);
+    await sleep(pollMs);
   }
 }
 
@@ -6423,7 +6437,9 @@ async function getRunner(options: any = {}) {
   // runSpecs above — without it, a startup timeout would leave an
   // orphan Appium child holding the ephemeral port.
   try {
-    await appiumIsReady(appiumPort);
+    await appiumIsReady(appiumPort, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     try {
       if (appium && appium.pid) kill(appium.pid);

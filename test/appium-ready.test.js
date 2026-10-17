@@ -5,7 +5,7 @@
 // probe. Hermetic: the network probe and the sleep are injected, so no real
 // Appium server or timer delay is involved.
 import assert from "node:assert/strict";
-import { appiumIsReady } from "../dist/core/tests.js";
+import { appiumIsReady, APPIUM_READY_POLL_MS } from "../dist/core/tests.js";
 
 describe("appiumIsReady (immediate probe + 250ms poll)", function () {
   it("probes immediately and returns without ever sleeping when already up", async function () {
@@ -41,6 +41,27 @@ describe("appiumIsReady (immediate probe + 250ms poll)", function () {
     assert.equal(probes, 3);
     // Two failed probes → two 250ms sleeps between them; none after success.
     assert.deepEqual(sleeps, [250, 250]);
+  });
+
+  it("polls on the caller's pollMs interval when given (ADR 01124)", async function () {
+    const sleeps = [];
+    let probes = 0;
+    const ready = await appiumIsReady(4723, 120000, {
+      pollMs: 50,
+      probe: async () => {
+        probes += 1;
+        return probes >= 3;
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+    assert.equal(ready, true);
+    assert.deepEqual(sleeps, [50, 50]);
+  });
+
+  it("the runner's call sites poll at APPIUM_READY_POLL_MS (50ms)", function () {
+    assert.equal(APPIUM_READY_POLL_MS, 50);
   });
 
   it("throws after the overall timeout, having probed at least once", async function () {

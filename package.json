@@ -50,6 +50,7 @@
     "mocha": "mocha",
     "test": "mocha --exit test/*.test.js && npm run test:common",
     "test:common": "cd src/common && npm test",
+    "test:parallel": "node scripts/test-parallel.cjs",
     "test:coverage": "c8 mocha --exit test/*.test.js",
     "test:coverage:ratchet": "node scripts/check-coverage-ratchet.cjs",
     "runTests": "node ./bin/doc-detective.js runTests",

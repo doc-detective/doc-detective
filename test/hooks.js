@@ -1,10 +1,18 @@
 import Mocha from "mocha";
 import { createTestServers } from "./server/instances.js";
 import { freezeAllowanceMs, installFreezeAllowance } from "./freeze-allowance.js";
+import { _setBaseBackoffMsForTests } from "../dist/core/tests/checkLink.js";
 
 // Windows CI runners freeze the whole process on bad days; give every enforced
 // timeout a fixed cushion there so a freeze can't fail an innocent test.
 installFreezeAllowance(Mocha, freezeAllowanceMs(process.platform, process.env));
+
+// checkLink retries 429/5xx with a 1s/2s/4s backoff. Shrink the base so retry
+// tests assert attempt counts and outcomes without the wall-clock wait.
+// Retry-After still takes precedence. Product default stays 1000ms (ADR 01121).
+// Module level, not a before(): it runs once when mocha loads this root-hook
+// file, before any test file is imported or any suite runs.
+_setBaseBackoffMsForTests(10);
 
 // Canonical two-server topology (8092 main / 8093 API) lives in
 // test/server/instances.js so the standalone CI launcher (test/server/start.js)
