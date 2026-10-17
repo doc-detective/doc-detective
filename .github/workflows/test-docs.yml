@@ -105,6 +105,8 @@ jobs:
           android: 'false'
           ios: 'false'
 
+      # The action writes its results to $RUNNER_TEMP/doc-detective-output.json,
+      # the same file fixtures.yml gates on (scripts/check-fixture-results.cjs).
       # Fail when the run found no specs, found no Windows contexts, or any
       # context that targets Windows was SKIPPED. On this runner every Windows
       # test must run. A spec skipped at spec level (for example a spec-level

@@ -224,9 +224,9 @@ A test is useful because it fails when the app no longer matches the doc. To see
     ```
 
     {/* step {"stepId":"windows-tutorial-run-failing","description":"Run the test again and check that one step fails and the run still exits with code 0.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[\\s\\S]*Failed: 1/"}} */}
-    {/* step {"stepId":"windows-tutorial-close-after-failing","description":"Close the Character Map window that the failed run left open, so the next run starts its own.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+    {/* step {"stepId":"windows-tutorial-close-after-failing","description":"Close the Character Map window that windows-tutorial-run-failing left open, so the --exit-on-fail run starts its own.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
     {/* step {"stepId":"windows-tutorial-exit-on-fail","description":"Check that --exit-on-fail, described after this procedure, makes the failing run exit with a nonzero code.","runShell":{"command":"doc-detective --input charmap.spec.json --exit-on-fail","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"exitCodes":[1]}} */}
-    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close Character Map if a failed run left it open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close the Character Map window that the --exit-on-fail run left open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
 
     The summary reports one failed step, and the steps after it as skipped. Under **Failed Items**, the terminal lists the step that failed. The results file describes why: Doc Detective couldn't find an element with the text `Choose`.
 
