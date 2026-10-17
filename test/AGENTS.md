@@ -6,6 +6,12 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
 ## Local environment gotchas
 
 - **The suite reuses Appium servers.** [hooks.js](hooks.js) sets `DOC_DETECTIVE_REUSE_APPIUM=true` unless it's already set, so browser runs share idle browser-pool servers ([ADR 01125](../adrs/01125-opt-in-appium-server-reuse-across-runs.md)). The variable is test-only. To run on the user default path, set `DOC_DETECTIVE_REUSE_APPIUM=false`.
+- **`npm run test:parallel` runs the suite as two concurrent shards** (ADR 01120). It uses the CI
+  partition from `scripts/run-test-shard.cjs` and prefixes every line with `[shard i/N]`. It starts
+  the 8092 and 8093 servers once, so neither shard's teardown stops them under the other. Use
+  `npm test` when you need one serial transcript. Both shards share your desktop, so a headed browser
+  in one shard can take focus from a native-app or recording test in the other. If a focus-sensitive
+  test fails only under `test:parallel`, rerun that file alone before you debug it.
 - **Port 8092 collisions.** The mocha hooks ([hooks.js](hooks.js)) start the test servers via
   `createTestServers()`, whose ports are hardcoded in [server/instances.js](server/instances.js)
   (8092 main, 8093 API). On `EADDRINUSE` the hooks log `Test server (<name>) already running` and

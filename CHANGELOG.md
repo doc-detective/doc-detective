@@ -1,3 +1,22 @@
+## [4.40.5](https://github.com/doc-detective/doc-detective/compare/v4.40.4...v4.40.5) (2026-10-16)
+
+
+### Bug Fixes
+
+* decide API dispatch from the effective config ([93bc793](https://github.com/doc-detective/doc-detective/commit/93bc79383cb205692859c5aedff8cd8021b2d097))
+* one telemetry warm-up at a time; gate deferred detection on willRunViaApi ([1277aa9](https://github.com/doc-detective/doc-detective/commit/1277aa9b7750ce85b1c560574b794d70502bcfa0))
+* **telemetry:** a telem.js load failure never fails a run ([1f33999](https://github.com/doc-detective/doc-detective/commit/1f33999d19f3f84773fe47489f9c5ff875070da2))
+* **telemetry:** cancel the warm-up on every runTests exit that sends nothing ([c1cddd4](https://github.com/doc-detective/doc-detective/commit/c1cddd4d904db7c7f7f36635e918a0943dc13c2e))
+* **telemetry:** honor the effective config's opt-out before any PostHog contact ([18ce522](https://github.com/doc-detective/doc-detective/commit/18ce5223ebc1a50a15a2b35deb832053d6b2791a))
+* **telemetry:** no warm-up on dry runs; a cancelled warm-up never delays a send ([a01ff3e](https://github.com/doc-detective/doc-detective/commit/a01ff3eb26fe55998f3141a7691ce19c072a4f8f))
+
+
+### Performance Improvements
+
+* load yaml, axios, and posthog-node at first use ([0353fc0](https://github.com/doc-detective/doc-detective/commit/0353fc0513eeec6aaa5c01dbd72dc9fbb16416f5))
+* skip browser detection for runs that can't use it ([0dca8ff](https://github.com/doc-detective/doc-detective/commit/0dca8ff39ce0e804ade7e6acd4bfd59d189aca69))
+* **telemetry:** warm the PostHog connection during the run ([a77534c](https://github.com/doc-detective/doc-detective/commit/a77534cf6664dcfdb98349ad8433aff63fab3c98))
+
 ## [4.40.4](https://github.com/doc-detective/doc-detective/compare/v4.40.3...v4.40.4) (2026-10-16)
 
 
