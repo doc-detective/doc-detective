@@ -44,6 +44,8 @@ function makeDriver(elementsFor) {
 }
 
 const TEXT_QUERY = "//*[text()[normalize-space()]]";
+// The aria scan skips elements the text scan just checked (#757).
+const ARIA_QUERY = "//*[@aria-label or not(text()[normalize-space()])]";
 
 async function timed(fn) {
   const start = Date.now();
@@ -111,7 +113,7 @@ describe("regex find scanning (ADR 01131)", function () {
       const ariaHit = makeElement({ attributes: { "aria-label": "Save 2" } });
       const driver = makeDriver((q) => {
         if (q === TEXT_QUERY) return [textHit];
-        if (q === "//*") return [ariaHit, textHit];
+        if (q === ARIA_QUERY) return [ariaHit, textHit];
         return [];
       });
       const res = await findElementByShorthand({
@@ -139,7 +141,7 @@ describe("regex find scanning (ADR 01131)", function () {
       };
       const driver = makeDriver((q) => {
         if (q === TEXT_QUERY) return rendered ? [p] : [];
-        if (q === "//*") return [makeElement(), container];
+        if (q === ARIA_QUERY) return [makeElement(), container];
         return [];
       });
       const res = await findElementByShorthand({
@@ -168,7 +170,7 @@ describe("regex find scanning (ADR 01131)", function () {
       };
       const driver = makeDriver((q) => {
         if (q === TEXT_QUERY) return [flaky];
-        if (q === "//*") return [target];
+        if (q === ARIA_QUERY) return [target];
         return [];
       });
       const res = await findElementByShorthand({
@@ -194,6 +196,15 @@ describe("regex find scanning (ADR 01131)", function () {
       });
       assert.equal(res.element, idHit);
       assert.equal(res.foundBy, "elementId");
+    });
+  });
+
+  describe("findElementByShorthand aria scan (#757)", function () {
+    it("queries only aria-labelled elements and those without their own text", async function () {
+      const driver = makeDriver(() => []);
+      await findElementByShorthand({ string: "/nope/", timeout: 0, driver });
+      assert.ok(driver.queries.includes(ARIA_QUERY), driver.queries.join(" | "));
+      assert.ok(!driver.queries.includes("//*"), "no full-DOM aria scan");
     });
   });
 
@@ -241,6 +252,50 @@ describe("regex find scanning (ADR 01131)", function () {
       });
       assert.deepEqual(res.elements, [a, b]);
       assert.equal(miss.isExistingCalls, 0);
+    });
+
+    // #757: wdio's isExisting() on a `$$` element re-runs the whole query, so
+    // n matches cost n extra queries. The check goes straight to the
+    // element's own ID instead.
+    it("confirms all: true matches by element ID, without re-running the query", async function () {
+      const n = 200;
+      const els = Array.from({ length: n }, (_, i) => ({
+        ...makeElement({ text: `Needle ${i}` }),
+        elementId: `e${i}`,
+      }));
+      const driver = makeDriver(() => els);
+      driver.tagNameCalls = [];
+      driver.getElementTagName = async (id) => {
+        driver.tagNameCalls.push(id);
+        return "p";
+      };
+      const res = await findElementByCriteria({
+        elementText: "/Needle \\d+/",
+        timeout: 1000,
+        driver,
+        all: true,
+      });
+      assert.equal(res.elements.length, n);
+      assert.equal(driver.queries.length, 1, "one candidate query, not one per match");
+      assert.equal(els.reduce((c, el) => c + el.isExistingCalls, 0), 0);
+      assert.equal(driver.tagNameCalls.length, n);
+    });
+
+    it("skips a match whose element ID has gone stale", async function () {
+      const gone = { ...makeElement({ text: "Needle 1" }), elementId: "gone" };
+      const next = { ...makeElement({ text: "Needle 2" }), elementId: "next" };
+      const driver = makeDriver(() => [gone, next]);
+      driver.getElementTagName = async (id) => {
+        if (id === "gone") throw new Error("stale element reference");
+        return "p";
+      };
+      const res = await findElementByCriteria({
+        elementText: "/Needle \\d/",
+        timeout: 1000,
+        driver,
+        all: true,
+      });
+      assert.deepEqual(res.elements, [next]);
     });
   });
 });
