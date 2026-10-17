@@ -89,8 +89,14 @@ jobs:
       - name: Link local build
         run: npm link --no-audit --no-fund
 
+      # Android tests run in the Linux job above, which has KVM for the
+      # emulator. Windows runners have no hardware acceleration, so the emulator
+      # can't boot here: turn off the lazy SDK install so the Android test
+      # skips on this runner instead of downloading the SDK and timing out.
       - name: Run Doc Detective on the docs
         uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
         with:
           version: "" # bare npx doc-detective -> the linked local build above
           config: docs/.doc-detective.json
@@ -99,8 +105,9 @@ jobs:
           android: 'false'
           ios: 'false'
 
-      # Fail when the run found no specs, or when any context that targets
-      # Windows was SKIPPED. On this runner every Windows test must run.
+      # Fail when the run found no specs, found no Windows contexts, or any
+      # context that targets Windows was SKIPPED. On this runner every Windows
+      # test must run.
       - name: Require every Windows test to run
         if: always()
         shell: node {0}
@@ -131,6 +138,10 @@ jobs:
                 }
               }
             }
+          }
+          if (ran.length === 0 && skipped.length === 0) {
+            console.error("No Windows contexts in the results. Expected at least one Windows test to run.");
+            process.exit(1);
           }
           console.log(`Windows contexts that ran (${ran.length}):`);
           for (const row of ran) console.log(`  ${row}`);
