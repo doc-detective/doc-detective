@@ -6,6 +6,22 @@ import { defaultFileTypes } from "../dist/fileTypes.js";
 const first = (nodes, kind) => nodes.find((n) => n.kind === kind);
 const all = (nodes, kind) => nodes.filter((n) => n.kind === kind);
 
+describe("detect: asciidoc constrained formatting", function () {
+  it("doesn't read list markers as strong openers", function () {
+    for (const adoc of ["* Click *Save* now.\n", "** Click *Save*\n"]) {
+      expect(all(parseAsciidoc(adoc), "strong").map((n) => n.text), adoc).to.deep.equal([
+        "Save",
+      ]);
+    }
+  });
+
+  it("doesn't read intraword underscores as emphasis", function () {
+    expect(all(parseAsciidoc("Set my_var_name to _one_.\n"), "emphasis").map((n) => n.text)).to.deep.equal([
+      "one",
+    ]);
+  });
+});
+
 describe("detect: asciidoc backend (line scanner)", function () {
   it("emits comment nodes for // line comments with exact offsets", function () {
     const adoc = '= Title\n\n// (test {"testId": "a"})\n\nBody.\n';

@@ -188,4 +188,33 @@ describe("dita built-in fileType", function () {
     expect(tests[0].testId).to.equal("pi-test");
     expect(tests[0].steps.map((s) => s.wait)).to.deep.equal([5]);
   });
+
+  it("tolerates entities defined outside the document (DTD/internal subset)", function () {
+    // &reg; / &nbsp; come from the DITA DTD and &prod; from an internal
+    // subset; parse-xml can't resolve either, but they're well-formed and
+    // must not cost the file its statements.
+    for (const xml of [
+      '<?xml version="1.0"?>\n<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">\n<topic id="t"><title>A&reg;&nbsp;B</title><!-- step {"wait": 1} --></topic>\n',
+      '<?xml version="1.0"?>\n<!DOCTYPE topic [<!ENTITY prod "Foo">]>\n<topic id="t"><p>&prod;</p><!-- step {"wait": 1} --></topic>\n',
+    ]) {
+      const c = first(parseDitaXml(xml), "comment");
+      expect(c, xml).to.exist;
+      expect(xml.slice(c.startIndex, c.endIndex)).to.equal('<!-- step {"wait": 1} -->');
+    }
+  });
+
+  it("wraps fragments that start with an XML declaration", function () {
+    const xml = '<?xml version="1.0"?>\n<!-- step {"wait": 1} -->\n<p>a</p><p>b</p>\n';
+    const c = first(parseDitaXml(xml), "comment");
+    expect(xml.slice(c.startIndex, c.endIndex)).to.equal('<!-- step {"wait": 1} -->');
+  });
+
+  it("still detects the legacy <data name=\"step\"> step form", async function () {
+    const tests = await detectTests({
+      content: '<topic id="t"><body><p><data name="step">{"wait": 7}</data></p></body></topic>\n',
+      filePath: "doc.dita",
+      fileType: defaultFileTypes.dita,
+    });
+    expect(tests[0].steps.map((s) => s.wait)).to.deep.equal([7]);
+  });
 });

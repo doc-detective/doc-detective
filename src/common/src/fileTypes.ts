@@ -83,7 +83,13 @@ const defaultFileTypesBase: Record<string, FileType> = {
             testEnd: ["<\\?doc-detective\\s+test\\s+end\\s*\\?>"],
             ignoreStart: ["<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>"],
             ignoreEnd: ["<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>"],
-            step: ["<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>"],
+            step: [
+                "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
+                // Legacy <data name="step">{…}</data> form: the payload is
+                // the element body with no keyword, which the container
+                // grammar can't express.
+                '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
+            ],
         },
         markup: [
             {

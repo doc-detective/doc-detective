@@ -28,8 +28,36 @@ import { collectNodes } from "./markdown.js";
  */
 const IAL_SPAN_RE = /\{(?::[^{}\n]*|\.[A-Za-z][^{}\n]*)\}/g;
 
+/**
+ * Source spans of fenced and inline code (indented code is off, as in MDX).
+ * IAL-shaped text there is literal — `"{:.2f}"`, ```` ```bash {.testIgnore} ````
+ * — and blanking it would change captured code or drop the fence meta.
+ */
+function codeSpans(content: string): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  const visit = (node: any) => {
+    if (node.type === "code" || node.type === "inlineCode") {
+      spans.push([node.position.start.offset, node.position.end.offset]);
+    } else if (Array.isArray(node.children)) {
+      node.children.forEach(visit);
+    }
+  };
+  visit(
+    fromMarkdown(content, {
+      extensions: [{ disable: { null: ["codeIndented"] } }],
+    })
+  );
+  return spans;
+}
+
 export function parseMdx(content: string): SemanticNode[] {
-  const sanitized = content.replace(IAL_SPAN_RE, (m) => " ".repeat(m.length));
+  let spans: Array<[number, number]> | undefined;
+  const sanitized = content.replace(IAL_SPAN_RE, (m, offset: number) => {
+    spans ??= codeSpans(content);
+    return spans.some(([start, end]) => offset >= start && offset < end)
+      ? m
+      : " ".repeat(m.length);
+  });
   const tree = fromMarkdown(sanitized, {
     extensions: [gfm(), mdxjs()],
     mdastExtensions: [gfmFromMarkdown(), mdxFromMarkdown()],

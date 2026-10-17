@@ -177,6 +177,25 @@ export function collectNodes(content: string, tree: any): SemanticNode[] {
     semantic.endIndex += m[0].length;
   };
 
+  /** Emit a prose run, extending the previous run when they touch. */
+  const pushText = (start: number, end: number, blockId: number) => {
+    const last = nodes[nodes.length - 1];
+    if (last?.kind === "text" && last.blockId === blockId && last.endIndex === start) {
+      last.endIndex = end;
+      last.text = content.slice(last.startIndex, end);
+      return;
+    }
+    nodes.push({
+      kind: "text",
+      startIndex: start,
+      endIndex: end,
+      text: content.slice(start, end),
+      precedingText: "",
+      followingText: "",
+      blockId,
+    });
+  };
+
   /** Walk the phrasing content of one inline container. */
   const walkInline = (node: any, blockId: number, withinInline: boolean) => {
     // Callers guarantee children: inline containers and the phrasing nodes
@@ -188,7 +207,12 @@ export function collectNodes(content: string, tree: any): SemanticNode[] {
           // Only bracketed links form link nodes. GFM autolink literals and
           // <autolinks> stay invisible, matching authored-hyperlink
           // detection (the legacy regexes only matched [text](url) forms).
-          if (content[start] !== "[") break;
+          // Their source stays part of the surrounding prose run, so text
+          // selectors still see `Enter "admin@example.com" …` whole.
+          if (content[start] !== "[") {
+            if (!withinInline) pushText(start, end, blockId);
+            break;
+          }
           const semantic: SemanticNode = {
             kind: "link",
             startIndex: start,
@@ -239,17 +263,7 @@ export function collectNodes(content: string, tree: any): SemanticNode[] {
         case "text": {
           // Text runs nested inside links/emphasis are part of the parent's
           // display text, not standalone prose runs.
-          if (!withinInline) {
-            nodes.push({
-              kind: "text",
-              startIndex: start,
-              endIndex: end,
-              text: content.slice(start, end),
-              precedingText: "",
-              followingText: "",
-              blockId,
-            });
-          }
+          if (!withinInline) pushText(start, end, blockId);
           break;
         }
         case "html": {

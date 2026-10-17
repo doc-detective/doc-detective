@@ -398,20 +398,17 @@ export async function parseContent({
   if (wantsContainers || selectorMarkup.length > 0) {
     const backend = resolveBackend(ext, fileType);
     if (backend) {
+      // MDX (e.g. an HTML comment) and malformed XML throw; degrade that
+      // file to regex-only detection instead of failing the whole run.
       try {
         semanticNodes = backend(content);
-      /* c8 ignore start - defensive: micromark accepts any string input, so
-         a throwing parse isn't reproducible with real content. Kept so a
-         backend bug degrades that file to regex-only detection instead of
-         failing the whole run. */
       } catch (error) {
         log(
           config,
           "warn",
-          `Structural parse of ${filePath || "content"} failed; selector-based detection skipped for this file.`
+          `Structural parse of ${filePath || "content"} failed (${(error as Error).message}); selector-based detection skipped for this file.`
         );
       }
-      /* c8 ignore stop */
     }
   }
   if (semanticNodes) {
@@ -437,6 +434,12 @@ export async function parseContent({
     }
   }
 
+  // A statement counts once per type and offset: an `extends` override can
+  // re-list a legacy regex that the inherited container already covers.
+  const statementKeys = new Set(
+    statements.map((s) => `${s.type}@${s._startIndex}`)
+  );
+
   // Test for each statement type
   statementTypes.forEach((statementType) => {
     const patterns =
@@ -456,7 +459,12 @@ export async function parseContent({
         match._endIndex = match.index + match[0].length;
         match._line = getLineNumber(content, match.index, lineStarts);
       });
-      statements.push(...matches);
+      for (const match of matches) {
+        const key = `${statementType}@${match.index}`;
+        if (statementKeys.has(key)) continue;
+        statementKeys.add(key);
+        statements.push(match);
+      }
     });
   });
 

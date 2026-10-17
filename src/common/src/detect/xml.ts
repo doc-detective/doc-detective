@@ -29,9 +29,15 @@ export function parseDitaXml(content: string): SemanticNode[] {
     // Fragment tolerance: statement-only snippets (a lone comment, a bare
     // <data> element) have no root element, which conformant XML parsing
     // rejects. Retry under a synthetic root; offsets shift back afterward.
-    // Genuinely malformed XML still throws here and degrades upstream.
+    // Genuinely malformed XML still throws here and degrades upstream. An
+    // XML declaration must stay first, so the synthetic root opens after it.
     const prefix = "<dd-root>";
-    return collectXmlNodes(prefix + content + "</dd-root>", prefix.length, "dd-root");
+    const decl = /^\s*<\?xml[^?]*\?>/.exec(content)?.[0] ?? "";
+    return collectXmlNodes(
+      decl + prefix + content.slice(decl.length) + "</dd-root>",
+      prefix.length,
+      "dd-root"
+    );
   }
 }
 
@@ -43,6 +49,9 @@ function collectXmlNodes(
   const doc = parseXml(content, {
     includeOffsets: true,
     preserveComments: true,
+    // DTD-defined (&reg;, &nbsp;) and internal-subset entities are legal but
+    // unresolvable here; keep them literal instead of failing the whole file.
+    ignoreUndefinedEntities: true,
   });
   const nodes: SemanticNode[] = [];
   let nextBlockId = 0;

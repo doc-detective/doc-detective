@@ -229,6 +229,14 @@ describe("detect: backend resolution", function () {
       null
     );
   });
+
+  it("falls back to the extended built-in when the fileType is renamed", function () {
+    // { name: "notes", extends: "markdown", extensions: ["txt"] } inherits
+    // markdown's comment container, so it needs markdown's backend too.
+    expect(
+      resolveBackend("txt", { name: "notes", extends: "markdown" })
+    ).to.equal(parseMarkdown);
+  });
 });
 
 describe("detect: statement grammar", function () {
@@ -265,13 +273,79 @@ describe("detect: statement grammar", function () {
     expect(parseStatementText("Test {}")).to.equal(null); // case-sensitive
   });
 
-  it("treats keyword-adjacent text the way the legacy regexes did", function () {
-    // "testing" parses as test + payload "ing" (dropped later by parseObject),
-    // matching the legacy `test\s*(...)` regex behavior.
-    expect(parseStatementText("testing")).to.deep.equal({
+  it("requires a word boundary after the keyword", function () {
+    // Prose comments that merely start with "test"/"step" aren't statements:
+    // "testing notes: x" would otherwise parse to the YAML object
+    // { "ing notes": "x" }, open a bogus test, swallow the following steps,
+    // and drop them all when that test fails validation.
+    expect(parseStatementText("testing notes: verify on staging")).to.equal(null);
+    expect(parseStatementText("steps: see below")).to.equal(null);
+    expect(parseStatementText("test endpoints")).to.deep.equal({
       type: "testStart",
-      payload: "ing",
+      payload: "endpoints",
     });
+    // Punctuation right after the keyword is still a boundary.
+    expect(parseStatementText('test{"testId": "t"}')).to.deep.equal({
+      type: "testStart",
+      payload: '{"testId": "t"}',
+    });
+    expect(parseStatementText('step{"wait": 1}')).to.deep.equal({
+      type: "step",
+      payload: '{"wait": 1}',
+    });
+  });
+
+  it("keeps the steps after a prose comment that starts with 'testing'", async function () {
+    const content =
+      '<!-- testing notes: verify on staging -->\n\n<!-- step {"goTo": "https://example.com"} -->\n';
+    const tests = await detectTests({ content, filePath: "doc.md" });
+    expect(tests).to.have.length(1);
+    expect(tests[0].steps.map((s) => s.goTo)).to.deep.equal([
+      "https://example.com",
+    ]);
+  });
+});
+
+describe("detect: autolink literals inside prose", function () {
+  it("keeps autolinked emails/URLs in the surrounding text run", function () {
+    const md = 'Enter "admin@example.com" in the Email field.\n';
+    const texts = all(parseMarkdown(md), "text");
+    expect(texts).to.have.length(1);
+    expect(texts[0].text).to.equal(md.trimEnd());
+    expect(md.slice(texts[0].startIndex, texts[0].endIndex)).to.equal(texts[0].text);
+  });
+
+  it("detects typeText when the quoted value is an email or URL", async function () {
+    const tests = await detectTests({
+      content:
+        'Enter "admin@example.com" in the Email field.\n\nType "https://example.com" in the address bar.\n',
+      filePath: "doc.md",
+    });
+    expect(tests[0].steps.map((s) => s.type)).to.deep.equal([
+      "admin@example.com",
+      "https://example.com",
+    ]);
+  });
+});
+
+describe("detect: duplicate statements across engines", function () {
+  it("collapses a regex statement that repeats a container statement", async function () {
+    // An `extends` override that re-lists a legacy statement regex the
+    // built-in comment container already covers must not detect twice.
+    const tests = await detectTests({
+      content: '<!-- step {"goTo": "https://example.com"} -->\n',
+      filePath: "doc.md",
+      fileType: {
+        name: "markdown",
+        extensions: ["md"],
+        inlineStatements: {
+          in: ["comment"],
+          step: ["<!--\\s*step\\s*([\\s\\S]*?)\\s*-->"],
+        },
+        markup: [],
+      },
+    });
+    expect(tests[0].steps).to.have.length(1);
   });
 });
 

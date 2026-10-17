@@ -40,13 +40,15 @@ const backendByFileTypeName: Record<string, BackendParse> = {
 
 export function resolveBackend(
   extension: string,
-  fileType?: { name?: string }
+  fileType?: { name?: string; extends?: string }
 ): BackendParse | null {
   const ext = (extension || "").toLowerCase();
-  const byExt = backendByExtension[ext];
-  if (byExt) return byExt;
-  if (fileType?.name) {
-    return backendByFileTypeName[fileType.name] ?? null;
-  }
-  return null;
+  // A renamed `extends` fileType still inherits its parent's containers, so
+  // it needs the parent's backend too.
+  return (
+    backendByExtension[ext] ??
+    backendByFileTypeName[fileType?.name ?? ""] ??
+    backendByFileTypeName[fileType?.extends ?? ""] ??
+    null
+  );
 }

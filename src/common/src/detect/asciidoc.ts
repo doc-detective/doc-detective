@@ -21,8 +21,10 @@ const SOURCE_ATTR_RE = /^\[source(?:\s*,\s*([\w-]+))?[^\]]*\]\s*$/;
 const IMAGE_MACRO_RE = /^image::([^[\s]+)\[([^\]]*)\]\s*$/;
 
 const INLINE_LINK_RE = /(https?:\/\/[^\s[\]]+)\[([^\]]*)\]/g;
-const INLINE_STRONG_RE = /\*([^*\n]+)\*/g;
-const INLINE_EMPHASIS_RE = /_([^_\n]+)_/g;
+// Constrained formatting: marks hug non-space text and sit outside words, so
+// `* item` list markers and snake_case identifiers don't open spans.
+const INLINE_STRONG_RE = /(?<![\w*])\*(?=\S)([^*\n]*?\S)\*(?![\w*])/g;
+const INLINE_EMPHASIS_RE = /(?<![\w_])_(?=\S)([^_\n]*?\S)_(?![\w_])/g;
 
 interface Line {
   start: number;

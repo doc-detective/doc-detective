@@ -23,9 +23,9 @@ export type StatementType =
 /**
  * The normalized statement grammar. One grammar for every container —
  * wrapper syntax (comment markers, quote variants) is already gone by the
- * time text reaches here. Payload handling mirrors the legacy regexes:
- * keyword-adjacent text becomes a payload that downstream parseObject
- * accepts or drops.
+ * time text reaches here. Keywords must end at a word boundary: prose such
+ * as "testing notes: x" would otherwise yield a YAML-object payload that
+ * opens a bogus test and swallows the steps after it.
  */
 export function parseStatementText(
   text: string | undefined
@@ -34,13 +34,13 @@ export function parseStatementText(
   let m: RegExpExecArray | null;
   if (/^test ignore start$/.test(s)) return { type: "ignoreStart", payload: "" };
   if (/^test ignore end$/.test(s)) return { type: "ignoreEnd", payload: "" };
-  if ((m = /^test end\s*([\s\S]*)$/.exec(s))) {
+  if ((m = /^test end\b\s*([\s\S]*)$/.exec(s))) {
     return { type: "testEnd", payload: m[1].trim() };
   }
-  if ((m = /^test(?:\s+start\b)?\s*([\s\S]*)$/.exec(s))) {
+  if ((m = /^test\b(?:\s+start\b)?\s*([\s\S]*)$/.exec(s))) {
     return { type: "testStart", payload: m[1].trim() };
   }
-  if ((m = /^step\s*([\s\S]*)$/.exec(s))) {
+  if ((m = /^step\b\s*([\s\S]*)$/.exec(s))) {
     return { type: "step", payload: m[1].trim() };
   }
   return null;

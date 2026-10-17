@@ -200,6 +200,28 @@ describe("mdx built-in fileType", function () {
     expect(tests[0].steps[0].click).to.equal("Save");
   });
 
+  it("leaves IAL-shaped text inside code untouched", function () {
+    // Format specs like {:.2f} / {:?} look like attribute lists but are code;
+    // blanking them would change what runCode executes.
+    const mdx =
+      '![a](a.png){: .screenshot}\n\n```python\nprint("{:.2f}".format(3.14))\n```\n\nUse `"{:?}"` here.\n';
+    const nodes = parseMdx(mdx);
+    expect(first(nodes, "codeBlock").content).to.equal(
+      'print("{:.2f}".format(3.14))'
+    );
+    expect(first(nodes, "image").attributes).to.deep.equal({ class: "screenshot" });
+  });
+
+  it("degrades pathless MDX content that fails to parse", async function () {
+    // No filePath: the backend resolves from the fileType name, and the
+    // parse-failure warning names the input generically.
+    const tests = await detectTests({
+      content: '<!-- test {"testId": "old"} -->\n',
+      fileType: defaultFileTypes.mdx,
+    });
+    expect(tests).to.deep.equal([]);
+  });
+
   it("degrades an .mdx file containing HTML comments to no detection (documented divergence)", async function () {
     const content = '<!-- test {"testId": "old"} -->\n\nText.\n';
     const tests = await detectTests({
