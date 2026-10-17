@@ -78,11 +78,18 @@ browser-pool startup and teardown in `runSpecs`.
   still be running and answer `/status`. Otherwise it's tree-killed and the
   run spawns a fresh one, exactly as without reuse. Taking removes the server
   from the cache, so two concurrent runs never share one.
-- **Hand back.** At run end, a server goes back to the cache only if
-  `GET /appium/sessions` answers with no sessions within two seconds. A server
-  with a leftover session, or one that doesn't answer, is tree-killed as
-  before, along with any browser it still owns. At most four servers stay
-  idle. Extras are killed. Appium serves that endpoint only with the
+- **Hand back.** At run end, a server goes back to the cache only if it
+  passes two guards. Otherwise it's tree-killed as before, along with any
+  browser it still owns.
+  1. Every session start on it succeeded and settled. `driverStart` reports
+     each attempt, retries included. A start that failed, timed out, or is
+     still in flight taints the server. Appium may still be creating that
+     session after the client gave up. So one failed attempt rules the
+     server out even when a retry succeeded.
+  2. `GET /appium/sessions` answers with no sessions within two seconds. This
+     catches sessions that were never deleted, or whose deletion failed.
+
+  At most four servers stay idle; the oldest is evicted first. Appium serves that endpoint only with the
   `session_discovery` insecure feature, so reusable servers add
   `*:session_discovery` to the `--allow-insecure` list they already pass for
   geckodriver. The grant lists sessions on a server bound to 127.0.0.1, which
@@ -121,7 +128,10 @@ browser-pool startup and teardown in `runSpecs`.
   cache's take, hand-back, idle expiry, and cap. It covers the key's
   sensitivity to arguments, environment, and driver versions, and the
   `session_discovery` grant joining the existing one. Hand-back kills a server
-  with a session or one that doesn't answer. The preload ends an idle child
+  with a session or one that doesn't answer. It also kills a server where a
+  session start failed, is still in flight, or failed before a retry
+  succeeded. `driverStart` reports each attempt, so a failed start taints its
+  port. The preload ends an idle child
   when its parent dies. End to end, a second `runTests` reuses the first run's
   server only when the variable is set. With it unset or `false`, nothing is
   kept after a run, so the default path keeps mocha coverage while the suite

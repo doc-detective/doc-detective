@@ -265,6 +265,55 @@ describe("Appium server reuse (ADR 01125)", function () {
       return { cache, killed };
     };
 
+    // A session start that failed or timed out client-side may still be
+    // registering on the server after /appium/sessions reads empty, so any
+    // unsettled or failed start rules the server out (CodeRabbit 4300569156).
+    it("kills a server where a session start failed", async function () {
+      const { cache, killed } = setup();
+      const s = fakeServer(40);
+      cache.sessionStarting(40)(false);
+      const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
+      assert.equal(outcome, "killed");
+      assert.deepEqual(killed, [s]);
+    });
+
+    it("kills a server where a session start is still in flight", async function () {
+      const { cache, killed } = setup();
+      const s = fakeServer(41);
+      cache.sessionStarting(41);
+      const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
+      assert.equal(outcome, "killed");
+      assert.deepEqual(killed, [s]);
+    });
+
+    it("kills a server where a start failed even if a retry succeeded", async function () {
+      const { cache, killed } = setup();
+      const s = fakeServer(42);
+      cache.sessionStarting(42)(false);
+      cache.sessionStarting(42)(true);
+      const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
+      assert.equal(outcome, "killed");
+      assert.deepEqual(killed, [s]);
+    });
+
+    it("parks a server whose session starts all succeeded", async function () {
+      const { cache, killed } = setup();
+      const s = fakeServer(43);
+      cache.sessionStarting(43)(true);
+      cache.sessionStarting(43)(true);
+      const outcome = await handBackServer(cache, "k", s, { listSessions: async () => [] });
+      assert.equal(outcome, "parked");
+      assert.deepEqual(killed, []);
+    });
+
+    it("forgets a killed server's taint, so a new server on that port starts clean", async function () {
+      const { cache } = setup();
+      cache.sessionStarting(44)(false);
+      await handBackServer(cache, "k", fakeServer(44), { listSessions: async () => [] });
+      const fresh = fakeServer(44);
+      assert.equal(await handBackServer(cache, "k", fresh, { listSessions: async () => [] }), "parked");
+    });
+
     it("parks a live server with no sessions", async function () {
       const { cache, killed } = setup();
       const s = fakeServer(10);
@@ -357,6 +406,35 @@ describe("Appium server reuse (ADR 01125)", function () {
         child.kill("SIGKILL");
       }
     });
+  });
+});
+
+describe("driverStart reports session starts to the reuse cache (ADR 01125)", function () {
+  let core;
+  before(async function () {
+    core = await import("../dist/core/tests.js");
+  });
+
+  it("taints the port when a start fails, including a retried one", async function () {
+    const port = 59991;
+    let calls = 0;
+    await assert.rejects(
+      core.driverStart({ browserName: "x" }, port, 2, {
+        remote: async () => {
+          calls++;
+          throw new Error("boom");
+        },
+      })
+    );
+    assert.equal(core.appiumServerCache.isUnclean(port), true);
+    await core.appiumServerCache.discard({ port, process: null });
+    assert.equal(core.appiumServerCache.isUnclean(port), false);
+  });
+
+  it("leaves the port clean when every start succeeds", async function () {
+    const port = 59992;
+    await core.driverStart({ browserName: "x" }, port, 1, { remote: async () => ({}) });
+    assert.equal(core.appiumServerCache.isUnclean(port), false);
   });
 });
 

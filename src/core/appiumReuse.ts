@@ -92,6 +92,15 @@ function createServerCache(deps: {
     deps.kill(server).catch((err) => deps.onKillError?.(server, err));
   };
   const idle: Array<{ key: string; server: Server; timer: NodeJS.Timeout }> = [];
+  // Per port: session starts still in flight, and ports where a start failed.
+  // A failed or abandoned start may still register a session after
+  // /appium/sessions reads empty, so either one rules the server out of reuse.
+  const inFlight = new Map<number, number>();
+  const failed = new Set<number>();
+  const forget = (port: number) => {
+    inFlight.delete(port);
+    failed.delete(port);
+  };
   const remove = (i: number) => {
     const [entry] = idle.splice(i, 1);
     clearTimeout(entry.timer);
@@ -130,7 +139,30 @@ function createServerCache(deps: {
       await Promise.all(servers.map((s) => deps.kill(s)));
     },
     discard(server: Server): Promise<unknown> {
+      forget(server.port);
       return deps.kill(server);
+    },
+    // Call before each session start on `port`; call the returned settle with
+    // whether it succeeded. Retries count separately, so one failed attempt
+    // taints the server even when a later attempt succeeds.
+    sessionStarting(port: number): (ok: boolean) => void {
+      inFlight.set(port, (inFlight.get(port) ?? 0) + 1);
+      let settled = false;
+      return (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        const n = (inFlight.get(port) ?? 1) - 1;
+        if (n > 0) inFlight.set(port, n);
+        else inFlight.delete(port);
+        if (!ok) failed.add(port);
+      };
+    },
+    // A freshly spawned server on `port` has no history, whatever ran there before.
+    resetPort(port: number): void {
+      forget(port);
+    },
+    isUnclean(port: number): boolean {
+      return failed.has(port) || (inFlight.get(port) ?? 0) > 0;
     },
     servers(): Server[] {
       return idle.map((e) => e.server);
@@ -152,9 +184,10 @@ async function takeServer(
   return undefined;
 }
 
-// At run end: park the server only if it's alive and holds no sessions.
-// Anything else (a leftover session, an unanswered request) is killed with its
-// tree, exactly as a non-reusing run would.
+// At run end: park the server only if every session start on it succeeded
+// and settled, it's alive, and it holds no sessions. Anything else (a failed or
+// in-flight start, a leftover session, an unanswered request) is killed with
+// its tree, exactly as a non-reusing run would.
 async function handBackServer(
   cache: ServerCache,
   key: string,
@@ -162,7 +195,7 @@ async function handBackServer(
   deps: { listSessions: (port: number) => Promise<unknown[]> }
 ): Promise<"parked" | "killed"> {
   let clean = false;
-  if (!exited(server)) {
+  if (!exited(server) && !cache.isUnclean(server.port)) {
     try {
       clean = (await deps.listSessions(server.port)).length === 0;
     } catch {

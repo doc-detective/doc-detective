@@ -1998,6 +1998,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           serverArgs,
           reuseKey ? ["--import", APPIUM_WATCHDOG_IMPORT] : undefined
         );
+        appiumServerCache.resetPort(server.port);
         appiumServers.push(server);
         const wait = appiumIsReady(server.port, undefined, {
           pollMs: APPIUM_READY_POLL_MS,
@@ -6239,6 +6240,10 @@ async function driverStart(
       const attemptCaps = driverPortCapability(capabilities)
         ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
+      // Every attempt is reported to the reuse cache: a failed or abandoned
+      // start may still register a session on this server, so it must not be
+      // handed to a later run (ADR 01125).
+      const settle = appiumServerCache.sessionStarting(port);
       const driver: any = await (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
@@ -6248,7 +6253,16 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
-      });
+      }).then(
+        (d: any) => {
+          settle(true);
+          return d;
+        },
+        (e: any) => {
+          settle(false);
+          throw e;
+        }
+      );
       // Per-context mutable state. `recordings` lives here (not on config)
       // so concurrent contexts can't clobber each other's recordings. It is a
       // stack of active recording handles (LIFO) so several can overlap within
