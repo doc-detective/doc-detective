@@ -7504,6 +7504,7 @@
           },
           "markupDefinition": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
@@ -15216,6 +15217,7 @@
           },
           "markupDefinition": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"

@@ -187,7 +187,6 @@ export type MarkupDefinition = (
           )
         | Step
       )[];
-  [k: string]: unknown;
 };
 /**
  * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
@@ -232,12 +231,18 @@ export type SelectorNode = (
     }
 ) & {
   comment?: ContentFilterSelector3;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
   codeBlock?: string | CodeBlockSelector2;
   link?: LinkSelectorChained1;
   image?: ImageSelectorChained1;
   strong?: StrongEmphasisSelectorChained2;
   emphasis?: StrongEmphasisSelectorChained3;
   text?: ContentFilterSelector4;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
   element?: string | ElementSelectorChained1;
 };
 /**
@@ -283,12 +288,18 @@ export type SelectorNode1 = (
     }
 ) & {
   comment?: ContentFilterSelector5;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
   codeBlock?: string | CodeBlockSelector3;
   link?: LinkSelectorChained2;
   image?: ImageSelectorChained2;
   strong?: StrongEmphasisSelectorChained4;
   emphasis?: StrongEmphasisSelectorChained5;
   text?: ContentFilterSelector6;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
   element?: string | ElementSelectorChained2;
 };
 /**
@@ -334,12 +345,18 @@ export type SelectorNode2 = (
     }
 ) & {
   comment?: ContentFilterSelector7;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
   codeBlock?: string | CodeBlockSelector4;
   link?: LinkSelectorChained3;
   image?: ImageSelectorChained3;
   strong?: StrongEmphasisSelectorChained6;
   emphasis?: StrongEmphasisSelectorChained7;
   text?: ContentFilterSelector8;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
   element?: string | ElementSelectorChained3;
 };
 /**
@@ -385,12 +402,18 @@ export type SelectorNode3 = (
     }
 ) & {
   comment?: ContentFilterSelector9;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
   codeBlock?: string | CodeBlockSelector5;
   link?: LinkSelectorChained4;
   image?: ImageSelectorChained4;
   strong?: StrongEmphasisSelectorChained8;
   emphasis?: StrongEmphasisSelectorChained9;
   text?: ContentFilterSelector10;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
   element?: string | ElementSelectorChained4;
 };
 /**
@@ -436,12 +459,18 @@ export type SelectorNode4 = (
     }
 ) & {
   comment?: ContentFilterSelector12;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
   codeBlock?: string | CodeBlockSelector6;
   link?: LinkSelectorChained5;
   image?: ImageSelectorChained5;
   strong?: StrongEmphasisSelectorChained10;
   emphasis?: StrongEmphasisSelectorChained11;
   text?: ContentFilterSelector13;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
   element?: string | ElementSelectorChained5;
 };
 /**
@@ -7321,7 +7350,7 @@ export interface InlineStatementDefinition {
    */
   testEnd?: string | [string, ...string[]];
   /**
-   * Regular expressions that indicates that the following content should be ignored for testing purposes.
+   * Regular expressions that indicate that the following content should be ignored for testing purposes.
    */
   ignoreStart?: string | [string, ...string[]];
   /**
@@ -7334,6 +7363,9 @@ export interface InlineStatementDefinition {
   step?: string | [string, ...string[]];
   [k: string]: unknown;
 }
+/**
+ * Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.
+ */
 export interface ContentFilterSelector {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7373,8 +7405,17 @@ export interface CodeBlockSelector {
 export interface AttributeMatchers {
   [k: string]: true | string;
 }
+/**
+ * Match a hyperlink node. Used for `followedBy.then` chaining and statement containers.
+ */
 export interface LinkSelectorChained {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers1;
 }
@@ -7384,8 +7425,17 @@ export interface LinkSelectorChained {
 export interface AttributeMatchers1 {
   [k: string]: true | string;
 }
+/**
+ * Match an image node. Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ImageSelectorChained {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers2;
 }
@@ -7395,12 +7445,27 @@ export interface ImageSelectorChained {
 export interface AttributeMatchers2 {
   [k: string]: true | string;
 }
+/**
+ * Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.
+ */
 export interface StrongEmphasisSelectorChained {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match a bold/strong or italic/emphasis text node. Used for `followedBy.then` chaining and statement containers.
+ */
 export interface StrongEmphasisSelectorChained1 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match a node by its content — a comment's body or a text run's prose. Referenced by the `comment` and `text` selector kinds and by statement containers.
+ */
 export interface ContentFilterSelector1 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7411,10 +7476,22 @@ export interface ContentFilterSelector1 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers3;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
@@ -7487,6 +7564,9 @@ export interface LinkSelector {
 export interface AttributeMatchers5 {
   [k: string]: true | string;
 }
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
 export interface ContentFilterSelector3 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7526,8 +7606,17 @@ export interface CodeBlockSelector2 {
 export interface AttributeMatchers6 {
   [k: string]: true | string;
 }
+/**
+ * Match hyperlink nodes.
+ */
 export interface LinkSelectorChained1 {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers7;
 }
@@ -7537,8 +7626,17 @@ export interface LinkSelectorChained1 {
 export interface AttributeMatchers7 {
   [k: string]: true | string;
 }
+/**
+ * Match image nodes.
+ */
 export interface ImageSelectorChained1 {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers8;
 }
@@ -7548,12 +7646,27 @@ export interface ImageSelectorChained1 {
 export interface AttributeMatchers8 {
   [k: string]: true | string;
 }
+/**
+ * Match bold/strong text nodes.
+ */
 export interface StrongEmphasisSelectorChained2 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match italic/emphasis text nodes.
+ */
 export interface StrongEmphasisSelectorChained3 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
 export interface ContentFilterSelector4 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7564,10 +7677,22 @@ export interface ContentFilterSelector4 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained1 {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers9;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
@@ -7598,6 +7723,9 @@ export interface ImageSelector {
 export interface AttributeMatchers10 {
   [k: string]: true | string;
 }
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
 export interface ContentFilterSelector5 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7637,8 +7765,17 @@ export interface CodeBlockSelector3 {
 export interface AttributeMatchers11 {
   [k: string]: true | string;
 }
+/**
+ * Match hyperlink nodes.
+ */
 export interface LinkSelectorChained2 {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers12;
 }
@@ -7648,8 +7785,17 @@ export interface LinkSelectorChained2 {
 export interface AttributeMatchers12 {
   [k: string]: true | string;
 }
+/**
+ * Match image nodes.
+ */
 export interface ImageSelectorChained2 {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers13;
 }
@@ -7659,12 +7805,27 @@ export interface ImageSelectorChained2 {
 export interface AttributeMatchers13 {
   [k: string]: true | string;
 }
+/**
+ * Match bold/strong text nodes.
+ */
 export interface StrongEmphasisSelectorChained4 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match italic/emphasis text nodes.
+ */
 export interface StrongEmphasisSelectorChained5 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
 export interface ContentFilterSelector6 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7675,10 +7836,22 @@ export interface ContentFilterSelector6 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained2 {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers14;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
@@ -7698,6 +7871,9 @@ export interface StrongEmphasisSelector {
   precededBy?: PrecedingContextMatcher2;
   followedBy?: FollowingContextMatcher2;
 }
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
 export interface ContentFilterSelector7 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7737,8 +7913,17 @@ export interface CodeBlockSelector4 {
 export interface AttributeMatchers15 {
   [k: string]: true | string;
 }
+/**
+ * Match hyperlink nodes.
+ */
 export interface LinkSelectorChained3 {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers16;
 }
@@ -7748,8 +7933,17 @@ export interface LinkSelectorChained3 {
 export interface AttributeMatchers16 {
   [k: string]: true | string;
 }
+/**
+ * Match image nodes.
+ */
 export interface ImageSelectorChained3 {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers17;
 }
@@ -7759,12 +7953,27 @@ export interface ImageSelectorChained3 {
 export interface AttributeMatchers17 {
   [k: string]: true | string;
 }
+/**
+ * Match bold/strong text nodes.
+ */
 export interface StrongEmphasisSelectorChained6 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match italic/emphasis text nodes.
+ */
 export interface StrongEmphasisSelectorChained7 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
 export interface ContentFilterSelector8 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7775,10 +7984,22 @@ export interface ContentFilterSelector8 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained3 {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers18;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
@@ -7798,6 +8019,9 @@ export interface StrongEmphasisSelector1 {
   precededBy?: PrecedingContextMatcher3;
   followedBy?: FollowingContextMatcher3;
 }
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
 export interface ContentFilterSelector9 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7837,8 +8061,17 @@ export interface CodeBlockSelector5 {
 export interface AttributeMatchers19 {
   [k: string]: true | string;
 }
+/**
+ * Match hyperlink nodes.
+ */
 export interface LinkSelectorChained4 {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers20;
 }
@@ -7848,8 +8081,17 @@ export interface LinkSelectorChained4 {
 export interface AttributeMatchers20 {
   [k: string]: true | string;
 }
+/**
+ * Match image nodes.
+ */
 export interface ImageSelectorChained4 {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers21;
 }
@@ -7859,12 +8101,27 @@ export interface ImageSelectorChained4 {
 export interface AttributeMatchers21 {
   [k: string]: true | string;
 }
+/**
+ * Match bold/strong text nodes.
+ */
 export interface StrongEmphasisSelectorChained8 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match italic/emphasis text nodes.
+ */
 export interface StrongEmphasisSelectorChained9 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
 export interface ContentFilterSelector10 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7875,10 +8132,22 @@ export interface ContentFilterSelector10 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained4 {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers22;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
@@ -7923,6 +8192,9 @@ export interface ElementSelector {
 export interface AttributeMatchers23 {
   [k: string]: true | string;
 }
+/**
+ * Match comment nodes (non-rendered author notes).
+ */
 export interface ContentFilterSelector12 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -7962,8 +8234,17 @@ export interface CodeBlockSelector6 {
 export interface AttributeMatchers24 {
   [k: string]: true | string;
 }
+/**
+ * Match hyperlink nodes.
+ */
 export interface LinkSelectorChained5 {
+  /**
+   * Regular expression the link destination must match.
+   */
   url?: string;
+  /**
+   * Regular expression the link text must match.
+   */
   text?: string;
   attributes?: AttributeMatchers25;
 }
@@ -7973,8 +8254,17 @@ export interface LinkSelectorChained5 {
 export interface AttributeMatchers25 {
   [k: string]: true | string;
 }
+/**
+ * Match image nodes.
+ */
 export interface ImageSelectorChained5 {
+  /**
+   * Regular expression the image source must match.
+   */
   src?: string;
+  /**
+   * Regular expression the image alt text must match.
+   */
   alt?: string;
   attributes?: AttributeMatchers26;
 }
@@ -7984,12 +8274,27 @@ export interface ImageSelectorChained5 {
 export interface AttributeMatchers26 {
   [k: string]: true | string;
 }
+/**
+ * Match bold/strong text nodes.
+ */
 export interface StrongEmphasisSelectorChained10 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match italic/emphasis text nodes.
+ */
 export interface StrongEmphasisSelectorChained11 {
+  /**
+   * Regular expression the node's text must match.
+   */
   text?: string;
 }
+/**
+ * Match prose text runs (never inside code blocks or comments).
+ */
 export interface ContentFilterSelector13 {
   /**
    * Regular expression the node's content must match. Capture groups are exposed as `match.<n>` capture paths.
@@ -8000,10 +8305,22 @@ export interface ContentFilterSelector13 {
    */
   excludes?: string;
 }
+/**
+ * Match a named element (HTML/XML tag or MDX JSX component). Used for `followedBy.then` chaining and statement containers.
+ */
 export interface ElementSelectorChained5 {
+  /**
+   * Element/component name(s) to match.
+   */
   tag?: string | [string, ...string[]];
   attributes?: AttributeMatchers27;
+  /**
+   * Regular expression the element's inner content must match. Capture groups are exposed as `match.<n>` capture paths.
+   */
   contentMatches?: string;
+  /**
+   * Regular expression the element's inner content must not match.
+   */
   contentExcludes?: string;
 }
 /**
