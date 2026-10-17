@@ -1007,6 +1007,32 @@ describe("android installer: SDK install self-repair", function () {
     expect(out).to.equal("retried:2");
   });
 
+  it("exits non-zero after the real backoff when every attempt fails (child process)", async function () {
+    this.timeout(15000);
+    const { spawnSync } = await import("node:child_process");
+    const { pathToFileURL } = await import("node:url");
+    const mod = pathToFileURL(
+      path.resolve("dist/runtime/androidInstaller.js")
+    ).href;
+    const script = `
+      const { runSdkInstallWithRetry } = await import(${JSON.stringify(mod)});
+      let calls = 0;
+      try {
+        await runSdkInstallWithRetry(
+          () => { calls++; return Promise.reject(new Error("unknown archive")); },
+          "sdkmanager", ["x"], {}, { maxAttempts: 2 }
+        );
+      } finally {
+        process.stdout.write("attempts:" + calls);
+      }
+    `;
+    const res = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+    });
+    expect(res.stdout).to.equal("attempts:2"); // reached the last attempt
+    expect(res.status).to.equal(1); // the final rejection fails the process
+  });
+
   it("rethrows a non-transient failure immediately (no retry, no mask)", async function () {
     let calls = 0;
     let threw;
