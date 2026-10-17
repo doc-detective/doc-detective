@@ -7,6 +7,11 @@ import { _setBaseBackoffMsForTests } from "../dist/core/tests/checkLink.js";
 // timeout a fixed cushion there so a freeze can't fail an innocent test.
 installFreezeAllowance(Mocha, freezeAllowanceMs(process.platform, process.env));
 
+// The suite reuses idle browser-pool Appium servers across runTests calls
+// (ADR 01125), saving ~1.6s per browser run. An explicit value wins, so
+// DOC_DETECTIVE_REUSE_APPIUM=false runs the suite on the default path.
+process.env.DOC_DETECTIVE_REUSE_APPIUM ??= "true";
+
 // checkLink retries 429/5xx with a 1s/2s/4s backoff. Shrink the base so retry
 // tests assert attempt counts and outcomes without the wall-clock wait.
 // Retry-After still takes precedence. Product default stays 1000ms (ADR 01121).

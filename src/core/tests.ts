@@ -177,6 +177,18 @@ import {
   useDriversArgs,
   browserPoolDriverPackages,
 } from "./appium.js";
+import {
+  reuseAppiumEnabled,
+  appiumServerKey,
+  createServerCache,
+  takeServer,
+  handBackServer,
+  probeStatus,
+  listSessions,
+  allowSessionDiscovery,
+  APPIUM_WATCHDOG_IMPORT,
+} from "./appiumReuse.js";
+import type { Server as AppiumServer } from "./appiumReuse.js";
 import { contentHash } from "../common/src/textUtils.js";
 import { resolveExpression } from "./expressions.js";
 import {
@@ -202,6 +214,25 @@ import https from "node:https";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Idle browser-pool Appium servers kept between runs in this process, only
+// when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
+// killTree is a hoisted function declaration, called only when a server dies.
+// Background kill failures log at debug under the last reusing run's config.
+// Used only for that log line, so last-writer-wins across concurrent runs is fine.
+// Only logLevel is read (by log()).
+let lastReuseConfig: { logLevel?: string } | undefined;
+const appiumServerCache = createServerCache({
+  kill: (server) => killTree(server.process?.pid),
+  onKillError: (server, err) =>
+    log(
+      lastReuseConfig ?? {},
+      "debug",
+      `Failed to close idle Appium server on port ${server.port}: ${(err as Error)?.message ?? err}`
+    ),
+  idleMs: 60000,
+  maxIdle: 4,
+});
 
 // The runner's appiumIsReady call sites poll at this interval. A refused
 // /status on loopback fails in about a millisecond, so a tighter poll costs
@@ -235,6 +266,7 @@ export {
   buildAutoRecordStep,
   specIsRouted,
   killTree,
+  appiumServerCache,
   jobDisplayResources,
   buildWarmPlanDeps,
   warmBrowserInstall,
@@ -1874,8 +1906,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // (see startAppSurface) and are excluded here, so an app-only run starts no
   // browser server. Non-driver runs start none.
   const browserPoolJobCount = browserJobCount(sizingJobs);
-  let appiumServers: Array<{ port: number; process: any; display?: string }> =
-    [];
+  let appiumServers: AppiumServer[] = [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
@@ -1885,6 +1916,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+  // Set only when this run takes and hands back idle servers (ADR 01125).
+  // Xvfb runs never reuse: their displays die with the run.
+  let reuseKey: string | undefined;
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
@@ -1917,30 +1951,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       const readinessWaits: Promise<boolean>[] = [];
       // Load only the desktop browser drivers (ADR 01117): the shared home
       // also holds the mobile drivers, which roughly doubled startup.
-      const useDrivers = useDriversArgs(
-        process.env.APPIUM_HOME!,
-        browserPoolDriverPackages(process.platform)
-      );
+      const poolDriverPackages = browserPoolDriverPackages(process.platform);
+      const useDrivers = useDriversArgs(process.env.APPIUM_HOME!, poolDriverPackages);
+      // Every desktop pool server allows the geckodriver-path insecure
+      // feature, not just the ones a Firefox context lands on: these servers
+      // are shared across contexts and cross-browser fallback can route a
+      // chrome-authored context to Firefox mid-run, so gating the flag on the
+      // run's authored browsers would leave the capability illegal exactly
+      // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+      let serverArgs = [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers];
+      if (reuseAppiumEnabled() && !useXvfbDisplays) {
+        // Hand-back must be able to list leftover sessions.
+        serverArgs = allowSessionDiscovery(serverArgs);
+        lastReuseConfig = config;
+        reuseKey = appiumServerKey({
+          entry: appiumEntry,
+          args: serverArgs,
+          env: process.env,
+          appiumHome: process.env.APPIUM_HOME!,
+          packages: ["appium", ...poolDriverPackages],
+        });
+      }
       for (let i = 0; i < serverCount; i++) {
+        const reused = reuseKey
+          ? await takeServer(appiumServerCache, reuseKey, { isReady: probeStatus })
+          : undefined;
+        if (reused) {
+          log(config, "debug", `Reusing idle Appium server on port ${reused.port}.`);
+          // A spawn would prefetch webdriverio (ADR 01135); a reused server
+          // skips the spawn, so start the import here instead.
+          prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
+          appiumServers.push(reused);
+          continue;
+        }
         let display: string | undefined;
         if (useXvfbDisplays) {
           display = xvfbDisplay(i);
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        // Every desktop pool server allows the geckodriver-path insecure
-        // feature, not just the ones a Firefox context lands on: these servers
-        // are shared across contexts and cross-browser fallback can route a
-        // chrome-authored context to Firefox mid-run, so gating the flag on the
-        // run's authored browsers would leave the capability illegal exactly
-        // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+        // A reusable server exits once this process dies (ADR 01125).
         const server = await spawnAppiumServer(
           appiumEntry,
           config,
           display,
           undefined,
-          [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
+          serverArgs,
+          reuseKey ? ["--import", APPIUM_WATCHDOG_IMPORT] : undefined
         );
+        appiumServerCache.resetPort(server.port);
         appiumServers.push(server);
         const wait = appiumIsReady(server.port, undefined, {
           pollMs: APPIUM_READY_POLL_MS,
@@ -2312,8 +2371,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // (shells out to `taskkill /T /F` on Windows); firing it without
     // awaiting let the run finish before the browser was really dead,
     // orphaning it.
+    // With reuse on (ADR 01125), a server with no sessions left goes back to
+    // the cache instead; one that still has a session is killed the same way.
     await Promise.all(
-      appiumServers.map((server) => {
+      appiumServers.map(async (server) => {
+        if (reuseKey) {
+          const outcome = await handBackServer(appiumServerCache, reuseKey, server, {
+            listSessions,
+          });
+          log(
+            config,
+            "debug",
+            outcome === "parked"
+              ? `Keeping idle Appium server on port ${server.port} for reuse.`
+              : `Closed Appium server on port ${server.port}`
+          );
+          return;
+        }
         log(config, "debug", `Closing Appium server on port ${server.port}`);
         return killTree(server.process?.pid);
       })
@@ -5985,8 +6059,10 @@ async function spawnAppiumServer(
   extraEnv?: Record<string, string>,
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
-  extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+  extraArgs?: string[],
+  // Node args placed before the entry, e.g. the reuse watchdog (ADR 01125).
+  nodeArgs?: string[]
+): Promise<AppiumServer> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
@@ -6002,9 +6078,17 @@ async function spawnAppiumServer(
           ...(extraEnv ?? {}),
         }
       : process.env;
-  const proc: any = spawn(
+  const proc = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(port), ...(extraArgs ?? [])],
+    [
+      ...(nodeArgs ?? []),
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(port),
+      ...(extraArgs ?? []),
+    ],
     {
       windowsHide: true,
       cwd: path.join(__dirname, "../.."),
@@ -6033,7 +6117,7 @@ async function startAppiumServer(
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
   extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+): Promise<AppiumServer> {
   const server = await spawnAppiumServer(
     appiumEntry,
     config,
@@ -6157,7 +6241,12 @@ async function driverStart(
       const attemptCaps = driverPortCapability(capabilities)
         ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
-      const driver: any = await (ctx.remote ?? wdio.remote)({
+      // Every attempt is reported to the reuse cache: a failed or abandoned
+      // start may still register a session on this server, so it must not be
+      // handed to a later run (ADR 01125).
+      const settle = appiumServerCache.sessionStarting(port);
+      // Start from a resolved promise so a synchronous throw still settles.
+      const driver: any = await Promise.resolve().then(() => (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -6166,7 +6255,16 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
-      });
+      })).then(
+        (d: any) => {
+          settle(true);
+          return d;
+        },
+        (e: any) => {
+          settle(false);
+          throw e;
+        }
+      );
       // Per-context mutable state. `recordings` lives here (not on config)
       // so concurrent contexts can't clobber each other's recordings. It is a
       // stack of active recording handles (LIFO) so several can overlap within
