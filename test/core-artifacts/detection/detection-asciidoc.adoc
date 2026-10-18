@@ -1,7 +1,7 @@
-= Structural statement detection: AsciiDoc
+= Statement detection: AsciiDoc
 
-The paren-filtered comment container keeps the `// (test …)` grammar; plain
-comments stay inert.
+The built-in AsciiDoc fileType reads the `// (test …)` grammar; plain comments
+stay inert, and statements inside listing blocks run as they always have.
 
 // just a regular comment, not a statement
 
@@ -18,7 +18,7 @@ Check the docs server at http://localhost:8092[the test server].
 
 [source,html]
 ----
-// (step {"httpRequest": {"url": "http://localhost:9/unreachable"}})
+// (step {"wait": 10})
 ----
 
 // (step {"wait": 50})

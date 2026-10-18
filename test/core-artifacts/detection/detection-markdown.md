@@ -1,7 +1,7 @@
-# Structural statement detection: Markdown
+# Statement detection: Markdown
 
-Comment containers replace the per-wrapper statement regexes: HTML comments
-and every `[comment]: #` quote variant normalize to the same comment nodes.
+The built-in Markdown fileType reads HTML comments and every `[comment]: #`
+quote variant as statements.
 
 <!-- test {"testId": "detection-markdown-html-comments"} -->
 
@@ -27,13 +27,13 @@ If ignore ranges break, this unreachable request fails the run.
 
 [comment]: # (test end)
 
-Statements inside code fences must stay inert — this fence would fail the
-run if the fenced comment were detected:
+The built-in regular expressions also read statements inside code fences, as
+every release has; this fenced step runs:
 
-<!-- test {"testId": "detection-markdown-fence-inert"} -->
+<!-- test {"testId": "detection-markdown-fence-legacy"} -->
 
 ```html
-<!-- step {"httpRequest": {"url": "http://localhost:9/unreachable"}} -->
+<!-- step {"wait": 10} -->
 ```
 
 <!-- step {"wait": 10} -->

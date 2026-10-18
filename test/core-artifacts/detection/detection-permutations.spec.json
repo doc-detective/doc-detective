@@ -1,0 +1,291 @@
+{
+  "specId": "detection-permutations",
+  "description": "Detection permutations through the real CLI (ADR 01139). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs: it writes a document and config under .tmp/fixture-detection/, runs `doc-detective runTests --dry-run`, and compares the detected steps per test. Built-in cases pin legacy behavior (statements in code regions, lazy [comment]: # lines, {/* */} in .md, .mdx under the markdown built-in, the runner lowercase typeText rule); opt-in cases cover the mdx built-in and every selector kind, captures, followedBy.then chaining, container/regex dedupe, parse-failure fallback, and detectSteps: false. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "tests": [
+    {
+      "testId": "detection-builtin-md-code-fence",
+      "description": "Built-in fileType keeps its legacy detection: builtin-md-code-fence.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-md-code-fence",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-md-lazy-definition",
+      "description": "Built-in fileType keeps its legacy detection: builtin-md-lazy-definition.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-md-lazy-definition",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-md-expression-comments",
+      "description": "Built-in fileType keeps its legacy detection: builtin-md-expression-comments.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-md-expression-comments",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-md-screenshot-class",
+      "description": "Built-in fileType keeps its legacy detection: builtin-md-screenshot-class.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-md-screenshot-class",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-md-type-text-lowercase",
+      "description": "Built-in fileType keeps its legacy detection: builtin-md-type-text-lowercase.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-md-type-text-lowercase",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-mdx-default-config",
+      "description": "Built-in fileType keeps its legacy detection: builtin-mdx-default-config.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-mdx-default-config",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-mdx-explicit-markdown",
+      "description": "Built-in fileType keeps its legacy detection: builtin-mdx-explicit-markdown.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-mdx-explicit-markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-html-pre-comment",
+      "description": "Built-in fileType keeps its legacy detection: builtin-html-pre-comment.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-html-pre-comment",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-builtin-asciidoc-listing",
+      "description": "Built-in fileType keeps its legacy detection: builtin-asciidoc-listing.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-asciidoc-listing",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-legacy-config-extra-markup-key",
+      "description": "A config that validated before still validates and detects: legacy-config-extra-markup-key.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs legacy-config-extra-markup-key",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-optin-mdx",
+      "description": "Opt-in mdx built-in: optin-mdx.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs optin-mdx",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-optin-container-regex-dedupe",
+      "description": "Opt-in mdx built-in: optin-container-regex-dedupe.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs optin-container-regex-dedupe",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-optin-parse-failure-falls-back-to-regex",
+      "description": "Opt-in mdx built-in: optin-parse-failure-falls-back-to-regex.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs optin-parse-failure-falls-back-to-regex",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-markdown-kinds",
+      "description": "Opt-in selector custom fileType: selector-markdown-kinds.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-markdown-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-detect-steps-false",
+      "description": "Opt-in selector custom fileType: selector-detect-steps-false.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-detect-steps-false",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-extends-builtin",
+      "description": "Opt-in selector custom fileType: selector-extends-builtin.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-extends-builtin",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-html-element",
+      "description": "Opt-in selector custom fileType: selector-html-element.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-html-element",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-dita-chain",
+      "description": "Opt-in selector custom fileType: selector-dita-chain.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-dita-chain",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "detection-selector-asciidoc",
+      "description": "Opt-in selector custom fileType: selector-asciidoc.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs selector-asciidoc",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
