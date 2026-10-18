@@ -104,9 +104,23 @@ describe("detect: mdx backend", function () {
     });
   });
 
-  describe("MDX strictness", function () {
-    it("throws on HTML comments (invalid MDX syntax)", function () {
-      expect(() => parseMdx("<!-- test -->\n")).to.throw();
+  describe("HTML comments", function () {
+    // `<!-- -->` is invalid MDX, but docs carry it (MDX 1, content migrated
+    // from markdown), so the backend surfaces it instead of failing the file.
+    it("surfaces HTML comments as comment nodes", function () {
+      const nodes = parseMdx("Intro.\n\n<!-- test -->\n\n{/* step x */}\n");
+      const comments = nodes.filter((n) => n.kind === "comment");
+      expect(comments.map((n) => n.content)).to.deep.equal(["test", "step x"]);
+      expect(comments[0].startIndex).to.equal(8);
+      expect(comments[0].endIndex).to.equal(21);
+    });
+
+    it("leaves HTML comments inside code alone", function () {
+      const nodes = parseMdx(
+        "```html\n<!-- step a -->\n```\n\nUse `<!-- b -->` here.\n"
+      );
+      expect(nodes.filter((n) => n.kind === "comment")).to.deep.equal([]);
+      expect(first(nodes, "codeBlock").content).to.equal("<!-- step a -->");
     });
   });
 
@@ -125,15 +139,11 @@ describe("detect: mdx backend", function () {
 });
 
 describe("mdx built-in fileType", function () {
-  it("exists with its own extension, split from markdown", function () {
-    expect(defaultFileTypes.mdx).to.exist;
+  it("is an opt-in selector type; markdown still claims .mdx", function () {
     expect(defaultFileTypes.mdx.extensions).to.deep.equal(["mdx"]);
-    expect(defaultFileTypes.markdown.extensions).to.not.include("mdx");
-    // Same selector markup as markdown.
-    expect(defaultFileTypes.mdx.markup).to.deep.equal(
-      defaultFileTypes.markdown.markup
-    );
+    expect(defaultFileTypes.markdown.extensions).to.include("mdx");
     expect(defaultFileTypes.mdx.inlineStatements.in).to.deep.equal(["comment"]);
+    expect(defaultFileTypes.mdx.markup.every((m) => !m.regex)).to.be.true;
   });
 
   it("detects statements and markup end-to-end in an .mdx file", async function () {
@@ -216,19 +226,35 @@ describe("mdx built-in fileType", function () {
     // No filePath: the backend resolves from the fileType name, and the
     // parse-failure warning names the input generically.
     const tests = await detectTests({
-      content: '<!-- test {"testId": "old"} -->\n',
+      content: "Text <div\n",
       fileType: defaultFileTypes.mdx,
     });
     expect(tests).to.deep.equal([]);
   });
 
-  it("degrades an .mdx file containing HTML comments to no detection (documented divergence)", async function () {
-    const content = '<!-- test {"testId": "old"} -->\n\nText.\n';
+  it("screenshots images whose class list starts a class with `screenshot`, like the markdown regex", async function () {
+    const content =
+      "![a](a.png){: .screenshot}\n\n![b](b.png){: .wide .screenshots}\n\n![c](c.png){: .no-screenshot}\n";
+    const tests = await detectTests({
+      content,
+      filePath: "doc.mdx",
+      fileType: defaultFileTypes.mdx,
+      config: { detectSteps: true },
+    });
+    expect(tests[0].steps.map((s) => s.screenshot)).to.deep.equal(["a.png", "b.png"]);
+  });
+
+  it("detects HTML-comment statements in an .mdx file", async function () {
+    const content =
+      '<!-- test {"testId": "old"} -->\n\n{/* step {"wait": 1} */}\n\n<!-- test end -->\n';
     const tests = await detectTests({
       content,
       filePath: "doc.mdx",
       fileType: defaultFileTypes.mdx,
     });
-    expect(tests).to.deep.equal([]);
+    expect(tests).to.have.length(1);
+    expect(tests[0].testId).to.equal("old");
+    expect(tests[0].steps).to.have.length(1);
+    expect(tests[0].steps[0].wait).to.equal(1);
   });
 });

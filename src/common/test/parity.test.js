@@ -1,28 +1,16 @@
 /**
- * Detection parity harness (permanent).
+ * Built-in definition freeze (permanent).
  *
- * Runs every markdown fixture through detection twice: once with the frozen
- * legacy regex-based markdown fileType below, once with the current built-in
- * (selector-based after the migration). The detected specs must be
- * identical — identical steps keep contentHash-derived test IDs stable for
- * users — except for divergences that are explicitly enumerated and asserted
- * here (structural fixes the selector engine makes on purpose).
- *
- * The legacy definition is a frozen copy of the pre-migration markdown_1_0
- * table. Do not update it to match new behavior — it IS the compatibility
- * baseline.
+ * The built-in markdown, html, asciidoc, and dita fileTypes stay on the
+ * legacy regex definitions below, byte for byte (ADR 01139): selector mode is
+ * opt-in, so upgrading never changes what an existing config detects. Do not
+ * update these copies to match new behavior. They ARE the compatibility
+ * baseline. compat.test.js pins the detection engine against the same
+ * baseline with recorded legacy output.
  */
 
 import { expect } from "chai";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { detectTests } from "../dist/detectTests.js";
 import { defaultFileTypes } from "../dist/fileTypes.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixturesDir = path.join(__dirname, "fixtures");
-
 // Frozen pre-migration markdown_1_0 (regex mode).
 const LEGACY_MARKDOWN = {
   name: "markdown",
@@ -263,122 +251,72 @@ const LEGACY_DITA = {
   ],
 };
 
-/**
- * Enumerated intentional divergences, per fixture file. Each entry is a
- * transform applied to BOTH runs' outputs before comparison, documenting
- * exactly what the selector engine fixes. Fixtures not listed must match
- * byte-for-byte.
- */
-/**
- * Divergence class: element-selector spans. Legacy xref/uicontrol regexes
- * often matched only the opening tag, so location.endIndex stopped at its
- * `>`; element selectors record the full element through its closing tag.
- * IDs are unaffected (location is excluded from content hashes) — only the
- * endIndex metadata widens, so it is dropped from comparison while line and
- * startIndex stay guarded.
- */
-function dropStepEndIndex(tests) {
-  for (const test of tests) {
-    for (const step of test.steps) {
-      if (step.location) delete step.location.endIndex;
-    }
-  }
-  return tests;
-}
-
-const INTENTIONAL_DIVERGENCES = {
-  // (populated as the migration lands; keep this list short and explained)
-  "dita-detect.dita": dropStepEndIndex,
-  "dita-links.dita": dropStepEndIndex,
-  "dita-mixed.dita": dropStepEndIndex,
+// Frozen pre-migration html_1_0 (regex mode).
+const LEGACY_HTML = {
+  name: "html",
+  extensions: [
+    "html",
+    "htm"
+  ],
+  inlineStatements: {
+    testStart: [
+      "<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"
+    ],
+    testEnd: [
+      "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"
+    ],
+    ignoreStart: [
+      "<!--\\s*test ignore start\\s*-->"
+    ],
+    ignoreEnd: [
+      "<!--\\s*test ignore end\\s*-->"
+    ],
+    step: [
+      "<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"
+    ]
+  },
+  markup: []
 };
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Frozen pre-migration asciidoc_1_0 (regex mode).
+const LEGACY_ASCIIDOC = {
+  name: "asciidoc",
+  extensions: [
+    "adoc",
+    "asciidoc",
+    "asc"
+  ],
+  inlineStatements: {
+    testStart: [
+      "\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"
+    ],
+    testEnd: [
+      "\\/\\/\\s+\\(\\s*test end\\s*\\)"
+    ],
+    ignoreStart: [
+      "\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"
+    ],
+    ignoreEnd: [
+      "\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"
+    ],
+    step: [
+      "\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"
+    ]
+  },
+  markup: []
+};
 
-/**
- * Generated stepIds are random UUIDs (v2→v3 step upgrades mint one per run),
- * so any two detection runs differ on them — including legacy vs legacy.
- * Strip UUID-shaped stepIds on both sides; authored stepIds still compare.
- */
-function stripRandomStepIds(value) {
-  if (Array.isArray(value)) {
-    value.forEach(stripRandomStepIds);
-  } else if (value && typeof value === "object") {
-    if (typeof value.stepId === "string" && UUID_RE.test(value.stepId)) {
-      delete value.stepId;
-    }
-    Object.values(value).forEach(stripRandomStepIds);
-  }
-  return value;
-}
-
-const markdownFixtures = fs
-  .readdirSync(fixturesDir)
-  .filter((f) => f.endsWith(".md"))
-  .sort();
-
-describe("detection parity: legacy regex vs current markdown built-in", function () {
-  for (const fixture of markdownFixtures) {
-    it(`produces identical specs for ${fixture}`, async function () {
-      const content = fs.readFileSync(path.join(fixturesDir, fixture), "utf8");
-      const filePath = `fixtures/${fixture}`;
-      const legacy = await detectTests({
-        content,
-        filePath,
-        fileType: LEGACY_MARKDOWN,
-      });
-      const current = await detectTests({
-        content,
-        filePath,
-        fileType: defaultFileTypes.markdown,
-      });
-      stripRandomStepIds(legacy);
-      stripRandomStepIds(current);
-      const transform = INTENTIONAL_DIVERGENCES[fixture];
-      const a = transform ? transform(legacy, "legacy") : legacy;
-      const b = transform ? transform(current, "current") : current;
-      expect(b).to.deep.equal(a);
+describe("built-in fileTypes keep the legacy definitions", function () {
+  const frozen = {
+    markdown: LEGACY_MARKDOWN,
+    html: LEGACY_HTML,
+    asciidoc: LEGACY_ASCIIDOC,
+    dita: LEGACY_DITA,
+  };
+  for (const [name, legacy] of Object.entries(frozen)) {
+    it(`${name} equals the frozen legacy table`, function () {
+      expect(defaultFileTypes[name]).to.deep.equal(legacy);
+      expect(defaultFileTypes[`${name}_1_0`]).to.equal(defaultFileTypes[name]);
     });
   }
-
-  it("covers the fixture corpus", function () {
-    // If markdown fixtures disappear, the harness silently stops guarding —
-    // fail loudly instead.
-    expect(markdownFixtures.length).to.be.greaterThan(3);
-  });
-});
-
-const ditaFixtures = fs
-  .readdirSync(fixturesDir)
-  .filter((f) => f.endsWith(".dita"))
-  .sort();
-
-describe("detection parity: legacy regex vs current dita built-in", function () {
-  for (const fixture of ditaFixtures) {
-    it(`produces identical specs for ${fixture}`, async function () {
-      const content = fs.readFileSync(path.join(fixturesDir, fixture), "utf8");
-      const filePath = `fixtures/${fixture}`;
-      const legacy = await detectTests({
-        content,
-        filePath,
-        fileType: LEGACY_DITA,
-      });
-      const current = await detectTests({
-        content,
-        filePath,
-        fileType: defaultFileTypes.dita,
-      });
-      stripRandomStepIds(legacy);
-      stripRandomStepIds(current);
-      const transform = INTENTIONAL_DIVERGENCES[fixture];
-      const a = transform ? transform(legacy, "legacy") : legacy;
-      const b = transform ? transform(current, "current") : current;
-      expect(b).to.deep.equal(a);
-    });
-  }
-
-  it("covers the dita fixture corpus", function () {
-    expect(ditaFixtures.length).to.be.greaterThan(3);
-  });
 });

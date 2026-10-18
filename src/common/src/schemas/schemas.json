@@ -10159,7 +10159,6 @@
         "description": "Configuration for file types and their markup detection.",
         "default": [
           "markdown",
-          "mdx",
           "asciidoc",
           "html",
           "dita"
@@ -10693,7 +10692,7 @@
                       "type": "array",
                       "items": {
                         "title": "Markup definition",
-                        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+                        "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. Definitions without a selector key validate exactly as they did before selector mode existed (no required keys, unknown keys allowed), so existing configs keep validating. A definition that uses a selector key (a kind or `captures`) is validated strictly: exactly one kind, no `regex`, and no unknown keys, so typos such as `captuers` fail loudly.",
                         "examples": [
                           {
                             "name": "runCode",
@@ -10723,7 +10722,6 @@
                           }
                         ],
                         "type": "object",
-                        "additionalProperties": false,
                         "properties": {
                           "name": {
                             "description": "Name of the markup definition",
@@ -69489,71 +69487,201 @@
                             ]
                           }
                         },
-                        "oneOf": [
-                          {
-                            "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
-                            "required": [
-                              "regex"
+                        "if": {
+                          "anyOf": [
+                            {
+                              "required": [
+                                "comment"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "codeBlock"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "link"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "image"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "strong"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "emphasis"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "text"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "element"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "captures"
+                              ]
+                            }
+                          ]
+                        },
+                        "then": {
+                          "$comment": "Selector mode: exactly one kind key and only selector-mode properties.",
+                          "propertyNames": {
+                            "enum": [
+                              "name",
+                              "comment",
+                              "codeBlock",
+                              "link",
+                              "image",
+                              "strong",
+                              "emphasis",
+                              "text",
+                              "element",
+                              "captures",
+                              "batchMatches",
+                              "actions"
                             ]
                           },
-                          {
-                            "$comment": "Selector mode: exactly one kind key.",
-                            "oneOf": [
-                              {
-                                "required": [
-                                  "comment"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "codeBlock"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "link"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "image"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "strong"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "emphasis"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "text"
-                                ]
-                              },
-                              {
-                                "required": [
-                                  "element"
-                                ]
-                              }
-                            ]
-                          }
-                        ]
+                          "oneOf": [
+                            {
+                              "required": [
+                                "comment"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "codeBlock"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "link"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "image"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "strong"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "emphasis"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "text"
+                              ]
+                            },
+                            {
+                              "required": [
+                                "element"
+                              ]
+                            }
+                          ]
+                        }
                       }
                     }
                   }
                 },
                 {
                   "title": "File type (executable)",
-                  "$comment": "Executable mode: Convert executable inputs directly into tests. additionalProperties is false so this branch can't silently absorb malformed custom file types.",
+                  "$comment": "Executable mode: Convert executable inputs directly into tests. Like every release before selector mode, this branch accepts any object with extensions, so configs that validated before keep validating. File types that use a selector feature (inlineStatements.in, a selector kind key, or captures) are excluded and must satisfy the strict custom branch.",
                   "type": "object",
                   "required": [
                     "extensions"
                   ],
-                  "additionalProperties": false,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "inlineStatements"
+                        ],
+                        "properties": {
+                          "inlineStatements": {
+                            "required": [
+                              "in"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "required": [
+                          "markup"
+                        ],
+                        "properties": {
+                          "markup": {
+                            "contains": {
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "comment"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "codeBlock"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "link"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "image"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "strong"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "emphasis"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "text"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "element"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "captures"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
                   "properties": {
                     "name": {
                       "description": "Name of the file type.",
@@ -71022,7 +71150,7 @@
         },
         "markupDefinition": {
           "title": "Markup definition",
-          "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+          "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. Definitions without a selector key validate exactly as they did before selector mode existed (no required keys, unknown keys allowed), so existing configs keep validating. A definition that uses a selector key (a kind or `captures`) is validated strictly: exactly one kind, no `regex`, and no unknown keys, so typos such as `captuers` fail loudly.",
           "examples": [
             {
               "name": "runCode",
@@ -71052,7 +71180,6 @@
             }
           ],
           "type": "object",
-          "additionalProperties": false,
           "properties": {
             "name": {
               "description": "Name of the markup definition",
@@ -129818,59 +129945,116 @@
               ]
             }
           },
-          "oneOf": [
-            {
-              "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
-              "required": [
-                "regex"
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              },
+              {
+                "required": [
+                  "captures"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "$comment": "Selector mode: exactly one kind key and only selector-mode properties.",
+            "propertyNames": {
+              "enum": [
+                "name",
+                "comment",
+                "codeBlock",
+                "link",
+                "image",
+                "strong",
+                "emphasis",
+                "text",
+                "element",
+                "captures",
+                "batchMatches",
+                "actions"
               ]
             },
-            {
-              "$comment": "Selector mode: exactly one kind key.",
-              "oneOf": [
-                {
-                  "required": [
-                    "comment"
-                  ]
-                },
-                {
-                  "required": [
-                    "codeBlock"
-                  ]
-                },
-                {
-                  "required": [
-                    "link"
-                  ]
-                },
-                {
-                  "required": [
-                    "image"
-                  ]
-                },
-                {
-                  "required": [
-                    "strong"
-                  ]
-                },
-                {
-                  "required": [
-                    "emphasis"
-                  ]
-                },
-                {
-                  "required": [
-                    "text"
-                  ]
-                },
-                {
-                  "required": [
-                    "element"
-                  ]
-                }
-              ]
-            }
-          ]
+            "oneOf": [
+              {
+                "required": [
+                  "comment"
+                ]
+              },
+              {
+                "required": [
+                  "codeBlock"
+                ]
+              },
+              {
+                "required": [
+                  "link"
+                ]
+              },
+              {
+                "required": [
+                  "image"
+                ]
+              },
+              {
+                "required": [
+                  "strong"
+                ]
+              },
+              {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "element"
+                ]
+              }
+            ]
+          }
         },
         "markupActions": {
           "description": "Actions to perform when the markup type is detected.",
@@ -203982,7 +204166,6 @@
             "description": "Configuration for file types and their markup detection.",
             "default": [
               "markdown",
-              "mdx",
               "asciidoc",
               "html",
               "dita"
@@ -204516,7 +204699,7 @@
                           "type": "array",
                           "items": {
                             "title": "Markup definition",
-                            "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+                            "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. Definitions without a selector key validate exactly as they did before selector mode existed (no required keys, unknown keys allowed), so existing configs keep validating. A definition that uses a selector key (a kind or `captures`) is validated strictly: exactly one kind, no `regex`, and no unknown keys, so typos such as `captuers` fail loudly.",
                             "examples": [
                               {
                                 "name": "runCode",
@@ -204546,7 +204729,6 @@
                               }
                             ],
                             "type": "object",
-                            "additionalProperties": false,
                             "properties": {
                               "name": {
                                 "description": "Name of the markup definition",
@@ -263312,71 +263494,201 @@
                                 ]
                               }
                             },
-                            "oneOf": [
-                              {
-                                "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
-                                "required": [
-                                  "regex"
+                            "if": {
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "comment"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "codeBlock"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "link"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "image"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "strong"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "emphasis"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "text"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "element"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "captures"
+                                  ]
+                                }
+                              ]
+                            },
+                            "then": {
+                              "$comment": "Selector mode: exactly one kind key and only selector-mode properties.",
+                              "propertyNames": {
+                                "enum": [
+                                  "name",
+                                  "comment",
+                                  "codeBlock",
+                                  "link",
+                                  "image",
+                                  "strong",
+                                  "emphasis",
+                                  "text",
+                                  "element",
+                                  "captures",
+                                  "batchMatches",
+                                  "actions"
                                 ]
                               },
-                              {
-                                "$comment": "Selector mode: exactly one kind key.",
-                                "oneOf": [
-                                  {
-                                    "required": [
-                                      "comment"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "codeBlock"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "link"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "image"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "strong"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "emphasis"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "text"
-                                    ]
-                                  },
-                                  {
-                                    "required": [
-                                      "element"
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
+                              "oneOf": [
+                                {
+                                  "required": [
+                                    "comment"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "codeBlock"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "link"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "image"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "strong"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "emphasis"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "text"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "element"
+                                  ]
+                                }
+                              ]
+                            }
                           }
                         }
                       }
                     },
                     {
                       "title": "File type (executable)",
-                      "$comment": "Executable mode: Convert executable inputs directly into tests. additionalProperties is false so this branch can't silently absorb malformed custom file types.",
+                      "$comment": "Executable mode: Convert executable inputs directly into tests. Like every release before selector mode, this branch accepts any object with extensions, so configs that validated before keep validating. File types that use a selector feature (inlineStatements.in, a selector kind key, or captures) are excluded and must satisfy the strict custom branch.",
                       "type": "object",
                       "required": [
                         "extensions"
                       ],
-                      "additionalProperties": false,
+                      "not": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "inlineStatements"
+                            ],
+                            "properties": {
+                              "inlineStatements": {
+                                "required": [
+                                  "in"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "required": [
+                              "markup"
+                            ],
+                            "properties": {
+                              "markup": {
+                                "contains": {
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "comment"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "codeBlock"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "link"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "image"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "strong"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "emphasis"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "text"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "element"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "captures"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
                       "properties": {
                         "name": {
                           "description": "Name of the file type.",
@@ -264845,7 +265157,7 @@
             },
             "markupDefinition": {
               "title": "Markup definition",
-              "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. A definition must have `regex` or exactly one selector kind. additionalProperties is false so property typos (e.g. `captuers`) fail loudly instead of being silently ignored.",
+              "$comment": "Two modes sharing one property table (so the heavyweight `actions` step schema is embedded exactly once after dereferencing): regex mode matches raw file text with regular expressions; selector mode matches structurally parsed semantic nodes via exactly one kind key (comment, codeBlock, link, image, strong, emphasis, text, element), mirroring the action-as-key pattern of the step schema. Definitions without a selector key validate exactly as they did before selector mode existed (no required keys, unknown keys allowed), so existing configs keep validating. A definition that uses a selector key (a kind or `captures`) is validated strictly: exactly one kind, no `regex`, and no unknown keys, so typos such as `captuers` fail loudly.",
               "examples": [
                 {
                   "name": "runCode",
@@ -264875,7 +265187,6 @@
                 }
               ],
               "type": "object",
-              "additionalProperties": false,
               "properties": {
                 "name": {
                   "description": "Name of the markup definition",
@@ -323641,59 +323952,116 @@
                   ]
                 }
               },
-              "oneOf": [
-                {
-                  "$comment": "Regex mode. oneOf (not anyOf) makes the modes mutually exclusive: a definition carrying both regex and a selector kind would have undefined runtime semantics, so it fails validation.",
-                  "required": [
-                    "regex"
+              "if": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "captures"
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "$comment": "Selector mode: exactly one kind key and only selector-mode properties.",
+                "propertyNames": {
+                  "enum": [
+                    "name",
+                    "comment",
+                    "codeBlock",
+                    "link",
+                    "image",
+                    "strong",
+                    "emphasis",
+                    "text",
+                    "element",
+                    "captures",
+                    "batchMatches",
+                    "actions"
                   ]
                 },
-                {
-                  "$comment": "Selector mode: exactly one kind key.",
-                  "oneOf": [
-                    {
-                      "required": [
-                        "comment"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "codeBlock"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "link"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "image"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "strong"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "emphasis"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "text"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "element"
-                      ]
-                    }
-                  ]
-                }
-              ]
+                "oneOf": [
+                  {
+                    "required": [
+                      "comment"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codeBlock"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "link"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "image"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "strong"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "emphasis"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "element"
+                    ]
+                  }
+                ]
+              }
             },
             "markupActions": {
               "description": "Actions to perform when the markup type is detected.",

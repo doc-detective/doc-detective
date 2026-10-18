@@ -129,15 +129,15 @@ describe("detect: html backend", function () {
   });
 });
 
-describe("html built-in fileType", function () {
-  it("uses comment containers and broadened extensions", function () {
-    expect(defaultFileTypes.html.inlineStatements.in).to.deep.equal(["comment"]);
-    expect(defaultFileTypes.html.extensions).to.deep.equal([
-      "html",
-      "htm",
-      "xhtml",
-    ]);
-  });
+describe("html statement containers (opt-in)", function () {
+  // The comment container: an opt-in structural equivalent of the legacy
+  // <!-- --> regexes (the built-in keeps the regexes).
+  const containers = {
+    name: "html",
+    extensions: ["html", "htm"],
+    inlineStatements: { in: ["comment"] },
+    markup: [],
+  };
 
   it("detects inline statements end-to-end, matching the legacy regex engine", async function () {
     const content = [
@@ -154,7 +154,7 @@ describe("html built-in fileType", function () {
     const current = await detectTests({
       content,
       filePath: "doc.html",
-      fileType: defaultFileTypes.html,
+      fileType: containers,
     });
     // Legacy regex html fileType (pre-migration) for parity comparison.
     const legacy = await detectTests({

@@ -81,113 +81,6 @@ export type StatementContainer =
        */
       value?: string;
     });
-export type MarkupDefinition = (
-  | {
-      [k: string]: unknown;
-    }
-  | (
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-    )
-) & {
-  /**
-   * Name of the markup definition
-   */
-  name?: string;
-  /**
-   * Regular expressions to match the markup type.
-   */
-  regex?: string | [string, ...string[]];
-  comment?: ContentFilterSelector2;
-  /**
-   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
-   */
-  codeBlock?: string | CodeBlockSelector1;
-  link?: LinkSelector;
-  image?: ImageSelector;
-  strong?: StrongEmphasisSelector;
-  emphasis?: StrongEmphasisSelector1;
-  text?: ContentFilterSelector11;
-  /**
-   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
-   */
-  element?: string | ElementSelector;
-  /**
-   * Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.
-   *
-   * @minItems 1
-   */
-  captures?: [string, ...string[]];
-  /**
-   * If `true`, all matches are combined into a single string.
-   */
-  batchMatches?: boolean;
-  /**
-   * Actions to perform when the markup type is detected.
-   */
-  actions?:
-    | (
-        | "annotate"
-        | "checkLink"
-        | "click"
-        | "find"
-        | "goTo"
-        | "httpRequest"
-        | "loadCookie"
-        | "loadVariables"
-        | "record"
-        | "runCode"
-        | "runShell"
-        | "saveCookie"
-        | "screenshot"
-        | "stopRecord"
-        | "type"
-        | "wait"
-      )
-    | (
-        | (
-            | "annotate"
-            | "checkLink"
-            | "click"
-            | "find"
-            | "goTo"
-            | "httpRequest"
-            | "loadCookie"
-            | "loadVariables"
-            | "record"
-            | "runCode"
-            | "runShell"
-            | "saveCookie"
-            | "screenshot"
-            | "stopRecord"
-            | "type"
-            | "wait"
-          )
-        | Step
-      )[];
-};
 /**
  * Regular expression matched against the sibling text immediately before the node, for verb-context patterns (e.g. "Click **X**").
  */
@@ -7499,6 +7392,84 @@ export interface ElementSelectorChained {
  */
 export interface AttributeMatchers3 {
   [k: string]: true | string;
+}
+export interface MarkupDefinition {
+  /**
+   * Name of the markup definition
+   */
+  name?: string;
+  /**
+   * Regular expressions to match the markup type.
+   */
+  regex?: string | [string, ...string[]];
+  comment?: ContentFilterSelector2;
+  /**
+   * Match fenced/source code blocks. A string is shorthand for `{ "language": "<value>" }`.
+   */
+  codeBlock?: string | CodeBlockSelector1;
+  link?: LinkSelector;
+  image?: ImageSelector;
+  strong?: StrongEmphasisSelector;
+  emphasis?: StrongEmphasisSelector1;
+  text?: ContentFilterSelector11;
+  /**
+   * Match a named element (HTML/XML tag or MDX JSX component). A string is shorthand for `{ "tag": "<value>" }`.
+   */
+  element?: string | ElementSelector;
+  /**
+   * Selector mode only. Node field paths mapped in order to $1..$n for action substitution. Supported paths per kind: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` (decimal group index), and `then.<field>`. If omitted, the kind's documented default capture order applies.
+   *
+   * @minItems 1
+   */
+  captures?: [string, ...string[]];
+  /**
+   * If `true`, all matches are combined into a single string.
+   */
+  batchMatches?: boolean;
+  /**
+   * Actions to perform when the markup type is detected.
+   */
+  actions?:
+    | (
+        | "annotate"
+        | "checkLink"
+        | "click"
+        | "find"
+        | "goTo"
+        | "httpRequest"
+        | "loadCookie"
+        | "loadVariables"
+        | "record"
+        | "runCode"
+        | "runShell"
+        | "saveCookie"
+        | "screenshot"
+        | "stopRecord"
+        | "type"
+        | "wait"
+      )
+    | (
+        | (
+            | "annotate"
+            | "checkLink"
+            | "click"
+            | "find"
+            | "goTo"
+            | "httpRequest"
+            | "loadCookie"
+            | "loadVariables"
+            | "record"
+            | "runCode"
+            | "runShell"
+            | "saveCookie"
+            | "screenshot"
+            | "stopRecord"
+            | "type"
+            | "wait"
+          )
+        | Step
+      )[];
+  [k: string]: unknown;
 }
 /**
  * Match comment nodes (non-rendered author notes).
@@ -16417,6 +16388,7 @@ export interface FileTypeExecutable {
    * `runShell` step to perform for this file type. Use $1 as a placeholder for the file path.
    */
   runShell?: RunShell2;
+  [k: string]: unknown;
 }
 export interface RunShellCommandDetailed1 {
   /**

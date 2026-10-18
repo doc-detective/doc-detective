@@ -586,6 +586,26 @@ describe("config.ts — setConfig", function () {
     assert.equal(config.fileTypes[0].name, "markdown");
   });
 
+  it("keeps the runner's lowercase-only markdown typeText rule", async function () {
+    // The runner has always matched `press|enter|type` in lowercase only,
+    // while doc-detective-common's table is case-tolerant. Single-sourcing
+    // the tables must not start detecting `Type "x"` at sentence starts.
+    const legacyTypeText = ['\\b(?:press|enter|type)\\b\\s+"([^"]+)"'];
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: ["markdown", { extends: "markdown", extensions: ["mdtype"] }],
+      },
+    });
+    for (const ft of config.fileTypes) {
+      const typeText = ft.markup.filter((m) => m.name === "typeText");
+      assert.equal(typeText.length, 1);
+      assert.deepEqual(typeText[0].regex, legacyTypeText);
+    }
+  });
+
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
     // AJV's config_v3 enum guard fires before setConfig's own
     // defaultFileTypes[fileType] undefined check, so an unknown fileType
@@ -707,10 +727,10 @@ describe("config.ts — setConfig", function () {
     });
     const ft = config.fileTypes[0];
     assert.equal(ft.name, "markdown");
-    // inlineStatements were initialized and populated from the parent —
-    // the migrated markdown built-in carries selector containers, not
-    // statement regexes.
-    assert.deepEqual(ft.inlineStatements.in, ["comment"]);
+    // inlineStatements were initialized and populated from the parent's
+    // legacy statement regexes.
+    assert.ok(ft.inlineStatements.step.includes("<!--\\s*step\\s*([\\s\\S]*?)\\s*-->"));
+    assert.equal(ft.inlineStatements.in, undefined);
     // markup array initialized and populated from the parent.
     assert.ok(Array.isArray(ft.markup));
     assert.ok(ft.markup.some((m) => m.name === "findOnscreenText"));
@@ -774,9 +794,10 @@ describe("config.ts — setConfig", function () {
     assert.equal(dataContainers.length, 1, "key-order variants must dedupe");
   });
 
-  it("rejects a fileType that extends an unknown definition at validation", async function () {
-    // Schema validation rejects unknown `extends` values before the runtime
-    // extends-merge guard can fire (the enum only lists known definitions).
+  it("rejects a fileType that extends an unknown definition", async function () {
+    // With `extensions`, the lenient executable schema branch accepts the
+    // object (as every release has), so the runtime extends-merge guard is
+    // what stops it.
     await assert.rejects(
       () =>
         setConfig({
@@ -787,7 +808,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /Invalid config object/
+      /references unknown fileType definition: "nope-nope"/
     );
   });
 

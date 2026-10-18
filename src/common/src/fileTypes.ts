@@ -47,16 +47,11 @@ const defaultFileTypesBase: Record<string, FileType> = {
         name: "asciidoc",
         extensions: ["adoc", "asciidoc", "asc"],
         inlineStatements: {
-            // Structure-aware: // and //// comments are scanner comment
-            // nodes; the container filter keeps the `// (test …)` paren
-            // grammar (plain comments never match) and comment-looking
-            // lines inside listings can't false-positive.
-            in: [
-                {
-                    comment: { matches: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" },
-                    value: "match.1",
-                },
-            ],
+            testStart: ["\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"],
+            testEnd: ["\\/\\/\\s+\\(\\s*test end\\s*\\)"],
+            ignoreStart: ["\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"],
+            ignoreEnd: ["\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"],
+            step: ["\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"],
         },
         markup: [],
     },
@@ -64,55 +59,51 @@ const defaultFileTypesBase: Record<string, FileType> = {
         name: "dita",
         extensions: ["dita", "ditamap", "xml"],
         inlineStatements: {
-            // Structure-aware: XML comments and <data name="doc-detective">
-            // elements are statement containers; the parser handles quote
-            // variants, attribute order, and entity decoding. The
-            // <?doc-detective …?> processing-instruction channel stays
-            // regex-only (rarely used; slated for deprecation).
-            in: [
-                "comment",
-                {
-                    element: {
-                        tag: "data",
-                        attributes: { name: "doc-detective" },
-                    },
-                    value: "attributes.value",
-                },
+            testStart: [
+                "<\\?doc-detective\\s+test([\\s\\S]*?)\\?>",
+                "<!--\\s*test([\\s\\S]+?)-->",
+                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='test\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+                '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="test\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
+                "<data\\s+[^>]*?value='test\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+                '<data\\s+[^>]*?value="test\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
             ],
-            testStart: ["<\\?doc-detective\\s+test([\\s\\S]*?)\\?>"],
-            testEnd: ["<\\?doc-detective\\s+test\\s+end\\s*\\?>"],
-            ignoreStart: ["<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>"],
-            ignoreEnd: ["<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>"],
+            testEnd: [
+                "<\\?doc-detective\\s+test\\s+end\\s*\\?>",
+                "<!--\\s*test end([\\s\\S]+?)-->",
+                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value=[\"']test end[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+                "<data\\s+[^>]*?value=[\"']test end[\"'][^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+            ],
+            ignoreStart: [
+                "<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>",
+                "<!--\\s*test ignore\\s+start\\s*-->",
+            ],
+            ignoreEnd: [
+                "<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>",
+                "<!--\\s*test ignore\\s+end\\s*-->",
+            ],
             step: [
                 "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
-                // Legacy <data name="step">{…}</data> form: the payload is
-                // the element body with no keyword, which the container
-                // grammar can't express.
+                "<!--\\s*step([\\s\\S]+?)-->",
                 '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
+                "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='step\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+                '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="step\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
+                "<data\\s+[^>]*?value='step\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
+                '<data\\s+[^>]*?value="step\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
             ],
         },
         markup: [
             {
                 name: "clickUiControl",
-                element: {
-                    tag: "uicontrol",
-                    precededBy:
-                        "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?$",
-                },
-                captures: ["content"],
+                regex: [
+                    "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?<uicontrol>([^<]+)<\\/uicontrol>",
+                ],
                 actions: ["click"],
             },
             {
                 name: "typeIntoUiControl",
-                element: {
-                    tag: "userinput",
-                    precededBy: "\\b(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+$",
-                    followedBy: {
-                        text: "^\\s+(?:in|into)(?:\\s+the)?\\s+$",
-                        then: { element: { tag: "uicontrol" } },
-                    },
-                },
-                captures: ["content", "then.content"],
+                regex: [
+                    "(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+<userinput>([^<]+)<\\/userinput>\\s+(?:in|into)(?:\\s+the)?\\s+<uicontrol>([^<]+)<\\/uicontrol>",
+                ],
                 actions: [
                     {
                         type: {
@@ -124,165 +115,164 @@ const defaultFileTypesBase: Record<string, FileType> = {
             },
             {
                 name: "navigateToXref",
-                element: {
-                    tag: "xref",
-                    attributes: { href: "^https?:\\/\\/" },
-                    precededBy:
-                        "(?:[Nn]avigate\\s+to|[Oo]pen|[Gg]o\\s+to|[Vv]isit|[Bb]rowse\\s+to)\\s+$",
-                },
-                captures: ["attributes.href"],
+                regex: [
+                    '(?:[Nn]avigate\\s+to|[Oo]pen|[Gg]o\\s+to|[Vv]isit|[Bb]rowse\\s+to)\\s+<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
+                ],
                 actions: ["goTo"],
             },
             {
                 name: "findUiControl",
-                element: "uicontrol",
-                captures: ["content"],
+                regex: ["<uicontrol>([^<]+)<\\/uicontrol>"],
                 actions: ["find"],
             },
             {
                 name: "verifyWindowTitle",
-                element: "wintitle",
-                captures: ["content"],
+                regex: ["<wintitle>([^<]+)<\\/wintitle>"],
                 actions: ["find"],
             },
             {
                 name: "checkExternalXref",
-                element: {
-                    tag: "xref",
-                    attributes: { scope: "external", href: "^https?:\\/\\/" },
-                },
-                captures: ["attributes.href"],
+                regex: [
+                    '<xref\\s+[^>]*scope="external"[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
+                    '<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*scope="external"[^>]*>',
+                ],
                 actions: ["checkLink"],
             },
             {
                 name: "checkHyperlink",
-                element: {
-                    tag: "xref",
-                    attributes: { href: "^https?:\\/\\/" },
-                },
-                captures: ["attributes.href"],
+                regex: ['<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
                 actions: ["checkLink"],
             },
             {
                 name: "checkLinkElement",
-                element: {
-                    tag: "link",
-                    attributes: { href: "^https?:\\/\\/" },
-                },
-                captures: ["attributes.href"],
+                regex: ['<link\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
                 actions: ["checkLink"],
             },
             {
                 name: "clickOnscreenText",
-                strong: {
-                    precededBy:
-                        "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+$",
-                },
-                captures: ["text"],
+                regex: [
+                    "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+<b>((?:(?!<\\/b>).)+)<\\/b>",
+                ],
                 actions: ["click"],
             },
             {
                 name: "findOnscreenText",
-                strong: {},
-                captures: ["text"],
+                regex: ["<b>((?:(?!<\\/b>).)+)<\\/b>"],
                 actions: ["find"],
             },
             {
                 name: "goToUrl",
-                element: {
-                    tag: "xref",
-                    attributes: { href: "^https?:\\/\\/" },
-                    precededBy:
-                        "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+$",
-                },
-                captures: ["attributes.href"],
+                regex: [
+                    '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>',
+                ],
                 actions: ["goTo"],
             },
             {
                 name: "typeText",
-                text: {
-                    matches: '\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"',
-                },
-                captures: ["match.1"],
+                regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'],
                 actions: ["type"],
             },
         ],
     },
     html_1_0: {
         name: "html",
-        extensions: ["html", "htm", "xhtml"],
+        extensions: ["html", "htm"],
         inlineStatements: {
-            // Structure-aware: parse5 comment nodes feed the shared
-            // statement grammar; comments inside <pre>/script/style can't
-            // false-positive.
-            in: ["comment"],
+            testStart: ["<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"],
+            testEnd: ["<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"],
+            ignoreStart: ["<!--\\s*test ignore start\\s*-->"],
+            ignoreEnd: ["<!--\\s*test ignore end\\s*-->"],
+            step: ["<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"],
         },
         markup: [],
     },
     markdown_1_0: {
         name: "markdown",
-        extensions: ["md", "markdown", "mdown", "mkd", "mkdn"],
+        extensions: ["md", "markdown", "mdx"],
         inlineStatements: {
-            // Structure-aware: HTML comments and every [comment]: # quote
-            // variant normalize to comment nodes, parsed by one statement
-            // grammar. MDX expression comments ({/* … */}) belong to the
-            // dedicated mdx fileType below.
-            in: ["comment"],
+            testStart: [
+                "{\\/\\*\\s*test\\s+?([\\s\\S]*?)\\s*\\*\\/}",
+                "<!--\\s*test\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test\\s*(.*?)\\s*\\)",
+                "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)",
+                "\\[comment\\]:\\s+#\\s+'test\\s*(.*?)\\s*'",
+                "\\[comment\\]:\\s+#\\s+'test start\\s*(.*?)\\s*'",
+                '\\[comment\\]:\\s+#\\s+"test\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
+                '\\[comment\\]:\\s+#\\s+"test start\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
+            ],
+            testEnd: [
+                "{\\/\\*\\s*test end\\s*\\*\\/}",
+                "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test end\\)",
+                "\\[comment\\]:\\s+#\\s+'test end'",
+                '\\[comment\\]:\\s+#\\s+"test end"',
+            ],
+            ignoreStart: [
+                "{\\/\\*\\s*test ignore start\\s*\\*\\/}",
+                "<!--\\s*test ignore start\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test ignore start\\)",
+                "\\[comment\\]:\\s+#\\s+'test ignore start'",
+                '\\[comment\\]:\\s+#\\s+"test ignore start"',
+            ],
+            ignoreEnd: [
+                "{\\/\\*\\s*test ignore end\\s*\\*\\/}",
+                "<!--\\s*test ignore end\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(test ignore end\\)",
+                "\\[comment\\]:\\s+#\\s+'test ignore end'",
+                '\\[comment\\]:\\s+#\\s+"test ignore end"',
+            ],
+            step: [
+                "{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}",
+                "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
+                "\\[comment\\]:\\s+#\\s+\\(step\\s*(.*?)\\s*\\)",
+                "\\[comment\\]:\\s+#\\s+'step\\s*(.*?)\\s*'",
+                '\\[comment\\]:\\s+#\\s+"step\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
+            ],
         },
         markup: [
             {
                 name: "checkHyperlink",
-                link: { url: "^https?:\\/\\/" },
-                captures: ["url"],
+                regex: [
+                    '(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
+                ],
                 actions: ["checkLink"],
             },
             {
                 name: "clickOnscreenText",
-                strong: {
-                    precededBy:
-                        "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+$",
-                },
-                captures: ["text"],
+                regex: [
+                    "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*",
+                ],
                 actions: ["click"],
             },
             {
                 name: "findOnscreenText",
-                strong: {},
-                captures: ["text"],
+                regex: ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
                 actions: ["find"],
             },
             {
                 name: "goToUrl",
-                link: {
-                    url: "^https?:\\/\\/",
-                    precededBy:
-                        "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+$",
-                },
-                captures: ["url"],
+                regex: [
+                    '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
+                ],
                 actions: ["goTo"],
             },
             {
                 name: "screenshotImage",
-                image: { attributes: { class: "screenshot" } },
-                captures: ["src"],
+                regex: [
+                    '!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}',
+                ],
                 actions: ["screenshot"],
             },
             {
                 name: "typeText",
-                text: {
-                    matches: '\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"',
-                },
-                captures: ["match.1"],
+                regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'],
                 actions: ["type"],
             },
             {
                 name: "httpRequestFormat",
-                codeBlock: {
-                    language: ["http", ""],
-                    contentMatches:
-                        "^([A-Z]+)[ \\t]+(\\S+)(?:[ \\t]+HTTP\\/[\\d.]+)?[ \\t]*\\r?\\n?((?:\\S+:[ \\t]+\\S+(?:\\r?\\n|$))*)(?:\\s+([\\s\\S]+?))?\\s*$",
-                },
-                captures: ["match.1", "match.2", "match.3", "match.4"],
+                regex: [
+                    "```(?:http)?\\r?\\n([A-Z]+)\\s+([^\\s]+)(?:\\s+HTTP\\/[\\d.]+)?\\r?\\n((?:[^\\s]+:\\s+[^\\s]+\\r?\\n)*)?(?:\\s+([\\s\\S]*?)\\r?\\n+)?```",
+                ],
                 actions: [
                     {
                         httpRequest: {
@@ -298,11 +288,9 @@ const defaultFileTypesBase: Record<string, FileType> = {
             },
             {
                 name: "runCode",
-                codeBlock: {
-                    language: ["bash", "python", "py", "javascript", "js"],
-                    metaExcludes: "testIgnore",
-                },
-                captures: ["language", "content"],
+                regex: [
+                    "```(bash|python|py|javascript|js)(?![^\\r\\n]*testIgnore)[^\\r\\n]*\\r?\\n([\\s\\S]*?)\\r?\\n```",
+                ],
                 actions: [
                     {
                         unsafe: true,
@@ -317,17 +305,105 @@ const defaultFileTypesBase: Record<string, FileType> = {
     },
 };
 
-// MDX splits from markdown: the mdx backend parses {/* … */} expression
-// comments as comment nodes and exposes JSX components as element nodes,
-// while `<!-- -->` is a syntax error in MDX. The selector markup is shared
-// with markdown (read-only; consumers deep-copy before mutating).
+// Opt-in, structure-aware MDX (ADR 01139). The built-in markdown definition
+// above still claims .mdx files with its legacy regexes, so existing configs
+// detect exactly what they always did; list "mdx" ahead of "markdown" to have
+// this definition handle .mdx files instead. The mdx backend surfaces
+// {/* … */} expression comments, HTML comments, and [comment]: # definitions
+// as comment nodes and JSX components as element nodes.
 defaultFileTypesBase.mdx_1_0 = {
     name: "mdx",
     extensions: ["mdx"],
     inlineStatements: {
         in: ["comment"],
     },
-    markup: defaultFileTypesBase.markdown_1_0.markup,
+    markup: [
+        {
+            name: "checkHyperlink",
+            link: { url: "^https?:\\/\\/" },
+            captures: ["url"],
+            actions: ["checkLink"],
+        },
+        {
+            name: "clickOnscreenText",
+            strong: {
+                precededBy:
+                    "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+$",
+            },
+            captures: ["text"],
+            actions: ["click"],
+        },
+        {
+            name: "findOnscreenText",
+            strong: {},
+            captures: ["text"],
+            actions: ["find"],
+        },
+        {
+            name: "goToUrl",
+            link: {
+                url: "^https?:\\/\\/",
+                precededBy:
+                    "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+$",
+            },
+            captures: ["url"],
+            actions: ["goTo"],
+        },
+        {
+            name: "screenshotImage",
+            // Like the markdown regex's `.screenshot` lookahead: a class
+            // that starts with "screenshot" (not `.no-screenshot`).
+            image: { attributes: { class: "(?:^|\\s)screenshot" } },
+            captures: ["src"],
+            actions: ["screenshot"],
+        },
+        {
+            name: "typeText",
+            text: {
+                matches: '\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"',
+            },
+            captures: ["match.1"],
+            actions: ["type"],
+        },
+        {
+            name: "httpRequestFormat",
+            codeBlock: {
+                language: ["http", ""],
+                contentMatches:
+                    "^([A-Z]+)[ \\t]+(\\S+)(?:[ \\t]+HTTP\\/[\\d.]+)?[ \\t]*\\r?\\n?((?:\\S+:[ \\t]+\\S+(?:\\r?\\n|$))*)(?:\\s+([\\s\\S]+?))?\\s*$",
+            },
+            captures: ["match.1", "match.2", "match.3", "match.4"],
+            actions: [
+                {
+                    httpRequest: {
+                        method: "$1",
+                        url: "$2",
+                        request: {
+                            headers: "$3",
+                            body: "$4",
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            name: "runCode",
+            codeBlock: {
+                language: ["bash", "python", "py", "javascript", "js"],
+                metaExcludes: "testIgnore",
+            },
+            captures: ["language", "content"],
+            actions: [
+                {
+                    unsafe: true,
+                    runCode: {
+                        language: "$1",
+                        code: "$2",
+                    },
+                },
+            ],
+        },
+    ],
 };
 
 /**

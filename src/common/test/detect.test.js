@@ -295,10 +295,16 @@ describe("detect: statement grammar", function () {
     });
   });
 
-  it("keeps the steps after a prose comment that starts with 'testing'", async function () {
+  it("keeps the steps after a prose comment that starts with 'testing' (comment containers)", async function () {
+    // Container fileTypes only; the legacy markdown regexes keep their
+    // historical behavior (see compat.test.js, md-testing-prose).
     const content =
       '<!-- testing notes: verify on staging -->\n\n<!-- step {"goTo": "https://example.com"} -->\n';
-    const tests = await detectTests({ content, filePath: "doc.md" });
+    const tests = await detectTests({
+      content,
+      filePath: "doc.md",
+      fileType: { name: "markdown", extensions: ["md"], inlineStatements: { in: ["comment"] }, markup: [] },
+    });
     expect(tests).to.have.length(1);
     expect(tests[0].steps.map((s) => s.goTo)).to.deep.equal([
       "https://example.com",

@@ -7161,7 +7161,6 @@
         "fileTypes": {
           "default": [
             "markdown",
-            "mdx",
             "asciidoc",
             "html",
             "dita"
@@ -7233,7 +7232,80 @@
                     "required": [
                       "extensions"
                     ],
-                    "additionalProperties": false,
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "inlineStatements"
+                          ],
+                          "properties": {
+                            "inlineStatements": {
+                              "required": [
+                                "in"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "required": [
+                            "markup"
+                          ],
+                          "properties": {
+                            "markup": {
+                              "contains": {
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "comment"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "codeBlock"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "link"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "image"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "strong"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "emphasis"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "text"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "element"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "captures"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "properties": {
                       "name": {
                         "type": "string"
@@ -7504,7 +7576,6 @@
           },
           "markupDefinition": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
@@ -7572,57 +7643,115 @@
                 "$ref": "#/components/schemas/markupActions"
               }
             },
-            "oneOf": [
-              {
-                "required": [
-                  "regex"
+            "if": {
+              "anyOf": [
+                {
+                  "required": [
+                    "comment"
+                  ]
+                },
+                {
+                  "required": [
+                    "codeBlock"
+                  ]
+                },
+                {
+                  "required": [
+                    "link"
+                  ]
+                },
+                {
+                  "required": [
+                    "image"
+                  ]
+                },
+                {
+                  "required": [
+                    "strong"
+                  ]
+                },
+                {
+                  "required": [
+                    "emphasis"
+                  ]
+                },
+                {
+                  "required": [
+                    "text"
+                  ]
+                },
+                {
+                  "required": [
+                    "element"
+                  ]
+                },
+                {
+                  "required": [
+                    "captures"
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "propertyNames": {
+                "enum": [
+                  "name",
+                  "comment",
+                  "codeBlock",
+                  "link",
+                  "image",
+                  "strong",
+                  "emphasis",
+                  "text",
+                  "element",
+                  "captures",
+                  "batchMatches",
+                  "actions"
                 ]
               },
-              {
-                "oneOf": [
-                  {
-                    "required": [
-                      "comment"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "codeBlock"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "link"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "image"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "strong"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "emphasis"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "text"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "element"
-                    ]
-                  }
-                ]
-              }
-            ]
+              "oneOf": [
+                {
+                  "required": [
+                    "comment"
+                  ]
+                },
+                {
+                  "required": [
+                    "codeBlock"
+                  ]
+                },
+                {
+                  "required": [
+                    "link"
+                  ]
+                },
+                {
+                  "required": [
+                    "image"
+                  ]
+                },
+                {
+                  "required": [
+                    "strong"
+                  ]
+                },
+                {
+                  "required": [
+                    "emphasis"
+                  ]
+                },
+                {
+                  "required": [
+                    "text"
+                  ]
+                },
+                {
+                  "required": [
+                    "element"
+                  ]
+                }
+              ]
+            }
           },
           "markupActions": {
             "anyOf": [
@@ -14965,7 +15094,80 @@
                     "required": [
                       "extensions"
                     ],
-                    "additionalProperties": false,
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "inlineStatements"
+                          ],
+                          "properties": {
+                            "inlineStatements": {
+                              "required": [
+                                "in"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "required": [
+                            "markup"
+                          ],
+                          "properties": {
+                            "markup": {
+                              "contains": {
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "comment"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "codeBlock"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "link"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "image"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "strong"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "emphasis"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "text"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "element"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "captures"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "properties": {
                       "name": {
                         "type": "string"
@@ -15217,7 +15419,6 @@
           },
           "markupDefinition": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string"
@@ -15284,57 +15485,115 @@
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupActions"
               }
             },
-            "oneOf": [
-              {
-                "required": [
-                  "regex"
+            "if": {
+              "anyOf": [
+                {
+                  "required": [
+                    "comment"
+                  ]
+                },
+                {
+                  "required": [
+                    "codeBlock"
+                  ]
+                },
+                {
+                  "required": [
+                    "link"
+                  ]
+                },
+                {
+                  "required": [
+                    "image"
+                  ]
+                },
+                {
+                  "required": [
+                    "strong"
+                  ]
+                },
+                {
+                  "required": [
+                    "emphasis"
+                  ]
+                },
+                {
+                  "required": [
+                    "text"
+                  ]
+                },
+                {
+                  "required": [
+                    "element"
+                  ]
+                },
+                {
+                  "required": [
+                    "captures"
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "propertyNames": {
+                "enum": [
+                  "name",
+                  "comment",
+                  "codeBlock",
+                  "link",
+                  "image",
+                  "strong",
+                  "emphasis",
+                  "text",
+                  "element",
+                  "captures",
+                  "batchMatches",
+                  "actions"
                 ]
               },
-              {
-                "oneOf": [
-                  {
-                    "required": [
-                      "comment"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "codeBlock"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "link"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "image"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "strong"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "emphasis"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "text"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "element"
-                    ]
-                  }
-                ]
-              }
-            ]
+              "oneOf": [
+                {
+                  "required": [
+                    "comment"
+                  ]
+                },
+                {
+                  "required": [
+                    "codeBlock"
+                  ]
+                },
+                {
+                  "required": [
+                    "link"
+                  ]
+                },
+                {
+                  "required": [
+                    "image"
+                  ]
+                },
+                {
+                  "required": [
+                    "strong"
+                  ]
+                },
+                {
+                  "required": [
+                    "emphasis"
+                  ]
+                },
+                {
+                  "required": [
+                    "text"
+                  ]
+                },
+                {
+                  "required": [
+                    "element"
+                  ]
+                }
+              ]
+            }
           },
           "markupActions": {
             "anyOf": [

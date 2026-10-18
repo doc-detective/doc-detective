@@ -28,7 +28,6 @@ import {
  */
 const MARKUP_FILE_TYPES: FileType[] = [
   defaultFileTypes.markdown,
-  defaultFileTypes.mdx,
   defaultFileTypes.asciidoc,
   defaultFileTypes.html,
   defaultFileTypes.dita,

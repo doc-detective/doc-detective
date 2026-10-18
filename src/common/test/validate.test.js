@@ -1897,18 +1897,30 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           expect(result.valid).to.be.false;
         });
 
-        it("should reject a misspelled selector kind", function () {
-          // A typo'd kind key (wrong casing) is just an unknown property, so
-          // the definition has neither `regex` nor a valid selector kind.
-          const result = validate({
-            schemaKey: "config_v3",
-            object: configWithMarkup({
-              name: "runCode",
-              codeblock: { language: "bash" },
-              actions: ["runCode"],
-            }),
-          });
-          expect(result.valid).to.be.false;
+        it("should keep accepting legacy-valid custom fileTypes that use no selector feature", function () {
+          // Before selector mode, any custom fileType with `extensions`
+          // validated (the executable branch absorbed it). Configs that
+          // validate today must keep validating after an upgrade.
+          const legacyValid = [
+            { name: "extraKey", regex: ["a"], actions: ["find"], description: "x" },
+            { name: "noRegex", actions: ["find"] },
+            { name: "typo", regx: ["a"], actions: ["find"] },
+            { name: "wrongCaseKind", codeblock: { language: "bash" }, actions: ["runCode"] },
+          ];
+          for (const definition of legacyValid) {
+            const result = validate({
+              schemaKey: "config_v3",
+              object: configWithMarkup(definition),
+            });
+            expect(result.valid, definition.name).to.be.true;
+            // Also through an `extends`-only fileType, which the executable
+            // branch (it requires `extensions`) can't absorb.
+            const viaExtends = validate({
+              schemaKey: "config_v3",
+              object: { fileTypes: [{ extends: "markdown", markup: [definition] }] },
+            });
+            expect(viaExtends.valid, `${definition.name} via extends`).to.be.true;
+          }
         });
 
         it("should reject a definition combining regex and a selector kind", function () {
@@ -1934,17 +1946,6 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
               codeBlock: { language: "bash" },
               link: { url: "^https?://" },
               actions: ["runCode"],
-            }),
-          });
-          expect(result.valid).to.be.false;
-        });
-
-        it("should reject a markup definition with neither regex nor a selector kind", function () {
-          const result = validate({
-            schemaKey: "config_v3",
-            object: configWithMarkup({
-              name: "empty",
-              actions: ["find"],
             }),
           });
           expect(result.valid).to.be.false;
@@ -2049,10 +2050,12 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           }
         });
 
-        it("includes mdx in the fileTypes default", function () {
+        it("keeps the legacy fileTypes default; mdx is opt-in", function () {
           const result = validate({ schemaKey: "config_v3", object: {} });
           expect(result.valid, result.errors).to.be.true;
-          expect(result.object.fileTypes).to.include("mdx");
+          expect(result.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita"]);
+          const optIn = validate({ schemaKey: "config_v3", object: { fileTypes: ["mdx", "markdown"] } });
+          expect(optIn.valid, optIn.errors).to.be.true;
         });
       });
 

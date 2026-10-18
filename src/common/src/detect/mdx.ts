@@ -3,9 +3,10 @@
  * nodes using the shared mdast walker.
  *
  * MDX differences from markdown that matter for detection:
- * - `{/* … *​/}` expression comments surface as `comment` nodes; HTML
- *   comments (`<!-- -->`) are a syntax error in MDX, so parsing throws and
- *   detection degrades to regex-only for that file.
+ * - `{/* … *​/}` expression comments surface as `comment` nodes. HTML
+ *   comments (`<!-- -->`) are a syntax error in MDX; they're lifted out
+ *   before the parse and surface as `comment` nodes too. Any other syntax
+ *   error still throws, and detection degrades to regex-only for that file.
  * - JSX components (flow and inline) surface as `element` nodes with their
  *   static attributes; markdown content nested inside them still surfaces.
  * - `import`/`export` (ESM) statements are ignored.
@@ -50,19 +51,46 @@ function codeSpans(content: string): Array<[number, number]> {
   return spans;
 }
 
+/**
+ * HTML comments are a syntax error in MDX, but MDX 1 accepted them and docs
+ * migrated from markdown carry them; failing the whole file over one would
+ * drop every statement in it.
+ */
+const HTML_COMMENT_RE = /<!--([\s\S]*?)-->/g;
+
 export function parseMdx(content: string): SemanticNode[] {
   let spans: Array<[number, number]> | undefined;
-  const sanitized = content.replace(IAL_SPAN_RE, (m, offset: number) => {
+  const inCode = (offset: number) => {
     spans ??= codeSpans(content);
-    return spans.some(([start, end]) => offset >= start && offset < end)
-      ? m
-      : " ".repeat(m.length);
-  });
+    return spans.some(([start, end]) => offset >= start && offset < end);
+  };
+  const htmlComments: SemanticNode[] = [];
+  // Blank IAL spans and HTML comments outside code (length-preserving, so
+  // every offset survives), then parse what's left as MDX.
+  const sanitized = content
+    .replace(IAL_SPAN_RE, (m, offset: number) =>
+      inCode(offset) ? m : " ".repeat(m.length)
+    )
+    .replace(HTML_COMMENT_RE, (m, inner: string, offset: number) => {
+      if (inCode(offset)) return m;
+      htmlComments.push({
+        kind: "comment",
+        startIndex: offset,
+        endIndex: offset + m.length,
+        content: inner.trim(),
+        precedingText: "",
+        followingText: "",
+        blockId: -1 - htmlComments.length,
+      });
+      return m.replace(/[^\n]/g, " ");
+    });
   const tree = fromMarkdown(sanitized, {
     extensions: [gfm(), mdxjs()],
     mdastExtensions: [gfmFromMarkdown(), mdxFromMarkdown()],
   });
   // Walk with the ORIGINAL content: node offsets are identical, and the IAL
   // post-pass reads the raw source, so blanked attribute lists still attach.
-  return collectNodes(content, tree);
+  return [...collectNodes(content, tree), ...htmlComments].sort(
+    (a, b) => a.startIndex - b.startIndex
+  );
 }

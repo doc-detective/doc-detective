@@ -1,0 +1,922 @@
+{
+  "md-lazy-definition": [
+    {
+      "testId": "md-lazy-definition.md~36b1acc1",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo lazy"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 16,
+            "endIndex": 74
+          }
+        }
+      ],
+      "contentPath": "md-lazy-definition.md"
+    }
+  ],
+  "md-midline-definition": [
+    {
+      "testId": "md-midline-definition.md~53a28baf",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo mid"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 5,
+            "endIndex": 62
+          }
+        }
+      ],
+      "contentPath": "md-midline-definition.md"
+    }
+  ],
+  "md-definition-quotes": [
+    {
+      "testId": "md-definition-quotes.md~11073f97",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo single"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 60
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo double"
+          },
+          "location": {
+            "line": 3,
+            "startIndex": 62,
+            "endIndex": 128
+          }
+        }
+      ],
+      "contentPath": "md-definition-quotes.md"
+    }
+  ],
+  "md-test-start-definition": [
+    {
+      "testId": "ts",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo a"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 43,
+            "endIndex": 98
+          }
+        }
+      ],
+      "contentPath": "md-test-start-definition.md"
+    }
+  ],
+  "md-expression-inline": [
+    {
+      "testId": "md-expression-inline.md~0a34e37e",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo expr"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 7,
+            "endIndex": 58
+          }
+        }
+      ],
+      "contentPath": "md-expression-inline.md"
+    }
+  ],
+  "md-expression-flow": [
+    {
+      "testId": "md-expression-flow.md~a2f2ac6f",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo flow"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 51
+          }
+        }
+      ],
+      "contentPath": "md-expression-flow.md"
+    }
+  ],
+  "md-expression-tight": [
+    {
+      "testId": "md-expression-tight.md~28cf151d",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo tight"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 50
+          }
+        }
+      ],
+      "contentPath": "md-expression-tight.md"
+    }
+  ],
+  "md-fenced-code-comment": [
+    {
+      "testId": "md-fenced-code-comment.md~c67aebd2",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo fence"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 6,
+            "endIndex": 59
+          }
+        }
+      ],
+      "contentPath": "md-fenced-code-comment.md"
+    }
+  ],
+  "md-inline-code-comment": [
+    {
+      "testId": "md-inline-code-comment.md~60abdcf8",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo code"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 5,
+            "endIndex": 57
+          }
+        }
+      ],
+      "contentPath": "md-inline-code-comment.md"
+    }
+  ],
+  "md-indented-code-comment": [
+    {
+      "testId": "md-indented-code-comment.md~743295f9",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo indent"
+          },
+          "location": {
+            "line": 3,
+            "startIndex": 11,
+            "endIndex": 65
+          }
+        }
+      ],
+      "contentPath": "md-indented-code-comment.md"
+    }
+  ],
+  "md-testing-prose": [],
+  "md-test-no-space": [
+    {
+      "testId": "x",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo a"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 28,
+            "endIndex": 77
+          }
+        }
+      ],
+      "contentPath": "md-test-no-space.md"
+    }
+  ],
+  "md-ignore-block": [
+    {
+      "testId": "md-ignore-block.md~c0d88aac",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo 1"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 49
+          }
+        },
+        {
+          "runShell": {
+            "command": "echo 3"
+          },
+          "location": {
+            "line": 5,
+            "startIndex": 152,
+            "endIndex": 201
+          }
+        }
+      ],
+      "contentPath": "md-ignore-block.md"
+    }
+  ],
+  "md-screenshot": [
+    {
+      "testId": "md-screenshot.md~8df4d55a",
+      "steps": [
+        {
+          "screenshot": "a.png",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 26
+          }
+        }
+      ],
+      "contentPath": "md-screenshot.md"
+    }
+  ],
+  "md-no-screenshot": [],
+  "md-screenshot-prefix": [
+    {
+      "testId": "md-screenshot-prefix.md~8df4d55a",
+      "steps": [
+        {
+          "screenshot": "a.png",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 27
+          }
+        }
+      ],
+      "contentPath": "md-screenshot-prefix.md"
+    }
+  ],
+  "md-bold-in-fence": [
+    {
+      "testId": "md-bold-in-fence.md~db489c75",
+      "steps": [
+        {
+          "click": "Save",
+          "location": {
+            "line": 2,
+            "startIndex": 8,
+            "endIndex": 22
+          }
+        },
+        {
+          "find": "Save",
+          "location": {
+            "line": 2,
+            "startIndex": 14,
+            "endIndex": 22
+          }
+        }
+      ],
+      "contentPath": "md-bold-in-fence.md"
+    }
+  ],
+  "md-link-in-fence": [
+    {
+      "testId": "md-link-in-fence.md~02856c7b",
+      "steps": [
+        {
+          "goTo": "https://example.com",
+          "location": {
+            "line": 2,
+            "startIndex": 6,
+            "endIndex": 43
+          }
+        },
+        {
+          "checkLink": "https://example.com",
+          "location": {
+            "line": 2,
+            "startIndex": 12,
+            "endIndex": 43
+          }
+        }
+      ],
+      "contentPath": "md-link-in-fence.md"
+    }
+  ],
+  "md-type-quoted-email": [
+    {
+      "testId": "md-type-quoted-email.md~a8e9c3e6",
+      "steps": [
+        {
+          "type": "admin@example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 25
+          }
+        }
+      ],
+      "contentPath": "md-type-quoted-email.md"
+    }
+  ],
+  "md-type-capitalized": [
+    {
+      "testId": "md-type-capitalized.md~e8a418d4",
+      "steps": [
+        {
+          "type": "hello",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 12
+          }
+        }
+      ],
+      "contentPath": "md-type-capitalized.md"
+    }
+  ],
+  "md-click-and-find": [
+    {
+      "testId": "md-click-and-find.md~f636e70c",
+      "steps": [
+        {
+          "click": "Save",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 14
+          }
+        },
+        {
+          "find": "Save",
+          "location": {
+            "line": 1,
+            "startIndex": 6,
+            "endIndex": 14
+          }
+        },
+        {
+          "find": "Done",
+          "location": {
+            "line": 1,
+            "startIndex": 30,
+            "endIndex": 38
+          }
+        }
+      ],
+      "contentPath": "md-click-and-find.md"
+    }
+  ],
+  "md-go-to-link": [
+    {
+      "testId": "md-go-to-link.md~02856c7b",
+      "steps": [
+        {
+          "goTo": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 36
+          }
+        },
+        {
+          "checkLink": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 6,
+            "endIndex": 36
+          }
+        }
+      ],
+      "contentPath": "md-go-to-link.md"
+    }
+  ],
+  "md-image-link": [],
+  "md-run-code": [
+    {
+      "testId": "md-run-code.md~ab272cdb",
+      "steps": [
+        {
+          "unsafe": true,
+          "runCode": {
+            "language": "bash",
+            "code": "echo hi"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 19
+          }
+        }
+      ],
+      "contentPath": "md-run-code.md"
+    }
+  ],
+  "md-http-request": [
+    {
+      "testId": "md-http-request.md~7314f3f2",
+      "steps": [
+        {
+          "httpRequest": {
+            "method": "GET",
+            "url": "https://example.com/api",
+            "request": {
+              "headers": {
+                "Accept": "application/json"
+              }
+            }
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 73
+          }
+        }
+      ],
+      "contentPath": "md-http-request.md"
+    }
+  ],
+  "mdx-html-comment": [
+    {
+      "testId": "mdx-html-comment.mdx~e97f0194",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo html"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 52
+          }
+        }
+      ],
+      "contentPath": "mdx-html-comment.mdx"
+    }
+  ],
+  "mdx-expression": [
+    {
+      "testId": "mdx-expression.mdx~0a34e37e",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo expr"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 51
+          }
+        }
+      ],
+      "contentPath": "mdx-expression.mdx"
+    }
+  ],
+  "mdx-definition": [
+    {
+      "testId": "mdx-definition.mdx~d68a6f68",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo def"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 57
+          }
+        }
+      ],
+      "contentPath": "mdx-definition.mdx"
+    }
+  ],
+  "mdx-mixed": [
+    {
+      "testId": "m",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo e"
+          },
+          "location": {
+            "line": 5,
+            "startIndex": 52,
+            "endIndex": 100
+          }
+        },
+        {
+          "click": "Save",
+          "location": {
+            "line": 8,
+            "startIndex": 108,
+            "endIndex": 122
+          }
+        },
+        {
+          "find": "Save",
+          "location": {
+            "line": 8,
+            "startIndex": 114,
+            "endIndex": 122
+          }
+        }
+      ],
+      "contentPath": "mdx-mixed.mdx"
+    }
+  ],
+  "mdx-invalid-jsx": [
+    {
+      "testId": "mdx-invalid-jsx.mdx~66da7d54",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo bad"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 10,
+            "endIndex": 61
+          }
+        }
+      ],
+      "contentPath": "mdx-invalid-jsx.mdx"
+    }
+  ],
+  "mdx-ial": [
+    {
+      "testId": "mdx-ial.mdx~9b0c24d2",
+      "steps": [
+        {
+          "screenshot": "a.png",
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 26
+          }
+        },
+        {
+          "unsafe": true,
+          "runCode": {
+            "language": "python",
+            "code": "print(\"{:.2f}\".format(1))"
+          },
+          "location": {
+            "line": 3,
+            "startIndex": 28,
+            "endIndex": 67
+          }
+        }
+      ],
+      "contentPath": "mdx-ial.mdx"
+    }
+  ],
+  "html-comment": [
+    {
+      "testId": "html-comment.html~e97f0194",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo html"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 10,
+            "endIndex": 62
+          }
+        }
+      ],
+      "contentPath": "html-comment.html"
+    }
+  ],
+  "html-pre-comment": [
+    {
+      "testId": "html-pre-comment.html~89bbe0b2",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo pre"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 5,
+            "endIndex": 56
+          }
+        }
+      ],
+      "contentPath": "html-pre-comment.html"
+    }
+  ],
+  "html-script-comment": [
+    {
+      "testId": "html-script-comment.html~2ffac2f2",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo script"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 17,
+            "endIndex": 71
+          }
+        }
+      ],
+      "contentPath": "html-script-comment.html"
+    }
+  ],
+  "html-testing-prose": [
+    {
+      "testId": "html-testing-prose.html~b648ff79",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo x"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 16,
+            "endIndex": 65
+          }
+        }
+      ],
+      "contentPath": "html-testing-prose.html"
+    }
+  ],
+  "html-test-block": [
+    {
+      "testId": "h",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo a"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 30,
+            "endIndex": 79
+          }
+        }
+      ],
+      "contentPath": "html-test-block.html"
+    }
+  ],
+  "adoc-comment": [
+    {
+      "testId": "adoc-comment.adoc~6a298ce6",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo adoc"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 48
+          }
+        }
+      ],
+      "contentPath": "adoc-comment.adoc"
+    }
+  ],
+  "adoc-listing": [
+    {
+      "testId": "adoc-listing.adoc~fae7594d",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo listing"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 5,
+            "endIndex": 56
+          }
+        }
+      ],
+      "contentPath": "adoc-listing.adoc"
+    }
+  ],
+  "adoc-midline": [
+    {
+      "testId": "adoc-midline.adoc~53a28baf",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo mid"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 5,
+            "endIndex": 52
+          }
+        }
+      ],
+      "contentPath": "adoc-midline.adoc"
+    }
+  ],
+  "adoc-indented": [
+    {
+      "testId": "adoc-indented.adoc~743295f9",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo indent"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 2,
+            "endIndex": 52
+          }
+        }
+      ],
+      "contentPath": "adoc-indented.adoc"
+    }
+  ],
+  "adoc-multiline": [],
+  "adoc-test-block": [
+    {
+      "testId": "a",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo a"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 26,
+            "endIndex": 71
+          }
+        }
+      ],
+      "contentPath": "adoc-test-block.adoc"
+    }
+  ],
+  "dita-fragment": [
+    {
+      "testId": "dita-fragment.dita~414bf94f",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo frag"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 0,
+            "endIndex": 52
+          }
+        }
+      ],
+      "contentPath": "dita-fragment.dita"
+    }
+  ],
+  "dita-data-step": [
+    {
+      "testId": "dita-data-step.dita~26607eb6",
+      "steps": [
+        {
+          "wait": 7,
+          "location": {
+            "line": 1,
+            "startIndex": 23,
+            "endIndex": 59
+          }
+        }
+      ],
+      "contentPath": "dita-data-step.dita"
+    }
+  ],
+  "dita-data-notes": [],
+  "dita-data-statement": [
+    {
+      "testId": "dita-data-statement.dita~42c1101d",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo d"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 20,
+            "endIndex": 97
+          }
+        }
+      ],
+      "contentPath": "dita-data-statement.dita"
+    }
+  ],
+  "dita-entity": [
+    {
+      "testId": "dita-entity.dita~c400ccbe",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo ent"
+          },
+          "location": {
+            "line": 2,
+            "startIndex": 87,
+            "endIndex": 138
+          }
+        }
+      ],
+      "contentPath": "dita-entity.dita"
+    }
+  ],
+  "dita-uicontrol": [
+    {
+      "testId": "dita-uicontrol.dita~f755177f",
+      "steps": [
+        {
+          "click": "Save",
+          "location": {
+            "line": 1,
+            "startIndex": 23,
+            "endIndex": 56
+          }
+        },
+        {
+          "find": "Save",
+          "location": {
+            "line": 1,
+            "startIndex": 29,
+            "endIndex": 56
+          }
+        },
+        {
+          "type": {
+            "keys": "abc",
+            "selector": "Name"
+          },
+          "location": {
+            "line": 1,
+            "startIndex": 58,
+            "endIndex": 126
+          }
+        },
+        {
+          "find": "Name",
+          "location": {
+            "line": 1,
+            "startIndex": 99,
+            "endIndex": 126
+          }
+        }
+      ],
+      "contentPath": "dita-uicontrol.dita"
+    }
+  ],
+  "dita-xref": [
+    {
+      "testId": "dita-xref.dita~020c65b8",
+      "steps": [
+        {
+          "goTo": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 23,
+            "endIndex": 79
+          }
+        },
+        {
+          "goTo": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 23,
+            "endIndex": 79
+          }
+        },
+        {
+          "checkLink": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 29,
+            "endIndex": 79
+          }
+        },
+        {
+          "checkLink": "https://example.com",
+          "location": {
+            "line": 1,
+            "startIndex": 29,
+            "endIndex": 79
+          }
+        }
+      ],
+      "contentPath": "dita-xref.dita"
+    }
+  ]
+}

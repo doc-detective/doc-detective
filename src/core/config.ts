@@ -12,6 +12,24 @@ import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 import { fileURLToPath } from "node:url";
 
+// The runner's fileType table: common's built-ins, with one rule pinned to
+// the runner's own history. The runner has always matched markdown typeText
+// in lowercase only, while doc-detective-common's table is case-tolerant;
+// keep the runner's rule so `Type "x"` at a sentence start doesn't suddenly
+// become a step in existing docs (ADR 01139).
+const RUNNER_MARKDOWN_TYPE_TEXT = ['\\b(?:press|enter|type)\\b\\s+"([^"]+)"'];
+const runnerFileTypes: Record<string, any> = Object.fromEntries(
+  Object.entries(defaultFileTypes).map(([key, fileType]) => {
+    const copy = JSON.parse(JSON.stringify(fileType));
+    if (copy.name === "markdown") {
+      for (const markup of copy.markup) {
+        if (markup.name === "typeText") markup.regex = RUNNER_MARKDOWN_TYPE_TEXT;
+      }
+    }
+    return [key, copy];
+  })
+);
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
@@ -188,7 +206,7 @@ async function setConfig({ config, detectApps = true }: any) {
   // shared table that common and the LSP also read.
   config.fileTypes = config.fileTypes.map((fileType: any) => {
     if (typeof fileType === "object") return fileType;
-    const fileTypeObject = defaultFileTypes[fileType];
+    const fileTypeObject = runnerFileTypes[fileType];
     if (typeof fileTypeObject !== "undefined")
       return JSON.parse(JSON.stringify(fileTypeObject));
     log(
@@ -247,10 +265,7 @@ async function setConfig({ config, detectApps = true }: any) {
     }
     if (fileType.extends) {
       // If fileType extends another, merge the properties
-      const extendedFileTypeRaw = defaultFileTypes[fileType.extends];
-      /* c8 ignore start - unreachable via setConfig: the schema's `extends`
-         enum only lists known definitions, so AJV rejects unknown values
-         before this defense-in-depth guard can fire. */
+      const extendedFileTypeRaw = runnerFileTypes[fileType.extends];
       if (!extendedFileTypeRaw) {
         log(
           config,
@@ -265,7 +280,6 @@ async function setConfig({ config, detectApps = true }: any) {
             '".'
         );
       }
-      /* c8 ignore stop */
       const extendedFileType = JSON.parse(JSON.stringify(extendedFileTypeRaw));
       if (extendedFileType) {
         if (!fileType.name) {

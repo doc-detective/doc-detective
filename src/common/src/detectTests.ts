@@ -434,9 +434,11 @@ export async function parseContent({
     }
   }
 
-  // A statement counts once per type and offset: an `extends` override can
-  // re-list a legacy regex that the inherited container already covers.
-  const statementKeys = new Set(
+  // A regex match that a statement container already produced (same type and
+  // offset) counts once: an `extends` override can re-list a legacy regex
+  // that an inherited container covers. Regex matches never dedupe each
+  // other, so regex-only fileTypes detect exactly what they always did.
+  const containerKeys = new Set(
     statements.map((s) => `${s.type}@${s._startIndex}`)
   );
 
@@ -460,10 +462,9 @@ export async function parseContent({
         match._line = getLineNumber(content, match.index, lineStarts);
       });
       for (const match of matches) {
-        const key = `${statementType}@${match.index}`;
-        if (statementKeys.has(key)) continue;
-        statementKeys.add(key);
-        statements.push(match);
+        if (!containerKeys.has(`${statementType}@${match.index}`)) {
+          statements.push(match);
+        }
       }
     });
   });

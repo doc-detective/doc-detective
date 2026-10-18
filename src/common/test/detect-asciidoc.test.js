@@ -143,17 +143,22 @@ describe("detect: asciidoc backend (line scanner)", function () {
   });
 });
 
-describe("asciidoc built-in fileType", function () {
-  it("uses a paren-filtered comment container", function () {
-    const ft = defaultFileTypes.asciidoc;
-    expect(ft.inlineStatements.in).to.deep.equal([
-      {
-        comment: { matches: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" },
-        value: "match.1",
-      },
-    ]);
-    expect(ft.inlineStatements.testStart).to.equal(undefined);
-  });
+describe("asciidoc statement containers (opt-in)", function () {
+  // The paren-filtered comment container: an opt-in structural equivalent
+  // of the legacy `// (test …)` regexes (the built-in keeps the regexes).
+  const containers = {
+    name: "asciidoc",
+    extensions: ["adoc", "asciidoc", "asc"],
+    inlineStatements: {
+      in: [
+        {
+          comment: { matches: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" },
+          value: "match.1",
+        },
+      ],
+    },
+    markup: [],
+  };
 
   it("detects the maximal example end-to-end", async function () {
     const content = [
@@ -180,7 +185,7 @@ describe("asciidoc built-in fileType", function () {
     const tests = await detectTests({
       content,
       filePath: "doc.adoc",
-      fileType: defaultFileTypes.asciidoc,
+      fileType: containers,
     });
     expect(tests).to.have.length(1);
     expect(tests[0].testId).to.equal("adoc-search");
@@ -201,7 +206,7 @@ describe("asciidoc built-in fileType", function () {
     const tests = await detectTests({
       content,
       filePath: "doc.adoc",
-      fileType: defaultFileTypes.asciidoc,
+      fileType: containers,
     });
     expect(tests).to.have.length(1);
     expect(tests[0].testId).to.equal("only");
@@ -230,7 +235,7 @@ describe("asciidoc built-in fileType", function () {
       fileType: {
         name: "asciidoc-rich",
         extensions: ["adoc"],
-        inlineStatements: defaultFileTypes.asciidoc.inlineStatements,
+        inlineStatements: containers.inlineStatements,
         markup: [
           {
             name: "goToUrl",
@@ -304,7 +309,7 @@ describe("asciidoc built-in fileType", function () {
     const current = await detectTests({
       content,
       filePath: "doc.adoc",
-      fileType: defaultFileTypes.asciidoc,
+      fileType: containers,
     });
     expect(current).to.have.length(1);
     expect(current[0].testId).to.equal("parity");

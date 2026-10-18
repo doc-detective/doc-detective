@@ -91,21 +91,32 @@ describe("detect: dita/xml backend", function () {
   });
 });
 
-describe("dita built-in fileType", function () {
-  it("uses comment and data-element statement containers plus legacy PI regexes", function () {
-    const ft = defaultFileTypes.dita;
-    expect(ft.inlineStatements.in).to.deep.equal([
-      "comment",
-      {
-        element: { tag: "data", attributes: { name: "doc-detective" } },
-        value: "attributes.value",
-      },
-    ]);
-    // <?doc-detective …?> statements stay regex-only (deprecated channel).
-    expect(ft.inlineStatements.testStart).to.have.length(1);
-    expect(ft.inlineStatements.testStart[0]).to.include("doc-detective");
-    expect(ft.markup.every((m) => !m.regex)).to.equal(true);
-  });
+describe("dita statement containers (opt-in)", function () {
+  // Comment and <data name="doc-detective"> containers plus the PI and
+  // <data name="step"> regexes: an opt-in structural equivalent of the
+  // legacy statement regexes (the built-in keeps the regexes).
+  const containers = {
+    name: "dita",
+    extensions: ["dita", "ditamap", "xml"],
+    inlineStatements: {
+      in: [
+        "comment",
+        {
+          element: { tag: "data", attributes: { name: "^doc-detective$" } },
+          value: "attributes.value",
+        },
+      ],
+      testStart: ["<\\?doc-detective\\s+test([\\s\\S]*?)\\?>"],
+      testEnd: ["<\\?doc-detective\\s+test\\s+end\\s*\\?>"],
+      ignoreStart: ["<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>"],
+      ignoreEnd: ["<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>"],
+      step: [
+        "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
+        '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
+      ],
+    },
+    markup: defaultFileTypes.dita.markup,
+  };
 
   it("detects the full maximal example end-to-end", async function () {
     const content = [
@@ -134,7 +145,7 @@ describe("dita built-in fileType", function () {
     const tests = await detectTests({
       content,
       filePath: "doc.dita",
-      fileType: defaultFileTypes.dita,
+      fileType: containers,
       config: { detectSteps: true },
     });
     expect(tests).to.have.length(1);
@@ -182,7 +193,7 @@ describe("dita built-in fileType", function () {
     const tests = await detectTests({
       content,
       filePath: "doc.dita",
-      fileType: defaultFileTypes.dita,
+      fileType: containers,
     });
     expect(tests).to.have.length(1);
     expect(tests[0].testId).to.equal("pi-test");
@@ -213,7 +224,7 @@ describe("dita built-in fileType", function () {
     const tests = await detectTests({
       content: '<topic id="t"><body><p><data name="step">{"wait": 7}</data></p></body></topic>\n',
       filePath: "doc.dita",
-      fileType: defaultFileTypes.dita,
+      fileType: containers,
     });
     expect(tests[0].steps.map((s) => s.wait)).to.deep.equal([7]);
   });
