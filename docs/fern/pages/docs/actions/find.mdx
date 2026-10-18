@@ -20,7 +20,11 @@ Specify the target element directly with a string for basic text or selector loo
   If one element's text and another element's selector both match, the text match wins. A single word that names an HTML element, such as `Title` or `Menu`, is also a CSS selector, but an element with that text still wins. To be explicit, use the object format. `{ "selector": "#username" }` always matches as a selector, and `{ "elementText": "Login" }` always matches as text.
 
   Doc Detective checks all five ways together every 100 milliseconds, for up to 5 seconds, and uses the first check that finds an element. A match that's already on the page wins over a higher-ranked match that renders later.
-  - Example: `"find": "Login"` or `"find": "#username"`.
+
+  To match part of a value with a regular expression, wrap it in slashes, as in `"find": "/Order confirmed/"`. Doc Detective checks display text first, then accessible name, then `id`, then `data-testid`. A regular expression never matches as a CSS or XPath selector. Doc Detective looks right away, then every 100 milliseconds for up to 5 seconds.
+
+  The match is case-sensitive and takes no flags. It can also match anywhere in the value, so `/Log ?in/` matches `Log into your account`. To require the whole value, anchor the expression, as in `/^Log ?in$/`.
+  - Example: `"find": "Login"`, `"find": "#username"`, or `"find": "/Log ?in/"`.
 - **Object Format:** Use an object with the following properties:
   - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
@@ -118,6 +122,29 @@ Here are a few ways you might use the `find` action:
 
 {/* step {"stepId":"goto-find-selector","description":"Open the test page","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"find-selector","description":"Find an input by its CSS selector","find":"#text-input"} */}
+{/* test end */}
+
+### Find an element by a regular expression (string shorthand)
+
+{/* test {"testId":"find-by-regex","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find an element whose text contains 'Log in' or 'Login'.",
+          "find": "/Log ?in/"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-regex","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-regex","description":"Find a button by a regex on its text","find":"/Standard Butt/"} */}
 {/* test end */}
 
 ### Find an element by selector and click it (object format)
