@@ -1772,7 +1772,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
-        // Resolved by position via applyBadgeAnchoredTests (ADR 01047), not by name.
+        // Resolved by position via applyBadgeAnchoredTests (ADR 01141), not by name.
         badge: test.badge,
         location: test.location,
         contexts: new Array(test.contexts.length),
