@@ -2481,6 +2481,32 @@
           "type": "boolean",
           "default": true
         },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
+        },
         "autoScreenshot": {
           "type": "boolean"
         },
@@ -9784,6 +9810,32 @@
         },
         "detectSteps": {
           "type": "boolean"
+        },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
         },
         "autoScreenshot": {
           "type": "boolean"

@@ -401,7 +401,7 @@ async function runTestsAndReport(config: any, options: any) {
     log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
   }
 
-  // Badge-anchored write-back — see ADR 01047.
+  // Badge-anchored write-back — see ADR 01141.
   try {
     applyBadgeAnchoredTests({ config, results });
   } catch (err: any) {
