@@ -1,17 +1,30 @@
-import {
-  verifiedDate,
-  shieldsBadge,
-  parseVerifiedMarkers,
-  applyVerifiedToContent,
-  resolveVerifiedId,
-} from "../dist/core/utils.js";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { verifiedDate, shieldsBadge, resolveVerifiedId } from "../dist/core/utils.js";
+import { applyVerification, pinOf } from "../dist/core/verification.js";
 
 before(async function () {
   const { expect } = await import("chai");
   global.expect = expect;
 });
 
-describe("Last Verified On — pure helpers", function () {
+const here = path.dirname(fileURLToPath(import.meta.url));
+const fixtures = path.join(here, "verification-fixtures");
+
+const TODAY = "2026-10-21";
+const VERSION = "4.27.0";
+// Every check resolves to `result` unless `results` names it.
+function opts(result = "PASS", results = {}) {
+  return {
+    today: TODAY,
+    version: VERSION,
+    resolve: (check) => (check in results ? results[check] : result),
+  };
+}
+
+describe("Verification metadata — pure helpers", function () {
   describe("verifiedDate()", function () {
     it("formats a Date as zero-padded YYYY-MM-DD (UTC)", function () {
       expect(verifiedDate(new Date("2026-06-26T12:34:56Z"))).to.equal("2026-06-26");
@@ -40,84 +53,10 @@ describe("Last Verified On — pure helpers", function () {
         '<image href="https://img.shields.io/badge/Last_verified-2026--06--26-brightgreen"><alt>Last verified 2026-06-26</alt></image>'
       );
     });
-  });
-
-  describe("parseVerifiedMarkers()", function () {
-    it("captures HTML-comment data-only markers in markdown", function () {
-      const markers = parseVerifiedMarkers(
-        "# Title\n<!-- verified id=spec.md~abc date=2026-06-01 -->\n",
-        "markdown"
+    it("honors a custom label and color", function () {
+      expect(shieldsBadge("markdown", "2026-06-26", { label: "Verified", color: "green" })).to.equal(
+        "![Verified 2026-06-26](https://img.shields.io/badge/Verified-2026--06--26-green)"
       );
-      expect(markers).to.have.length(1);
-      expect(markers[0]).to.include({ id: "spec.md~abc", badge: false, date: "2026-06-01" });
-    });
-    it("captures JSX-comment (MDX) and badge flag", function () {
-      const markers = parseVerifiedMarkers("{/* verified id=x badge */}", "markdown");
-      expect(markers).to.have.length(1);
-      expect(markers[0]).to.include({ id: "x", badge: true });
-      expect(markers[0].date).to.be.undefined;
-    });
-    it("captures link-label comment form", function () {
-      const markers = parseVerifiedMarkers("[comment]: # (verified id=y date=2026-01-02)", "markdown");
-      expect(markers[0]).to.include({ id: "y", date: "2026-01-02" });
-    });
-    it("captures asciidoc form", function () {
-      const markers = parseVerifiedMarkers("// (verified id=z)", "asciidoc");
-      expect(markers[0]).to.include({ id: "z", badge: false });
-    });
-    it("ignores markers without an id", function () {
-      expect(parseVerifiedMarkers("<!-- verified badge -->", "markdown")).to.have.length(0);
-    });
-  });
-
-  describe("applyVerifiedToContent() — data-only", function () {
-    const dates = new Map([["a", "2026-06-26"]]);
-    it("inserts a date when absent", function () {
-      expect(applyVerifiedToContent("<!-- verified id=a -->", "markdown", dates)).to.equal(
-        "<!-- verified id=a date=2026-06-26 -->"
-      );
-    });
-    it("updates an existing date in place", function () {
-      expect(
-        applyVerifiedToContent("<!-- verified id=a date=2026-01-01 -->", "markdown", dates)
-      ).to.equal("<!-- verified id=a date=2026-06-26 -->");
-    });
-    it("is idempotent", function () {
-      const once = applyVerifiedToContent("<!-- verified id=a -->", "markdown", dates);
-      expect(applyVerifiedToContent(once, "markdown", dates)).to.equal(once);
-    });
-    it("leaves markers whose id is not in the date map untouched (ages)", function () {
-      const input = "<!-- verified id=b date=2025-01-01 -->";
-      expect(applyVerifiedToContent(input, "markdown", dates)).to.equal(input);
-    });
-    it("preserves the MDX JSX comment form (never emits <!-- -->)", function () {
-      const out = applyVerifiedToContent("{/* verified id=a date=2026-01-01 */}", "markdown", dates);
-      expect(out).to.equal("{/* verified id=a date=2026-06-26 */}");
-      expect(out).to.not.contain("<!--");
-    });
-  });
-
-  describe("applyVerifiedToContent() — badge", function () {
-    const dates = new Map([["a", "2026-06-26"]]);
-    it("inserts the shields.io image line on first run and updates the date", function () {
-      const out = applyVerifiedToContent("<!-- verified id=a badge -->\n", "markdown", dates);
-      expect(out).to.contain("<!-- verified id=a badge date=2026-06-26 -->");
-      expect(out).to.contain(
-        "![Last verified 2026-06-26](https://img.shields.io/badge/Last_verified-2026--06--26-brightgreen)"
-      );
-    });
-    it("is idempotent across re-runs (no duplicate image, no drift)", function () {
-      const once = applyVerifiedToContent("<!-- verified id=a badge -->\n", "markdown", dates);
-      const twice = applyVerifiedToContent(once, "markdown", dates);
-      expect(twice).to.equal(once);
-    });
-    it("replaces a stale badge image in place", function () {
-      const stale =
-        "<!-- verified id=a badge date=2025-01-01 -->\n" +
-        "![Last verified 2025-01-01](https://img.shields.io/badge/Last_verified-2025--01--01-brightgreen)\n";
-      const out = applyVerifiedToContent(stale, "markdown", dates);
-      expect(out).to.contain("Last_verified-2026--06--26-brightgreen");
-      expect(out).to.not.contain("2025--01--01");
     });
   });
 
@@ -147,35 +86,254 @@ describe("Last Verified On — pure helpers", function () {
     });
   });
 
-  describe("branch & edge coverage", function () {
-    it("shieldsBadge honors a custom label and color", function () {
-      expect(shieldsBadge("markdown", "2026-06-26", { label: "Verified", color: "green" })).to.equal(
-        "![Verified 2026-06-26](https://img.shields.io/badge/Verified-2026--06--26-green)"
+  describe("pinOf()", function () {
+    it("hashes lines joined with LF, by manni's rule", function () {
+      const hex = crypto.createHash("sha256").update("a\nb", "utf8").digest("hex");
+      expect(pinOf(["a", "b"])).to.equal(`sha256-${hex}`);
+    });
+  });
+
+  describe("front matter: verified-by and last-verified", function () {
+    it("fills its entry and sets last-verified on PASS", function () {
+      const input = [
+        "---",
+        "title: Set up",
+        "last-updated: 2026-10-17",
+        "verified-by:",
+        "  - tool: doc-detective",
+        "    check: cite-set-up",
+        "---",
+        "",
+        "# Set up",
+        "",
+      ].join("\n");
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        [
+          "---",
+          "title: Set up",
+          "last-updated: 2026-10-17",
+          "verified-by:",
+          "  - tool: doc-detective",
+          "    check: cite-set-up",
+          "    version: 4.27.0",
+          "    passed: 2026-10-21",
+          "last-verified: 2026-10-21",
+          "---",
+          "",
+          "# Set up",
+          "",
+        ].join("\n")
       );
     });
-    it("shieldsBadge escapes a color containing a hyphen", function () {
-      expect(shieldsBadge("markdown", "2026-06-26", { color: "ff0000-x" })).to.contain("-ff0000--x)");
+
+    for (const result of ["FAIL", "WARNING", "SKIPPED"]) {
+      it(`writes nothing on ${result}`, function () {
+        const input = "---\nverified-by:\n  - tool: doc-detective\n    check: a\n---\n";
+        expect(applyVerification(input, "markdown", opts(result))).to.equal(input);
+      });
+    }
+
+    it("is idempotent: a second pass on the same day changes nothing", function () {
+      const input = "---\ntitle: X\nverified-by:\n  - tool: doc-detective\n    check: a\n---\n# X\n";
+      const once = applyVerification(input, "markdown", opts());
+      expect(once).to.not.equal(input);
+      expect(applyVerification(once, "markdown", opts())).to.equal(once);
     });
-    it("parseVerifiedMarkers falls back to markdown patterns for an unknown format", function () {
-      const m = parseVerifiedMarkers("<!-- verified id=a -->", "totally-unknown");
-      expect(m).to.have.length(1);
-      expect(m[0].id).to.equal("a");
-    });
-    it("parseVerifiedAttrs handles badge=false, quoted values, and bare non-attr tokens", function () {
-      const m = parseVerifiedMarkers('<!-- verified extra id="a" badge=false -->', "markdown");
-      expect(m[0]).to.include({ id: "a", badge: false });
-    });
-    it("applyVerifiedToContent badge uses the markdown image body for an unknown format", function () {
-      const out = applyVerifiedToContent(
-        "<!-- verified id=a badge -->\n",
-        "unknown",
-        new Map([["a", "2026-06-26"]])
+
+    it("updates existing values in place, keeping their quotes", function () {
+      const input = [
+        "---",
+        'last-verified: "2026-01-01"',
+        "verified-by:",
+        "  - tool: doc-detective",
+        "    check: a",
+        "    version: 4.0.0",
+        "    passed: '2026-01-01' # last good run",
+        "---",
+        "",
+      ].join("\n");
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        [
+          "---",
+          'last-verified: "2026-10-21"',
+          "verified-by:",
+          "  - tool: doc-detective",
+          "    check: a",
+          "    version: 4.27.0",
+          "    passed: '2026-10-21' # last good run",
+          "---",
+          "",
+        ].join("\n")
       );
-      expect(out).to.contain("![Last verified 2026-06-26](https://img.shields.io/badge/");
     });
-    it("applyVerifiedToContent is a no-op when no marker id is in the date map", function () {
-      const input = "<!-- verified id=other date=2025-01-01 -->";
-      expect(applyVerifiedToContent(input, "markdown", new Map([["a", "2026-06-26"]]))).to.equal(input);
+
+    it("sets last-verified to the oldest pass across all entries", function () {
+      const input = [
+        "---",
+        "verified-by:",
+        "  - tool: doc-detective",
+        "    check: a",
+        "  - tool: lychee",
+        "    passed: 2026-10-01T09:00:00Z",
+        "---",
+        "",
+      ].join("\n");
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.contain("last-verified: 2026-10-01T09:00:00Z\n");
+      expect(out).to.contain("    passed: 2026-10-21\n");
+    });
+
+    it("leaves last-verified unset while another entry has never passed", function () {
+      const input = [
+        "---",
+        "verified-by:",
+        "  - tool: doc-detective",
+        "    check: a",
+        "  - tool: lychee",
+        "---",
+        "",
+      ].join("\n");
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.contain("    passed: 2026-10-21\n");
+      expect(out).to.not.contain("last-verified");
+    });
+
+    it("never touches another tool's entry, even one naming the same check", function () {
+      const input = [
+        "---",
+        "verified-by:",
+        "  - tool: sample-runner",
+        "    check: a",
+        "  - tool: doc-detective",
+        "    check: a",
+        "---",
+        "",
+      ].join("\n");
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.contain("  - tool: sample-runner\n    check: a\n  - tool: doc-detective");
+      expect(out.match(/passed:/g)).to.have.length(1);
+    });
+
+    it("fills each of its own entries by its own check", function () {
+      const input = [
+        "---",
+        "verified-by:",
+        "  - tool: doc-detective",
+        "    check: a",
+        "  - tool: doc-detective",
+        "    check: b",
+        "---",
+        "",
+      ].join("\n");
+      const out = applyVerification(input, "markdown", opts("PASS", { b: "FAIL" }));
+      expect(out).to.contain("    check: a\n    version: 4.27.0\n    passed: 2026-10-21\n  - tool: doc-detective\n    check: b\n---");
+      expect(out).to.not.contain("last-verified");
+    });
+
+    it("leaves an entry with no check alone", function () {
+      const input = "---\nverified-by:\n  - tool: doc-detective\n---\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(input);
+    });
+
+    it("keeps flow style, adding keys at the end of the flow map", function () {
+      const input = "---\ntags: [a, b]\nverified-by: [{tool: doc-detective, check: a}]\n---\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        "---\ntags: [a, b]\nverified-by: [{tool: doc-detective, check: a, version: 4.27.0, passed: 2026-10-21}]\nlast-verified: 2026-10-21\n---\n"
+      );
+    });
+
+    it("keeps CRLF line endings", function () {
+      const input = "---\r\nverified-by:\r\n  - tool: doc-detective\r\n    check: a\r\n---\r\n# X\r\n";
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.equal(
+        "---\r\nverified-by:\r\n  - tool: doc-detective\r\n    check: a\r\n    version: 4.27.0\r\n    passed: 2026-10-21\r\nlast-verified: 2026-10-21\r\n---\r\n# X\r\n"
+      );
+    });
+
+    it("no longer reads or writes doc-detective.verified", function () {
+      const input = "---\ndoc-detective:\n  verified:\n    id: a\n---\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(input);
+    });
+
+    it("reports a check that matches no test or spec", function () {
+      const unknown = [];
+      const input = "---\nverified-by:\n  - tool: doc-detective\n    check: gone\n---\n";
+      const out = applyVerification(input, "markdown", {
+        ...opts(),
+        resolve: () => null,
+        onUnknown: (check) => unknown.push(check),
+      });
+      expect(out).to.equal(input);
+      expect(unknown).to.deep.equal(["gone"]);
+    });
+  });
+
+  describe("inline meta statements", function () {
+    const files = fs.readdirSync(fixtures);
+    for (const name of files) {
+      const format = { md: "markdown", mdx: "markdown", html: "html", adoc: "asciidoc", dita: "dita" }[
+        name.split(".").pop()
+      ];
+      it(`pins ${name} exactly as manni does, and fills each entry`, function () {
+        const pinned = fs.readFileSync(path.join(fixtures, name), "utf8");
+        const manniPins = pinned.match(/sha256-[0-9a-f]{64}/g);
+        expect(manniPins.length).to.be.greaterThan(0);
+        const unpinned = pinned.replace(/meta sha256-[0-9a-f]{64} /g, "meta ");
+        const out = applyVerification(unpinned, format, opts());
+        expect(out.match(/sha256-[0-9a-f]{64}/g)).to.deep.equal(manniPins);
+        expect(out.match(/"version":"4\.27\.0","passed":"2026-10-21"}\],"last-verified":"2026-10-21"/g)).to.have.length(
+          manniPins.length
+        );
+        // A second pass changes nothing.
+        expect(applyVerification(out, format, opts())).to.equal(out);
+      });
+    }
+
+    it("keeps each comment form as written", function () {
+      const read = (n) => fs.readFileSync(path.join(fixtures, n), "utf8").replace(/meta sha256-[0-9a-f]{64} /g, "meta ");
+      expect(applyVerification(read("pinned.mdx"), "markdown", opts())).to.match(/^\{\/\* meta sha256-[0-9a-f]{64} \{.*\} \*\/\}$/m);
+      expect(applyVerification(read("pinned.md"), "markdown", opts())).to.match(/^\[comment\]: # \(meta sha256-[0-9a-f]{64} \{.*\}\)$/m);
+      expect(applyVerification(read("pinned.adoc"), "asciidoc", opts())).to.match(/^\/\/ \(meta sha256-[0-9a-f]{64} \{.*\}\)$/m);
+      expect(applyVerification(read("pinned.dita"), "dita", opts())).to.match(/<step><\?manni meta sha256-[0-9a-f]{64} \{.*\}\?>/);
+    });
+
+    it("re-pins a statement whose block changed since its last pin", function () {
+      const stale = "sha256-" + "0".repeat(64);
+      const input = `<!-- meta ${stale} {"verified-by":[{"tool":"doc-detective","check":"a"}]} -->\nNew text.\n`;
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.contain(`meta ${pinOf(["New text."])} {`);
+    });
+
+    it("writes nothing on FAIL", function () {
+      const input = '<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} -->\nText.\n';
+      expect(applyVerification(input, "markdown", opts("FAIL"))).to.equal(input);
+    });
+
+    it("never touches another tool's entry, and holds last-verified back for it", function () {
+      const input =
+        '<!-- meta {"verified-by":[{"tool":"lychee"},{"tool":"doc-detective","check":"a"}]} -->\nText.\n';
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        `<!-- meta ${pinOf(["Text."])} {"verified-by":[{"tool":"lychee"},{"tool":"doc-detective","check":"a","version":"4.27.0","passed":"2026-10-21"}]} -->\nText.\n`
+      );
+    });
+
+    it("keeps the statement's other fields", function () {
+      const input = '{/* meta {"concepts":["install"],"verified-by":[{"tool":"doc-detective","check":"a"}]} */}\nText.\n';
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        `{/* meta ${pinOf(["Text."])} {"concepts":["install"],"verified-by":[{"tool":"doc-detective","check":"a","version":"4.27.0","passed":"2026-10-21"}],"last-verified":"2026-10-21"} */}\nText.\n`
+      );
+    });
+
+    it("skips a statement that anchors nothing, or whose payload is not one JSON object", function () {
+      const orphan = 'Text.\n\n<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} -->\n';
+      expect(applyVerification(orphan, "markdown", opts())).to.equal(orphan);
+      const broken = '<!-- meta {"verified-by": -->\nText.\n';
+      expect(applyVerification(broken, "markdown", opts())).to.equal(broken);
+    });
+
+    it("ignores the retired inline `verified` marker", function () {
+      const input = "<!-- verified id=a -->\nText.\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(input);
     });
   });
 });

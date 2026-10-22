@@ -502,8 +502,8 @@ async function qualifyFiles({ config }: { config: any }) {
     }
   }
   // Side-channel the full qualified file set (same pattern as `_phaseByFile`)
-  // so the "Last Verified On" write-back can scan prose-only files that carry a
-  // `verified` marker but contribute no spec to the report.
+  // so the verification write-back can scan prose-only files that name a
+  // Doc Detective check but contribute no spec to the report.
   config._qualifiedFiles = files;
   return files;
 }

@@ -3,11 +3,15 @@ import { runTests } from "../dist/core/index.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 before(async function () {
   const { expect } = await import("chai");
   global.expect = expect;
 });
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const VERSION = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 
 // Recomputed before each test (see beforeEach) rather than captured once at
 // module load, so a suite that spans a UTC midnight boundary can't drift from
@@ -23,7 +27,7 @@ function write(name, content) {
 function read(p) {
   return fs.readFileSync(p, "utf8");
 }
-// Synthetic report: one spec + one passing/failing test, both pointing at `file`.
+// Synthetic report: one spec + one test, both pointing at `file`.
 function report(file, { specId = "spec~1", testId = "test~1", result = "PASS" } = {}) {
   return {
     specs: [
@@ -37,8 +41,9 @@ function report(file, { specId = "spec~1", testId = "test~1", result = "PASS" } 
   };
 }
 const silent = { logLevel: "silent" };
+const page = (check) => `---\ntitle: Doc\nverified-by:\n  - tool: doc-detective\n    check: ${check}\n---\n\n# Doc\n`;
 
-describe("Last Verified On — write-back integration", function () {
+describe("Verification metadata — write-back", function () {
   beforeEach(function () {
     TODAY = verifiedDate();
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-verified-"));
@@ -47,189 +52,31 @@ describe("Last Verified On — write-back integration", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  describe("PASS writes the date, per format", function () {
-    it("markdown data-only (HTML comment)", function () {
-      const f = write("a.md", "# Doc\n\n<!-- verified id=test~1 -->\n");
+  describe("files", function () {
+    it("writes its version, the pass date and last-verified on PASS", function () {
+      const f = write("a.md", page("test~1"));
       applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain(`<!-- verified id=test~1 date=${TODAY} -->`);
-    });
-    it("mdx preserves the JSX comment form (never emits <!-- -->)", function () {
-      const f = write("a.mdx", "# Doc\n\n{/* verified id=test~1 */}\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      expect(out).to.contain(`{/* verified id=test~1 date=${TODAY} */}`);
-      expect(out).to.not.contain("<!--");
-    });
-    it("asciidoc line comment", function () {
-      const f = write("a.adoc", "= Doc\n\n// (verified id=test~1)\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain(`// (verified id=test~1 date=${TODAY})`);
-    });
-    it("html comment", function () {
-      const f = write("a.html", "<h1>Doc</h1>\n<!-- verified id=test~1 -->\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain(`<!-- verified id=test~1 date=${TODAY} -->`);
-    });
-    it("dita comment", function () {
-      const f = write("a.dita", "<topic><title>Doc</title></topic>\n<!-- verified id=test~1 -->\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain(`<!-- verified id=test~1 date=${TODAY} -->`);
-    });
-  });
-
-  describe("granularity — id may target a spec or a test", function () {
-    it("resolves a spec id", function () {
-      const f = write("a.md", "<!-- verified id=spec~1 -->\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain(`<!-- verified id=spec~1 date=${TODAY} -->`);
-    });
-  });
-
-  describe("badge", function () {
-    it("inserts the shields.io image on PASS and is byte-idempotent", function () {
-      const f = write("a.md", "# Doc\n\n<!-- verified id=test~1 badge -->\n\nMore.\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const once = read(f);
-      expect(once).to.contain(`<!-- verified id=test~1 badge date=${TODAY} -->`);
-      expect(once).to.contain(
-        `![Last verified ${TODAY}](https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen)`
+      expect(read(f)).to.equal(
+        `---\ntitle: Doc\nverified-by:\n  - tool: doc-detective\n    check: test~1\n    version: ${VERSION}\n    passed: ${TODAY}\nlast-verified: ${TODAY}\n---\n\n# Doc\n`
       );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal(once); // no duplicate image, no drift
     });
-    it("asciidoc badge inserts the image macro and is byte-idempotent", function () {
-      const f = write("a.adoc", "= Doc\n\n// (verified id=test~1 badge)\n\nMore.\n");
+    it("resolves a spec id as well as a test id", function () {
+      const f = write("a.md", page("spec~1"));
       applyVerifiedMarkers({ config: silent, results: report(f) });
-      const once = read(f);
-      expect(once).to.contain(
-        `image:https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen[Last verified ${TODAY}]`
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal(once);
+      expect(read(f)).to.contain(`last-verified: ${TODAY}`);
     });
-    it("indents an inserted badge to match the marker's line and stays idempotent", function () {
-      const f = write("a.md", "- item\n  <!-- verified id=test~1 badge -->\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const once = read(f);
-      // badge image is indented two spaces to match the marker line
-      expect(once).to.match(/\n {2}!\[Last verified \d{4}-\d{2}-\d{2}\]\(https:\/\/img\.shields\.io/);
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal(once);
-    });
-    it("dita badge inserts the image element and is byte-idempotent", function () {
-      const f = write(
-        "a.dita",
-        "<topic><title>Doc</title></topic>\n<!-- verified id=test~1 badge -->\n\nMore.\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const once = read(f);
-      expect(once).to.contain(
-        `<image href="https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen">`
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal(once);
-    });
-  });
-
-  describe("multiple markers in one file", function () {
-    it("stamps only the passing marker; the failing one ages", function () {
-      const f = write(
-        "a.md",
-        "<!-- verified id=pass~1 -->\n\ntext\n\n<!-- verified id=fail~1 date=2025-01-01 -->\n"
-      );
-      const results = {
-        specs: [
-          {
-            specId: "s",
-            contentPath: f,
-            result: "FAIL",
-            tests: [
-              { testId: "pass~1", contentPath: f, result: "PASS" },
-              { testId: "fail~1", contentPath: f, result: "FAIL" },
-            ],
-          },
-        ],
-      };
-      applyVerifiedMarkers({ config: silent, results });
-      const out = read(f);
-      expect(out).to.contain(`<!-- verified id=pass~1 date=${TODAY} -->`);
-      expect(out).to.contain("<!-- verified id=fail~1 date=2025-01-01 -->"); // unchanged
-    });
-  });
-
-  describe("front matter (doc-detective.verified)", function () {
-    it("writes the date into the front-matter object on PASS", function () {
-      const f = write(
-        "a.md",
-        "---\ntitle: Doc\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const once = read(f);
-      expect(once).to.match(/date:\s*['"]?2\d{3}-\d{2}-\d{2}['"]?/);
-      expect(once).to.contain(TODAY);
-      // body untouched
-      expect(once).to.contain("# Doc");
-      // re-run is byte-identical (date replaced in place, not appended)
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal(once);
-    });
-    it("preserves sibling front-matter fields (inline array stays inline)", function () {
-      const f = write(
-        "a.md",
-        "---\ntitle: My Guide\ntags: [api, rest]\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      expect(out).to.contain("tags: [api, rest]"); // not reflowed to block style
-      expect(out).to.contain("title: My Guide");
-      expect(out).to.contain(TODAY);
-    });
-    it("updates verified.date, not a deeper nested meta.date", function () {
-      const f = write(
-        "a.md",
-        "---\ndoc-detective:\n  verified:\n    id: test~1\n    meta:\n      date: 1999-01-01\n---\n\n# Doc\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      expect(out).to.contain("date: 1999-01-01"); // nested meta.date untouched
-      expect(out).to.match(/verified:\r?\n {4}id: test~1\r?\n {4}date: "\d{4}-\d{2}-\d{2}"/);
-    });
-    it("preserves a trailing inline comment on the date line", function () {
-      const f = write(
-        "a.md",
-        "---\ndoc-detective:\n  verified:\n    id: test~1\n    date: 2025-01-01 # last check\n---\n\n# Doc\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.match(/date: "\d{4}-\d{2}-\d{2}" # last check/);
-    });
-    it("uses the surgical path when the doc-detective: key has a trailing comment", function () {
-      const f = write(
-        "a.md",
-        "---\ntags: [api, rest]\ndoc-detective: # dd config\n  verified:\n    id: test~1\n---\n\n# Doc\n"
-      );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      expect(out).to.contain("tags: [api, rest]"); // not reflowed → surgical path taken
-      expect(out).to.contain("doc-detective: # dd config"); // key comment preserved
-      expect(out).to.contain(TODAY);
-    });
-  });
-
-  describe("gating", function () {
-    it("FAIL leaves the prior date untouched (ages)", function () {
-      const f = write("a.md", "<!-- verified id=test~1 date=2025-01-01 -->\n");
+    it("FAIL leaves the file untouched", function () {
+      const f = write("a.md", page("test~1"));
       applyVerifiedMarkers({ config: silent, results: report(f, { result: "FAIL" }) });
-      expect(read(f)).to.contain("date=2025-01-01");
-      expect(read(f)).to.not.contain(TODAY);
+      expect(read(f)).to.equal(page("test~1"));
     });
-    it("SKIPPED does not write", function () {
-      const f = write("a.md", "<!-- verified id=test~1 -->\n");
-      applyVerifiedMarkers({ config: silent, results: report(f, { result: "SKIPPED" }) });
-      expect(read(f)).to.equal("<!-- verified id=test~1 -->\n");
+    it("writes a meta statement in an AsciiDoc page", function () {
+      const f = write("a.adoc", '= Doc\n\n// (meta {"verified-by":[{"tool":"doc-detective","check":"test~1"}]})\nText.\n');
+      applyVerifiedMarkers({ config: silent, results: report(f) });
+      expect(read(f)).to.match(/^\/\/ \(meta sha256-[0-9a-f]{64} \{.*"passed":"\d{4}-\d{2}-\d{2}"\}\],"last-verified":"\d{4}-\d{2}-\d{2}"\}\)$/m);
     });
-    it("unknown id warns and leaves the file untouched", function () {
-      const f = write("a.md", "<!-- verified id=does-not-exist -->\n");
-      const original = read(f);
+    it("unknown check warns and leaves the file untouched", function () {
+      const f = write("a.md", page("does-not-exist"));
       const logs = [];
       const realLog = console.log;
       console.log = (...a) => logs.push(a.join(" "));
@@ -238,8 +85,8 @@ describe("Last Verified On — write-back integration", function () {
       } finally {
         console.log = realLog;
       }
-      expect(read(f)).to.equal(original);
-      expect(logs.join("\n")).to.match(/unknown id 'does-not-exist'/);
+      expect(read(f)).to.equal(page("does-not-exist"));
+      expect(logs.join("\n")).to.match(/verified-by check 'does-not-exist'.*matches no test or spec/);
     });
   });
 
@@ -254,58 +101,47 @@ describe("Last Verified On — write-back integration", function () {
       expect(fs.existsSync(missing)).to.equal(false);
     });
     it("skips a non-doc extension", function () {
-      const f = write("a.txt", "<!-- verified id=test~1 -->\n");
+      const f = write("a.txt", page("test~1"));
       applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.equal("<!-- verified id=test~1 -->\n");
+      expect(read(f)).to.equal(page("test~1"));
     });
-    it("fast-paths a doc with no `verified` marker", function () {
+    it("skips a doc that names no doc-detective check", function () {
       const f = write("a.md", "# Just docs\n");
       applyVerifiedMarkers({ config: silent, results: report(f) });
       expect(read(f)).to.equal("# Just docs\n");
     });
-    it("leaves a top-level (non doc-detective) verified key untouched", function () {
-      const f = write("a.md", "---\ntitle: Doc\nverified: true\n---\n\n# Doc\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      expect(read(f)).to.contain("verified: true");
-      expect(read(f)).to.not.match(/date:/);
-    });
-    it("writes the date for flow-style doc-detective front matter (YAML fallback)", function () {
-      const f = write("a.md", "---\ndoc-detective: {verified: {id: test~1}}\n---\n\n# Doc\n");
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      // Flow-style can't be edited surgically, so the YAML fallback writes the
-      // (quoted) date; the value lands and is read as a string, not a Date.
-      expect(out).to.contain(TODAY);
-      expect(out).to.match(/date:\s*["']\d{4}-\d{2}-\d{2}["']/);
-    });
   });
 
   describe("end-to-end via runTests", function () {
-    it("updates a data-only marker after a passing inline wait test", async function () {
+    it("fills the front matter after a passing inline wait test", async function () {
       this.timeout(120000);
       const f = write(
         "page.md",
         [
+          "---",
+          "verified-by:",
+          "  - tool: doc-detective",
+          "    check: wait-demo",
+          "---",
+          "",
           "# Page",
           "",
           '<!-- test {"testId": "wait-demo"} -->',
           '<!-- step {"wait": 10} -->',
           "<!-- test end -->",
           "",
-          "<!-- verified id=wait-demo -->",
-          "",
         ].join("\n")
       );
       await runTests({ input: f, logLevel: "silent" });
       // Assert the date shape, not a pre-captured value: the runner computes the
       // date itself, so an exact-TODAY compare could flake across a UTC rollover.
-      expect(read(f)).to.match(/<!-- verified id=wait-demo date=\d{4}-\d{2}-\d{2} -->/);
+      expect(read(f)).to.match(/\n {4}version: \S+\n {4}passed: \d{4}-\d{2}-\d{2}\nlast-verified: \d{4}-\d{2}-\d{2}\n---/);
     });
 
-    it("updates a prose-only file whose marker references a test defined elsewhere", async function () {
+    it("pins a meta statement on a prose-only page whose check runs elsewhere", async function () {
       this.timeout(120000);
-      // The test lives in runner.md; badge-page.md has no test of its own — it
-      // is reached only by scanning the full detected input set, not the report.
+      // The test lives in runner.md; prose.md has no test of its own, so it is
+      // reached only by scanning the full detected input set, not the report.
       write(
         "runner.md",
         [
@@ -317,23 +153,14 @@ describe("Last Verified On — write-back integration", function () {
           "",
         ].join("\n")
       );
-      const prose = write("badge-page.md", "# Badge page\n\n<!-- verified id=cross-file-demo -->\n");
-      await runTests({ input: tmpDir, logLevel: "silent" });
-      expect(read(prose)).to.match(/<!-- verified id=cross-file-demo date=\d{4}-\d{2}-\d{2} -->/);
-    });
-  });
-
-  describe("front-matter scoping", function () {
-    it("targets doc-detective.verified, not an unrelated top-level verified: key", function () {
-      const f = write(
-        "a.md",
-        "---\nverified: true\ndoc-detective:\n  verified:\n    id: test~1\n---\n\n# Doc\n"
+      const prose = write(
+        "prose.md",
+        '# Prose\n\n<!-- meta {"verified-by":[{"tool":"doc-detective","check":"cross-file-demo"}]} -->\nA verified sentence.\n'
       );
-      applyVerifiedMarkers({ config: silent, results: report(f) });
-      const out = read(f);
-      // The unrelated top-level scalar is untouched; the date lands under doc-detective.
-      expect(out).to.contain("verified: true");
-      expect(out).to.match(/doc-detective:\r?\n {2}verified:\r?\n {4}id: test~1\r?\n {4}date: "\d{4}-\d{2}-\d{2}"/);
+      await runTests({ input: tmpDir, logLevel: "silent" });
+      expect(read(prose)).to.match(
+        /<!-- meta sha256-[0-9a-f]{64} \{"verified-by":\[\{"tool":"doc-detective","check":"cross-file-demo","version":"[^"]+","passed":"\d{4}-\d{2}-\d{2}"\}\],"last-verified":"\d{4}-\d{2}-\d{2}"\} -->/
+      );
     });
   });
 });

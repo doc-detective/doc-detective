@@ -1,121 +1,175 @@
 ---
 status: accepted
-date: 2026-06-29
+date: 2026-10-21
 decision-makers: doc-detective maintainers
 ---
 
-# "Last Verified On" — marker-driven write-back to source docs
+# Write verification results back into source docs, in manni's shared keys
 
 ## Context and Problem Statement
 
-End-user documentation often wants a freshness/trust signal — "this page was verified working on
-2026-06-26" — that stays current automatically. Doc Detective already *proves* a procedure works by
-running it; the missing piece is writing that verification date **back into the source file** so a
-docs site can render a badge, and surfacing the change for review in CI.
+A docs page earns trust when it says "a check proved this worked on 2026-10-21". It should keep
+saying so without anyone editing the date. Doc Detective already proves a procedure works by running it. The
+missing piece is writing that result back into the source file, where a docs site can show it and an
+agent can read it. CI can then turn the change into a pull request.
 
-How should Doc Detective decide *what* date to write, *where* to write it, and *how* a user opts in —
-without surprising file mutations, brittle anchoring, or a pile of new configuration?
+Other tools, such as a link checker or a sample runner, prove things about pages too. If each tool invents its
+own key, no reader can treat "a check passed" as one fact. manni's vocabularies define one shape for
+it. Proposal 0098 sets the page keys, `verified-by` and `last-verified`, in `manni:stewardship:1.2.0`.
+Proposal 0099 sets the inline form, the `meta` statement, pinned to the block it describes.
+
+How should Doc Detective decide what to write, where to write it, and how an author opts in? It must
+avoid surprising file changes, brittle anchoring and new configuration.
 
 ## Decision Drivers
 
-* The date must land **in the source file** (not just a run artifact), idempotently across re-runs.
-* The signal must be **honest**: a date should mean "verified passing", and must not silently advance
-  when the docs break.
-* Anchoring a date to the right test/spec must survive edits and file reordering.
-* Minimize new surface area: no new config knobs or schema changes if avoidable.
-* CI should be able to turn the change into a pull request with no new plumbing.
-* No breaking changes to public schemas or the report shape.
+* The result must land in the source file, and a second run must leave the file as it was.
+* The signal must be honest. A date means "verified passing", and it never moves when the docs break.
+* The anchor between a date and its test must survive edits and reordering.
+* The shape must be the one manni defines, so any tool reads and writes one key, and manni can
+  validate it and serve it.
+* No new config knobs, CLI flags or schema changes.
+* CI should turn the change into a pull request with no new plumbing.
 
 ## Considered Options
 
-* **A. Marker-driven, author-placed, no config** (chosen) — the author writes a static `verified`
-  marker carrying an `id` they choose; Doc Detective resolves the id and writes the date.
-* **B. Config-driven injection** — a `verification` config object (placement/granularity/template)
-  tells Doc Detective where to inject stamps.
-* **C. Sidecar manifest** — write verification data to `.doc-detective/verified.json`; never touch
-  source files.
+* **A. Author-declared `verified-by` entries in manni's shared keys** (chosen). The author lists an
+  entry naming Doc Detective and a test or spec id. Doc Detective fills in the result.
+* **B. Doc Detective's own keys.** A `doc-detective.verified` front-matter object and an inline
+  `verified` comment marker, each with an `id` and a `date`.
+* **C. Config-driven injection.** A `verification` config object tells Doc Detective where to stamp
+  dates.
+* **D. Sidecar manifest.** Results go to `.doc-detective/verified.json`, and source files are never
+  touched.
 
 ## Decision Outcome
 
-Chosen option: **A**, because it makes anchoring, idempotency, granularity, and placement the
-author's explicit choice instead of something Doc Detective must infer — which dissolves the hardest
-problems of an injection model (B) and still satisfies the "write directly to the file" requirement
-that C fails.
+Chosen option: **A**. The author's entry makes anchoring and granularity explicit, which removes the
+hardest problems of C. It writes into the file, which D cannot. Unlike B, it uses keys the whole
+manni family reads, so one page can list several tools and a reader sees one date.
 
 Behavior decided:
 
-1. **No config, no CLI flag, no configurable marker.** The feature is always on and acts only where a
-   `verified` marker exists in content, and nowhere else. There is no `verification` config object and
-   no schema change.
-2. **Author owns the `id`; Doc Detective owns the `date`.** The marker's `id` references a **test id or
-   a spec id**. After a run, the id is resolved to that unit's roll-up result.
-3. **Write the date only on PASS.** On FAIL/WARNING/SKIPPED the existing date is left untouched, so the
-   badge "ages". Because a date is only ever written on PASS, the date alone is the trust signal — no
-   `status` field is recorded.
-4. **Two marker forms.** An inline comment (per format: markdown/MDX `{/* */}`, `<!-- -->`, and
-   `[comment]: #`; AsciiDoc `// ( )`; HTML/DITA comments) and a page-level YAML front-matter object
-   `doc-detective.verified` with sibling `id` (author-set) and `date` (Doc Detective-written) keys.
-5. **Optional `badge`.** An inline marker with the `badge` attribute additionally maintains a
-   **shields.io static badge image** (`![Last verified …](https://img.shields.io/badge/…)`) on the line
-   after the marker, so it renders without theme work. Doc Detective only writes the URL — shields.io
-   renders it client-side, so there is no network call. Without `badge`, the marker is data-only.
-6. **Unknown id → warn and skip.** A marker whose id matches no test/spec logs a warning and is left
-   untouched, catching typos and deleted tests without failing the run.
-7. **CI uses the existing GitHub Action.** `create_pr_on_change` already turns any post-run file change
-   into a pull request, so date writes flow into a PR with zero Action changes.
+1. **No config and no CLI flag.** The write-back is always on. It acts only where an entry names
+   Doc Detective, and nowhere else.
+2. **A page opts in with a `verified-by` entry.** The entry has `tool: doc-detective` and a `check`
+   naming a test id or a spec id. After a run, the check resolves to that unit's roll-up result. A
+   spec id wins over a test id of the same name.
+
+   ```yaml
+   verified-by:
+     - tool: doc-detective
+       check: cite-set-up
+   ```
+
+3. **On PASS, Doc Detective fills its own entry.** It sets `version` to its own version and `passed`
+   to today as a UTC day (`YYYY-MM-DD`). It then sets the top-level `last-verified` to the oldest
+   `passed` across all entries, but only once every entry has one. A lagging check holds the date
+   back, so it never claims more than every check proved.
+
+   ```yaml
+   last-verified: 2026-10-21
+   verified-by:
+     - tool: doc-detective
+       check: cite-set-up
+       version: 4.27.0
+       passed: 2026-10-21
+   ```
+
+4. **On FAIL, WARNING or SKIPPED it writes nothing.** The existing values age, and the age is the
+   signal.
+5. **It never touches another tool's entry.** An entry for `lychee` keeps whatever its own writer
+   put there, even when it names the same check.
+6. **Writes keep the file's style.** A value is replaced in place and keeps its quotes. A missing key
+   goes at the end of its block, in that block's style, block or flow. Line endings stay as they
+   were. A second pass on the same day changes nothing.
+7. **The inline form is manni's `meta` statement.** It carries the same fields for one block, in the
+   page's own comment syntax. Markdown and MDX take `<!-- -->`, `{/* */}` or `[comment]: # ( )`.
+   HTML takes `<!-- -->`, AsciiDoc `// ( )`, and DITA `<?manni meta …?>` or `<!-- -->`. A
+   statement opts in the same way, with an entry naming Doc Detective and a check.
+
+   ```mdx
+   {/* meta {"verified-by":[{"tool":"doc-detective","check":"cite-add-first-pin"}]} */}
+   1. Run `manni cite add docs/intro.md:12 --source src/limits.ts:10-14`.
+   ```
+
+8. **On PASS, a statement is filled and pinned.** Doc Detective fills its entry and sets the
+   statement's `last-verified` by the same rule as the page. It then writes a pin: the hash of the
+   lines the statement anchors, by manni's rule. The rewrite stays in the statement's own comment
+   form, so the diff is one line. Statements inside code are never read.
+9. **Anchoring and the pin follow manni's rules exactly.** In the line formats a statement anchors
+   the rest of its own line, else the next paragraph or fenced block. In DITA it anchors the element
+   it is the first child of, else the next element, start tag to end tag. On a section it anchors
+   the title. The pin is `sha256-` and the hex digest of those lines joined with LF.
+10. **Unknown check, then warn and skip.** A check that matches no test or spec logs a warning, and
+    the entry is left as it was.
+11. **CI uses the existing GitHub Action.** `create_pr_on_change` already turns a post-run file
+    change into a pull request.
+
+Doc Detective's own keys from option B are gone. The front-matter `doc-detective.verified` object
+and the inline `verified` marker are no longer read or written. The shields.io badge that marker
+could carry moves to badge-anchored tests, recorded in ADR 01141.
 
 ### Consequences
 
-* Good: idempotent in-source writes; honest aging; author-explicit anchoring (no content-hash guessing,
-  no orphans); zero new config/schema surface; zero new CI code.
-* Good: implementation is contained in `src/core` (`applyVerifiedMarkers` + pure helpers in
-  `src/core/utils.ts`, wired into `runTests`), so the schemas and the report shape are untouched.
-* Coverage: the writer scans the **union** of the report's content paths and the full detected input
-  set, so a marker in a prose-only page that produces no spec — referencing a test/spec defined in
-  another file — is still updated. The detected input set is side-channelled from `qualifyFiles`
-  (`config._qualifiedFiles`) through `resolvedTests._qualifiedFiles` into the writer, reusing the exact
-  file discovery the run already performed (no re-enumeration, no duplicated globbing).
-  * **Exception — pre-resolved (`DOC_DETECTIVE_API`) runs:** when `runTests` is given caller-supplied
-    `resolvedTests`, `_qualifiedFiles` is never populated, so the candidate set falls back to the
-    report's content paths alone. Markers on the tested pages are still updated; prose-only pages that
-    reference a test defined elsewhere are not, and a `debug` line notes this.
-* Trade-off: `verified` markers must round-trip in the exact comment form they were authored in; the
-  writer never rewrites an MDX `{/* */}` marker as `<!-- -->` (which would break the MDX build).
+* Good, because one shape serves every tool. manni validates the form of every value, and other tools read the
+  same date.
+* Good, because it keeps honest aging, author-explicit anchoring, idempotent writes, and no new config or schema.
+* Good, because a pin records exactly which words a check proved. When they change, `manni meta validate`
+  warns until the next passing run re-pins them.
+* The writer scans the union of the report's content paths and the full detected input
+  set. A prose-only page that names a check defined in another file is still updated. The detected
+  set is side-channelled from `qualifyFiles` (`config._qualifiedFiles`) through
+  `resolvedTests._qualifiedFiles`, so the run's own file discovery is reused.
+  * **Exception, pre-resolved (`DOC_DETECTIVE_API`) runs:** caller-supplied `resolvedTests` never
+    carry `_qualifiedFiles`. The candidate set falls back to the report's content paths, and a
+    `debug` line says so.
+* Trade-off: the anchoring rules are ported from manni rather than shared as a package. Fixtures
+  pinned by manni itself guard the port against drift.
+* Trade-off: new dates are written unquoted, as manni's own examples are. A YAML 1.1 reader may load
+  one as a date object rather than a string.
 
 ### Confirmation
 
-* Pure helpers (`verifiedDate`, `shieldsBadge`, `parseVerifiedMarkers`, `applyVerifiedToContent`,
-  `resolveVerifiedId`) are unit-tested in `test/verified-markers.test.js`, including the shields.io
-  dash-doubling, MDX form preservation, idempotency, and aging.
-* End-to-end write-back is covered in `test/verified-writeback.test.js`: a deterministic matrix
-  (markdown/MDX/AsciiDoc/HTML/DITA, data-only and badge, front matter, spec-id and test-id targets,
-  PASS/FAIL/SKIPPED, unknown-id warning, byte-idempotency) driven by a synthetic report, plus two real
-  `runTests` runs — one mutating a temp markdown file with an inline `wait` test, one proving the
-  full-input-set scan updates a prose-only page whose marker references a test defined in another file.
-* These fixtures are intentionally **not** committed `test/core-artifacts/*.spec.json` files: the
-  feature mutates source files, so a committed fixture would be rewritten with the current date on every
-  run and permanently dirty the working tree. The temp-file integration tests are the correct
-  adaptation of the feature-fixture requirement for a file-mutating feature.
+* `test/verified-markers.test.js` covers the content-level rules: opt-in through `verified-by`,
+  `version`, `passed` and `last-verified` on PASS, nothing on FAIL, WARNING or SKIPPED, and the
+  oldest-pass rule with two entries. It also covers other tools' entries, flow style, CRLF, quotes
+  and idempotency.
+* The same file runs each page in `test/verification-fixtures/` with its pins stripped. Each page was
+  pinned by `manni meta derive`. Doc Detective must write back the same pins, in Markdown, MDX, HTML,
+  AsciiDoc and DITA, and keep each comment form.
+* `test/verified-writeback.test.js` covers the file-level writer and two real `runTests` runs. One
+  fills front matter after an inline `wait` test. One pins a statement on a prose-only page whose
+  test lives in another file.
+* These are temp-file tests, not committed `test/core-artifacts/*.spec.json` fixtures. The feature
+  writes to source files, so a committed fixture would get today's date on every run and dirty the
+  working tree.
 
 ## Pros and Cons of the Options
 
-### A. Marker-driven, author-placed, no config
+### A. Author-declared `verified-by` entries in manni's shared keys
 
-* Good, because anchoring is the author's literal `id` — stable, no orphans, no content-hash inference.
-* Good, because idempotency is "find marker by id, overwrite its date in place" — position-independent.
-* Good, because granularity and placement are free: reference a test or spec id, put the marker anywhere.
-* Good, because it needs no config object, no schema change, and no Action change.
-* Bad, because the author must know/copy a valid id, and a typo'd id only warns rather than failing.
+* Good, because anchoring is the author's literal check id: stable, with no orphans.
+* Good, because idempotency is "find the entry, overwrite its values in place".
+* Good, because several tools share one page and one reader-facing date.
+* Good, because manni validates the shape, and the pin tells a reader when proved text changed.
+* Bad, because the author must know a valid id, and a typo only warns.
 
-### B. Config-driven injection
+### B. Doc Detective's own keys
 
-* Good, because users get badges without authoring per-location markers.
-* Bad, because Doc Detective must infer a safe insertion point (avoiding code fences/lists/tables) and
-  guess which test owns each stamp, reintroducing orphan and idempotency hazards.
+* Good, because Doc Detective owns the whole format.
+* Bad, because no other tool or reader understands it, and manni cannot validate or serve it.
+* Bad, because a page verified by two tools carries two unrelated dates.
+
+### C. Config-driven injection
+
+* Good, because users get dates without placing anything by hand.
+* Bad, because Doc Detective must infer a safe insertion point and guess which test owns each stamp,
+  which brings back orphan and idempotency hazards.
 * Bad, because it adds a `verification` config object and per-format placement machinery.
 
-### C. Sidecar manifest
+### D. Sidecar manifest
 
-* Good, because it never risks a bad source-file diff and idempotency is trivial.
-* Bad, because it fails the core requirement to write **directly into the source file**, and requires
-  every docs theme to read a separate JSON file to render anything.
+* Good, because it never risks a bad source-file diff.
+* Bad, because it fails the core need to write into the source file, and every docs theme must read
+  a separate file.

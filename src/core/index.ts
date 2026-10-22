@@ -44,7 +44,7 @@ async function detectAndResolveFromConfig(config: any) {
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
-  // Carry the full qualified input set forward so the verified-marker
+  // Carry the full qualified input set forward so the verification
   // write-back can reach prose-only files that produced no spec (see
   // qualifyFiles' `config._qualifiedFiles`).
   if (resolvedTests) (resolvedTests as any)._qualifiedFiles = config._qualifiedFiles || [];
@@ -380,9 +380,9 @@ async function runTestsAndReport(config: any, options: any) {
   // Clean up
   cleanTemp();
 
-  // "Last Verified On" write-back: update any `verified` markers in the source
-  // docs with today's date where the referenced test/spec passed. No-op when
-  // no markers exist; never throws (warns and continues on per-file errors).
+  // Verification write-back: fill Doc Detective's `verified-by` entries in the
+  // source docs where the named test/spec passed. No-op when no page names a
+  // check; never throws (warns and continues on per-file errors).
   try {
     // resolvedTests is always set here (runTests returns early otherwise), so the
     // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
