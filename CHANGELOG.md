@@ -1,3 +1,13 @@
+# [4.41.0-last-verified-on.4](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.3...v4.41.0-last-verified-on.4) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** address review findings on the verification write-back ([8bd9109](https://github.com/doc-detective/doc-detective/commit/8bd91093e86b6621612eb092f994f0d7257c3546))
+* **runner:** clean up the temp file when an atomic write fails partway ([3c26717](https://github.com/doc-detective/doc-detective/commit/3c26717984d2f8c7415c122acca6f69d2ae6faa2))
+* **runner:** one badge per statement line; escape the BOM in FRONT_MATTER ([0e55205](https://github.com/doc-detective/doc-detective/commit/0e55205e6d9c13599613bffeec6fcafa3fa80b18))
+* **runner:** pass a routed check only if every visit passed ([faae5da](https://github.com/doc-detective/doc-detective/commit/faae5da7cb1c54ba9c893e5cac878a837abb4684))
+
 # [4.41.0-last-verified-on.3](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.2...v4.41.0-last-verified-on.3) (2026-10-22)
 
 
