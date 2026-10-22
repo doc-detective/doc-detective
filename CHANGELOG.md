@@ -1,3 +1,10 @@
+# [4.41.0-last-verified-on.3](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.2...v4.41.0-last-verified-on.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** cut every statement out of a pin, matching manni 0101 ([7f951ad](https://github.com/doc-detective/doc-detective/commit/7f951ad3a3a3cd19defd533d17f3aa2ad8076ce5)), closes [hawkeyexl/manni#233](https://github.com/hawkeyexl/manni/issues/233)
+
 # [4.41.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.1...v4.41.0-last-verified-on.2) (2026-10-22)
 
 
