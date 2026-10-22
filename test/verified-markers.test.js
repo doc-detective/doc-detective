@@ -414,7 +414,11 @@ describe("Verification metadata — pure helpers", function () {
 
     it("skips a statement that anchors nothing, or whose payload is not one JSON object", function () {
       const orphan = 'Text.\n\n<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} -->\n';
-      expect(applyVerification(orphan, "markdown", opts())).to.equal(orphan);
+      const skipped = [];
+      expect(applyVerification(orphan, "markdown", { ...opts(), onSkipped: (line, reason) => skipped.push([line, reason]) })).to.equal(orphan);
+      expect(skipped).to.have.length(1);
+      expect(skipped[0][0]).to.equal(3);
+      expect(skipped[0][1]).to.match(/anchors nothing/);
       const broken = '<!-- meta {"verified-by": -->\nText.\n';
       expect(applyVerification(broken, "markdown", opts())).to.equal(broken);
     });

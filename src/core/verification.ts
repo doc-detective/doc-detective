@@ -31,7 +31,7 @@ export interface VerificationOptions {
   resolve: (check: string) => string | null;
   /** Called once per check that matches no test or spec. */
   onUnknown?: (check: string) => void;
-  /** Called for a statement naming Doc Detective that its comment form can't hold, so it's skipped. */
+  /** Called for a statement naming Doc Detective that is skipped: its form can't hold it, or it anchors nothing. */
   onSkipped?: (line: number, reason: string) => void;
 }
 
@@ -769,7 +769,10 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
       if (s.payload.includes(TOOL)) opts.onSkipped?.(s.line, s.broken);
       continue;
     }
-    if (!anchor) continue;
+    if (!anchor) {
+      if (s.payload.includes(TOOL)) opts.onSkipped?.(s.line, "it anchors nothing: no paragraph, block or element follows it");
+      continue;
+    }
     let data: unknown;
     try {
       data = JSON.parse(s.payload);
