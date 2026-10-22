@@ -2056,6 +2056,7 @@ function writeFileAtomic(file: string, content: string): void {
   // Created exclusively first, so an EEXIST throws before we own the file and
   // cleanup can never remove someone else's.
   const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
+  let keepTmp = false;
   try {
     try {
       fs.writeFileSync(fd, content, "utf8");
@@ -2070,11 +2071,18 @@ function writeFileAtomic(file: string, content: string): void {
       // editor, a preview). Fall back to an in-place copy, which is no worse
       // than a plain write, rather than skip the document.
       if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
-      fs.copyFileSync(tmp, target);
+      try {
+        fs.copyFileSync(tmp, target);
+      } catch (copyError: any) {
+        // The copy truncates the document first, so a failure partway can
+        // leave it incomplete. Keep the temp file, the one complete copy.
+        keepTmp = true;
+        throw new Error(`${copyError?.message ?? copyError} (the complete content is kept in ${tmp})`);
+      }
       fs.rmSync(tmp, { force: true });
     }
   } catch (error) {
-    fs.rmSync(tmp, { force: true });
+    if (!keepTmp) fs.rmSync(tmp, { force: true });
     throw error;
   }
 }
