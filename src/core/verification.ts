@@ -140,7 +140,9 @@ function setKey(src: string, map: any, key: string, value: string, eol: string, 
 }
 
 // Where a block map or sequence's last line ends (past any trailing comment,
-// before its line break), and the indent its items start at.
+// before its line break), and the indent its items start at. Callers pass only
+// block-style nodes, which always hold an item: an empty one parses as flow
+// (`[]`, `{}`) or null, and both take other paths.
 function blockEnd(src: string, node: any): { at: number; indent: string } {
   const YAML = requireYaml();
   const last = node.items[node.items.length - 1];
