@@ -1,3 +1,18 @@
+# [4.41.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.1...v4.41.0-last-verified-on.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** collapse stale multi-line comment block in core/index.ts ([97c0864](https://github.com/doc-detective/doc-detective/commit/97c0864efdc55f7f1b0b1e0150d94e7c53133f27))
+* **runner:** place badges before pinning meta statements ([10fd32c](https://github.com/doc-detective/doc-detective/commit/10fd32cfadde0fc863fe114d3b0dc99df23da525))
+* **runner:** restore the escapes in the badge-line patterns ([630e82d](https://github.com/doc-detective/doc-detective/commit/630e82dedc77ae5ee4bf128a81a72a4d1706c12b))
+* **runner:** tighten badge/location schema, drop multi-line comment blocks ([3a9df19](https://github.com/doc-detective/doc-detective/commit/3a9df193fe5eaa266819aa79fc0e4824ff174c99))
+
+
+### Features
+
+* **runner:** anchor "Last verified" badges to inline tests, no id required ([c0a020e](https://github.com/doc-detective/doc-detective/commit/c0a020e78606d107c9de0578b630d9ccc46f093e)), closes [#417](https://github.com/doc-detective/doc-detective/issues/417)
+
 # [4.41.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.40.6...v4.41.0-last-verified-on.1) (2026-10-22)
 
 
