@@ -1,3 +1,19 @@
+# [4.41.0-last-verified-on.7](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.6...v4.41.0-last-verified-on.7) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** fill and pin DITA <data name="manni-meta"> carriers ([ed5f7d6](https://github.com/doc-detective/doc-detective/commit/ed5f7d6506273df19545816fbe1cae588c06af44))
+* **runner:** freeze a generated id in a test statement that spans lines ([c407d79](https://github.com/doc-detective/doc-detective/commit/c407d79a3ef7207967e3ff40e760e8867c887d85))
+* **runner:** point the AsciiDoc ")" warning at the testId; test an empty list ([306400f](https://github.com/doc-detective/doc-detective/commit/306400f5af2b29b97c3c1b46fb476c4898e281dd))
+* **runner:** tell an authored id by the statement's testId, not a substring ([9897c23](https://github.com/doc-detective/doc-detective/commit/9897c23ee5664aef8ccb7aafed94e4919ab38777))
+* **runner:** warn when a statement of ours anchors nothing ([5daa7ca](https://github.com/doc-detective/doc-detective/commit/5daa7caafa8a811d4f92ad03ba05e5701075edc6))
+
+
+### Features
+
+* **runner:** freeze generated test ids under verification.write: true ([ccb9525](https://github.com/doc-detective/doc-detective/commit/ccb9525d2b3e3e44d67baaa645685a5e9a59f3a7))
+
 # [4.41.0-last-verified-on.6](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.5...v4.41.0-last-verified-on.6) (2026-10-22)
 
 
