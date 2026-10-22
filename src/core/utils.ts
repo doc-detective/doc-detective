@@ -2256,6 +2256,13 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
           .filter(([id, result]) => result === "PASS" && original.includes(id) && !declared(id))
           .map(([id]) => id);
         const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
+        if (checks.length > 0 && !statement) {
+          log(
+            config,
+            "warning",
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: a ${format} \`// ( )\` statement ends at the first ")". Add a verified-by entry by hand, or use a testId without ")".`
+          );
+        }
         if (statement) {
           const top = li > 0 && existingImgRe.test(lines[li - 1]) ? li - 1 : li;
           lines.splice(top, 0, `${format === "asciidoc" ? "" : indent}${statement}`);

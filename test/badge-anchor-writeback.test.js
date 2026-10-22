@@ -232,6 +232,21 @@ describe("Badge-anchored test verification — write-back", function () {
       run(f);
       expect(read(f)).to.equal(original);
     });
+    it("warns, and writes nothing, when the format's comment can't hold the payload", function () {
+      // AsciiDoc's `// ( )` form ends at the first `)`.
+      const original = '= Doc\n\n// (test {"testId": "a(1)"})\n';
+      const f = write("a.adoc", original);
+      const logs = [];
+      const realLog = console.log;
+      console.log = (...a) => logs.push(a.join(" "));
+      try {
+        applyBadgeAnchoredTests({ config: { logLevel: "warning" }, results: report(f, { testId: "a(1)", badge: false }), init: true });
+      } finally {
+        console.log = realLog;
+      }
+      expect(read(f)).to.equal(original);
+      expect(logs.join("\n")).to.match(/a\(1\).*\)/);
+    });
     it("declares nothing without init", function () {
       const original = `# Doc\n\n${test}`;
       const f = write("a.md", original);
