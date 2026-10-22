@@ -323,6 +323,18 @@ describe("Verification metadata — pure helpers", function () {
       );
     });
 
+    it("handles an empty verified-by list and an entry with no check", function () {
+      // An empty list is a flow list in YAML; declaring adds to it, filling has nothing to fill.
+      expect(declarePage("---\nverified-by: []\n---\n", "docs/a.md")).to.equal(
+        "---\nverified-by: [{tool: doc-detective, check: docs/a.md}]\n---\n"
+      );
+      expect(applyVerification("---\nverified-by: []\n---\n", "markdown", opts())).to.equal("---\nverified-by: []\n---\n");
+      // An entry naming doc-detective but no check is ours already, and has nothing to resolve.
+      const noCheck = "---\nverified-by:\n  - tool: doc-detective\n---\n";
+      expect(declarePage(noCheck, "docs/a.md")).to.equal(noCheck);
+      expect(applyVerification(noCheck, "markdown", opts())).to.equal(noCheck);
+    });
+
     it("appends after a merge key that ends the map", function () {
       const input = "---\nbase: &b {x: 1}\nverified-by:\n  - tool: doc-detective\n    check: a\n    <<: *b\n---\n";
       expect(applyVerification(input, "markdown", opts())).to.equal(

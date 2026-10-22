@@ -2339,7 +2339,7 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
           log(
             config,
             "warning",
-            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")". Add a verified-by entry by hand, or use a testId without ")".`
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")", so no statement can name it. Rename the testId without ")".`
           );
         }
         if (statement) {
