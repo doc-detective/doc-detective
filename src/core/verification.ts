@@ -477,6 +477,8 @@ interface Statement {
   payload: string;
   /** Why manni rejects the statement's form, or "" when it doesn't. */
   broken: string;
+  /** A `<data>` carrier's attribute quote: what's written is escaped for it. */
+  quote?: string;
 }
 
 const PIN_TOKEN = /^sha256-[0-9a-f]{64}$/;
@@ -542,6 +544,59 @@ interface XmlNode {
   parent?: XmlNode;
   blank?: boolean;
   statement?: boolean;
+}
+
+// DITA's `<data name="manni-meta" value='…'/>` carriers, read as manni's
+// `dataStatement` reads them: the value attribute, entities decoded, an
+// optional pin, then the payload.
+const DATA_NAME = /\bname\s*=\s*(["'])manni-meta\1/;
+const DATA_VALUE = /\bvalue\s*=\s*(["'])/;
+
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|quot|apos|lt|gt|amp);/g, (_m, e: string) => {
+    if (e.startsWith("#x")) return String.fromCodePoint(Number.parseInt(e.slice(2), 16));
+    if (e.startsWith("#")) return String.fromCodePoint(Number.parseInt(e.slice(1), 10));
+    return ({ quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" } as Record<string, string>)[e] ?? "";
+  });
+}
+
+function dataStatements(content: string): Statement[] {
+  const out: Statement[] = [];
+  for (let at = content.indexOf("<data"); at !== -1; at = content.indexOf("<data", at + 5)) {
+    if (!/[\s/>]/.test(content.charAt(at + 5))) continue; // `<data`, not `<datalist`
+    const tag = startTagEnd(content, at);
+    if (!tag || !DATA_NAME.test(content.slice(at, tag.end))) continue;
+    const value = DATA_VALUE.exec(content.slice(at, tag.end));
+    if (!value) continue;
+    const open = at + value.index + value[0].length;
+    const close = content.indexOf(value[1], open);
+    if (close === -1) continue;
+    const raw = content.slice(open, close);
+    const lead = /^\s*/.exec(raw)?.[0] ?? "";
+    const rest = decodeEntities(raw.slice(lead.length));
+    const word = /^\S+/.exec(rest)?.[0] ?? "";
+    const pinned = PIN_TOKEN.test(word);
+    out.push({
+      line: lineAt(content, at),
+      start: at,
+      end: tag.end,
+      pinAt: open + lead.length,
+      closeAt: close,
+      pin: pinned ? word : undefined,
+      payload: (pinned ? rest.slice(word.length) : rest).trim(),
+      broken: "",
+      quote: value[1],
+    });
+  }
+  return out;
+}
+
+// Text for an XML attribute value quoted with `quote`.
+function escapeAttribute(text: string, quote: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(quote === "'" ? /'/g : /"/g, quote === "'" ? "&apos;" : "&quot;");
 }
 
 function startTagEnd(source: string, at: number): { end: number; selfClosing: boolean } | undefined {
@@ -642,7 +697,8 @@ function xmlAnchors(
   const linesOf = (n: XmlNode) => ({ start: lineAt(content, n.start), end: lineAt(content, Math.max(n.start, n.end - 1)) });
   const out = new Map<Statement, { start: number; end: number }>();
   for (const node of walk(tree)) {
-    const s = node.kind === "other" ? byStart.get(node.start) : undefined;
+    // An instruction or comment statement, or a `<data>` carrier.
+    const s = node.statement ? byStart.get(node.start) : undefined;
     if (!s) continue;
     const parent = node.parent ?? tree;
     const index = parent.children.indexOf(node);
@@ -696,6 +752,7 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
   if (!FORMS[format]) return content;
   const from = format === "markdown" || format === "asciidoc" ? (frontMatter(content)?.end ?? 0) : 0;
   const statements = parseStatements(content, from, format);
+  if (format === "dita") statements.push(...dataStatements(content));
   if (statements.length === 0) return content;
   const { anchors, spans } =
     format === "dita"
@@ -740,7 +797,8 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
     // it, so the file stays byte-identical.
     if (pin === s.pin && json === before) continue;
     const trailing = /\s*$/.exec(content.slice(s.pinAt, s.closeAt))?.[0] ?? "";
-    edits.push({ start: s.pinAt, end: s.closeAt, text: `${pin} ${json}${trailing}` });
+    const text = `${pin} ${json}`;
+    edits.push({ start: s.pinAt, end: s.closeAt, text: `${s.quote ? escapeAttribute(text, s.quote) : text}${trailing}` });
   }
   return edits.length === 0 ? content : applyEdits(content, edits);
 }

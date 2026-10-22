@@ -419,6 +419,27 @@ describe("Verification metadata — pure helpers", function () {
       expect(applyVerification(broken, "markdown", opts())).to.equal(broken);
     });
 
+    it("fills and pins a DITA <data> carrier, keeping its quotes", function () {
+      const page = (v) =>
+        ["<steps>", `  <step><data name="manni-meta" value='${v}'/>`, "    <cmd>Run it.</cmd>", "  </step>", "</steps>", ""].join("\n");
+      const out = applyVerification(page('{"verified-by":[{"tool":"doc-detective","check":"a"}]}'), "dita", opts());
+      // The carrier is the step's first child: it pins the step, itself cut out.
+      const pin = pinOf(["  <step>", "    <cmd>Run it.</cmd>", "  </step>"]);
+      expect(out).to.equal(
+        page(`${pin} {"verified-by":[{"tool":"doc-detective","check":"a","version":"4.27.0","passed":"2026-10-21"}],"last-verified":"2026-10-21"}`)
+      );
+      expect(applyVerification(out, "dita", opts())).to.equal(out);
+    });
+
+    it("escapes a double-quoted <data> carrier's value as it writes it", function () {
+      const q = (s) => s.replace(/"/g, "&quot;");
+      const page = (v) => `<steps>\n  <step><data name="manni-meta" value="${q(v)}"/>\n    <cmd>Run it.</cmd>\n  </step>\n</steps>\n`;
+      const out = applyVerification(page('{"verified-by":[{"tool":"doc-detective","check":"a"}]}'), "dita", opts());
+      expect(out).to.contain('value="sha256-');
+      expect(out).to.contain(`${q('"passed":"2026-10-21"}],"last-verified":"2026-10-21"}')}"/>`);
+      expect(applyVerification(out, "dita", opts())).to.equal(out);
+    });
+
     it("reports, and skips, a statement of ours its comment form can't hold", function () {
       // AsciiDoc's `// ( )` form ends at the first `)`, so manni rejects this one.
       const input = '// (meta {"verified-by":[{"tool":"doc-detective","check":"a(1)"}]})\nText.\n';
