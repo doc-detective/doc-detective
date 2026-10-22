@@ -47,7 +47,14 @@ async function detectAndResolveFromConfig(config: any) {
   // Carry the full qualified input set forward so the verification
   // write-back can reach prose-only files that produced no spec (see
   // qualifyFiles' `config._qualifiedFiles`).
-  if (resolvedTests) (resolvedTests as any)._qualifiedFiles = config._qualifiedFiles || [];
+  // Non-enumerable, so it stays out of serialized payloads (see qualifyFiles).
+  if (resolvedTests) {
+    Object.defineProperty(resolvedTests, "_qualifiedFiles", {
+      value: config._qualifiedFiles || [],
+      configurable: true,
+      writable: true,
+    });
+  }
   return resolvedTests;
 }
 

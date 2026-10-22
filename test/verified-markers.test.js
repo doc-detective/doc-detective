@@ -140,6 +140,13 @@ describe("Verification metadata — pure helpers", function () {
       expect(applyVerification(once, "markdown", opts())).to.equal(once);
     });
 
+    it("fills a key that is present with no value", function () {
+      const input = "---\nverified-by:\n  - tool: doc-detective\n    check: a\n    passed:\nlast-verified:\n---\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        "---\nverified-by:\n  - tool: doc-detective\n    check: a\n    passed: 2026-10-21\n    version: 4.27.0\nlast-verified: 2026-10-21\n---\n"
+      );
+    });
+
     it("updates existing values in place, keeping their quotes", function () {
       const input = [
         "---",

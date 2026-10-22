@@ -308,7 +308,7 @@ async function qualifyFiles({ config }: { config: any }) {
 
   if (sequence.length === 0) {
     log(config, "warning", "No input sources specified.");
-    config._qualifiedFiles = [];
+    Object.defineProperty(config, "_qualifiedFiles", { value: [], configurable: true, writable: true });
     return [];
   }
 
@@ -503,8 +503,10 @@ async function qualifyFiles({ config }: { config: any }) {
   }
   // Side-channel the full qualified file set (same pattern as `_phaseByFile`)
   // so the verification write-back can scan prose-only files that name a
-  // Doc Detective check but contribute no spec to the report.
-  config._qualifiedFiles = files;
+  // Doc Detective check but contribute no spec to the report. Non-enumerable:
+  // unlike the Map side-channels, an array of local paths would otherwise be
+  // serialized into `--dry-run` output and API requests.
+  Object.defineProperty(config, "_qualifiedFiles", { value: files, configurable: true, writable: true });
   return files;
 }
 

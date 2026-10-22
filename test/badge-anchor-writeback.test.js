@@ -184,6 +184,37 @@ describe("Badge-anchored test verification — write-back", function () {
     });
   });
 
+  describe("only its own badge", function () {
+    it("keeps another shields.io badge on the line above, and adds its own below it", function () {
+      const own = `![Last verified ${TODAY}](https://img.shields.io/badge/Last_verified-${TODAY.replace(/-/g, "--")}-brightgreen)`;
+      const build = "![build](https://img.shields.io/badge/build-passing-green)";
+      const f = write("a.md", `# Doc\n${build}\n<!-- test {"badge": true} -->\n`);
+      applyBadgeAnchoredTests({ config: silent, results: report(f) });
+      expect(read(f)).to.equal(`# Doc\n${build}\n${own}\n<!-- test {"badge": true} -->\n`);
+    });
+  });
+
+  describe("a test revisited by routing", function () {
+    // A goToTest route can run one inline test twice, so the report holds two
+    // entries with the same location.
+    const twice = (f, results) => {
+      const r = report(f, { result: results[0] });
+      r.specs[0].tests.push({ ...r.specs[0].tests[0], result: results[1] });
+      return r;
+    };
+    it("inserts one badge, not one per visit", function () {
+      const f = write("a.md", '# Doc\n\n<!-- test {"badge": true} -->\n');
+      applyBadgeAnchoredTests({ config: silent, results: twice(f, ["PASS", "PASS"]) });
+      expect(read(f).match(/img\.shields\.io/g)).to.have.length(1);
+    });
+    it("inserts no badge when any visit didn't pass", function () {
+      const original = '# Doc\n\n<!-- test {"badge": true} -->\n';
+      const f = write("a.md", original);
+      applyBadgeAnchoredTests({ config: silent, results: twice(f, ["FAIL", "PASS"]) });
+      expect(read(f)).to.equal(original);
+    });
+  });
+
   describe("multiple badge tests in one file", function () {
     it("stamps only the passing test's badge; the failing one's is untouched", function () {
       const f = write(

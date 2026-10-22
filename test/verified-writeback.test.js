@@ -1,5 +1,5 @@
 import { applyVerifiedMarkers, verifiedDate } from "../dist/core/utils.js";
-import { runTests } from "../dist/core/index.js";
+import { runTests, detectAndResolveTests } from "../dist/core/index.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -137,6 +137,30 @@ describe("Verification metadata — write-back", function () {
       // Assert the date shape, not a pre-captured value: the runner computes the
       // date itself, so an exact-TODAY compare could flake across a UTC rollover.
       expect(read(f)).to.match(/\n {4}version: \S+\n {4}passed: \d{4}-\d{2}-\d{2}\nlast-verified: \d{4}-\d{2}-\d{2}\n---/);
+    });
+
+    it("keeps the detected file list out of serialized resolved tests", async function () {
+      this.timeout(120000);
+      const f = write("page.md", ['<!-- test {"testId": "t"} -->', '<!-- step {"wait": 10} -->', "<!-- test end -->", ""].join("\n"));
+      const resolved = await detectAndResolveTests({ config: { input: f, logLevel: "silent" } });
+      // The write-back still reads it, but `--dry-run` output and an API
+      // request never carry the local file paths.
+      expect(resolved._qualifiedFiles).to.be.an("array").that.is.not.empty;
+      expect(JSON.stringify(resolved)).to.not.contain("_qualifiedFiles");
+    });
+
+    it("writes through a symlink and leaves no temporary file behind", function () {
+      const target = write("real.md", '<!-- meta {"verified-by":[{"tool":"doc-detective","check":"test~1"}]} -->\nText.\n');
+      const link = path.join(tmpDir, "link.md");
+      try {
+        fs.symlinkSync(target, link);
+      } catch {
+        this.skip(); // symlinks need privileges on some Windows setups
+      }
+      applyVerifiedMarkers({ config: { logLevel: "silent" }, results: { specs: [{ specId: "s", tests: [{ testId: "test~1", contentPath: link, result: "PASS" }] }] } });
+      expect(fs.lstatSync(link).isSymbolicLink()).to.equal(true);
+      expect(read(target)).to.match(/meta sha256-[0-9a-f]{64} /);
+      expect(fs.readdirSync(tmpDir).sort()).to.deep.equal(["link.md", "real.md"]);
     });
 
     it("pins the block as it stands after a badge-anchored test updates its badge", async function () {

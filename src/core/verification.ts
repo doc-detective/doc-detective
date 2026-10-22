@@ -41,6 +41,8 @@ interface Edit {
 
 // Apply edits made against one text, in order; edits at one offset keep the
 // order they were made in.
+// Precondition: edits never overlap. Every caller edits disjoint node ranges or
+// inserts at a point; an overlapping edit would drop the text between them.
 function applyEdits(text: string, edits: Edit[]): string {
   const sorted = edits.map((e, i) => ({ ...e, i })).sort((a, b) => a.start - b.start || a.i - b.i);
   let out = "";
@@ -118,7 +120,10 @@ function setKey(src: string, map: any, key: string, value: string, eol: string, 
     if (!YAML.isScalar(v) || !v.range || String(v.value) === value) return;
     const quote = src[v.range[0]];
     const text = quote === '"' || quote === "'" ? `${quote}${value}${quote}` : value;
-    edits.push({ start: v.range[0], end: v.range[1], text });
+    // A key with no value (`passed:`) has a zero-length value range right after
+    // its colon, so the value needs a separating space.
+    const gap = v.range[0] === v.range[1] && !/\s/.test(src[v.range[0] - 1] ?? "") ? " " : "";
+    edits.push({ start: v.range[0], end: v.range[1], text: `${gap}${text}` });
     return;
   }
   if (map.flow) {
@@ -154,8 +159,15 @@ function writeFrontMatter(content: string, opts: VerificationOptions): string {
       return { tool: item.get("tool"), check: item.get("check"), passed: YAML.isScalar(p) ? String(p.value) : undefined };
     },
     (item: any) => {
-      setKey(fm.src, item, "version", opts.version, eol, edits);
-      setKey(fm.src, item, "passed", opts.today, eol, edits);
+      // Keys the entry already has go first. An empty `passed:` that ends the
+      // entry shares its offset with the line a new key is appended on, and its
+      // value must land before that line.
+      const values: [string, string][] = [
+        ["version", opts.version],
+        ["passed", opts.today],
+      ];
+      values.sort(([a], [b]) => Number(!item.has(a)) - Number(!item.has(b)));
+      for (const [key, value] of values) setKey(fm.src, item, key, value, eol, edits);
     },
     opts
   );

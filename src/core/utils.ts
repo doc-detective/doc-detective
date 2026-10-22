@@ -1996,12 +1996,14 @@ const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
 };
 
 // Body of an existing DD-managed shields.io image, per format, so a badge
-// writer can find and replace its own image line on re-runs.
+// writer can find and replace its own image line on re-runs. Anchored to the
+// `Last_verified-` label shieldsBadge writes, so an author's other shields.io
+// badge on that line is never taken for ours.
 const VERIFIED_IMG_BODY: Record<string, string> = {
-  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge[^)]*\\)",
-  html: "<img[^>]*img\\.shields\\.io/badge[^>]*>",
-  asciidoc: "image:\\S*img\\.shields\\.io/badge\\S*\\[[^\\]]*\\]",
-  dita: "<image[^>]*img\\.shields\\.io/badge[\\s\\S]*?</image>",
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge/Last_verified-[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge/Last_verified-[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge/Last_verified-\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge/Last_verified-[\\s\\S]*?</image>",
 };
 
 // Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
@@ -2040,6 +2042,24 @@ function shieldsBadge(
       return `<image href="${url}"><alt>${alt}</alt></image>`;
     default:
       return `![${alt}](${url})`;
+  }
+}
+
+// Replace a source document in one step: write a sibling temp file, then rename
+// it over the real target, so an interrupted write never leaves the document
+// half-written. The target is resolved first, so a symlink stays a symlink,
+// and its permission bits carry over. On any failure the temp file goes and
+// the document is untouched.
+function writeFileAtomic(file: string, content: string): void {
+  const target = fs.realpathSync(file);
+  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
+  fs.writeFileSync(tmp, content, { flag: "wx" });
+  try {
+    fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
+    fs.renameSync(tmp, target);
+  } catch (error) {
+    fs.rmSync(tmp, { force: true });
+    throw error;
   }
 }
 
@@ -2106,7 +2126,7 @@ function applyVerifiedMarkers({
         onUnknown: (check) =>
           log(config, "warning", `verified-by check '${check}' in ${file} matches no test or spec; skipping.`),
       });
-      if (content !== original) fs.writeFileSync(file, content);
+      if (content !== original) writeFileAtomic(file, content);
     } catch (error: any) {
       log(config, "warning", `Failed to update verified-by entries in ${file}: ${error?.message ?? error}`);
     }
@@ -2117,8 +2137,10 @@ function applyVerifiedMarkers({
 function applyBadgeAnchoredTests({ config, results }: { config: any; results: any }): void {
   if (!results || !Array.isArray(results.specs)) return;
 
-  // contentPath -> [{ line, result }], one entry per badge-flagged test.
-  const badgeTestsByFile = new Map<string, Array<{ line: number; result: string }>>();
+  // contentPath -> source location -> { line, result }, one entry per detected
+  // badge-flagged test. A routed revisit (goToTest) reports the same test
+  // again: it merges into one entry, which passes only if every visit passed.
+  const badgeTestsByFile = new Map<string, Map<string, { line: number; result: string }>>();
   for (const spec of results.specs) {
     for (const test of spec?.tests || []) {
       if (test?.badge !== true) continue;
@@ -2131,9 +2153,12 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
         );
         continue;
       }
-      const list = badgeTestsByFile.get(test.contentPath) || [];
-      list.push({ line: test.location.line, result: test.result });
-      badgeTestsByFile.set(test.contentPath, list);
+      const byLocation = badgeTestsByFile.get(test.contentPath) || new Map();
+      const { line, startIndex, endIndex } = test.location;
+      const key = `${line}:${startIndex}:${endIndex}`;
+      if (byLocation.has(key) && byLocation.get(key).result !== "PASS") continue; // a failed visit sticks
+      byLocation.set(key, { line, result: test.result });
+      badgeTestsByFile.set(test.contentPath, byLocation);
     }
   }
 
@@ -2153,7 +2178,7 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
       let changed = false;
 
       // Bottom-to-top so an insertion doesn't shift indices still to process.
-      for (const t of [...badgeTests].sort((a, b) => b.line - a.line)) {
+      for (const t of [...badgeTests.values()].sort((a, b) => b.line - a.line)) {
         if (t.result !== "PASS") continue; // non-pass: leave the existing badge to age
         const li = t.line - 1; // 0-indexed into `lines`
         if (li < 0 || li >= lines.length) continue; // stale location vs. current file
@@ -2173,7 +2198,7 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
         }
       }
 
-      if (changed) fs.writeFileSync(file, lines.join(eol));
+      if (changed) writeFileAtomic(file, lines.join(eol));
     } catch (error: any) {
       log(
         config,
