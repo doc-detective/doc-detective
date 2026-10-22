@@ -2144,10 +2144,11 @@ function applyVerifiedMarkers({
 function applyBadgeAnchoredTests({ config, results }: { config: any; results: any }): void {
   if (!results || !Array.isArray(results.specs)) return;
 
-  // contentPath -> source location -> { line, result }, one entry per detected
-  // badge-flagged test. A routed revisit (goToTest) reports the same test
-  // again: it merges into one entry, which passes only if every visit passed.
-  const badgeTestsByFile = new Map<string, Map<string, { line: number; result: string }>>();
+  // contentPath -> statement line -> result. A badge sits on the line above its
+  // test statement, so every badge-flagged test on one line, including a routed
+  // revisit (goToTest) of the same test, shares one badge: it passes only if
+  // every one of them passed.
+  const badgeTestsByFile = new Map<string, Map<number, string>>();
   for (const spec of results.specs) {
     for (const test of spec?.tests || []) {
       if (test?.badge !== true) continue;
@@ -2160,12 +2161,11 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
         );
         continue;
       }
-      const byLocation = badgeTestsByFile.get(test.contentPath) || new Map();
-      const { line, startIndex, endIndex } = test.location;
-      const key = `${line}:${startIndex}:${endIndex}`;
-      if (byLocation.has(key) && byLocation.get(key).result !== "PASS") continue; // a failed visit sticks
-      byLocation.set(key, { line, result: test.result });
-      badgeTestsByFile.set(test.contentPath, byLocation);
+      const byLine = badgeTestsByFile.get(test.contentPath) || new Map<number, string>();
+      const line = test.location.line;
+      if (byLine.has(line) && byLine.get(line) !== "PASS") continue; // a failure sticks
+      byLine.set(line, test.result);
+      badgeTestsByFile.set(test.contentPath, byLine);
     }
   }
 
@@ -2185,7 +2185,8 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
       let changed = false;
 
       // Bottom-to-top so an insertion doesn't shift indices still to process.
-      for (const t of [...badgeTests.values()].sort((a, b) => b.line - a.line)) {
+      const lineTests = [...badgeTests].map(([line, result]) => ({ line, result }));
+      for (const t of lineTests.sort((a, b) => b.line - a.line)) {
         if (t.result !== "PASS") continue; // non-pass: leave the existing badge to age
         const li = t.line - 1; // 0-indexed into `lines`
         if (li < 0 || li >= lines.length) continue; // stale location vs. current file

@@ -207,6 +207,13 @@ describe("Badge-anchored test verification — write-back", function () {
       applyBadgeAnchoredTests({ config: silent, results: twice(f, ["PASS", "PASS"]) });
       expect(read(f).match(/img\.shields\.io/g)).to.have.length(1);
     });
+    it("inserts one badge for two tests on one line, which share the line above", function () {
+      const f = write("a.md", '# Doc\n\n<!-- test {"badge": true} --><!-- test end --><!-- test {"badge": true} -->\n');
+      const r = report(f);
+      r.specs[0].tests.push({ ...r.specs[0].tests[0], testId: "t2", location: { line: 3, startIndex: 40, endIndex: 70 } });
+      applyBadgeAnchoredTests({ config: silent, results: r });
+      expect(read(f).match(/img\.shields\.io/g)).to.have.length(1);
+    });
     it("inserts no badge when any visit didn't pass", function () {
       const original = '# Doc\n\n<!-- test {"badge": true} -->\n';
       const f = write("a.md", original);

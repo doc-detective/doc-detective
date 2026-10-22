@@ -101,7 +101,7 @@ function fillEntries<T>(
 // Front matter
 // --------------------------------------------------------------------------
 
-const FRONT_MATTER = /^﻿?---[ \t]*\r?\n([\s\S]*?)^---[ \t]*$/m;
+const FRONT_MATTER = /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)^---[ \t]*$/m;
 
 function frontMatter(content: string): { start: number; src: string; end: number } | undefined {
   const fm = FRONT_MATTER.exec(content);
