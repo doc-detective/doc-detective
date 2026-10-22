@@ -1,3 +1,11 @@
+# [4.41.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.40.6...v4.41.0-last-verified-on.1) (2026-10-22)
+
+
+### Features
+
+* **runner:** write "Last Verified On" dates back into source docs ([cf288fc](https://github.com/doc-detective/doc-detective/commit/cf288fc79152120b9b208e670d6282556a7ebdc6))
+* **runner:** write verification results in manni's shared keys ([340b506](https://github.com/doc-detective/doc-detective/commit/340b506ab56de9459fc5830880774458abadde9e)), closes [hawkeyexl/manni#222](https://github.com/hawkeyexl/manni/issues/222) [hawkeyexl/manni#223](https://github.com/hawkeyexl/manni/issues/223)
+
 ## [4.40.6](https://github.com/doc-detective/doc-detective/compare/v4.40.5...v4.40.6) (2026-10-17)
 
 
