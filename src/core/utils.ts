@@ -1998,10 +1998,10 @@ const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
 // Body of an existing DD-managed shields.io image, per format, so a badge
 // writer can find and replace its own image line on re-runs.
 const VERIFIED_IMG_BODY: Record<string, string> = {
-  markdown: "!\[[^\]]*\]\([^)]*img\.shields\.io/badge[^)]*\)",
-  html: "<img[^>]*img\.shields\.io/badge[^>]*>",
-  asciidoc: "image:\S*img\.shields\.io/badge\S*\[[^\]]*\]",
-  dita: "<image[^>]*img\.shields\.io/badge[\s\S]*?</image>",
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge[\\s\\S]*?</image>",
 };
 
 // Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
