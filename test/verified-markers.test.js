@@ -13,6 +13,9 @@ before(async function () {
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.join(here, "verification-fixtures");
 
+// Fixed on purpose: opts() hands these to applyVerification as the run's day
+// and version, so every expected output is exact. They aren't the wall clock
+// or package.json, and the fixtures' pins don't depend on them.
 const TODAY = "2026-10-21";
 const VERSION = "4.27.0";
 // Every check resolves to `result` unless `results` names it.

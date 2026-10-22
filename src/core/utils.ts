@@ -2058,7 +2058,7 @@ function writeFileAtomic(file: string, content: string): void {
   const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
   try {
     try {
-      fs.writeFileSync(fd, content);
+      fs.writeFileSync(fd, content, "utf8");
     } finally {
       fs.closeSync(fd);
     }
