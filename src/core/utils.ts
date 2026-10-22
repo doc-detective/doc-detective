@@ -2190,13 +2190,20 @@ function withTestId(statement: string, id: string): string | undefined {
   if (options.trim() === "") return `${head} {${field}}${close}`;
   try {
     const parsed = JSON.parse(options);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || "testId" in parsed) return undefined;
   } catch {
     return undefined;
   }
   const open = options.indexOf("{");
   const rest = options.slice(open + 1).trimStart();
   return `${head}${options.slice(0, open + 1)}${field}${rest.startsWith("}") ? "" : ", "}${rest}${close}`;
+}
+
+// Whether `statement` sets `id` as its testId (`"testId": "id"`, `testId: id`,
+// or `testId="id"`), not merely mentions it, or a longer id that starts with it.
+function setsTestId(statement: string, id: string): boolean {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`testId["']?\\s*[:=]\\s*["']?${escaped}(?=["'\\s,}>)]|$)`).test(statement);
 }
 
 // A `meta` statement declaring `checks` for Doc Detective, in the format's
@@ -2285,7 +2292,7 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         const frozen = new Set<string>();
         for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
           const text = original.slice(c.start, c.end);
-          if (c.result !== "PASS" || text.includes(id)) continue;
+          if (c.result !== "PASS" || setsTestId(text, id)) continue;
           const at = lines[li].indexOf(text);
           const next = at === -1 ? undefined : withTestId(text, id);
           if (next === undefined) {
@@ -2320,7 +2327,7 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         const checks = [...work.checks]
           .filter(
             ([id, c]) =>
-              c.result === "PASS" && (frozen.has(id) || original.slice(c.start, c.end).includes(id)) && !declared(id)
+              c.result === "PASS" && (frozen.has(id) || setsTestId(original.slice(c.start, c.end), id)) && !declared(id)
           )
           .map(([id]) => id);
         const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;

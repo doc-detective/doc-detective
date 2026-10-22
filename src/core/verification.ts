@@ -164,7 +164,7 @@ export function declarePage(content: string, specId: string): string {
   const eol = (fm ? content.slice(0, fm.end) : content).includes("\r\n") ? "\r\n" : "\n";
   const item = (indent: string) => `${indent}- tool: ${TOOL}${eol}${indent}  check: ${check}`;
   if (!fm) {
-    const bom = content.charCodeAt(0) === 0xfeff ? "﻿" : "";
+    const bom = content.charCodeAt(0) === 0xfeff ? "\uFEFF" : "";
     return `${bom}---${eol}verified-by:${eol}${item("  ")}${eol}---${eol}${content.slice(bom.length)}`;
   }
   const YAML = requireYaml();

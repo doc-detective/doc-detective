@@ -249,6 +249,17 @@ describe("Badge-anchored test verification — write-back", function () {
       run(f, { testId: "login", line: 5 });
       expect(read(f)).to.contain('<!-- test {"testId": "login", "description": "x"} -->');
     });
+    it("freezes a generated id that the statement mentions outside a testId", function () {
+      const f = write("a.md", `# Doc\n\n<!-- test {"description": "was ${generated}"} -->\n`);
+      run(f, { testId: generated });
+      expect(read(f)).to.contain(`<!-- test {"testId": "${generated}", "description": "was ${generated}"} -->`);
+    });
+    it("treats an id as authored only when it's the statement's testId", function () {
+      // A testId that merely starts with the report's id isn't the same id.
+      const f = write("a.md", '# Doc\n\n<!-- test {"testId": "install-2"} -->\n');
+      run(f, { testId: "install" });
+      expect(read(f)).to.not.contain('"check":"install"');
+    });
     it("warns, and writes nothing, for a statement whose options aren't JSON", function () {
       const original = "# Doc\n\n<!-- test description: x -->\n";
       const f = write("a.md", original);
