@@ -336,4 +336,56 @@ describe("Verification metadata — pure helpers", function () {
       expect(applyVerification(input, "markdown", opts())).to.equal(input);
     });
   });
+
+  // manni proposal 0101: before hashing, every statement inside the anchored
+  // lines is cut out, a <data> carrier whole, and a line the cut leaves blank
+  // is dropped. Mirrors manni's test/statements-pin-cut.test.ts.
+  describe("a pin ignores every statement inside its lines", function () {
+    const ask = (check) => `<?manni meta {"verified-by":[{"tool":"doc-detective","check":"${check}"}]}?>`;
+    const pinsIn = (content) => content.match(/sha256-[0-9a-f]{64}/g);
+
+    it("pins a <steps> statement over a step statement on content only, and stays put on a second pass", function () {
+      const page = ["<steps>", `  ${ask("outer")}`, "  <step>", `    ${ask("inner")}`, "    <cmd>Run the installer.</cmd>", "  </step>", "</steps>", ""].join("\n");
+      const out = applyVerification(page, "dita", opts());
+      expect(pinsIn(out)).to.deep.equal([
+        pinOf(["<steps>", "  <step>", "    <cmd>Run the installer.</cmd>", "  </step>", "</steps>"]),
+        pinOf(["  <step>", "    <cmd>Run the installer.</cmd>", "  </step>"]),
+      ]);
+      expect(applyVerification(out, "dita", opts())).to.equal(out);
+    });
+
+    it("pins a first child the same on its start tag's line and on its own line", function () {
+      const onTagLine = ["<steps>", `  <step>${ask("a")}`, "    <cmd>Run it.</cmd>", "  </step>", "</steps>", ""].join("\n");
+      const ownLine = ["<steps>", "  <step>", `    ${ask("a")}`, "    <cmd>Run it.</cmd>", "  </step>", "</steps>", ""].join("\n");
+      const expected = pinOf(["  <step>", "    <cmd>Run it.</cmd>", "  </step>"]);
+      expect(pinsIn(applyVerification(onTagLine, "dita", opts()))).to.deep.equal([expected]);
+      expect(pinsIn(applyVerification(ownLine, "dita", opts()))).to.deep.equal([expected]);
+    });
+
+    it("still hashes a line that was blank before the cut", function () {
+      const page = ["<steps>", "  <step>", `    ${ask("a")}`, "    <cmd>Run it.</cmd>", "", "  </step>", "</steps>", ""].join("\n");
+      expect(pinsIn(applyVerification(page, "dita", opts()))).to.deep.equal([
+        pinOf(["  <step>", "    <cmd>Run it.</cmd>", "", "  </step>"]),
+      ]);
+    });
+
+    const value = `value='{"concepts":["a"]}'`;
+    for (const [shape, carrier] of [
+      ["self-closing", `<data name="manni-meta" ${value}/>`],
+      ["with an end tag", `<data name="manni-meta" ${value}></data>`],
+      ["whose start tag spans two lines", `<data name="manni-meta"\n      ${value}/>`],
+    ]) {
+      it(`cuts a <data> carrier whole when it is ${shape}`, function () {
+        const page = ["<steps>", "  <step>", `    ${ask("a")}`, "    <cmd>Run it.</cmd>", `    <info>${carrier}More.</info>`, "  </step>", "</steps>", ""].join("\n");
+        expect(pinsIn(applyVerification(page, "dita", opts()))).to.deep.equal([
+          pinOf(["  <step>", "    <cmd>Run it.</cmd>", "    <info>More.</info>", "  </step>"]),
+        ]);
+      });
+    }
+
+    it("cuts a statement from the line it shares with its text", function () {
+      const page = `<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} --> Run it.\n`;
+      expect(pinsIn(applyVerification(page, "markdown", opts()))).to.deep.equal([pinOf([" Run it."])]);
+    });
+  });
 });

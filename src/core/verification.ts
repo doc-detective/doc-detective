@@ -228,13 +228,6 @@ function offsetOfLine(content: string, line: number): number {
   }
   return pos;
 }
-function splitLines(text: string): string[] {
-  const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-  const parts = body.replace(/\r\n/g, "\n").split("\n");
-  if (parts.length > 0 && parts[parts.length - 1] === "") parts.pop();
-  return parts;
-}
-
 const isCite = (inner: string): boolean => inner === "cite" || (inner.startsWith("cite") && /\s/.test(inner.charAt(4)));
 const isMetaKeyword = (inner: string): boolean =>
   inner === "meta" || (inner.startsWith("meta") && /\s/.test(inner.charAt(4)));
@@ -551,9 +544,20 @@ function* walk(node: XmlNode): Generator<XmlNode> {
   for (const child of node.children) yield* walk(child);
 }
 
-function xmlAnchors(content: string, statements: Statement[]): Map<Statement, { start: number; end: number }> {
+// Where a statement sits in the file: its comment or instruction, or a
+// `<data>` carrier start tag to end tag.
+interface Span {
+  start: number;
+  end: number;
+}
+
+function xmlAnchors(
+  content: string,
+  statements: Statement[]
+): { anchors: Map<Statement, { start: number; end: number }>; spans: Span[] } {
   const byStart = new Map(statements.map((s) => [s.start, s]));
   const tree = scanXml(content, new Set(byStart.keys()));
+  const spans = [...walk(tree)].filter((n) => n.statement === true).map(({ start, end }) => ({ start, end }));
   const ignorable = (n: XmlNode): boolean => n.kind === "other" || n.blank === true || n.statement === true;
   const titleOf = (n: XmlNode): XmlNode | undefined => n.children.find((c) => c.kind === "element" && c.name === "title");
   const linesOf = (n: XmlNode) => ({ start: lineAt(content, n.start), end: lineAt(content, Math.max(n.start, n.end - 1)) });
@@ -571,6 +575,41 @@ function xmlAnchors(content: string, statements: Statement[]): Map<Statement, { 
     else if (firstChild) out.set(s, linesOf(parent));
     else if (next) out.set(s, linesOf(next));
   }
+  return { anchors: out, spans };
+}
+
+// The anchored lines as a pin hashes them, by manni's `anchoredText`
+// (proposal 0101). Every statement inside the lines is cut out first, the
+// anchoring one and any other, so a tool writing into a statement never
+// changes a pin over it. `spans` are every statement on the page, in document
+// order. A line that held a statement and is blank after the cut is dropped,
+// so moving a statement onto or off its own line keeps the pin. A line blank
+// before the cut stays.
+function anchoredText(content: string, anchor: { start: number; end: number }, spans: readonly Span[]): string[] {
+  const from = Math.max(offsetOfLine(content, anchor.start), content.charCodeAt(0) === 0xfeff ? 1 : 0);
+  const nl = content.indexOf("\n", offsetOfLine(content, anchor.end));
+  const to = nl === -1 ? content.length : nl;
+  let text = "";
+  const cuts: number[] = [];
+  let at = from;
+  for (const s of spans) {
+    const end = Math.min(s.end, to);
+    if (end <= at || s.start >= to) continue;
+    text += content.slice(at, Math.max(s.start, at));
+    cuts.push(text.length);
+    at = end;
+  }
+  text += content.slice(at, to);
+  const parts = text.split("\n");
+  const out: string[] = [];
+  let offset = 0;
+  parts.forEach((part, i) => {
+    const cut = cuts.some((c) => c >= offset && c <= offset + part.length);
+    offset += part.length + 1;
+    // A CR before an LF is folded, as manni's splitLines folds CRLF.
+    const line = (i < parts.length - 1 || to < content.length) && part.endsWith("\r") ? part.slice(0, -1) : part;
+    if (!(cut && line.trim() === "")) out.push(line);
+  });
   return out;
 }
 
@@ -579,11 +618,13 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
   const from = format === "markdown" || format === "asciidoc" ? (frontMatter(content)?.end ?? 0) : 0;
   const statements = parseStatements(content, from, format);
   if (statements.length === 0) return content;
-  const anchors =
+  const { anchors, spans } =
     format === "dita"
       ? xmlAnchors(content, statements)
-      : new Map(statements.map((s) => [s, anchoredLines(content, s.end, format)] as const));
-  const lines = splitLines(content);
+      : {
+          anchors: new Map(statements.map((s) => [s, anchoredLines(content, s.end, format)] as const)),
+          spans: statements.map(({ start, end }) => ({ start, end })),
+        };
   const edits: Edit[] = [];
   for (const s of statements) {
     const anchor = anchors.get(s);
@@ -609,15 +650,7 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
     if (!any) continue;
     const last = oldest(passed);
     if (last !== undefined) data["last-verified"] = last;
-    // The anchored lines, with the statement cut out of its own line when it
-    // shares one, so writing the pin never changes what the pin covers.
-    const text = lines.slice(anchor.start - 1, anchor.end);
-    const own = s.line - anchor.start;
-    if (own >= 0 && own < text.length) {
-      const lineStart = content.lastIndexOf("\n", s.start - 1) + 1;
-      text[own] = text[own].slice(0, s.start - lineStart) + text[own].slice(s.end - lineStart);
-    }
-    const pin = pinOf(text);
+    const pin = pinOf(anchoredText(content, anchor, spans));
     const json = JSON.stringify(data);
     if (pin === s.pin && json === before) continue;
     const trailing = /\s*$/.exec(content.slice(s.pinAt, s.closeAt))?.[0] ?? "";

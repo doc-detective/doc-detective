@@ -101,6 +101,12 @@ Behavior decided:
    the rest of its own line, else the next paragraph or fenced block. In DITA it anchors the element
    it is the first child of, else the next element, start tag to end tag. On a section it anchors
    the title. The pin is `sha256-` and the hex digest of those lines joined with LF.
+   * **Statements are cut out first,** per manni proposal 0101. Every `meta` statement inside the
+     anchored lines is removed before hashing, the anchoring one and any other. A DITA `<data>`
+     carrier is removed whole, start tag to end tag.
+   * **A line the cut leaves blank is dropped,** and a line that was blank before stays.
+   * So a write into any statement never changes a pin over it. A `<steps>` statement stays
+     current while Doc Detective fills the statement of a step inside it.
 10. **Unknown check, then warn and skip.** A check that matches no test or spec logs a warning, and
     the entry is left as it was.
 11. **CI uses the existing GitHub Action.** `create_pr_on_change` already turns a post-run file

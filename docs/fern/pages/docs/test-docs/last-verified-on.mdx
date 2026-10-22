@@ -113,7 +113,7 @@ In a statement, the change is a one-line diff in the same comment form:
 ```
 
 - **`last-verified`** is the oldest `passed` across every entry in the list. Doc Detective sets it only once every entry has passed, so one lagging check holds the date back.
-- **The `sha256-` pin** records exactly which lines passed. If someone edits those lines later, `manni meta validate` warns that the date may no longer hold. The next passing run writes a fresh pin. The pin never covers the statement's own text, so later writes to the statement don't count as edits.
+- **The `sha256-` pin** records exactly which lines passed. If someone edits those lines later, `manni meta validate` warns that the date may no longer hold. The next passing run writes a fresh pin. The pin never covers statement text, so writes to this statement or any other one don't count as edits.
 
 ## Step 3 (optional): Show a badge
 
