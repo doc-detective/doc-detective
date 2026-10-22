@@ -1,3 +1,10 @@
+# [4.41.0-last-verified-on.6](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.5...v4.41.0-last-verified-on.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** keep the temp file when the Windows copy fallback fails ([0f33d1f](https://github.com/doc-detective/doc-detective/commit/0f33d1fb118176325c3024801772f931855edfae))
+
 # [4.41.0-last-verified-on.5](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.4...v4.41.0-last-verified-on.5) (2026-10-22)
 
 
