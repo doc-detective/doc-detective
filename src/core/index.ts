@@ -380,6 +380,15 @@ async function runTestsAndReport(config: any, options: any) {
   // Clean up
   cleanTemp();
 
+  // Badge-anchored write-back — see ADR 01141. Runs before the verification
+  // write-back, which pins the block a `meta` statement anchors: a badge
+  // inserted inside that block afterwards would leave the pin stale.
+  try {
+    applyBadgeAnchoredTests({ config, results });
+  } catch (err: any) {
+    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
+  }
+
   // Verification write-back: fill Doc Detective's `verified-by` entries in the
   // source docs where the named test/spec passed. No-op when no page names a
   // check; never throws (warns and continues on per-file errors).
@@ -399,13 +408,6 @@ async function runTestsAndReport(config: any, options: any) {
     applyVerifiedMarkers({ config, results, files: qualifiedFiles });
   } catch (err: any) {
     log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
-  }
-
-  // Badge-anchored write-back — see ADR 01141.
-  try {
-    applyBadgeAnchoredTests({ config, results });
-  } catch (err: any) {
-    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
   }
 
   // Send telemetry

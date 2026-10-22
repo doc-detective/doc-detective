@@ -1,5 +1,6 @@
 import { applyVerifiedMarkers, verifiedDate } from "../dist/core/utils.js";
 import { runTests } from "../dist/core/index.js";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -136,6 +137,29 @@ describe("Verification metadata — write-back", function () {
       // Assert the date shape, not a pre-captured value: the runner computes the
       // date itself, so an exact-TODAY compare could flake across a UTC rollover.
       expect(read(f)).to.match(/\n {4}version: \S+\n {4}passed: \d{4}-\d{2}-\d{2}\nlast-verified: \d{4}-\d{2}-\d{2}\n---/);
+    });
+
+    it("pins the block as it stands after a badge-anchored test updates its badge", async function () {
+      this.timeout(120000);
+      const f = write(
+        "page.md",
+        [
+          "# Page",
+          "",
+          '<!-- meta {"verified-by":[{"tool":"doc-detective","check":"badge-demo"}]} -->',
+          '<!-- test {"testId": "badge-demo", "badge": true} -->',
+          '<!-- step {"wait": 10} -->',
+          "<!-- test end -->",
+          "",
+        ].join("\n")
+      );
+      await runTests({ input: f, logLevel: "silent" });
+      const lines = read(f).split("\n");
+      // The badge lands between the statement and the test, inside the block
+      // the statement anchors, so the pin must cover the badge as written.
+      expect(lines[3]).to.match(/img\.shields\.io\/badge/);
+      const block = lines.slice(3, 7).join("\n");
+      expect(lines[2]).to.contain(`sha256-${crypto.createHash("sha256").update(block).digest("hex")}`);
     });
 
     it("pins a meta statement on a prose-only page whose check runs elsewhere", async function () {
