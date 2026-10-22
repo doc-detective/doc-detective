@@ -2152,6 +2152,8 @@ function applyVerifiedMarkers({
         resolve: (check) => resolveVerifiedId(results, check),
         onUnknown: (check) =>
           log(config, "warning", `verified-by check '${check}' in ${file} matches no test or spec; skipping.`),
+        onSkipped: (line, reason) =>
+          log(config, "warning", `Skipping the meta statement at ${file}:${line}: ${reason}.`),
       });
       if (content !== original) writeFileAtomic(file, content);
     } catch (error: any) {

@@ -31,6 +31,8 @@ export interface VerificationOptions {
   resolve: (check: string) => string | null;
   /** Called once per check that matches no test or spec. */
   onUnknown?: (check: string) => void;
+  /** Called for a statement naming Doc Detective that its comment form can't hold, so it's skipped. */
+  onSkipped?: (line: number, reason: string) => void;
 }
 
 interface Edit {
@@ -42,12 +44,14 @@ interface Edit {
 // Apply edits made against one text, in order; edits at one offset keep the
 // order they were made in.
 // Precondition: edits never overlap. Every caller edits disjoint node ranges or
-// inserts at a point; an overlapping edit would drop the text between them.
+// inserts at a point; an overlapping edit would drop the text between them, so
+// it throws instead, and the writer's per-file guard leaves the file untouched.
 function applyEdits(text: string, edits: Edit[]): string {
   const sorted = edits.map((e, i) => ({ ...e, i })).sort((a, b) => a.start - b.start || a.i - b.i);
   let out = "";
   let pos = 0;
   for (const e of sorted) {
+    if (e.start < pos) throw new Error(`overlapping edits at offset ${e.start}`);
     out += text.slice(pos, e.start) + e.text;
     pos = e.end;
   }
@@ -471,7 +475,8 @@ interface Statement {
   closeAt: number;
   pin?: string;
   payload: string;
-  broken: boolean;
+  /** Why manni rejects the statement's form, or "" when it doesn't. */
+  broken: string;
 }
 
 const PIN_TOKEN = /^sha256-[0-9a-f]{64}$/;
@@ -513,8 +518,11 @@ function parseStatements(content: string, from: number, format: string): Stateme
         pin: pinned ? word : undefined,
         payload,
         broken:
-          (isLineForm(form) && payload.includes(")")) ||
-          (format === "dita" && form === HTML_COMMENT && payload.includes("--")),
+          isLineForm(form) && payload.includes(")")
+            ? `its line comment ends at the first ")"; use a block comment form`
+            : format === "dita" && form === HTML_COMMENT && payload.includes("--")
+              ? `an XML comment can't hold "--"; use <?manni meta …?>`
+              : "",
       });
     }
   }
@@ -699,7 +707,12 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
   const edits: Edit[] = [];
   for (const s of statements) {
     const anchor = anchors.get(s);
-    if (s.broken || !anchor) continue;
+    if (s.broken) {
+      // Only ours is worth a word: another tool's statement isn't ours to fix.
+      if (s.payload.includes(TOOL)) opts.onSkipped?.(s.line, s.broken);
+      continue;
+    }
+    if (!anchor) continue;
     let data: unknown;
     try {
       data = JSON.parse(s.payload);

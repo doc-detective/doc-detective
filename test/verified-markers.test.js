@@ -412,6 +412,17 @@ describe("Verification metadata — pure helpers", function () {
       expect(applyVerification(broken, "markdown", opts())).to.equal(broken);
     });
 
+    it("reports, and skips, a statement of ours its comment form can't hold", function () {
+      // AsciiDoc's `// ( )` form ends at the first `)`, so manni rejects this one.
+      const input = '// (meta {"verified-by":[{"tool":"doc-detective","check":"a(1)"}]})\nText.\n';
+      const skipped = [];
+      const out = applyVerification(input, "asciidoc", { ...opts(), onSkipped: (line, reason) => skipped.push([line, reason]) });
+      expect(out).to.equal(input);
+      expect(skipped).to.have.length(1);
+      expect(skipped[0][0]).to.equal(1);
+      expect(skipped[0][1]).to.match(/\)/);
+    });
+
     it("ignores the retired inline `verified` marker", function () {
       const input = "<!-- verified id=a -->\nText.\n";
       expect(applyVerification(input, "markdown", opts())).to.equal(input);
