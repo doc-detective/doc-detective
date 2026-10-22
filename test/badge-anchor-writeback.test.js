@@ -221,16 +221,52 @@ describe("Badge-anchored test verification — write-back", function () {
       expect(lines[3]).to.match(/^!\[Last verified/);
       expect(lines[4]).to.equal('<!-- test {"testId": "install"} -->');
     });
-    it("skips a generated testId, which never appears in the file", function () {
+    // A generated id changes whenever its test does, so it's frozen: written
+    // into the test's own statement, where it counts as authored from then on.
+    const generated = "a.md~1a2b3c4d";
+    const declares = (form, id = generated) => form(`{"verified-by":[{"tool":"doc-detective","check":"${id}"}]}`);
+    it("freezes a generated id into a JSON statement, then declares it", function () {
+      const f = write("a.md", '# Doc\n\n<!-- test {"description": "x"} -->\n');
+      run(f, { testId: generated });
+      expect(read(f)).to.equal(
+        `# Doc\n\n${declares(md)}\n<!-- test {"testId": "${generated}", "description": "x"} -->\n`
+      );
+    });
+    it("freezes a generated id into a statement with no options", function () {
+      const f = write("a.md", "# Doc\n\n<!-- test -->\n");
+      run(f, { testId: generated });
+      expect(read(f)).to.equal(`# Doc\n\n${declares(md)}\n<!-- test {"testId": "${generated}"} -->\n`);
+    });
+    it("freezes in the statement's own comment form", function () {
+      const f = write("a.mdx", '# Doc\n\n{/* test {} */}\n');
+      run(f, { testId: generated });
+      expect(read(f)).to.equal(
+        `# Doc\n\n${declares((s) => `{/* meta ${s} */}`)}\n{/* test {"testId": "${generated}"} */}\n`
+      );
+    });
+    it("freezes an id the page mentions elsewhere but its statement doesn't hold", function () {
+      const f = write("a.md", '# Doc\n\nSign in with login.\n\n<!-- test {"description": "x"} -->\n');
+      run(f, { testId: "login", line: 5 });
+      expect(read(f)).to.contain('<!-- test {"testId": "login", "description": "x"} -->');
+    });
+    it("warns, and writes nothing, for a statement whose options aren't JSON", function () {
+      const original = "# Doc\n\n<!-- test description: x -->\n";
+      const f = write("a.md", original);
+      const logs = [];
+      const realLog = console.log;
+      console.log = (...a) => logs.push(a.join(" "));
+      try {
+        run(f, { testId: generated }, { logLevel: "warning" });
+      } finally {
+        console.log = realLog;
+      }
+      expect(read(f)).to.equal(original);
+      expect(logs.join("\n")).to.contain(generated);
+    });
+    it("freezes nothing for a test that didn't pass", function () {
       const original = '# Doc\n\n<!-- test {"description": "x"} -->\n';
       const f = write("a.md", original);
-      run(f, { testId: "a.md~1a2b3c" });
-      expect(read(f)).to.equal(original);
-    });
-    it("skips an id that appears in the page but not in the test's own statement", function () {
-      const original = '# Doc\n\nSign in with login.\n\n<!-- test {"description": "x"} -->\n';
-      const f = write("a.md", original);
-      run(f, { testId: "login", line: 5 });
+      run(f, { testId: generated, result: "FAIL" });
       expect(read(f)).to.equal(original);
     });
     it("skips a test that didn't pass", function () {

@@ -57,10 +57,13 @@ Behavior decided:
    * `true` also declares entries on a passing run, then fills them in the same run. A passing
      Markdown or MDX page with no Doc Detective entry gets one in its front matter, checked by its
      spec id. A page without front matter gets a block.
-   * Under `true`, a passing inline test whose `testId` was authored gets a `meta` statement on the
-     line above it, and above its badge. A generated id is skipped, because it changes whenever the
-     test changes. Detection doesn't record which ids were authored. But an authored id is
-     written in its own test statement, whose span the report carries, and a generated one never is.
+   * Under `true`, a passing inline test gets a `meta` statement on the line above it, and above
+     its badge. Detection doesn't record which ids were authored. But an authored id is written in
+     its own test statement, whose span the report carries, and a generated one never is.
+   * A generated id changes whenever its test does, so a statement naming it would break. Under
+     `true`, it's frozen first: written into the test's own statement, where it counts as authored
+     from then on. Only a statement with no options or one JSON object is edited, so the author's
+     statement is never re-serialized. Any other form is skipped with a warning.
    * An entry is added once. Later runs fill it in place, like one an author wrote.
 
    Unlike option C, `true` infers no placement. A page entry goes in front matter, and a statement

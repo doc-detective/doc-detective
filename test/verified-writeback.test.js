@@ -166,6 +166,21 @@ describe("Verification metadata — write-back", function () {
         expect(read(f).split("\n").length).to.equal(once.split("\n").length);
       });
 
+      it("true freezes a generated id, so the statement it declares keeps working", async function () {
+        this.timeout(120000);
+        const page = ["# Page", "", '<!-- test {"description": "demo"} -->', '<!-- step {"wait": 10} -->', "<!-- test end -->", ""].join("\n");
+        const f = write("page.md", page);
+        await runTests({ input: f, logLevel: "silent", verification: { write: true } });
+        const once = read(f);
+        const id = /<!-- test \{"testId": "([^"]+~[0-9a-f]{8})", "description": "demo"\} -->/.exec(once)?.[1];
+        expect(id, "frozen id").to.be.a("string");
+        expect(once).to.contain(`"check":"${id}","version":`);
+        expect(once).to.match(/<!-- meta sha256-[0-9a-f]{64} \{/);
+        // The id is authored now: the next run fills in place and adds nothing.
+        await runTests({ input: f, logLevel: "silent", verification: { write: true } });
+        expect(read(f)).to.equal(once);
+      });
+
       it("existing (the default) declares nothing on a page without entries", async function () {
         this.timeout(120000);
         const f = write("page.md", inline);

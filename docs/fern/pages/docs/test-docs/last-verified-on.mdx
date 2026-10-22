@@ -155,10 +155,11 @@ The `verification.write` setting controls what Doc Detective writes back after a
 | `true` | Also adds the entries on a passing run, then fills them. |
 | `false` | Nothing. Use it for a local or exploratory run that shouldn't touch your files. |
 
-With `true`, a passing run adds two kinds of entry:
+With `true`, a passing run adds:
 
 - **A page entry.** A Markdown or MDX page whose tests pass gets a `verified-by` entry in its front matter. Its `check` is the page's spec id, which is the page's path from where you run Doc Detective. A page without front matter gets a front-matter block.
-- **A procedure entry.** An inline test with a `testId` you wrote gets a `meta` statement on the line above it, and above its badge if it has one. A test without a `testId` is skipped, because the id Doc Detective generates for it changes whenever the test changes.
+- **A procedure entry.** A passing inline test gets a `meta` statement on the line above it, and above its badge if it has one.
+- **A fixed `testId`.** An inline test without a `testId` first gets the id Doc Detective generated for it, written into its `test` statement. A generated id changes whenever the test changes, so this keeps the entry pointing at the right test. Doc Detective edits only a `test` statement whose options are JSON, or that has none. For any other statement, it logs a warning so you can add a `testId` yourself.
 
 Doc Detective adds an entry only once. On later runs it fills the entry in place, like one you wrote yourself.
 

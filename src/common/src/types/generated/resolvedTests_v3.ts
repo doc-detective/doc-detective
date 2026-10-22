@@ -28669,7 +28669,7 @@ export interface HintsOptions {
  */
 export interface VerificationOptions {
   /**
-   * What Doc Detective writes back after a run. `"existing"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test that has an authored `testId`. `false` writes nothing back. Override from the CLI with `--verification`.
+   * What Doc Detective writes back after a run. `"existing"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test. An inline test with no `testId` first gets the id Doc Detective generated for it, written into its `test` statement so it stays fixed. `false` writes nothing back. Override from the CLI with `--verification`.
    */
   write?: boolean | "existing";
 }

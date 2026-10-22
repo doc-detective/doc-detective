@@ -2179,6 +2179,26 @@ function applyVerifiedMarkers({
   }
 }
 
+// A `test` statement with `testId` added to its options, in its own comment
+// form, or undefined when its options aren't absent or one JSON object, the
+// only shapes it can edit without re-serializing the author's statement.
+function withTestId(statement: string, id: string): string | undefined {
+  const m = /^(.*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
+  if (!m) return undefined;
+  const [, head, options, close] = m;
+  const field = `"testId": ${JSON.stringify(id)}`;
+  if (options.trim() === "") return `${head} {${field}}${close}`;
+  try {
+    const parsed = JSON.parse(options);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+  } catch {
+    return undefined;
+  }
+  const open = options.indexOf("{");
+  const rest = options.slice(open + 1).trimStart();
+  return `${head}${options.slice(0, open + 1)}${field}${rest.startsWith("}") ? "" : ", "}${rest}${close}`;
+}
+
 // A `meta` statement declaring `checks` for Doc Detective, in the format's
 // comment form, or undefined when the payload can't be written in that form.
 function declaringStatement(format: string, ext: string, checks: string[]): string | undefined {
@@ -2258,6 +2278,29 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         if (li < 0 || li >= lines.length) continue; // stale location vs. current file
         const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
 
+        // Freeze a passing test's generated id: write it into the test's own
+        // statement, where it counts as authored from then on. A generated id
+        // changes whenever its test does, so a statement naming it would break.
+        // Right to left, so two statements on one line keep their positions.
+        const frozen = new Set<string>();
+        for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
+          const text = original.slice(c.start, c.end);
+          if (c.result !== "PASS" || text.includes(id)) continue;
+          const at = lines[li].indexOf(text);
+          const next = at === -1 ? undefined : withTestId(text, id);
+          if (next === undefined) {
+            log(
+              config,
+              "warning",
+              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't one JSON object. Add a testId to the statement by hand.`
+            );
+            continue;
+          }
+          lines[li] = lines[li].slice(0, at) + next + lines[li].slice(at + text.length);
+          frozen.add(id);
+          changed = true;
+        }
+
         // Non-pass: leave the existing badge to age.
         if (work.badge === "PASS") {
           const img = shieldsBadge(format, today);
@@ -2275,7 +2318,10 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         }
 
         const checks = [...work.checks]
-          .filter(([id, c]) => c.result === "PASS" && original.slice(c.start, c.end).includes(id) && !declared(id))
+          .filter(
+            ([id, c]) =>
+              c.result === "PASS" && (frozen.has(id) || original.slice(c.start, c.end).includes(id)) && !declared(id)
+          )
           .map(([id]) => id);
         const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
         if (checks.length > 0 && !statement) {
