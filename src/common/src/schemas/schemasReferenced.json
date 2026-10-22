@@ -7408,6 +7408,29 @@
             "enabled": true
           }
         },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ],
+              "default": "existing"
+            }
+          },
+          "default": {
+            "write": "existing"
+          }
+        },
         "concurrentRunners": {
           "type": [
             "integer",
@@ -14603,6 +14626,25 @@
           "required": [
             "enabled"
           ]
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ]
+            }
+          }
         },
         "concurrentRunners": {
           "type": [

@@ -70,9 +70,11 @@ Behavior decided:
    place, never duplicated. The insert keeps the test statement's indentation, so a badge in a
    nested list stays nested. A badge is always one self-contained line, so no EOL handling is
    needed.
-6. **No config, no CLI flag, no `files` parameter.** `applyBadgeAnchoredTests({ config, results })`
-   needs nothing else, because every file and result it needs is on `results`. A badge is always
-   in the same file as its test, so there's no cross-file case.
+6. **No badge setting, no `files` parameter.** `applyBadgeAnchoredTests({ config, results })` needs
+   nothing else, because every file and result it needs is on `results`. A badge is always in the
+   same file as its test, so there's no cross-file case. ADR 01140's `verification.write: false`
+   turns badges off with the rest of the write-back. Its `true` mode uses this same pass to place the
+   statements it declares, since both insert lines above test statements by report line.
 7. **The one way to place a badge.** ADR 01140's inline `verified` marker, and its `badge` flag,
    gave way to manni's `meta` statement, which carries verification data, not an image. So
    `"badge": true` is the only way Doc Detective draws a badge. A date for somewhere else, such as a

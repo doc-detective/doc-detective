@@ -131,13 +131,72 @@ function setKey(src: string, map: any, key: string, value: string, eol: string, 
     edits.push({ start: close, end: close, text: `${map.items.length > 0 ? ", " : ""}${key}: ${value}` });
     return;
   }
-  const last = map.items[map.items.length - 1];
-  let end: number = last.value?.range?.[1] ?? last.key.range[1];
+  const { at, indent } = blockEnd(src, map);
+  edits.push({ start: at, end: at, text: `${eol}${indent}${key}: ${value}` });
+}
+
+// Where a block map or sequence's last line ends (past any trailing comment,
+// before its line break), and the indent its items start at.
+function blockEnd(src: string, node: any): { at: number; indent: string } {
+  const YAML = requireYaml();
+  const last = node.items[node.items.length - 1];
+  const tail: any = YAML.isPair(last) ? ((last.value as any)?.range ? last.value : last.key) : last;
+  let end: number = tail.range[1];
   while (end > 0 && /\s/.test(src[end - 1])) end--;
   const nl = src.indexOf("\n", end);
   const at = nl === -1 ? src.length : src[nl - 1] === "\r" ? nl - 1 : nl;
-  const column = map.range[0] - (src.lastIndexOf("\n", map.range[0] - 1) + 1);
-  edits.push({ start: at, end: at, text: `${eol}${" ".repeat(column)}${key}: ${value}` });
+  const column = node.range[0] - (src.lastIndexOf("\n", node.range[0] - 1) + 1);
+  return { at, indent: " ".repeat(column) };
+}
+
+// `verification.write: true`: give a passing page with no Doc Detective entry
+// a `verified-by` entry naming its spec, for the fill to complete in the same
+// run. The entry goes at the end of an existing list, or of the front matter,
+// in its style; a page without front matter gets a block. A page that already
+// names doc-detective, or whose front matter isn't a YAML map, is unchanged.
+export function declarePage(content: string, specId: string): string {
+  const check = /^[A-Za-z0-9._/-]+$/.test(specId) ? specId : JSON.stringify(specId);
+  const fm = frontMatter(content);
+  const eol = (fm ? content.slice(0, fm.end) : content).includes("\r\n") ? "\r\n" : "\n";
+  const item = (indent: string) => `${indent}- tool: ${TOOL}${eol}${indent}  check: ${check}`;
+  if (!fm) {
+    const bom = content.charCodeAt(0) === 0xfeff ? "﻿" : "";
+    return `${bom}---${eol}verified-by:${eol}${item("  ")}${eol}---${eol}${content.slice(bom.length)}`;
+  }
+  const YAML = requireYaml();
+  const doc = YAML.parseDocument(fm.src);
+  if (doc.errors.length > 0) return content;
+  const root: any = doc.contents;
+  const edits: Edit[] = [];
+  if (root === null) {
+    edits.push({ start: 0, end: 0, text: `verified-by:${eol}${item("  ")}${eol}` });
+  } else if (!YAML.isMap(root)) {
+    return content;
+  } else {
+    const list: any = root.get("verified-by", true);
+    if (list === undefined) {
+      if (root.flow) {
+        const close = fm.src.lastIndexOf("}", root.range![1] - 1);
+        const text = `${root.items.length > 0 ? ", " : ""}verified-by: [{tool: ${TOOL}, check: ${check}}]`;
+        edits.push({ start: close, end: close, text });
+      } else {
+        const { at, indent } = blockEnd(fm.src, root);
+        edits.push({ start: at, end: at, text: `${eol}${indent}verified-by:${eol}${item(`${indent}  `)}` });
+      }
+    } else if (!YAML.isSeq(list)) {
+      return content;
+    } else if (list.items.some((i: any) => YAML.isMap(i) && i.get("tool") === TOOL)) {
+      return content;
+    } else if (list.flow) {
+      const close = fm.src.lastIndexOf("]", list.range![1] - 1);
+      const text = `${list.items.length > 0 ? ", " : ""}{tool: ${TOOL}, check: ${check}}`;
+      edits.push({ start: close, end: close, text });
+    } else {
+      const { at, indent } = blockEnd(fm.src, list);
+      edits.push({ start: at, end: at, text: `${eol}${item(indent)}` });
+    }
+  }
+  return content.slice(0, fm.start) + applyEdits(fm.src, edits) + content.slice(fm.start + fm.src.length);
 }
 
 function writeFrontMatter(content: string, opts: VerificationOptions): string {

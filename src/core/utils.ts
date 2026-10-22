@@ -16,7 +16,7 @@ import {
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
 import { createRequire } from "node:module";
-import { applyVerification, VERIFIED_TOOL } from "./verification.js";
+import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -2093,16 +2093,32 @@ function resolveVerifiedId(results: any, id: string): string | null {
 // The candidate set is the union of the report's content paths and the full
 // detected input set (`files`), so a prose-only page that names a check but
 // contributes no spec is still updated.
+//
+// With `init` (`verification.write: true`), a Markdown or MDX page whose spec
+// PASSED is first given a `verified-by` entry naming that spec, if it has no
+// Doc Detective entry yet (declarePage), so the fill completes it.
 function applyVerifiedMarkers({
   config,
   results,
   files: detectedFiles = [],
+  init = false,
 }: {
   config: any;
   results: any;
   files?: string[];
+  init?: boolean;
 }): void {
   if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> the passing spec a page declares under `init`.
+  const passingSpecs = new Map<string, string>();
+  if (init) {
+    for (const spec of results.specs) {
+      const ext = (String(spec?.contentPath ?? "").split(".").pop() || "").toLowerCase();
+      if (VERIFIED_FORMAT_BY_EXT[ext] !== "markdown" || typeof spec.specId !== "string") continue;
+      if (resolveVerifiedId(results, spec.specId) === "PASS") passingSpecs.set(spec.contentPath, spec.specId);
+    }
+  }
 
   const files = new Set<string>();
   for (const file of detectedFiles) {
@@ -2125,10 +2141,12 @@ function applyVerifiedMarkers({
       if (!format) continue;
 
       const original = fs.readFileSync(file, "utf8");
+      const specId = passingSpecs.get(file);
+      const declared = specId === undefined ? original : declarePage(original, specId);
       // Cheap fast-path: every entry Doc Detective fills names it, so a file
       // without the literal "doc-detective" has nothing to update.
-      if (!original.includes(VERIFIED_TOOL)) continue;
-      const content = applyVerification(original, format, {
+      if (!declared.includes(VERIFIED_TOOL)) continue;
+      const content = applyVerification(declared, format, {
         today,
         version,
         resolve: (check) => resolveVerifiedId(results, check),
@@ -2142,37 +2160,58 @@ function applyVerifiedMarkers({
   }
 }
 
+// A `meta` statement declaring `checks` for Doc Detective, in the format's
+// comment form, or undefined when the payload can't be written in that form.
+function declaringStatement(format: string, ext: string, checks: string[]): string | undefined {
+  const payload = JSON.stringify({ "verified-by": checks.map((check) => ({ tool: "doc-detective", check })) });
+  if (format === "dita") return `<?manni meta ${payload}?>`;
+  if (format === "asciidoc") return payload.includes(")") ? undefined : `// (meta ${payload})`;
+  return ext === "mdx" ? `{/* meta ${payload} */}` : `<!-- meta ${payload} -->`;
+}
+
 // Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01141.
-function applyBadgeAnchoredTests({ config, results }: { config: any; results: any }): void {
+// With `init` (`verification.write: true`), a passing inline test whose testId
+// is authored (a generated id never appears in the file) also gets a `meta`
+// statement declaring it above its statement and badge, unless one already
+// does. The verification write-back then fills and pins it. See ADR 01140.
+function applyBadgeAnchoredTests({ config, results, init = false }: { config: any; results: any; init?: boolean }): void {
   if (!results || !Array.isArray(results.specs)) return;
 
-  // contentPath -> statement line -> result. A badge sits on the line above its
-  // test statement, so every badge-flagged test on one line, including a routed
-  // revisit (goToTest) of the same test, shares one badge: it passes only if
-  // every one of them passed.
-  const badgeTestsByFile = new Map<string, Map<number, string>>();
+  // contentPath -> statement line -> what that line gets. A badge sits on the
+  // line above its test statement, so every badge-flagged test on one line,
+  // including a routed revisit (goToTest) of the same test, shares one badge:
+  // it passes only if every one of them passed. With `init`, `checks` holds
+  // each test id on the line and its result, merged the same way.
+  type LineWork = { badge?: string; checks: Map<string, string> };
+  const byFile = new Map<string, Map<number, LineWork>>();
+  const merge = (prev: string | undefined, next: string) => (prev === undefined || prev === "PASS" ? next : prev);
   for (const spec of results.specs) {
     for (const test of spec?.tests || []) {
-      if (test?.badge !== true) continue;
+      if (test?.badge !== true && !init) continue;
       if (!test?.contentPath) continue;
       if (!test?.location?.line) {
-        log(
-          config,
-          "warning",
-          `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
-        );
+        if (test.badge === true) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
+          );
+        }
         continue;
       }
-      const byLine = badgeTestsByFile.get(test.contentPath) || new Map<number, string>();
-      const line = test.location.line;
-      if (byLine.has(line) && byLine.get(line) !== "PASS") continue; // a failure sticks
-      byLine.set(line, test.result);
-      badgeTestsByFile.set(test.contentPath, byLine);
+      const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
+      const work = byLine.get(test.location.line) || { checks: new Map<string, string>() };
+      if (test.badge === true) work.badge = merge(work.badge, test.result);
+      if (init && typeof test.testId === "string") {
+        work.checks.set(test.testId, merge(work.checks.get(test.testId), test.result));
+      }
+      byLine.set(test.location.line, work);
+      byFile.set(test.contentPath, byLine);
     }
   }
 
   const today = verifiedDate();
-  for (const [file, badgeTests] of badgeTestsByFile) {
+  for (const [file, byLine] of byFile) {
     try {
       if (!fs.existsSync(file)) continue;
       const ext = (file.split(".").pop() || "").toLowerCase();
@@ -2184,26 +2223,40 @@ function applyBadgeAnchoredTests({ config, results }: { config: any; results: an
       const lines = original.split(/\r?\n/);
       const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
       const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
+      // A check some statement in the file already declares.
+      const declared = (id: string) =>
+        new RegExp(`"check"\\s*:\\s*${JSON.stringify(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(original);
       let changed = false;
 
       // Bottom-to-top so an insertion doesn't shift indices still to process.
-      const lineTests = [...badgeTests].map(([line, result]) => ({ line, result }));
-      for (const t of lineTests.sort((a, b) => b.line - a.line)) {
-        if (t.result !== "PASS") continue; // non-pass: leave the existing badge to age
-        const li = t.line - 1; // 0-indexed into `lines`
+      for (const [line, work] of [...byLine].sort((a, b) => b[0] - a[0])) {
+        let li = line - 1; // 0-indexed into `lines`: the test statement
         if (li < 0 || li >= lines.length) continue; // stale location vs. current file
-
         const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
-        const img = shieldsBadge(format, today);
-        const prevLine = li > 0 ? lines[li - 1] : "";
-        const existing = prevLine.match(existingImgRe);
-        if (existing) {
-          if (lines[li - 1] !== `${existing[1]}${img}`) {
-            lines[li - 1] = `${existing[1]}${img}`;
+
+        // Non-pass: leave the existing badge to age.
+        if (work.badge === "PASS") {
+          const img = shieldsBadge(format, today);
+          const existing = li > 0 ? lines[li - 1].match(existingImgRe) : null;
+          if (existing) {
+            if (lines[li - 1] !== `${existing[1]}${img}`) {
+              lines[li - 1] = `${existing[1]}${img}`;
+              changed = true;
+            }
+          } else {
+            lines.splice(li, 0, `${indent}${img}`);
+            li++;
             changed = true;
           }
-        } else {
-          lines.splice(li, 0, `${indent}${img}`);
+        }
+
+        const checks = [...work.checks]
+          .filter(([id, result]) => result === "PASS" && original.includes(id) && !declared(id))
+          .map(([id]) => id);
+        const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
+        if (statement) {
+          const top = li > 0 && existingImgRe.test(lines[li - 1]) ? li - 1 : li;
+          lines.splice(top, 0, `${format === "asciidoc" ? "" : indent}${statement}`);
           changed = true;
         }
       }

@@ -24,7 +24,7 @@ function read(p) {
   return fs.readFileSync(p, "utf8");
 }
 // Synthetic report: one spec, one badge-flagged test anchored at `line` in `file`.
-function report(file, { line = 3, result = "PASS", testId = "t1", withLocation = true } = {}) {
+function report(file, { line = 3, result = "PASS", testId = "t1", withLocation = true, badge = true } = {}) {
   return {
     specs: [
       {
@@ -36,7 +36,7 @@ function report(file, { line = 3, result = "PASS", testId = "t1", withLocation =
             testId,
             contentPath: file,
             result,
-            badge: true,
+            badge,
             ...(withLocation ? { location: { line, startIndex: 0, endIndex: 0 } } : {}),
           },
         ],
@@ -181,6 +181,62 @@ describe("Badge-anchored test verification — write-back", function () {
       applyBadgeAnchoredTests({ config: silent, results: report(f, { line: 2 }) });
       const lines = read(f).split("\n");
       expect(lines[1]).to.match(/^ {2}!\[Last verified/);
+    });
+  });
+
+  // `verification.write: true`: a passing inline test with an authored testId
+  // gets a `meta` statement naming it, for the fill to complete and pin.
+  describe("init: declaring a meta statement above a passing test", function () {
+    const stmt = (form) => form('{"verified-by":[{"tool":"doc-detective","check":"install"}]}');
+    const md = (s) => `<!-- meta ${s} -->`;
+    const test = '<!-- test {"testId": "install"} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n';
+    const run = (f, opts = {}) =>
+      applyBadgeAnchoredTests({ config: silent, results: report(f, { testId: "install", badge: false, ...opts }), init: true });
+
+    it("inserts the statement on the line above the test statement", function () {
+      const f = write("a.md", `# Doc\n\n${test}`);
+      run(f);
+      expect(read(f)).to.equal(`# Doc\n\n${stmt(md)}\n${test}`);
+    });
+    it("uses the format's comment form", function () {
+      const mdx = write("a.mdx", '# Doc\n\n{/* test {"testId": "install"} */}\n');
+      const adoc = write("a.adoc", '= Doc\n\n// (test {"testId": "install"})\n');
+      run(mdx);
+      run(adoc);
+      expect(read(mdx)).to.equal(`# Doc\n\n${stmt((s) => `{/* meta ${s} */}`)}\n{/* test {"testId": "install"} */}\n`);
+      expect(read(adoc)).to.equal(`= Doc\n\n${stmt((s) => `// (meta ${s})`)}\n// (test {"testId": "install"})\n`);
+    });
+    it("goes above the test's badge, and the badge stays put", function () {
+      const f = write("a.md", `# Doc\n\n${test}`);
+      run(f, { badge: true });
+      const lines = read(f).split("\n");
+      expect(lines[2]).to.equal(stmt(md));
+      expect(lines[3]).to.match(/^!\[Last verified/);
+      expect(lines[4]).to.equal('<!-- test {"testId": "install"} -->');
+    });
+    it("skips a generated testId, which never appears in the file", function () {
+      const original = '# Doc\n\n<!-- test {"description": "x"} -->\n';
+      const f = write("a.md", original);
+      run(f, { testId: "a.md~1a2b3c" });
+      expect(read(f)).to.equal(original);
+    });
+    it("skips a test that didn't pass", function () {
+      const original = `# Doc\n\n${test}`;
+      const f = write("a.md", original);
+      run(f, { result: "FAIL" });
+      expect(read(f)).to.equal(original);
+    });
+    it("skips a test a statement already declares", function () {
+      const original = `# Doc\n\n<!-- meta {"verified-by": [{"tool": "doc-detective", "check": "install"}]} -->\n${test}`;
+      const f = write("a.md", original);
+      run(f);
+      expect(read(f)).to.equal(original);
+    });
+    it("declares nothing without init", function () {
+      const original = `# Doc\n\n${test}`;
+      const f = write("a.md", original);
+      applyBadgeAnchoredTests({ config: silent, results: report(f, { testId: "install", badge: false }) });
+      expect(read(f)).to.equal(original);
     });
   });
 

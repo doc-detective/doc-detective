@@ -139,6 +139,53 @@ describe("Verification metadata — write-back", function () {
       expect(read(f)).to.match(/\n {4}version: \S+\n {4}passed: \d{4}-\d{2}-\d{2}\nlast-verified: \d{4}-\d{2}-\d{2}\n---/);
     });
 
+    describe("verification.write", function () {
+      const inline = ["# Page", "", '<!-- test {"testId": "wait-demo"} -->', '<!-- step {"wait": 10} -->', "<!-- test end -->", ""].join("\n");
+
+      it("true declares and fills a front-matter entry and a pinned statement on a passing page", async function () {
+        this.timeout(120000);
+        const f = write("page.md", inline);
+        await runTests({ input: f, logLevel: "silent", verification: { write: true } });
+        const out = read(f);
+        expect(out).to.match(
+          /^---\nverified-by:\n {2}- tool: doc-detective\n {4}check: \S+page\.md\n {4}version: \S+\n {4}passed: \d{4}-\d{2}-\d{2}\nlast-verified: \d{4}-\d{2}-\d{2}\n---\n/
+        );
+        expect(out).to.match(
+          /\n<!-- meta sha256-[0-9a-f]{64} \{"verified-by":\[\{"tool":"doc-detective","check":"wait-demo","version":"[^"]+","passed":"\d{4}-\d{2}-\d{2}"\}\],"last-verified":"\d{4}-\d{2}-\d{2}"\} -->\n<!-- test \{"testId": "wait-demo"\} -->/
+        );
+        // A second run fills in place and declares nothing new.
+        const once = out;
+        await runTests({ input: f, logLevel: "silent", verification: { write: true } });
+        expect(read(f).split("\n").length).to.equal(once.split("\n").length);
+      });
+
+      it("existing (the default) declares nothing on a page without entries", async function () {
+        this.timeout(120000);
+        const f = write("page.md", inline);
+        await runTests({ input: f, logLevel: "silent" });
+        expect(read(f)).to.equal(inline);
+      });
+
+      it("false writes nothing back, not even to declared entries or badges", async function () {
+        this.timeout(120000);
+        const page = [
+          "---",
+          "verified-by:",
+          "  - tool: doc-detective",
+          "    check: wait-demo",
+          "---",
+          "",
+          '<!-- test {"testId": "wait-demo", "badge": true} -->',
+          '<!-- step {"wait": 10} -->',
+          "<!-- test end -->",
+          "",
+        ].join("\n");
+        const f = write("page.md", page);
+        await runTests({ input: f, logLevel: "silent", verification: { write: false } });
+        expect(read(f)).to.equal(page);
+      });
+    });
+
     it("keeps the detected file list out of serialized resolved tests", async function () {
       this.timeout(120000);
       const f = write("page.md", ['<!-- test {"testId": "t"} -->', '<!-- step {"wait": 10} -->', "<!-- test end -->", ""].join("\n"));

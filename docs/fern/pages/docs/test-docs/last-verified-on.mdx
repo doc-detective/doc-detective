@@ -13,7 +13,7 @@ You can record a date in two places:
 
 Both use the shared verification fields from [manni](https://hawkeyexl.github.io/manni/), so `manni meta validate` checks what Doc Detective writes. To show a visible badge as well, see [Step 3](#step-3-optional-show-a-badge).
 
-The feature is always on, and it acts only where you name a check. It needs no config object, CLI flag, or schema change.
+By default, Doc Detective writes only where you've named a check. To have it name the checks for you on the first passing run, or to turn writing off, see [Choose what Doc Detective writes](#choose-what-doc-detective-writes).
 
 ## Before you begin
 
@@ -144,6 +144,41 @@ Set `badge` inside the `test` statement in your format's comment style:
 `badge: true` works only on a test detected from an inline `test` statement, because the badge needs a line above the statement. A test authored in a JSON or YAML spec file has no such line, so Doc Detective logs a warning and skips the badge. To date that test on a page, name its `testId` in a `verified-by` entry instead.
 
 You can combine a badge with a `meta` statement directly above the same test. Doc Detective places the badge first, so the statement's pin covers the badge as written.
+
+## Choose what Doc Detective writes
+
+The `verification.write` setting controls what Doc Detective writes back after a run:
+
+| Value | What Doc Detective writes |
+|---|---|
+| `"existing"` (default) | Fills only the `verified-by` entries and `badge: true` tests your pages already have. |
+| `true` | Also adds the entries on a passing run, then fills them. |
+| `false` | Nothing. Use it for a local or exploratory run that shouldn't touch your files. |
+
+With `true`, a passing run adds two kinds of entry:
+
+- **A page entry.** A Markdown or MDX page whose tests pass gets a `verified-by` entry in its front matter. Its `check` is the page's spec id, which is the page's path from where you run Doc Detective. A page without front matter gets a front-matter block.
+- **A procedure entry.** An inline test with a `testId` you wrote gets a `meta` statement on the line above it, and above its badge if it has one. A test without a `testId` is skipped, because the id Doc Detective generates for it changes whenever the test changes.
+
+Doc Detective adds an entry only once. On later runs it fills the entry in place, like one you wrote yourself.
+
+Set it in your config file:
+
+```json
+{
+  "verification": {
+    "write": true
+  }
+}
+```
+
+Or override it for one run with the `--verification` flag:
+
+```bash
+npx doc-detective --verification true
+```
+
+Because a page entry names the page's path, run Doc Detective from the same folder each time, usually your repository root. A page that moves gets a new entry on its next passing run, and the old entry reports an unknown check until you remove it.
 
 ## Surface the change in CI
 

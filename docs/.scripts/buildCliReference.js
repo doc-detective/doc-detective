@@ -76,12 +76,13 @@ function schemaDefault(configSchema, dottedKey) {
 }
 
 // Map a kebab-case flag name to its config_v3 key. Most flags map by
-// camelCasing the flag name; the two exceptions are spelled out. Flags with no
+// camelCasing the flag name; the exceptions are spelled out. Flags with no
 // config-key entry (config, test, spec) have no schema default and render a
 // blank Default cell.
 const FLAG_CONFIG_KEY_OVERRIDES = {
   "allow-unsafe": "allowUnsafeSteps",
   hints: "hints.enabled",
+  verification: "verification.write",
 };
 const FLAGS_WITHOUT_SCHEMA_DEFAULT = new Set(["config", "test", "spec"]);
 

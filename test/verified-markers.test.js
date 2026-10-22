@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifiedDate, shieldsBadge, resolveVerifiedId } from "../dist/core/utils.js";
-import { applyVerification, pinOf } from "../dist/core/verification.js";
+import { applyVerification, declarePage, pinOf } from "../dist/core/verification.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -105,6 +105,45 @@ describe("Verification metadata — pure helpers", function () {
     it("hashes lines joined with LF, by manni's rule", function () {
       const hex = crypto.createHash("sha256").update("a\nb", "utf8").digest("hex");
       expect(pinOf(["a", "b"])).to.equal(`sha256-${hex}`);
+    });
+  });
+
+  // `verification.write: true`: a passing page with no entry of ours gets one,
+  // naming its spec, for the fill to complete in the same run.
+  describe("declarePage()", function () {
+    const ours = ["  - tool: doc-detective", "    check: docs/a.md"];
+    it("creates front matter on a page that has none", function () {
+      expect(declarePage("# Doc\n", "docs/a.md")).to.equal(["---", "verified-by:", ...ours, "---", "# Doc", ""].join("\n"));
+    });
+    it("appends verified-by to front matter without one", function () {
+      expect(declarePage("---\ntitle: X\n---\n# X\n", "docs/a.md")).to.equal(
+        ["---", "title: X", "verified-by:", ...ours, "---", "# X", ""].join("\n")
+      );
+    });
+    it("adds its entry to another tool's list", function () {
+      expect(declarePage("---\nverified-by:\n  - tool: lychee\n---\n", "docs/a.md")).to.equal(
+        ["---", "verified-by:", "  - tool: lychee", ...ours, "---", ""].join("\n")
+      );
+    });
+    it("keeps a flow list flow", function () {
+      expect(declarePage("---\nverified-by: [{tool: lychee}]\n---\n", "docs/a.md")).to.equal(
+        "---\nverified-by: [{tool: lychee}, {tool: doc-detective, check: docs/a.md}]\n---\n"
+      );
+    });
+    it("leaves a page that already names doc-detective alone", function () {
+      const page = "---\nverified-by:\n  - tool: doc-detective\n    check: other\n---\n";
+      expect(declarePage(page, "docs/a.md")).to.equal(page);
+    });
+    it("quotes a spec id YAML would misread, and keeps CRLF", function () {
+      expect(declarePage("---\r\ntitle: X\r\n---\r\n", "a: b")).to.equal(
+        '---\r\ntitle: X\r\nverified-by:\r\n  - tool: doc-detective\r\n    check: "a: b"\r\n---\r\n'
+      );
+    });
+    it("is completed by the fill in the same pass", function () {
+      const out = applyVerification(declarePage("# Doc\n", "docs/a.md"), "markdown", opts());
+      expect(out).to.equal(
+        ["---", "verified-by:", ...ours, "    version: 4.27.0", "    passed: 2026-10-21", "last-verified: 2026-10-21", "---", "# Doc", ""].join("\n")
+      );
     });
   });
 

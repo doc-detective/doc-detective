@@ -28,7 +28,7 @@ avoid surprising file changes, brittle anchoring and new configuration.
 * The anchor between a date and its test must survive edits and reordering.
 * The shape must be the one manni defines, so any tool reads and writes one key, and manni can
   validate it and serve it.
-* No new config knobs, CLI flags or schema changes.
+* By default, a run writes only where an author asked. Anything more is an explicit setting.
 * CI should turn the change into a pull request with no new plumbing.
 
 ## Considered Options
@@ -50,8 +50,21 @@ manni family reads, so one page can list several tools and a reader sees one dat
 
 Behavior decided:
 
-1. **No config and no CLI flag.** The write-back is always on. It acts only where an entry names
-   Doc Detective, and nowhere else.
+1. **One setting, `verification.write`, with the CLI override `--verification`.**
+   * `"existing"`, the default, fills only what pages already declare: `verified-by` entries naming
+     Doc Detective, and `badge: true` tests.
+   * `false` writes nothing back, badges included. It suits a local or exploratory run.
+   * `true` also declares entries on a passing run, then fills them in the same run. A passing
+     Markdown or MDX page with no Doc Detective entry gets one in its front matter, checked by its
+     spec id. A page without front matter gets a block.
+   * Under `true`, a passing inline test whose `testId` was authored gets a `meta` statement on the
+     line above it, and above its badge. A generated id is skipped, because it changes whenever the
+     test changes. Detection doesn't record which ids were authored. But a generated id never
+     appears in the source, so "the file contains the id" tells them apart.
+   * An entry is added once. Later runs fill it in place, like one an author wrote.
+
+   Unlike option C, `true` infers no placement. A page entry goes in front matter, and a statement
+   goes on the line above its test, the same spot a badge takes.
 2. **A page opts in with a `verified-by` entry.** The entry has `tool: doc-detective` and a `check`
    naming a test id or a spec id. After a run, the check resolves to that unit's roll-up result. A
    spec id wins over a test id of the same name.
@@ -120,7 +133,11 @@ could carry moves to badge-anchored tests, recorded in ADR 01141.
 
 * Good, because one shape serves every tool. manni validates the form of every value, and other tools read the
   same date.
-* Good, because it keeps honest aging, author-explicit anchoring, idempotent writes, and no new config or schema.
+* Good, because it keeps honest aging, author-explicit anchoring and idempotent writes. Its one
+  setting defaults to writing only what authors declared.
+* Trade-off: a page entry that `true` adds names the page's spec id, which is its path from the run
+  directory. Run from the same folder each time. A moved page gets a new entry, and the old one
+  reports an unknown check until it's removed.
 * Good, because a pin records exactly which words a check proved. When they change, `manni meta validate`
   warns until the next passing run re-pins them.
 * The writer scans the union of the report's content paths and the full detected input
@@ -147,6 +164,17 @@ could carry moves to badge-anchored tests, recorded in ADR 01141.
 * `test/verified-writeback.test.js` covers the file-level writer and two real `runTests` runs. One
   fills front matter after an inline `wait` test. One pins a statement on a prose-only page whose
   test lives in another file.
+* The setting is covered at each layer:
+  * `src/common/test/validate.test.js` checks each mode, the `"existing"` default, and rejects an
+    unknown mode.
+  * `test/utils.test.js` checks that `--verification` sets `verification.write`, and that an unknown
+    value is ignored with a warning.
+  * `test/verified-markers.test.js` covers `declarePage`: a new block, an appended key or list item,
+    flow style, quoting and CRLF, and a page that already names Doc Detective.
+  * `test/badge-anchor-writeback.test.js` covers statement declaration: each comment form, placement
+    above a badge, and skipping generated ids, failures and already-declared checks.
+  * `test/verified-writeback.test.js` runs `runTests` in each mode. `true` declares, fills and pins on
+    the first run and adds nothing on the second. `"existing"` declares nothing. `false` writes nothing.
 * These are temp-file tests, not committed `test/core-artifacts/*.spec.json` fixtures. The feature
   writes to source files, so a committed fixture would get today's date on every run and dirty the
   working tree.

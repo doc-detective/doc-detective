@@ -20054,6 +20054,7 @@ export interface Config {
   integrations?: IntegrationsOptions;
   telemetry?: TelemetryOptions;
   hints?: HintsOptions;
+  verification?: VerificationOptions;
   /**
    * Number of concurrent test runners. Set to true to use CPU core count (capped at 4).
    */
@@ -28662,6 +28663,15 @@ export interface HintsOptions {
    * If `true` (the default), Doc Detective may print one applicable hint after a test run. Disable from the CLI with `--no-hints`.
    */
   enabled: boolean;
+}
+/**
+ * Options for writing verification results back into source files after a run: `verified-by` entries, `last-verified` dates, and "Last verified" badges.
+ */
+export interface VerificationOptions {
+  /**
+   * What Doc Detective writes back after a run. `"existing"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test that has an authored `testId`. `false` writes nothing back. Override from the CLI with `--verification`.
+   */
+  write?: boolean | "existing";
 }
 /**
  * Environment information for the system running Doc Detective.

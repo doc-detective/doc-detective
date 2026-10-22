@@ -67857,6 +67857,32 @@
         },
         "title": "Hints options"
       },
+      "verification": {
+        "description": "Options for writing verification results back into source files after a run: `verified-by` entries, `last-verified` dates, and \"Last verified\" badges.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "write": {
+            "description": "What Doc Detective writes back after a run. `\"existing\"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test that has an authored `testId`. `false` writes nothing back. Override from the CLI with `--verification`.",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "existing"
+                ]
+              }
+            ],
+            "default": "existing"
+          }
+        },
+        "default": {
+          "write": "existing"
+        },
+        "title": "Verification options"
+      },
       "concurrentRunners": {
         "type": [
           "integer",
@@ -125456,6 +125482,11 @@
       {},
       {
         "shell": "powershell"
+      },
+      {
+        "verification": {
+          "write": true
+        }
       },
       {
         "input": ".",
@@ -197240,6 +197271,32 @@
             },
             "title": "Hints options"
           },
+          "verification": {
+            "description": "Options for writing verification results back into source files after a run: `verified-by` entries, `last-verified` dates, and \"Last verified\" badges.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "write": {
+                "description": "What Doc Detective writes back after a run. `\"existing\"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test that has an authored `testId`. `false` writes nothing back. Override from the CLI with `--verification`.",
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "existing"
+                    ]
+                  }
+                ],
+                "default": "existing"
+              }
+            },
+            "default": {
+              "write": "existing"
+            },
+            "title": "Verification options"
+          },
           "concurrentRunners": {
             "type": [
               "integer",
@@ -254839,6 +254896,11 @@
           {},
           {
             "shell": "powershell"
+          },
+          {
+            "verification": {
+              "write": true
+            }
           },
           {
             "input": ".",

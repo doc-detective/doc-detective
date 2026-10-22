@@ -187,6 +187,22 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should validate each verification.write mode and default it to existing", function () {
+        for (const write of ["existing", true, false]) {
+          const result = validate({ schemaKey: "config_v3", object: { verification: { write } } });
+          expect(result.valid, String(write)).to.be.true;
+          expect(result.object.verification.write).to.equal(write);
+        }
+        const unset = validate({ schemaKey: "config_v3", object: {} });
+        expect(unset.object.verification).to.deep.equal({ write: "existing" });
+      });
+
+      it("should reject an unknown verification.write mode", function () {
+        const result = validate({ schemaKey: "config_v3", object: { verification: { write: "always" } } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("verification");
+      });
+
       it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
         const result = validate({
           schemaKey: "spec_v3",

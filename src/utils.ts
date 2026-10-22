@@ -130,6 +130,11 @@ function buildYargs(args: any): any {
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
       type: "boolean",
     })
+    .option("verification", {
+      description:
+        "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
+      type: "string",
+    })
     .option("auto-screenshot", {
       description:
         "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
@@ -417,6 +422,22 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
+  }
+  if (typeof args.verification === "string" && args.verification.length > 0) {
+    // Validation ran before this block, so drop an unknown value and keep the
+    // validated `verification.write` (which defaults to "existing").
+    const write = ({ existing: "existing", true: true, false: false } as Record<string, string | boolean>)[
+      args.verification.trim().toLowerCase()
+    ];
+    if (write === undefined) {
+      log(
+        `Ignoring invalid --verification value '${args.verification}'. Expected one of: existing, true, false.`,
+        "warning",
+        config
+      );
+    } else {
+      config.verification = { ...(config.verification || {}), write };
+    }
   }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
