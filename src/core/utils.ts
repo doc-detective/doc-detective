@@ -2053,8 +2053,15 @@ function shieldsBadge(
 function writeFileAtomic(file: string, content: string): void {
   const target = fs.realpathSync(file);
   const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
-  fs.writeFileSync(tmp, content, { flag: "wx" });
+  // Created exclusively first, so an EEXIST throws before we own the file and
+  // cleanup can never remove someone else's.
+  const fd = fs.openSync(tmp, "wx");
   try {
+    try {
+      fs.writeFileSync(fd, content);
+    } finally {
+      fs.closeSync(fd);
+    }
     fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
     fs.renameSync(tmp, target);
   } catch (error) {
