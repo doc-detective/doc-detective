@@ -2288,22 +2288,26 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         // Freeze a passing test's generated id: write it into the test's own
         // statement, where it counts as authored from then on. A generated id
         // changes whenever its test does, so a statement naming it would break.
-        // Right to left, so two statements on one line keep their positions.
+        // Right to left, so two statements on one line keep their positions. A
+        // statement can span lines; adding the id never adds one, so every
+        // line index this pass still uses stays valid.
         const frozen = new Set<string>();
         for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
-          const text = original.slice(c.start, c.end);
+          const text = original.slice(c.start, c.end).replace(/\r\n/g, "\n");
           if (c.result !== "PASS" || setsTestId(text, id)) continue;
-          const at = lines[li].indexOf(text);
+          const span = text.split("\n").length;
+          const block = lines.slice(li, li + span).join("\n");
+          const at = block.indexOf(text);
           const next = at === -1 ? undefined : withTestId(text, id);
           if (next === undefined) {
             log(
               config,
               "warning",
-              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't one JSON object. Add a testId to the statement by hand.`
+              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't absent or one JSON object. Add a testId to the statement by hand.`
             );
             continue;
           }
-          lines[li] = lines[li].slice(0, at) + next + lines[li].slice(at + text.length);
+          lines.splice(li, span, ...(block.slice(0, at) + next + block.slice(at + text.length)).split("\n"));
           frozen.add(id);
           changed = true;
         }

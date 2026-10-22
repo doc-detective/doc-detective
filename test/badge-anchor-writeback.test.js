@@ -191,12 +191,13 @@ describe("Badge-anchored test verification — write-back", function () {
     const md = (s) => `<!-- meta ${s} -->`;
     const test = '<!-- test {"testId": "install"} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n';
     // The report carries the test statement's own span, as detection records it.
-    const run = (f, opts = {}, config = silent) => {
+    const run = (f, { span = 1, ...opts } = {}, config = silent) => {
       const r = report(f, { testId: "install", badge: false, ...opts });
       const lines = read(f).split("\n");
       const line = r.specs[0].tests[0].location.line;
       const startIndex = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0);
-      r.specs[0].tests[0].location = { line, startIndex, endIndex: startIndex + lines[line - 1].length };
+      const endIndex = startIndex + lines.slice(line - 1, line - 1 + span).join("\n").length;
+      r.specs[0].tests[0].location = { line, startIndex, endIndex };
       applyBadgeAnchoredTests({ config, results: r, init: true });
     };
 
@@ -248,6 +249,13 @@ describe("Badge-anchored test verification — write-back", function () {
       const f = write("a.md", '# Doc\n\nSign in with login.\n\n<!-- test {"description": "x"} -->\n');
       run(f, { testId: "login", line: 5 });
       expect(read(f)).to.contain('<!-- test {"testId": "login", "description": "x"} -->');
+    });
+    it("freezes a generated id into a statement that spans several lines", function () {
+      const f = write("a.md", '# Doc\n\n<!-- test\n{"description": "x"}\n-->\n');
+      run(f, { testId: generated, span: 3 });
+      expect(read(f)).to.equal(
+        `# Doc\n\n${declares(md)}\n<!-- test\n{"testId": "${generated}", "description": "x"}\n-->\n`
+      );
     });
     it("freezes a generated id that the statement mentions outside a testId", function () {
       const f = write("a.md", `# Doc\n\n<!-- test {"description": "was ${generated}"} -->\n`);
