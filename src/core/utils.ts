@@ -2174,6 +2174,8 @@ function declaringStatement(format: string, ext: string, checks: string[]): stri
 // is authored (a generated id never appears in the file) also gets a `meta`
 // statement declaring it above its statement and badge, unless one already
 // does. The verification write-back then fills and pins it. See ADR 01140.
+// A statement is independent of the badge: a test without `badge: true`
+// still gets one.
 function applyBadgeAnchoredTests({ config, results, init = false }: { config: any; results: any; init?: boolean }): void {
   if (!results || !Array.isArray(results.specs)) return;
 

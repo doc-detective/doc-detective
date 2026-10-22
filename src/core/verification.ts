@@ -723,6 +723,8 @@ function writeStatements(content: string, format: string, opts: VerificationOpti
     if (last !== undefined) data["last-verified"] = last;
     const pin = pinOf(anchoredText(content, anchor, spans));
     const json = JSON.stringify(data);
+    // A same-day re-run fills the same values over an unchanged block: skip
+    // it, so the file stays byte-identical.
     if (pin === s.pin && json === before) continue;
     const trailing = /\s*$/.exec(content.slice(s.pinAt, s.closeAt))?.[0] ?? "";
     edits.push({ start: s.pinAt, end: s.closeAt, text: `${pin} ${json}${trailing}` });
