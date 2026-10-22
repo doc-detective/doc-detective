@@ -306,6 +306,23 @@ describe("Verification metadata — pure helpers", function () {
       );
     });
 
+    it("finds a flow map's own closing brace past a } inside a quoted value", function () {
+      const input = '---\n{title: "a}b", verified-by: [{tool: doc-detective, check: "a}"}]}\n---\n';
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        '---\n{title: "a}b", verified-by: [{tool: doc-detective, check: "a}", version: 4.27.0, passed: 2026-10-21}], last-verified: 2026-10-21}\n---\n'
+      );
+      expect(declarePage('---\n{title: "a}b"}\n---\n', "docs/a.md")).to.equal(
+        '---\n{title: "a}b", verified-by: [{tool: doc-detective, check: docs/a.md}]}\n---\n'
+      );
+    });
+
+    it("appends after a merge key that ends the map", function () {
+      const input = "---\nbase: &b {x: 1}\nverified-by:\n  - tool: doc-detective\n    check: a\n    <<: *b\n---\n";
+      expect(applyVerification(input, "markdown", opts())).to.equal(
+        "---\nbase: &b {x: 1}\nverified-by:\n  - tool: doc-detective\n    check: a\n    <<: *b\n    version: 4.27.0\n    passed: 2026-10-21\nlast-verified: 2026-10-21\n---\n"
+      );
+    });
+
     it("keeps CRLF line endings", function () {
       const input = "---\r\nverified-by:\r\n  - tool: doc-detective\r\n    check: a\r\n---\r\n# X\r\n";
       const out = applyVerification(input, "markdown", opts());
