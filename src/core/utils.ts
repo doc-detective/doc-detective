@@ -2183,7 +2183,7 @@ function applyVerifiedMarkers({
 // form, or undefined when its options aren't absent or one JSON object, the
 // only shapes it can edit without re-serializing the author's statement.
 function withTestId(statement: string, id: string): string | undefined {
-  const m = /^(.*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
+  const m = /^([\s\S]*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
   if (!m) return undefined;
   const [, head, options, close] = m;
   const field = `"testId": ${JSON.stringify(id)}`;

@@ -257,6 +257,13 @@ describe("Badge-anchored test verification — write-back", function () {
         `# Doc\n\n${declares(md)}\n<!-- test\n{"testId": "${generated}", "description": "x"}\n-->\n`
       );
     });
+    it("freezes a generated id into a statement whose keyword isn't on its first line", function () {
+      const f = write("a.md", '# Doc\n\n<!--\ntest {"description": "x"}\n-->\n');
+      run(f, { testId: generated, span: 3 });
+      expect(read(f)).to.equal(
+        `# Doc\n\n${declares(md)}\n<!--\ntest {"testId": "${generated}", "description": "x"}\n-->\n`
+      );
+    });
     it("freezes a generated id that the statement mentions outside a testId", function () {
       const f = write("a.md", `# Doc\n\n<!-- test {"description": "was ${generated}"} -->\n`);
       run(f, { testId: generated });
