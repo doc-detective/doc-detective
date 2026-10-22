@@ -149,7 +149,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
 | Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. |
-| Last verified on | W2 | | `verified` marker write-back and `badge: true` inline-test flag: stamps a page with the date its test/spec last passed, optional shields.io badge. |
+| Last verified on | W2 | | `verified-by` write-back in front matter and manni `meta` statements, plus the `badge: true` test flag. Records when a test last passed. |
 
 **UI procedures: Wren**
 
