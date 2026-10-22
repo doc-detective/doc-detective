@@ -1,3 +1,17 @@
+# [4.41.0-last-verified-on.5](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.4...v4.41.0-last-verified-on.5) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** tell an authored testId by its own statement; fall back on a locked rename ([2fcaa19](https://github.com/doc-detective/doc-detective/commit/2fcaa1974cff7251e201929dceb22c18dff57291))
+* **runner:** warn when a declared statement can't be written in AsciiDoc ([eb296e0](https://github.com/doc-detective/doc-detective/commit/eb296e088357d6a4fa0aedc7a8131b5ae53fb0de))
+* **runner:** warn when a statement of ours is skipped; guard edit overlap ([8215ba2](https://github.com/doc-detective/doc-detective/commit/8215ba2a34e718908e6dd7e89bb004bf9a634030))
+
+
+### Features
+
+* **runner:** add verification.write to declare or skip the write-back ([0b507f1](https://github.com/doc-detective/doc-detective/commit/0b507f144ce4dffb319b9dd3a3c8bdf3cb0657d8))
+
 # [4.41.0-last-verified-on.4](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.3...v4.41.0-last-verified-on.4) (2026-10-22)
 
 
