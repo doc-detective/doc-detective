@@ -84,6 +84,21 @@ describe("Verification metadata — pure helpers", function () {
       const r = { specs: [{ specId: "dup", result: "PASS", tests: [{ testId: "dup", result: "FAIL" }] }] };
       expect(resolveVerifiedId(r, "dup")).to.equal("PASS");
     });
+    it("passes a test revisited by routing only if every visit passed", function () {
+      const r = { specs: [{ specId: "s", tests: [{ testId: "t", result: "PASS" }, { testId: "t", result: "FAIL" }] }] };
+      expect(resolveVerifiedId(r, "t")).to.equal("FAIL");
+      r.specs[0].tests[1].result = "PASS";
+      expect(resolveVerifiedId(r, "t")).to.equal("PASS");
+    });
+    it("gives specId precedence even when a testId match comes first", function () {
+      const r = {
+        specs: [
+          { specId: "a", result: "FAIL", tests: [{ testId: "dup", result: "FAIL" }] },
+          { specId: "dup", result: "PASS", tests: [] },
+        ],
+      };
+      expect(resolveVerifiedId(r, "dup")).to.equal("PASS");
+    });
   });
 
   describe("pinOf()", function () {

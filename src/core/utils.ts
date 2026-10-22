@@ -2055,7 +2055,7 @@ function writeFileAtomic(file: string, content: string): void {
   const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
   // Created exclusively first, so an EEXIST throws before we own the file and
   // cleanup can never remove someone else's.
-  const fd = fs.openSync(tmp, "wx");
+  const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
   try {
     try {
       fs.writeFileSync(fd, content);
@@ -2070,17 +2070,19 @@ function writeFileAtomic(file: string, content: string): void {
   }
 }
 
-// Resolve a check against a run report: a matching specId or testId returns
-// that unit's roll-up result; otherwise null.
+// Resolve a check against a run report: specs with a matching specId, else
+// tests with a matching testId. A routed revisit (goToTest) reports a unit
+// more than once, so it resolves to PASS only if every match passed, and to
+// the first other result otherwise. Null when nothing matches.
 function resolveVerifiedId(results: any, id: string): string | null {
   if (!results || !Array.isArray(results.specs)) return null;
-  for (const spec of results.specs) {
-    if (spec?.specId === id) return spec.result ?? null;
-    for (const test of spec?.tests || []) {
-      if (test?.testId === id) return test.result ?? null;
-    }
-  }
-  return null;
+  const specs = results.specs.filter((spec: any) => spec?.specId === id);
+  const matches = specs.length
+    ? specs
+    : results.specs.flatMap((spec: any) => (spec?.tests || []).filter((test: any) => test?.testId === id));
+  if (matches.length === 0) return null;
+  const failed = matches.find((unit: any) => unit.result !== "PASS");
+  return failed ? (failed.result ?? null) : "PASS";
 }
 
 // Post-run write-back: for every candidate source file, fill Doc Detective's
