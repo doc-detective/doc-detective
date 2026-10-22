@@ -383,6 +383,21 @@ describe("Verification metadata — pure helpers", function () {
       });
     }
 
+    // In a line format, a statement lands inside another's anchor only by
+    // sharing a line with its text (mirrors manni 0df6b6b1).
+    for (const [format, lines, hashed] of [
+      ["markdown", ["Run the installer <!-- meta {\"concepts\":[\"inner\"]} --> and wait."], "Run the installer  and wait."],
+      ["html", ["<p>Hello <!-- meta {\"concepts\":[\"inner\"]} --> world.</p>"], "<p>Hello  world.</p>"],
+    ]) {
+      it(`cuts a statement inside another's anchor in ${format}, and the pin holds when it changes`, function () {
+        const page = ['<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} -->', ...lines, ""].join("\n");
+        const out = applyVerification(page, format, opts());
+        expect(pinsIn(out)).to.deep.equal([pinOf([hashed])]);
+        const written = out.replace('{"concepts":["inner"]}', '{"concepts":["inner"],"last-verified":"2026-10-22"}');
+        expect(pinsIn(applyVerification(written, format, opts()))).to.deep.equal([pinOf([hashed])]);
+      });
+    }
+
     it("cuts a statement from the line it shares with its text", function () {
       const page = `<!-- meta {"verified-by":[{"tool":"doc-detective","check":"a"}]} --> Run it.\n`;
       expect(pinsIn(applyVerification(page, "markdown", opts()))).to.deep.equal([pinOf([" Run it."])]);
