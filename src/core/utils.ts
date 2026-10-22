@@ -2063,7 +2063,16 @@ function writeFileAtomic(file: string, content: string): void {
       fs.closeSync(fd);
     }
     fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
-    fs.renameSync(tmp, target);
+    try {
+      fs.renameSync(tmp, target);
+    } catch (error: any) {
+      // Windows refuses to replace a file another process holds open (an
+      // editor, a preview). Fall back to an in-place copy, which is no worse
+      // than a plain write, rather than skip the document.
+      if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
+      fs.copyFileSync(tmp, target);
+      fs.rmSync(tmp, { force: true });
+    }
   } catch (error) {
     fs.rmSync(tmp, { force: true });
     throw error;
@@ -2173,7 +2182,7 @@ function declaringStatement(format: string, ext: string, checks: string[]): stri
 
 // Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01141.
 // With `init` (`verification.write: true`), a passing inline test whose testId
-// is authored (a generated id never appears in the file) also gets a `meta`
+// is authored (written in its own test statement; a generated one never is) gets a `meta`
 // statement declaring it above its statement and badge, unless one already
 // does. The verification write-back then fills and pins it. See ADR 01140.
 // A statement is independent of the badge: a test without `badge: true`
@@ -2185,8 +2194,9 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
   // line above its test statement, so every badge-flagged test on one line,
   // including a routed revisit (goToTest) of the same test, shares one badge:
   // it passes only if every one of them passed. With `init`, `checks` holds
-  // each test id on the line and its result, merged the same way.
-  type LineWork = { badge?: string; checks: Map<string, string> };
+  // each test id on the line, its result merged the same way, and its test
+  // statement's span: an id written inside that span was authored.
+  type LineWork = { badge?: string; checks: Map<string, { result: string; start: number; end: number }> };
   const byFile = new Map<string, Map<number, LineWork>>();
   const merge = (prev: string | undefined, next: string) => (prev === undefined || prev === "PASS" ? next : prev);
   for (const spec of results.specs) {
@@ -2204,10 +2214,12 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         continue;
       }
       const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
-      const work = byLine.get(test.location.line) || { checks: new Map<string, string>() };
+      const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };
       if (test.badge === true) work.badge = merge(work.badge, test.result);
       if (init && typeof test.testId === "string") {
-        work.checks.set(test.testId, merge(work.checks.get(test.testId), test.result));
+        const { startIndex: start = 0, endIndex: end = 0 } = test.location;
+        const result = merge(work.checks.get(test.testId)?.result, test.result);
+        work.checks.set(test.testId, { result, start, end });
       }
       byLine.set(test.location.line, work);
       byFile.set(test.contentPath, byLine);
@@ -2255,14 +2267,14 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         }
 
         const checks = [...work.checks]
-          .filter(([id, result]) => result === "PASS" && original.includes(id) && !declared(id))
+          .filter(([id, c]) => c.result === "PASS" && original.slice(c.start, c.end).includes(id) && !declared(id))
           .map(([id]) => id);
         const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
         if (checks.length > 0 && !statement) {
           log(
             config,
             "warning",
-            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: a ${format} \`// ( )\` statement ends at the first ")". Add a verified-by entry by hand, or use a testId without ")".`
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")". Add a verified-by entry by hand, or use a testId without ")".`
           );
         }
         if (statement) {

@@ -59,8 +59,8 @@ Behavior decided:
      spec id. A page without front matter gets a block.
    * Under `true`, a passing inline test whose `testId` was authored gets a `meta` statement on the
      line above it, and above its badge. A generated id is skipped, because it changes whenever the
-     test changes. Detection doesn't record which ids were authored. But a generated id never
-     appears in the source, so "the file contains the id" tells them apart.
+     test changes. Detection doesn't record which ids were authored. But an authored id is
+     written in its own test statement, whose span the report carries, and a generated one never is.
    * An entry is added once. Later runs fill it in place, like one an author wrote.
 
    Unlike option C, `true` infers no placement. A page entry goes in front matter, and a statement

@@ -92,6 +92,13 @@ describe("Verification metadata — write-back", function () {
   });
 
   describe("skip paths", function () {
+    it("init adds page entries to Markdown and MDX pages only", function () {
+      // AsciiDoc, HTML and DITA have no front matter; their tests get statements instead.
+      const original = "= Doc\n\nText.\n";
+      const f = write("a.adoc", original);
+      applyVerifiedMarkers({ config: silent, results: report(f), init: true });
+      expect(read(f)).to.equal(original);
+    });
     it("no-ops when results has no specs array", function () {
       applyVerifiedMarkers({ config: silent, results: {} });
       applyVerifiedMarkers({ config: silent, results: null });

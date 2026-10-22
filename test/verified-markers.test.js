@@ -262,6 +262,13 @@ describe("Verification metadata — pure helpers", function () {
       expect(out).to.not.contain("last-verified");
     });
 
+    it("keeps an existing last-verified as it was, never clears it, while another entry has no pass", function () {
+      const input = ["---", "last-verified: 2026-01-01", "verified-by:", "  - tool: doc-detective", "    check: a", "  - tool: lychee", "---", ""].join("\n");
+      const out = applyVerification(input, "markdown", opts());
+      expect(out).to.contain("    passed: 2026-10-21\n");
+      expect(out).to.contain("last-verified: 2026-01-01\n");
+    });
+
     it("never touches another tool's entry, even one naming the same check", function () {
       const input = [
         "---",

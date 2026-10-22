@@ -190,8 +190,15 @@ describe("Badge-anchored test verification — write-back", function () {
     const stmt = (form) => form('{"verified-by":[{"tool":"doc-detective","check":"install"}]}');
     const md = (s) => `<!-- meta ${s} -->`;
     const test = '<!-- test {"testId": "install"} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n';
-    const run = (f, opts = {}) =>
-      applyBadgeAnchoredTests({ config: silent, results: report(f, { testId: "install", badge: false, ...opts }), init: true });
+    // The report carries the test statement's own span, as detection records it.
+    const run = (f, opts = {}, config = silent) => {
+      const r = report(f, { testId: "install", badge: false, ...opts });
+      const lines = read(f).split("\n");
+      const line = r.specs[0].tests[0].location.line;
+      const startIndex = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0);
+      r.specs[0].tests[0].location = { line, startIndex, endIndex: startIndex + lines[line - 1].length };
+      applyBadgeAnchoredTests({ config, results: r, init: true });
+    };
 
     it("inserts the statement on the line above the test statement", function () {
       const f = write("a.md", `# Doc\n\n${test}`);
@@ -220,6 +227,12 @@ describe("Badge-anchored test verification — write-back", function () {
       run(f, { testId: "a.md~1a2b3c" });
       expect(read(f)).to.equal(original);
     });
+    it("skips an id that appears in the page but not in the test's own statement", function () {
+      const original = '# Doc\n\nSign in with login.\n\n<!-- test {"description": "x"} -->\n';
+      const f = write("a.md", original);
+      run(f, { testId: "login", line: 5 });
+      expect(read(f)).to.equal(original);
+    });
     it("skips a test that didn't pass", function () {
       const original = `# Doc\n\n${test}`;
       const f = write("a.md", original);
@@ -240,7 +253,7 @@ describe("Badge-anchored test verification — write-back", function () {
       const realLog = console.log;
       console.log = (...a) => logs.push(a.join(" "));
       try {
-        applyBadgeAnchoredTests({ config: { logLevel: "warning" }, results: report(f, { testId: "a(1)", badge: false }), init: true });
+        run(f, { testId: "a(1)" }, { logLevel: "warning" });
       } finally {
         console.log = realLog;
       }
