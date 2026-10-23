@@ -17,7 +17,7 @@ Inline tests use specially formatted comments with JSON or YAML objects to decla
 
 When you declare a test, you can specify any of the test properties available in the standalone JSON format, though `steps` is normally omitted. See [`test`](/reference/schemas/test).
 
-Doc Detective can also record in the page when an inline test last passed. To record the date, add a `verified-by` entry whose `check` is the test's `testId`. Or set `verification.write` to `true` in your config file, and Doc Detective adds that entry for each passing inline test. If the test has no `testId`, Doc Detective first writes its generated `testId` into the `test` statement in your source file, so later runs keep using it. To also show a "Last verified" badge beside the procedure, set `badge: true` on the `test` statement. See [Show a "Last verified on" date](/docs/test-docs/last-verified-on).
+Doc Detective can also record in the page when an inline test last passed. To record the date, add a `verified-by` entry whose `check` is the test's `testId`. Or set `verification.write` to `true` in your config file, and Doc Detective adds that entry for each passing inline test. In that mode, if you haven't given the test a `testId`, Doc Detective first writes its generated `testId` into the `test` statement in your source file. Later runs then keep using it. To also show a "Last verified" badge beside the procedure, set `badge: true` on the `test` statement. See [Show a "Last verified on" date](/docs/test-docs/last-verified-on).
 
 If you declare a new test without closing the previous test, Doc Detective automatically closes the previous test before starting the new one.
 
