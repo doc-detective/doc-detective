@@ -60,19 +60,20 @@ The statement covers the paragraph or code block that follows it. Use the commen
 
 | Format | Statement forms |
 |---|---|
-| Markdown (`.md`, `.markdown`) | `<!-- meta … -->`, `[comment]: # (meta …)` |
-| MDX (`.mdx`) | `{/* meta … */}` |
+| Markdown and MDX (`.md`, `.markdown`, `.mdx`) | `<!-- meta … -->`, `{/* meta … */}`, `[comment]: # (meta …)` |
 | HTML (`.html`, `.htm`) | `<!-- meta … -->` |
 | AsciiDoc (`.adoc`, `.asciidoc`, `.asc`) | `// (meta …)` |
 | DITA (`.dita`, `.ditamap`) | `<?manni meta …?>`, `<!-- meta … -->`, `<data name="manni-meta" value='…'/>` |
 
-In MDX, use the `{/* */}` form so the statement is a valid JSX comment. For AsciiDoc, the `// ( )` form ends at the first `)`, so a `check` there can't contain `)`. For DITA, a statement covers an element instead of a paragraph. As an element's first child, it covers that element. Anywhere else, it covers the next element:
+In MDX, use the `{/* */}` form so the statement is a valid JSX comment. When Doc Detective [adds a statement itself](#choose-what-doc-detective-writes), it uses `{/* */}` in `.mdx` files and `<!-- -->` in Markdown files. For AsciiDoc, the `// ( )` form ends at the first `)`, so a `check` there can't contain `)`. For DITA, a statement covers an element instead of a paragraph. As an element's first child, it covers that element. Anywhere else, it covers the next element:
 
 ```xml
 <step><?manni meta {"verified-by":[{"tool":"doc-detective","check":"my-test"}]}?>
   <cmd>Run the setup command.</cmd>
 </step>
 ```
+
+If the covered element has a `<title>`, or the next element is a `<title>`, the statement covers only the title's lines. For example, a statement as the first child of a `<concept>` covers its `<title>`, not the whole topic.
 
 Doc Detective ignores a statement inside a code block or inline code. A page can show the syntax without Doc Detective filling it in.
 
@@ -96,7 +97,7 @@ title: My page
 verified-by:
   - tool: doc-detective
     check: my-test
-    version: 4.40.6
+    version: 4.41.0
     passed: 2026-10-21
 last-verified: 2026-10-21
 ---
@@ -105,7 +106,7 @@ last-verified: 2026-10-21
 In a statement, the change is a one-line diff in the same comment form:
 
 ```markdown
-<!-- meta sha256-9c1e44a0… {"verified-by":[{"tool":"doc-detective","check":"my-test","version":"4.40.6","passed":"2026-10-21"}],"last-verified":"2026-10-21"} -->
+<!-- meta sha256-9c1e44a0… {"verified-by":[{"tool":"doc-detective","check":"my-test","version":"4.41.0","passed":"2026-10-21"}],"last-verified":"2026-10-21"} -->
 1. Install the package.
 2. Run the setup command.
 ```
