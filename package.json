@@ -116,7 +116,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@puppeteer/browsers": "^3.2.6",
     "geckodriver": "^8.0.0",
-    "pixelmatch": "^7.2.0",
+    "pixelmatch": "^8.0.0",
     "pngjs": "^7.0.0",
     "proxy-agent": "^8.0.2",
     "sharp": "^0.35.5",
