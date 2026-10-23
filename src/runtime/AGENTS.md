@@ -49,9 +49,9 @@ throws while `require.resolve("<driver>/package.json")` succeeds.
 
 ## Heavy deps whose CommonJS entry re-exports ESM
 
-`loadHeavyDep` resolves with CommonJS conditions, then `import()`s the file. When a package's
-CJS entry is `module.exports = require('../index.js')` (require of its ESM build), Node's CJS
-lexer can't see the named exports, so the namespace exposes them only on `default`. geckodriver 8
+`loadHeavyDep` resolves with CommonJS conditions, then `import()`s the file. Some packages' CJS
+entry is `module.exports = require('../index.js')`, a require of their ESM build. Node's CJS
+lexer can't see those named exports, so the namespace exposes them only on `default`. geckodriver 8
 ships that shape (ADR 01143). Unwrap with `mod.default ?? mod` at the call site, as the
 geckodriver, sharp, and pixelmatch loads do. Diagnostic: `<x>.<fn> is not a function` right after a
 heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.exports`.

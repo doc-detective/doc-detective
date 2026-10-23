@@ -19,7 +19,7 @@ app-surface element lookups. The docs promise the opposite of strict mode: "If m
 match … the step operates on the first matched element" (`find.mdx`, `selectors/css.mdx`).
 
 Silence would make it worse. The shorthand lookup treats a throwing strategy as "give this
-strategy up" (ADR 01131), so a multi-match selector would just stop matching, and the step would
+strategy up" (ADR 01131). A multi-match selector would just stop matching, and the step would
 fail with "element not found". The page still has the element.
 
 WebdriverIO 10 also removes `executeAsync` (webdriverio#15705), which the browser recording engine
