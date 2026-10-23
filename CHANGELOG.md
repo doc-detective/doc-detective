@@ -1,3 +1,10 @@
+## [4.41.1](https://github.com/doc-detective/doc-detective/compare/v4.41.0...v4.41.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** ship WebdriverIO 10, pixelmatch 8, and the latest dependency updates ([217b5df](https://github.com/doc-detective/doc-detective/commit/217b5df4ec21c7cdc0b37743b0b5c9c91419a886)), closes [#766](https://github.com/doc-detective/doc-detective/issues/766) [#767](https://github.com/doc-detective/doc-detective/issues/767) [#768](https://github.com/doc-detective/doc-detective/issues/768)
+
 # [4.41.0](https://github.com/doc-detective/doc-detective/compare/v4.40.6...v4.41.0) (2026-10-23)
 
 
