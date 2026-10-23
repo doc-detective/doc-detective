@@ -63,11 +63,11 @@ jobs:
     outputs:
       action_version: ${{ steps.resolve.outputs.action_version }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
@@ -119,7 +119,7 @@ jobs:
 
       - name: Run github-action
         # Pinned to the v1.4.1 commit; @latest is a moving target.
-        uses: doc-detective/github-action@a2a4f5ceb1abfa55d567e4f6766223082ece2c18 # v1.4.1
+        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
         with:
           version: ${{ steps.resolve.outputs.action_version }}
           config: ./test/artifacts/config.json
@@ -132,11 +132,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'

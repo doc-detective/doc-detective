@@ -103,7 +103,7 @@ jobs:
             shard: 2
             shards: 2
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -113,7 +113,7 @@ jobs:
         shell: bash
         run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
@@ -177,7 +177,7 @@ jobs:
       # unused. Running only on the success path keeps the intent honest.
       - run: node scripts/prune-coverage.cjs coverage/tmp
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           # upload-artifact v4 needs unique names; the shard suffix provides
           # that, and coverage-merge downloads by the `raw-coverage-*` pattern
@@ -211,11 +211,11 @@ jobs:
         include:
           - scope: src/common
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
@@ -260,11 +260,11 @@ jobs:
         include:
           - scope: 'root, cross-platform'
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
@@ -277,7 +277,7 @@ jobs:
       - run: npm run build
 
       # Pull every cell's raw-coverage-* artifact into its own subdirectory.
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: raw-coverage-*
           path: raw-coverage
@@ -292,7 +292,7 @@ jobs:
       - run: npm run test:coverage:ratchet
 
       - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: root-coverage
           path: coverage/
