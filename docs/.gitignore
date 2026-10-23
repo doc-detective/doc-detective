@@ -49,3 +49,9 @@ temp/
 
 # Local files
 *.local.json
+
+# Screenshot written by the Windows-only inline tests on the native-apps pages
+fern/pages/docs/test-docs/native-apps/charmap.png
+
+# Folder the Windows app tutorial's Windows-only inline tests create, if a run stops before it removes it
+fern/pages/docs/test-docs/native-apps/charmap-docs/

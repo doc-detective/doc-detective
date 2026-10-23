@@ -37,7 +37,7 @@ This project uses Doc Detective to test its own documentation.
 
 Two Doc Detective configs live at the docs root:
 
-- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAny` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
+- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). The workflow runs the docs suite twice: on `ubuntu-latest`, and on `windows-latest` so the Windows-only tests (`runOn` platforms `windows`) run instead of being skipped. The Windows job fails if any Windows context is `SKIPPED`. Its `beforeAny` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
 - `.doc-detective.preview.json` is for local runs. It layers a second background process on top of the static server, starting the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`). You can then write and run tests against the rendered docs site itself. Run with:
 
   ```bash
