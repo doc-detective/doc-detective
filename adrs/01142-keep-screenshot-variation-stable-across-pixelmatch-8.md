@@ -116,9 +116,8 @@ Behavior decided:
 * Fixtures: `test/core-artifacts/capture/screenshot-variation.spec.json` runs the real runner
   through a capture within `maxVariation` (PASS, variation asserted within tolerance) and one over
   it (WARNING by design, variation asserted above tolerance).
-* Re-measure on the next pixelmatch major. Install both versions side by side under npm aliases,
-  then compare counts at the production options over real captures and the exhaustive one-level
-  color sweep.
+* Re-measure on the next pixelmatch major. Install both versions side by side under npm aliases.
+  Then compare counts at the production options over real captures and the one-level color sweep.
 
 ## Pros and Cons of the Options
 
