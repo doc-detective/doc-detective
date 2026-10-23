@@ -123,6 +123,17 @@ Behavior decided:
    * **A line the cut leaves blank is dropped,** and a line that was blank before stays.
    * So a write into any statement never changes a pin over it. A `<steps>` statement stays
      current while Doc Detective fills the statement of a step inside it.
+   * **Blocks follow manni's one block rule,** from hawkeyexl/manni#236. Anchoring and the code
+     skip read the same blocks. A Markdown fence opens after any indent, as in a list item. It
+     closes on a bare run of its character at least as long, so a fence line with an info string
+     never closes one.
+   * **All seven AsciiDoc delimited blocks count.** Each closes only on an exact repeat of its
+     opener line. A statement inside `----`, `....`, `++++` or `////` is code and isn't read.
+     Inside `====`, `****` or `____` it's live prose. A statement above any of the seven anchors
+     the whole block. A `=` line under title text of about its length stays the title's underline.
+   * **A DITA carrier is read from its parsed attributes.** Only the tag's own `name` of
+     `manni-meta` makes one, and only its own `value` is the payload. So `data-name`, `data-value`
+     and text inside another attribute's value never count.
 10. **Unknown check, then warn and skip.** A check that matches no test or spec logs a warning, and
     the entry is left as it was.
 11. **CI uses the existing GitHub Action.** `create_pr_on_change` already turns a post-run file

@@ -340,8 +340,66 @@ function isBoundLine(line: string, format: string): boolean {
   return false;
 }
 
+// manni's one block rule (`src/shared/code-regions.ts`), which anchoring and
+// the code skip both read. A Markdown fence opens after any indent and closes
+// on a bare run of its character at least as long. An AsciiDoc delimited
+// block closes only on an exact repeat of its opener line. Its content is
+// code in a verbatim block (`----`, `....`, `++++`, `////`) and prose in a
+// compound one (`====`, `****`, `____`).
 const ANY_FENCE = /^(?:[ \t]*(?:`{3,}|~{3,})|-{4,})/;
-const FENCE: Record<string, RegExp> = { markdown: /^(`{3,}|~{3,})/, asciidoc: /^(-{4,})/ };
+const FENCE_OPENER = /^[ \t]*(`{3,}|~{3,})/;
+const ASCIIDOC_DELIMITER = /^([-.+/=*_])\1{3,}[ \t]*$/;
+const VERBATIM = new Set(["-", ".", "+", "/"]);
+// A line a two-line title can be, so a `=` line under it is its underline.
+const TITLE_TEXT = /^[^\s./[]/;
+
+function asciidocBlock(line: string, above?: string): "verbatim" | "compound" | undefined {
+  const char = ASCIIDOC_DELIMITER.exec(line)?.[1];
+  if (char === undefined) return undefined;
+  if (char === "=" && above !== undefined && TITLE_TEXT.test(above)) {
+    if (Math.abs(above.trimEnd().length - line.trimEnd().length) <= 2) return undefined;
+  }
+  return VERBATIM.has(char) ? "verbatim" : "compound";
+}
+
+function closesFence(line: string, open: string): boolean {
+  const trimmed = line.trim();
+  let n = 0;
+  while (trimmed.charAt(n) === open.charAt(0)) n++;
+  return n >= open.length && n === trimmed.length;
+}
+
+// What closes the block `line` opens, or undefined when it opens none. The
+// code skip reads verbatim blocks only; anchoring passes `compound` to read
+// every block, and `above` to tell a title's `=` underline from a block.
+function blockCloser(
+  line: string,
+  format: string,
+  options: { above?: string; compound?: boolean } = {}
+): ((line: string) => boolean) | undefined {
+  if (format === "markdown") {
+    const run = FENCE_OPENER.exec(line)?.[1];
+    return run === undefined ? undefined : (l) => closesFence(l, run);
+  }
+  if (format === "asciidoc") {
+    const kind = asciidocBlock(line, options.above);
+    if (kind === undefined || (kind === "compound" && options.compound !== true)) return undefined;
+    const open = line.trimEnd();
+    return (l) => l.trimEnd() === open;
+  }
+  return undefined;
+}
+
+// Whether a line ends a paragraph as a fence or a block delimiter.
+function isFenceLine(line: string, format: string, above?: string): boolean {
+  return ANY_FENCE.test(line) || (format === "asciidoc" && asciidocBlock(line, above) !== undefined);
+}
+
+function lineBefore(content: string, pos: number): string | undefined {
+  if (pos === 0) return undefined;
+  const start = content.lastIndexOf("\n", pos - 2) + 1;
+  return lineText(content, start, pos - 1);
+}
 
 function paragraphAfter(content: string, offset: number, format: string): { end: number; line: number } | undefined {
   let pos = offset;
@@ -354,14 +412,14 @@ function paragraphAfter(content: string, offset: number, format: string): { end:
       pos = end + 1;
       continue;
     }
-    if (ANY_FENCE.test(text)) return undefined;
+    if (isFenceLine(text, format, lineBefore(content, pos))) return undefined;
     const start = pos;
     let last = end;
     let cursor = isBoundLine(text, format) ? content.length : end + 1;
     while (cursor < content.length) {
       const e = lineEnd(content, cursor);
       const t = lineText(content, cursor, e);
-      if (t.trim() === "" || ANY_FENCE.test(t) || isMarkerLine(t, format) || isBoundLine(t, format)) break;
+      if (t.trim() === "" || isFenceLine(t, format) || isMarkerLine(t, format) || isBoundLine(t, format)) break;
       last = e;
       cursor = e + 1;
     }
@@ -370,17 +428,17 @@ function paragraphAfter(content: string, offset: number, format: string): { end:
   return undefined;
 }
 
-// The fenced block opening on `line`, fences included.
+// The block opening on `line`, delimiters included: a fence at any indent, or
+// any AsciiDoc delimited block. Undefined when it opens none or never closes.
 function fenceSpanAt(content: string, line: number, format: string): { start: number; end: number } | undefined {
-  const fence = FENCE[format];
-  if (!fence) return undefined;
   const pos = offsetOfLine(content, line);
-  const opener = fence.exec(lineText(content, pos, lineEnd(content, pos)))?.[1];
-  if (opener === undefined) return undefined;
+  const above = lineBefore(content, pos);
+  const closes = blockCloser(lineText(content, pos, lineEnd(content, pos)), format, { above, compound: true });
+  if (closes === undefined) return undefined;
   let cursor = Math.min(lineEnd(content, pos) + 1, content.length);
   while (cursor < content.length) {
     const e = lineEnd(content, cursor);
-    if (lineText(content, cursor, e).startsWith(opener)) return { start: line, end: lineAt(content, cursor) };
+    if (closes(lineText(content, cursor, e))) return { start: line, end: lineAt(content, cursor) };
     cursor = e + 1;
   }
   return undefined;
@@ -406,30 +464,26 @@ function anchoredLines(content: string, after: number, format: string): { start:
   return undefined;
 }
 
-// Fenced blocks and backtick spans, where no statement is read.
+// Verbatim blocks and backtick spans, where no statement is read.
 function codeRegions(text: string, format: string): { start: number; end: number }[] {
-  const fence = format === "markdown" ? /^[ \t]*(`{3,}|~{3,})/ : format === "asciidoc" ? /^(-{4,})/ : undefined;
   const spans = format === "markdown" || format === "asciidoc";
   const out: { start: number; end: number }[] = [];
-  if (!fence) return out;
-  let open: { char: string; length: number; start: number } | undefined;
+  if (!spans) return out;
+  let open: { closes: (line: string) => boolean; start: number } | undefined;
   let pos = 0;
   while (pos < text.length) {
     const nl = text.indexOf("\n", pos);
     const end = nl === -1 ? text.length : nl;
     const line = lineText(text, pos, end);
     if (open) {
-      const trimmed = line.trim();
-      let n = 0;
-      while (trimmed.charAt(n) === open.char) n++;
-      if (n >= open.length && n === trimmed.length) {
+      if (open.closes(line)) {
         out.push({ start: open.start, end });
         open = undefined;
       }
     } else {
-      const opener = fence.exec(line)?.[1];
-      if (opener !== undefined) open = { char: opener.charAt(0), length: opener.length, start: pos };
-      else if (spans) spanRegions(line, pos, out);
+      const closes = blockCloser(line, format);
+      if (closes !== undefined) open = { closes, start: pos };
+      else spanRegions(line, pos, out);
     }
     pos = end + 1;
   }
@@ -549,10 +603,24 @@ interface XmlNode {
 }
 
 // DITA's `<data name="manni-meta" value='…'/>` carriers, read as manni's
-// `dataStatement` reads them: the value attribute, entities decoded, an
-// optional pin, then the payload.
-const DATA_NAME = /\bname\s*=\s*(["'])manni-meta\1/;
-const DATA_VALUE = /\bvalue\s*=\s*(["'])/;
+// `dataStatement` reads them: the tag's own `name` and `value` attributes,
+// parsed whole so `data-name` or text inside another value never counts, the
+// value's entities decoded, an optional pin, then the payload.
+const ATTRIBUTE = /([^\s=/>"']+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+// A start tag's attributes, first occurrence wins; `at` is the value's first
+// character in `tag`, just past its opening quote.
+function attributesOf(tag: string): Map<string, { value: string; at: number }> {
+  const out = new Map<string, { value: string; at: number }>();
+  const from = /^<[^\s/>]*/.exec(tag)?.[0].length ?? 0;
+  for (const m of tag.slice(from).matchAll(ATTRIBUTE)) {
+    const [whole, name = "", double, single] = m;
+    const value = double ?? single ?? "";
+    if (!out.has(name)) out.set(name, { value, at: from + m.index! + whole.length - value.length - 1 });
+  }
+  return out;
+}
+const isCarrier = (tag: string): boolean => attributesOf(tag).get("name")?.value === "manni-meta";
 
 function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|quot|apos|lt|gt|amp);/g, (_m, e: string) => {
@@ -567,13 +635,13 @@ function dataStatements(content: string): Statement[] {
   for (let at = content.indexOf("<data"); at !== -1; at = content.indexOf("<data", at + 5)) {
     if (!/[\s/>]/.test(content.charAt(at + 5))) continue; // `<data`, not `<datalist`
     const tag = startTagEnd(content, at);
-    if (!tag || !DATA_NAME.test(content.slice(at, tag.end))) continue;
-    const value = DATA_VALUE.exec(content.slice(at, tag.end));
-    if (!value) continue;
-    const open = at + value.index + value[0].length;
-    const close = content.indexOf(value[1], open);
-    if (close === -1) continue;
-    const raw = content.slice(open, close);
+    if (!tag) continue;
+    const attributes = attributesOf(content.slice(at, tag.end));
+    const value = attributes.get("value");
+    if (attributes.get("name")?.value !== "manni-meta" || value === undefined) continue;
+    const open = at + value.at;
+    const close = open + value.value.length;
+    const raw = value.value;
     const lead = /^\s*/.exec(raw)?.[0] ?? "";
     const rest = decodeEntities(raw.slice(lead.length));
     const word = /^\S+/.exec(rest)?.[0] ?? "";
@@ -587,7 +655,7 @@ function dataStatements(content: string): Statement[] {
       pin: pinned ? word : undefined,
       payload: (pinned ? rest.slice(word.length) : rest).trim(),
       broken: "",
-      quote: value[1],
+      quote: content.charAt(open - 1),
     });
   }
   return out;
@@ -660,7 +728,7 @@ function scanXml(content: string, statements: Set<number>): XmlNode {
       }
       const node: XmlNode = { kind: "element", name, start: i, end: tag.end, children: [] };
       // DITA's <data name="manni-meta"> carrier is a statement too.
-      if (name === "data" && /\bname\s*=\s*(["'])manni-meta\1/.test(content.slice(i, tag.end))) node.statement = true;
+      if (name === "data" && isCarrier(content.slice(i, tag.end))) node.statement = true;
       push(node);
       if (!tag.selfClosing) {
         node.end = content.length;

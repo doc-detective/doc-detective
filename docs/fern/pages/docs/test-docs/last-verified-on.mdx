@@ -76,6 +76,8 @@ In MDX, use the `{/* */}` form so the statement is a valid JSX comment. For Asci
 
 Doc Detective ignores a statement inside a code block or inline code. A page can show the syntax without Doc Detective filling it in.
 
+In AsciiDoc, a statement above any delimited block covers the whole block. Doc Detective ignores a statement inside a listing (`----`), literal (`....`), passthrough (`++++`), or comment (`////`) block. A statement inside an example (`====`), sidebar (`****`), or quote (`____`) block still counts, because those blocks hold prose.
+
 ## Step 2: Run your tests
 
 Run Doc Detective as usual:

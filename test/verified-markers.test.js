@@ -378,7 +378,8 @@ describe("Verification metadata — pure helpers", function () {
         const pinned = fs.readFileSync(path.join(fixtures, name), "utf8");
         const manniPins = pinned.match(/sha256-[0-9a-f]{64}/g);
         expect(manniPins.length).to.be.greaterThan(0);
-        const unpinned = pinned.replace(/meta sha256-[0-9a-f]{64} /g, "meta ");
+        // A pin follows `meta ` in a statement, or opens a DITA carrier's value.
+        const unpinned = pinned.replace(/(meta |value=["'])sha256-[0-9a-f]{64} /g, "$1");
         const out = applyVerification(unpinned, format, opts());
         expect(out.match(/sha256-[0-9a-f]{64}/g)).to.deep.equal(manniPins);
         expect(out.match(/"version":"4\.27\.0","passed":"2026-10-21"}\],"last-verified":"2026-10-21"/g)).to.have.length(
