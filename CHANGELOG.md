@@ -1,3 +1,10 @@
+# [4.41.0-last-verified-on.8](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.7...v4.41.0-last-verified-on.8) (2026-10-23)
+
+
+### Bug Fixes
+
+* **runner:** freeze a generated id when the test keyword isn't on the statement's first line ([827d50b](https://github.com/doc-detective/doc-detective/commit/827d50bc8db274045dca1bf8600655d18a998646))
+
 # [4.41.0-last-verified-on.7](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.6...v4.41.0-last-verified-on.7) (2026-10-22)
 
 
