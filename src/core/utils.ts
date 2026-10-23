@@ -2274,7 +2274,10 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
       const lines = original.split(/\r?\n/);
       const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
       const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
-      // A check some statement in the file already declares.
+      // A check some statement in the file already declares. Reading `original`,
+      // not `lines`, is deliberate: a goToTest revisit reruns the same test and
+      // reports its location, so one id reaches one line. Two authored tests
+      // sharing an id on different lines each get their own statement.
       const declared = (id: string) =>
         new RegExp(`"check"\\s*:\\s*${JSON.stringify(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(original);
       let changed = false;
