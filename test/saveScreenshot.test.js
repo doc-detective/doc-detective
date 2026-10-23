@@ -265,6 +265,23 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.ok(result.outputs.variation > 0.05);
   });
 
+  it("counts a one-level color change on every pixel (ADR 01142)", async function () {
+    // pixelmatch 8 at the old threshold (0.0005) ignores this nudge; v7 counted
+    // it. Existing baselines must keep the v7 variation.
+    const target = path.join(tmpDir, "shot.png");
+    fs.writeFileSync(target, await makePngBuffer(100, 80, { r: 0, g: 128, b: 0 }));
+    const result = await saveScreenshot({
+      config,
+      step: {
+        stepId: "s3b",
+        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" },
+      },
+      driver: fakeDriver(await makePngBuffer(100, 80, { r: 1, g: 128, b: 0 })),
+    });
+    assert.equal(result.outputs.variation, 1);
+    assert.equal(result.status, "WARNING");
+  });
+
   it("aspect-ratio mismatch -> FAIL; variation spec never pushed", async function () {
     const target = path.join(tmpDir, "shot.png");
     const refBuf = await makePngBuffer(200, 100); // 2:1
