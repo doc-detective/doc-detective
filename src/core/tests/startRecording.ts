@@ -414,12 +414,12 @@ async function startRecording({
     // Start recording. An `async` function runs through Execute Async Script
     // (webdriverio 10 removed executeAsync); the promise settles once the
     // recorder starts, while the capture keeps running in the page.
-    const recorderStarted = await driver.execute(async (baseName: any) => new Promise((done: any) => {
+    const recorderStarted = await driver.execute(async (baseName: any) => new Promise((resolve: any) => {
       let doneCalled = false;
       const safeDone = (value: boolean) => {
         if (!doneCalled) {
           doneCalled = true;
-          done(value);
+          resolve(value);
         }
       };
       let stream: any;
