@@ -1,3 +1,87 @@
+# [4.41.0-last-verified-on.8](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.7...v4.41.0-last-verified-on.8) (2026-10-23)
+
+
+### Bug Fixes
+
+* **runner:** freeze a generated id when the test keyword isn't on the statement's first line ([827d50b](https://github.com/doc-detective/doc-detective/commit/827d50bc8db274045dca1bf8600655d18a998646))
+
+# [4.41.0-last-verified-on.7](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.6...v4.41.0-last-verified-on.7) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** fill and pin DITA <data name="manni-meta"> carriers ([ed5f7d6](https://github.com/doc-detective/doc-detective/commit/ed5f7d6506273df19545816fbe1cae588c06af44))
+* **runner:** freeze a generated id in a test statement that spans lines ([c407d79](https://github.com/doc-detective/doc-detective/commit/c407d79a3ef7207967e3ff40e760e8867c887d85))
+* **runner:** point the AsciiDoc ")" warning at the testId; test an empty list ([306400f](https://github.com/doc-detective/doc-detective/commit/306400f5af2b29b97c3c1b46fb476c4898e281dd))
+* **runner:** tell an authored id by the statement's testId, not a substring ([9897c23](https://github.com/doc-detective/doc-detective/commit/9897c23ee5664aef8ccb7aafed94e4919ab38777))
+* **runner:** warn when a statement of ours anchors nothing ([5daa7ca](https://github.com/doc-detective/doc-detective/commit/5daa7caafa8a811d4f92ad03ba05e5701075edc6))
+
+
+### Features
+
+* **runner:** freeze generated test ids under verification.write: true ([ccb9525](https://github.com/doc-detective/doc-detective/commit/ccb9525d2b3e3e44d67baaa645685a5e9a59f3a7))
+
+# [4.41.0-last-verified-on.6](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.5...v4.41.0-last-verified-on.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** keep the temp file when the Windows copy fallback fails ([0f33d1f](https://github.com/doc-detective/doc-detective/commit/0f33d1fb118176325c3024801772f931855edfae))
+
+# [4.41.0-last-verified-on.5](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.4...v4.41.0-last-verified-on.5) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** tell an authored testId by its own statement; fall back on a locked rename ([2fcaa19](https://github.com/doc-detective/doc-detective/commit/2fcaa1974cff7251e201929dceb22c18dff57291))
+* **runner:** warn when a declared statement can't be written in AsciiDoc ([eb296e0](https://github.com/doc-detective/doc-detective/commit/eb296e088357d6a4fa0aedc7a8131b5ae53fb0de))
+* **runner:** warn when a statement of ours is skipped; guard edit overlap ([8215ba2](https://github.com/doc-detective/doc-detective/commit/8215ba2a34e718908e6dd7e89bb004bf9a634030))
+
+
+### Features
+
+* **runner:** add verification.write to declare or skip the write-back ([0b507f1](https://github.com/doc-detective/doc-detective/commit/0b507f144ce4dffb319b9dd3a3c8bdf3cb0657d8))
+
+# [4.41.0-last-verified-on.4](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.3...v4.41.0-last-verified-on.4) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** address review findings on the verification write-back ([8bd9109](https://github.com/doc-detective/doc-detective/commit/8bd91093e86b6621612eb092f994f0d7257c3546))
+* **runner:** clean up the temp file when an atomic write fails partway ([3c26717](https://github.com/doc-detective/doc-detective/commit/3c26717984d2f8c7415c122acca6f69d2ae6faa2))
+* **runner:** one badge per statement line; escape the BOM in FRONT_MATTER ([0e55205](https://github.com/doc-detective/doc-detective/commit/0e55205e6d9c13599613bffeec6fcafa3fa80b18))
+* **runner:** pass a routed check only if every visit passed ([faae5da](https://github.com/doc-detective/doc-detective/commit/faae5da7cb1c54ba9c893e5cac878a837abb4684))
+
+# [4.41.0-last-verified-on.3](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.2...v4.41.0-last-verified-on.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** cut every statement out of a pin, matching manni 0101 ([7f951ad](https://github.com/doc-detective/doc-detective/commit/7f951ad3a3a3cd19defd533d17f3aa2ad8076ce5)), closes [hawkeyexl/manni#233](https://github.com/hawkeyexl/manni/issues/233)
+
+# [4.41.0-last-verified-on.2](https://github.com/doc-detective/doc-detective/compare/v4.41.0-last-verified-on.1...v4.41.0-last-verified-on.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **runner:** collapse stale multi-line comment block in core/index.ts ([97c0864](https://github.com/doc-detective/doc-detective/commit/97c0864efdc55f7f1b0b1e0150d94e7c53133f27))
+* **runner:** place badges before pinning meta statements ([10fd32c](https://github.com/doc-detective/doc-detective/commit/10fd32cfadde0fc863fe114d3b0dc99df23da525))
+* **runner:** restore the escapes in the badge-line patterns ([630e82d](https://github.com/doc-detective/doc-detective/commit/630e82dedc77ae5ee4bf128a81a72a4d1706c12b))
+* **runner:** tighten badge/location schema, drop multi-line comment blocks ([3a9df19](https://github.com/doc-detective/doc-detective/commit/3a9df193fe5eaa266819aa79fc0e4824ff174c99))
+
+
+### Features
+
+* **runner:** anchor "Last verified" badges to inline tests, no id required ([c0a020e](https://github.com/doc-detective/doc-detective/commit/c0a020e78606d107c9de0578b630d9ccc46f093e)), closes [#417](https://github.com/doc-detective/doc-detective/issues/417)
+
+# [4.41.0-last-verified-on.1](https://github.com/doc-detective/doc-detective/compare/v4.40.6...v4.41.0-last-verified-on.1) (2026-10-22)
+
+
+### Features
+
+* **runner:** write "Last Verified On" dates back into source docs ([cf288fc](https://github.com/doc-detective/doc-detective/commit/cf288fc79152120b9b208e670d6282556a7ebdc6))
+* **runner:** write verification results in manni's shared keys ([340b506](https://github.com/doc-detective/doc-detective/commit/340b506ab56de9459fc5830880774458abadde9e)), closes [hawkeyexl/manni#222](https://github.com/hawkeyexl/manni/issues/222) [hawkeyexl/manni#223](https://github.com/hawkeyexl/manni/issues/223)
+
 ## [4.40.6](https://github.com/doc-detective/doc-detective/compare/v4.40.5...v4.40.6) (2026-10-17)
 
 

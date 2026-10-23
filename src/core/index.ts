@@ -1,7 +1,7 @@
 import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
   telemetryNotice,
@@ -44,6 +44,17 @@ async function detectAndResolveFromConfig(config: any) {
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Carry the full qualified input set forward so the verification
+  // write-back can reach prose-only files that produced no spec (see
+  // qualifyFiles' `config._qualifiedFiles`).
+  // Non-enumerable, so it stays out of serialized payloads (see qualifyFiles).
+  if (resolvedTests) {
+    Object.defineProperty(resolvedTests, "_qualifiedFiles", {
+      value: config._qualifiedFiles || [],
+      configurable: true,
+      writable: true,
+    });
+  }
   return resolvedTests;
 }
 
@@ -375,6 +386,45 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Clean up
   cleanTemp();
+
+  // `verification.write` (ADR 01140): "existing" (the default) fills what pages
+  // declare, true also declares it on passing pages and tests, false writes
+  // nothing back. Read from the effective config, so DOC_DETECTIVE overrides
+  // and the CLI's --verification reach it.
+  const write = effectiveConfig?.verification?.write ?? "existing";
+
+  // Badge-anchored write-back — see ADR 01141. Runs before the verification
+  // write-back, which pins the block a `meta` statement anchors: a badge
+  // inserted inside that block afterwards would leave the pin stale. It also
+  // inserts the statements `write: true` declares, for the same reason.
+  try {
+    if (write !== false) applyBadgeAnchoredTests({ config, results, init: write === true });
+  } catch (err: any) {
+    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
+  }
+
+  // Verification write-back: fill Doc Detective's `verified-by` entries in the
+  // source docs where the named test/spec passed. No-op when no page names a
+  // check; never throws (warns and continues on per-file errors).
+  if (write !== false) {
+    try {
+      // resolvedTests is always set here (runTests returns early otherwise), so the
+      // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
+      // never populates _qualifiedFiles — there, the write-back is limited to the
+      // report's content paths and can't reach prose-only pages.
+      const qualifiedFiles = resolvedTests._qualifiedFiles || [];
+      if (options.resolvedTests && qualifiedFiles.length === 0) {
+        log(
+          config,
+          "debug",
+          "Verified write-back: pre-resolved run has no qualified-file list; only report content paths are scanned (prose-only pages skipped)."
+        );
+      }
+      applyVerifiedMarkers({ config, results, files: qualifiedFiles, init: write === true });
+    } catch (err: any) {
+      log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+    }
+  }
 
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);

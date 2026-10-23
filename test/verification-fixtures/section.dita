@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<concept id="about">
+  <?manni meta sha256-68e253a0f90479fe0af3d131dfd3fa9cdf24e82051e276267682b2c0c656c525 {"verified-by":[{"tool":"doc-detective","check":"dita-section"}]}?>
+  <title>About the tool</title>
+  <conbody>
+    <p>It runs your docs.</p>
+  </conbody>
+</concept>

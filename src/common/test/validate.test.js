@@ -187,6 +187,22 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoScreenshot");
       });
 
+      it("should validate each verification.write mode and default it to existing", function () {
+        for (const write of ["existing", true, false]) {
+          const result = validate({ schemaKey: "config_v3", object: { verification: { write } } });
+          expect(result.valid, String(write)).to.be.true;
+          expect(result.object.verification.write).to.equal(write);
+        }
+        const unset = validate({ schemaKey: "config_v3", object: {} });
+        expect(unset.object.verification).to.deep.equal({ write: "existing" });
+      });
+
+      it("should reject an unknown verification.write mode", function () {
+        const result = validate({ schemaKey: "config_v3", object: { verification: { write: "always" } } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("verification");
+      });
+
       it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
         const result = validate({
           schemaKey: "spec_v3",
@@ -234,6 +250,62 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should validate a test_v3 object with badge: true", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: true,
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.badge).to.equal(true);
+      });
+
+      it("should reject a test_v3 object whose badge is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("badge");
+      });
+
+      it("should validate a test_v3 object carrying a system-populated location", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: { line: 5, startIndex: 10, endIndex: 40 },
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.location).to.deep.equal({ line: 5, startIndex: 10, endIndex: 40 });
+      });
+
+      it("should reject a test_v3 object whose location is not an object", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: "line 5",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("location");
       });
 
       it("should accept a relative forward-slash step autoScreenshot path", function () {

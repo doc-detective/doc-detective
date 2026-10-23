@@ -2481,6 +2481,32 @@
           "type": "boolean",
           "default": true
         },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
+        },
         "autoScreenshot": {
           "type": "boolean"
         },
@@ -7382,6 +7408,29 @@
             "enabled": true
           }
         },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ],
+              "default": "existing"
+            }
+          },
+          "default": {
+            "write": "existing"
+          }
+        },
         "concurrentRunners": {
           "type": [
             "integer",
@@ -9784,6 +9833,32 @@
         },
         "detectSteps": {
           "type": "boolean"
+        },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -14551,6 +14626,25 @@
           "required": [
             "enabled"
           ]
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ]
+            }
+          }
         },
         "concurrentRunners": {
           "type": [

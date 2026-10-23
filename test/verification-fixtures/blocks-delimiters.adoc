@@ -1,0 +1,60 @@
+= Delimited blocks
+
+// (meta sha256-0d53be0512b2a9c8e8fc8288aabd9a0338b3cbab19cae734e4fc3fc7b636d18d {"verified-by":[{"tool":"doc-detective","check":"above-listing"}]})
+----
+// (meta {"verified-by":[{"tool":"doc-detective","check":"in-listing"}]})
+----
+
+// (meta sha256-7021aac3d086828c448d278ec97d37c2d49019d701c09da879e349903d29b6ea {"verified-by":[{"tool":"doc-detective","check":"above-literal"}]})
+....
+// (meta {"verified-by":[{"tool":"doc-detective","check":"in-literal"}]})
+....
+
+// (meta sha256-73f9ea3bee284eac258fb666aa401670529d5035f667bb839fac418758ddd31c {"verified-by":[{"tool":"doc-detective","check":"above-passthrough"}]})
+++++
+// (meta {"verified-by":[{"tool":"doc-detective","check":"in-passthrough"}]})
+++++
+
+// (meta sha256-001b7901f71f7c2cf0f6e36c08376b957a99fe8b289c0723f18717bd2217d878 {"verified-by":[{"tool":"doc-detective","check":"above-comment"}]})
+////
+// (meta {"verified-by":[{"tool":"doc-detective","check":"in-comment"}]})
+////
+
+// (meta sha256-590d5f33db99ab211b237cd05b2ed02879e756711566cdb4d53b56868e2f1ec8 {"verified-by":[{"tool":"doc-detective","check":"above-example"}]})
+====
+// (meta sha256-14a30c9b8fabb27151dfbf709bc2f5bf32743b1f02813e140deb02f54b1ca70c {"verified-by":[{"tool":"doc-detective","check":"in-example"}]})
+Example text.
+====
+
+// (meta sha256-f8d04166a64c9a3c23c261ed47083e9d45403dcbbc7915f79b62af2ac6d01ae7 {"verified-by":[{"tool":"doc-detective","check":"above-sidebar"}]})
+****
+// (meta sha256-332fd29144f1337a8797148f5777d51fa8f568a4322724cb16e06a757ce27e01 {"verified-by":[{"tool":"doc-detective","check":"in-sidebar"}]})
+Sidebar text.
+****
+
+// (meta sha256-1c9f0a60f9f0ac9658f8b76e01876386bbe576bab7e6558f92684fdb1f1b6457 {"verified-by":[{"tool":"doc-detective","check":"above-quote"}]})
+____
+// (meta sha256-10060079202ed95657722b8fbf959abdf4dd9af0819fb136b6d2216f425c474b {"verified-by":[{"tool":"doc-detective","check":"in-quote"}]})
+Quote text.
+____
+
+// (meta sha256-cc8aae85308d3594ac070d503d0df8380e8e2c9f245e69ca7ff8338ec8792e27 {"verified-by":[{"tool":"doc-detective","check":"comment-with-a-shorter-line"}]})
+//////
+////
+// (meta {"verified-by":[{"tool":"doc-detective","check":"past-a-shorter-delimiter"}]})
+//////
+
+// (meta sha256-34fae184bd178a25df78de8a2b529c8504de42822c0b3ccab0f56cf8517475af {"verified-by":[{"tool":"doc-detective","check":"listing-with-a-longer-line"}]})
+----
+------
+// (meta {"verified-by":[{"tool":"doc-detective","check":"past-a-longer-delimiter"}]})
+----
+
+First title
+===========
+
+// (meta sha256-e059b70f000bbd66022e0b90a5ea46142fe313afdf5ecec083e041fb7af8e4c9 {"verified-by":[{"tool":"doc-detective","check":"between-the-titles"}]})
+A paragraph between two titles.
+
+Other title
+===========

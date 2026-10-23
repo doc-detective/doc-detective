@@ -1,0 +1,219 @@
+---
+title: Show a "Last verified on" date
+description: Name a test in a page's front matter or above a procedure, and Doc Detective records when it last passed, optionally with a freshness badge.
+sidebar-title: Last verified on
+---
+
+Doc Detective can record when a page or a procedure was last verified. You name the test or spec that covers it. After a run, if that test passed, Doc Detective writes the date into your source file. A failed, skipped, or warning result writes nothing, so a stale date signals that the page needs attention.
+
+You can record a date in two places:
+
+- **Front matter** dates the whole page.
+- **An inline `meta` statement** dates one procedure, so an untested procedure on the same page doesn't borrow a date it didn't earn.
+
+Both use the shared verification fields from [manni](https://hawkeyexl.github.io/manni/), so `manni meta validate` checks what Doc Detective writes. To show a visible badge as well, see [Step 3](#step-3-optional-show-a-badge).
+
+By default, Doc Detective writes only where you've named a check. To have it name the checks for you on the first passing run, or to turn writing off, see [Choose what Doc Detective writes](#choose-what-doc-detective-writes).
+
+## Before you begin
+
+- A test or spec with a stable `id`. You name a [test](/reference/schemas/test) `testId` or a [spec](/reference/schemas/specification) `specId`.
+- The page you want to date, in a [supported format](/docs/test-docs/input-formats/overview): Markdown or MDX, AsciiDoc, HTML, or DITA (`.dita` or `.ditamap`).
+
+## How it works
+
+- **You name the check, and Doc Detective records the result.** You add a `verified-by` entry with `tool: doc-detective` and a `check` set to the test or spec `id`.
+- **Doc Detective writes only on PASS.** The date alone is the trust signal. A non-pass result leaves the existing date to age.
+- **Other tools' entries stay untouched.** A link checker or code-sample runner can list its own entry beside Doc Detective's, and Doc Detective never changes it.
+- **Re-runs are idempotent and keep your formatting.** Running again writes a byte-identical file. Doc Detective rewrites front matter and statements in the style and comment form you authored.
+- **Doc Detective warns and skips an unknown `check`.** A typo or a deleted test logs a warning and doesn't fail the run.
+- **Coverage spans the whole input set.** Doc Detective scans every file it detected for the run. A prose-only page can name a test defined in another file and still get dated.
+
+## Step 1: Name the check
+
+Choose where the date belongs.
+
+### Date the whole page in front matter
+
+Add a `verified-by` entry to the page's YAML front matter:
+
+```markdown
+---
+title: My page
+verified-by:
+  - tool: doc-detective
+    check: my-test
+---
+```
+
+### Date one procedure with a `meta` statement
+
+Add a `meta` statement on the line above the procedure. The statement is the keyword `meta` followed by one JSON object, inside a comment:
+
+```markdown
+<!-- meta {"verified-by":[{"tool":"doc-detective","check":"my-test"}]} -->
+1. Install the package.
+2. Run the setup command.
+```
+
+The statement covers the paragraph or code block that follows it. Use the comment form that matches your file format:
+
+| Format | Statement forms |
+|---|---|
+| Markdown (`.md`, `.markdown`) | `<!-- meta … -->`, `[comment]: # (meta …)` |
+| MDX (`.mdx`) | `{/* meta … */}` |
+| HTML (`.html`, `.htm`) | `<!-- meta … -->` |
+| AsciiDoc (`.adoc`, `.asciidoc`, `.asc`) | `// (meta …)` |
+| DITA (`.dita`, `.ditamap`) | `<?manni meta …?>`, `<!-- meta … -->`, `<data name="manni-meta" value='…'/>` |
+
+In MDX, use the `{/* */}` form so the statement is a valid JSX comment. For AsciiDoc, the `// ( )` form ends at the first `)`, so a `check` there can't contain `)`. For DITA, a statement covers an element instead of a paragraph. As an element's first child, it covers that element. Anywhere else, it covers the next element:
+
+```xml
+<step><?manni meta {"verified-by":[{"tool":"doc-detective","check":"my-test"}]}?>
+  <cmd>Run the setup command.</cmd>
+</step>
+```
+
+Doc Detective ignores a statement inside a code block or inline code. A page can show the syntax without Doc Detective filling it in.
+
+In AsciiDoc, a statement above any delimited block covers the whole block. Doc Detective ignores a statement inside a listing (`----`), literal (`....`), passthrough (`++++`), or comment (`////`) block. A statement inside an example (`====`), sidebar (`****`), or quote (`____`) block still counts, because those blocks hold prose.
+
+## Step 2: Run your tests
+
+Run Doc Detective as usual:
+
+```bash
+npx doc-detective
+```
+
+When the named test or spec passes, Doc Detective fills in its entry. It writes `version`, the Doc Detective version that ran, and `passed`, the UTC day of the run. It also sets `last-verified`.
+
+In front matter:
+
+```markdown
+---
+title: My page
+verified-by:
+  - tool: doc-detective
+    check: my-test
+    version: 4.40.6
+    passed: 2026-10-21
+last-verified: 2026-10-21
+---
+```
+
+In a statement, the change is a one-line diff in the same comment form:
+
+```markdown
+<!-- meta sha256-9c1e44a0… {"verified-by":[{"tool":"doc-detective","check":"my-test","version":"4.40.6","passed":"2026-10-21"}],"last-verified":"2026-10-21"} -->
+1. Install the package.
+2. Run the setup command.
+```
+
+- **`last-verified`** is the oldest `passed` across every entry in the list. Doc Detective sets it only once every entry has passed, so one lagging check holds the date back.
+- **The `sha256-` pin** records exactly which lines passed. If someone edits those lines later, `manni meta validate` warns that the date may no longer hold. The next passing run writes a fresh pin. The pin never covers statement text, so writes to this statement or any other one don't count as edits.
+
+## Step 3 (optional): Show a badge
+
+To show a visible "Last verified" badge next to a procedure, keep an [inline test](/docs/test-docs/inline) beside it and set `badge: true` on the `test` statement. You don't need a `testId`:
+
+```markdown
+<!-- test {"badge": true} -->
+<!-- step {"wait": 10} -->
+<!-- test end -->
+```
+
+On a passing run, Doc Detective inserts or updates a [shields.io](https://shields.io) badge on the line directly above the statement:
+
+```markdown
+![Last verified 2026-10-21](https://img.shields.io/badge/Last_verified-2026--10--21-brightgreen)
+<!-- test {"badge": true} -->
+<!-- step {"wait": 10} -->
+<!-- test end -->
+```
+
+Doc Detective writes only the badge URL. Shields.io renders the image, so the badge needs no theme work. On re-runs, Doc Detective updates the badge in place instead of adding a duplicate. A failed, skipped, or warning result leaves the badge to age.
+
+Set `badge` inside the `test` statement in your format's comment style:
+
+| Format | Statement | Badge |
+|---|---|---|
+| Markdown and MDX | `<!-- test {"badge": true} -->` or `{/* test {"badge": true} */}` | Markdown image |
+| HTML | `<!-- test {"badge": true} -->` | `<img>` tag |
+| AsciiDoc | `// (test {"badge": true})` | `image:` macro |
+| DITA | `<?doc-detective test {"badge": true} ?>` | `<image>` element |
+
+`badge: true` works only on a test detected from an inline `test` statement, because the badge needs a line above the statement. A test authored in a JSON or YAML spec file has no such line, so Doc Detective logs a warning and skips the badge. To date that test on a page, name its `testId` in a `verified-by` entry instead.
+
+You can combine a badge with a `meta` statement directly above the same test. Doc Detective places the badge first, so the statement's pin covers the badge as written.
+
+## Choose what Doc Detective writes
+
+The `verification.write` setting controls what Doc Detective writes back after a run:
+
+| Value | What Doc Detective writes |
+|---|---|
+| `"existing"` (default) | Fills only the `verified-by` entries and `badge: true` tests your pages already have. |
+| `true` | Also adds the entries on a passing run, then fills them. |
+| `false` | Nothing. Use it for a local or exploratory run that shouldn't touch your files. |
+
+With `true`, a passing run adds:
+
+- **A page entry.** A Markdown or MDX page whose tests pass gets a `verified-by` entry in its front matter. Its `check` is the page's spec id, which is the page's path from where you run Doc Detective. A page without front matter gets a front-matter block.
+- **A procedure entry.** A passing inline test gets a `meta` statement on the line above it, and above its badge if it has one.
+- **A fixed `testId`.** An inline test without a `testId` first gets the id Doc Detective generated for it, written into its `test` statement. A generated id changes whenever the test changes, so this keeps the entry pointing at the right test. Doc Detective edits only a `test` statement whose options are JSON, or that has none. For any other statement, it logs a warning so you can add a `testId` yourself.
+
+Doc Detective adds an entry only once. On later runs it fills the entry in place, like one you wrote yourself.
+
+Set it in your config file:
+
+```json
+{
+  "verification": {
+    "write": true
+  }
+}
+```
+
+Or override it for one run with the `--verification` flag:
+
+```bash
+npx doc-detective --verification true
+```
+
+Because a page entry names the page's path, run Doc Detective from the same folder each time, usually your repository root. A page that moves gets a new entry on its next passing run, and the old entry reports an unknown check until you remove it.
+
+## Surface the change in CI
+
+Because Doc Detective writes the date into your source file, the change shows up in CI as a file change. The [GitHub Action](/docs/ci/github-action)'s `create_pr_on_change` input turns those edits into a pull request for review with no extra setup. See [Open a pull request when files change](/docs/ci/github-action#step-4-open-a-pull-request-when-files-change).
+
+## Troubleshooting
+
+### The date didn't update after a run
+
+**Cause:** Doc Detective writes only when the named test or spec passes. A failed, skipped, or warning result leaves the existing date in place so it ages.
+
+**Solution:** Check the run results for the unit named by the `check`, then fix the failing or skipped test. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview).
+
+### `last-verified` isn't set
+
+**Cause:** Another entry in the same `verified-by` list hasn't passed yet. The date waits until every listed check has passed at least once.
+
+**Solution:** Run the other tool's check, or remove its entry if it no longer applies.
+
+### A warning says an entry references an unknown id
+
+**Cause:** The `check` doesn't match any `testId` or `specId` in the run. Usually it's a typo, or a test you renamed or removed.
+
+**Solution:** Update the `check` to match a test or spec that runs against this set of files. An unknown `check` only warns, and it doesn't fail the run.
+
+### Validation warns that a statement's block changed
+
+**Cause:** Someone edited the lines a statement covers after Doc Detective pinned them, so the recorded date may no longer hold.
+
+**Solution:** Run the tests again. A passing run re-pins the statement with its new content.
+
+## What's next
+
+- [Define inline tests](/docs/test-docs/inline) close to the content they verify.
+- [Run in CI with the GitHub Action](/docs/ci/github-action) and open a pull request when a run changes files.

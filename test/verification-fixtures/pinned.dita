@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="install-the-tool">
+  <title>Install the tool</title>
+  <taskbody>
+    <steps>
+      <step><?manni meta sha256-4fdb8f5970c21a3d5f455e82d58649883ef2c63a950201b0fde556e14ae0a93e {"verified-by":[{"tool":"doc-detective","check":"dita-first-child"}]}?>
+        <cmd>Run the installer.</cmd>
+        <info>It takes about a minute.</info>
+      </step>
+      <!-- meta sha256-44cfd2f061ef1c05656196fd3c3902d128f874b3ea71aeb4d6f654a220f7d70f {"verified-by":[{"tool":"doc-detective","check":"dita-before"}]} -->
+      <step>
+        <cmd>Restart the shell.</cmd>
+      </step>
+    </steps>
+  </taskbody>
+</task>

@@ -62,6 +62,7 @@ keypresses
 loadCookie
 loadVariables
 logLevel
+manni
 matchText
 maxVariation
 mockResponse

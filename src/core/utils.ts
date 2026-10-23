@@ -15,6 +15,8 @@ import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+import { createRequire } from "node:module";
+import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -80,6 +82,11 @@ export {
   rollUpAssertions,
   createAppiumPool,
   evaluateContextRequirements,
+  verifiedDate,
+  shieldsBadge,
+  resolveVerifiedId,
+  applyVerifiedMarkers,
+  applyBadgeAnchoredTests,
 };
 
 export type { BackgroundProcess, ResourceRegistry };
@@ -1961,6 +1968,399 @@ function replaceEnvs(stringOrObject: any): any {
     });
   }
   return stringOrObject;
+}
+
+// ===========================================================================
+// Verification metadata write-back. After a run, every page that lists a
+// `verified-by` entry for Doc Detective gets that entry's result written back
+// when its check passed. src/core/verification.ts holds the rules, and
+// adrs/01140-last-verified-on-marker-writeback.md records them.
+// ===========================================================================
+
+// Map a file extension to the doc format whose comment syntax we use. `.mdx`
+// shares the markdown grammar (and uses the JSX-comment variant).
+const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "markdown",
+  adoc: "asciidoc",
+  asciidoc: "asciidoc",
+  asc: "asciidoc",
+  html: "html",
+  htm: "html",
+  dita: "dita",
+  ditamap: "dita",
+  // `.xml` is intentionally omitted: it's a generic extension (POMs, SVGs, feeds,
+  // Spring configs), and treating every .xml as DITA would put unrelated files on
+  // the write-back scan path. DITA authored as `.xml` is uncommon; use `.dita`.
+};
+
+// Body of an existing DD-managed shields.io image, per format, so a badge
+// writer can find and replace its own image line on re-runs. Anchored to the
+// `Last_verified-` label shieldsBadge writes, so an author's other shields.io
+// badge on that line is never taken for ours.
+const VERIFIED_IMG_BODY: Record<string, string> = {
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge/Last_verified-[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge/Last_verified-[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge/Last_verified-\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge/Last_verified-[\\s\\S]*?</image>",
+};
+
+// Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
+// across runners/timezones), e.g. `2026-06-26`.
+function verifiedDate(d: Date = new Date()): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Escape one shields.io URL path segment: `_`→`__`, `-`→`--`, ` `→`_`. The
+// dash-doubling is the easy-to-get-wrong bit (a literal `-` is otherwise the
+// label/message/color separator), so `2026-06-26` → `2026--06--26`.
+function shieldsEscape(segment: string): string {
+  return segment.replace(/_/g, "__").replace(/-/g, "--").replace(/ /g, "_");
+}
+
+// Build a shields.io static badge, wrapped in the format's native image syntax.
+// DD only writes the URL; shields.io renders it client-side (no network call).
+function shieldsBadge(
+  format: string,
+  date: string,
+  { label = "Last verified", color = "brightgreen" }: { label?: string; color?: string } = {}
+): string {
+  const url = `https://img.shields.io/badge/${shieldsEscape(label)}-${shieldsEscape(
+    date
+  )}-${shieldsEscape(color)}`;
+  const alt = `${label} ${date}`;
+  switch (format) {
+    case "asciidoc":
+      return `image:${url}[${alt}]`;
+    case "html":
+      return `<img src="${url}" alt="${alt}">`;
+    case "dita":
+      return `<image href="${url}"><alt>${alt}</alt></image>`;
+    default:
+      return `![${alt}](${url})`;
+  }
+}
+
+// Replace a source document in one step: write a sibling temp file, then rename
+// it over the real target, so an interrupted write never leaves the document
+// half-written. The target is resolved first, so a symlink stays a symlink,
+// and its permission bits carry over. On any failure the temp file goes and
+// the document is untouched.
+function writeFileAtomic(file: string, content: string): void {
+  const target = fs.realpathSync(file);
+  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
+  // Created exclusively first, so an EEXIST throws before we own the file and
+  // cleanup can never remove someone else's.
+  const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
+  let keepTmp = false;
+  try {
+    try {
+      fs.writeFileSync(fd, content, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
+    try {
+      fs.renameSync(tmp, target);
+    } catch (error: any) {
+      // Windows refuses to replace a file another process holds open (an
+      // editor, a preview). Fall back to an in-place copy, which is no worse
+      // than a plain write, rather than skip the document.
+      if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
+      try {
+        fs.copyFileSync(tmp, target);
+      } catch (copyError: any) {
+        // The copy truncates the document first, so a failure partway can
+        // leave it incomplete. Keep the temp file, the one complete copy.
+        keepTmp = true;
+        throw new Error(`${copyError?.message ?? copyError} (the complete content is kept in ${tmp})`);
+      }
+      fs.rmSync(tmp, { force: true });
+    }
+  } catch (error) {
+    if (!keepTmp) fs.rmSync(tmp, { force: true });
+    throw error;
+  }
+}
+
+// Resolve a check against a run report: specs with a matching specId, else
+// tests with a matching testId. A routed revisit (goToTest) reports a unit
+// more than once, so it resolves to PASS only if every match passed, and to
+// the first other result otherwise. Null when nothing matches.
+function resolveVerifiedId(results: any, id: string): string | null {
+  if (!results || !Array.isArray(results.specs)) return null;
+  const specs = results.specs.filter((spec: any) => spec?.specId === id);
+  const matches = specs.length
+    ? specs
+    : results.specs.flatMap((spec: any) => (spec?.tests || []).filter((test: any) => test?.testId === id));
+  if (matches.length === 0) return null;
+  const failed = matches.find((unit: any) => unit.result !== "PASS");
+  return failed ? (failed.result ?? null) : "PASS";
+}
+
+// Post-run write-back: for every candidate source file, fill Doc Detective's
+// `verified-by` entries whose check PASSED, in front matter and in inline
+// `meta` statements. Unknown checks warn and are skipped; other results write
+// nothing. Per-file failures warn and continue. Never throws.
+//
+// The candidate set is the union of the report's content paths and the full
+// detected input set (`files`), so a prose-only page that names a check but
+// contributes no spec is still updated.
+//
+// With `init` (`verification.write: true`), a Markdown or MDX page whose spec
+// PASSED is first given a `verified-by` entry naming that spec, if it has no
+// Doc Detective entry yet (declarePage), so the fill completes it.
+function applyVerifiedMarkers({
+  config,
+  results,
+  files: detectedFiles = [],
+  init = false,
+}: {
+  config: any;
+  results: any;
+  files?: string[];
+  init?: boolean;
+}): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> the passing spec a page declares under `init`.
+  const passingSpecs = new Map<string, string>();
+  if (init) {
+    for (const spec of results.specs) {
+      const ext = (String(spec?.contentPath ?? "").split(".").pop() || "").toLowerCase();
+      if (VERIFIED_FORMAT_BY_EXT[ext] !== "markdown" || typeof spec.specId !== "string") continue;
+      if (resolveVerifiedId(results, spec.specId) === "PASS") passingSpecs.set(spec.contentPath, spec.specId);
+    }
+  }
+
+  const files = new Set<string>();
+  for (const file of detectedFiles) {
+    if (file) files.add(file);
+  }
+  for (const spec of results.specs) {
+    if (spec?.contentPath) files.add(spec.contentPath);
+    for (const test of spec?.tests || []) {
+      if (test?.contentPath) files.add(test.contentPath);
+    }
+  }
+
+  const today = verifiedDate();
+  const version: string = createRequire(import.meta.url)("../../package.json").version;
+  for (const file of files) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const specId = passingSpecs.get(file);
+      const declared = specId === undefined ? original : declarePage(original, specId);
+      // Cheap fast-path: every entry Doc Detective fills names it, so a file
+      // without the literal "doc-detective" has nothing to update.
+      if (!declared.includes(VERIFIED_TOOL)) continue;
+      const content = applyVerification(declared, format, {
+        today,
+        version,
+        resolve: (check) => resolveVerifiedId(results, check),
+        onUnknown: (check) =>
+          log(config, "warning", `verified-by check '${check}' in ${file} matches no test or spec; skipping.`),
+        onSkipped: (line, reason) =>
+          log(config, "warning", `Skipping the meta statement at ${file}:${line}: ${reason}.`),
+      });
+      if (content !== original) writeFileAtomic(file, content);
+    } catch (error: any) {
+      log(config, "warning", `Failed to update verified-by entries in ${file}: ${error?.message ?? error}`);
+    }
+  }
+}
+
+// A `test` statement with `testId` added to its options, in its own comment
+// form, or undefined when its options aren't absent or one JSON object, the
+// only shapes it can edit without re-serializing the author's statement.
+function withTestId(statement: string, id: string): string | undefined {
+  const m = /^([\s\S]*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
+  if (!m) return undefined;
+  const [, head, options, close] = m;
+  const field = `"testId": ${JSON.stringify(id)}`;
+  if (options.trim() === "") return `${head} {${field}}${close}`;
+  try {
+    const parsed = JSON.parse(options);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || "testId" in parsed) return undefined;
+  } catch {
+    return undefined;
+  }
+  const open = options.indexOf("{");
+  const rest = options.slice(open + 1).trimStart();
+  return `${head}${options.slice(0, open + 1)}${field}${rest.startsWith("}") ? "" : ", "}${rest}${close}`;
+}
+
+// Whether `statement` sets `id` as its testId (`"testId": "id"`, `testId: id`,
+// or `testId="id"`), not merely mentions it, or a longer id that starts with it.
+function setsTestId(statement: string, id: string): boolean {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`testId["']?\\s*[:=]\\s*["']?${escaped}(?=["'\\s,}>)]|$)`).test(statement);
+}
+
+// A `meta` statement declaring `checks` for Doc Detective, in the format's
+// comment form, or undefined when the payload can't be written in that form.
+function declaringStatement(format: string, ext: string, checks: string[]): string | undefined {
+  const payload = JSON.stringify({ "verified-by": checks.map((check) => ({ tool: "doc-detective", check })) });
+  if (format === "dita") return `<?manni meta ${payload}?>`;
+  if (format === "asciidoc") return payload.includes(")") ? undefined : `// (meta ${payload})`;
+  return ext === "mdx" ? `{/* meta ${payload} */}` : `<!-- meta ${payload} -->`;
+}
+
+// Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01141.
+// With `init` (`verification.write: true`), a passing inline test whose testId
+// is authored (written in its own test statement; a generated one never is) gets a `meta`
+// statement declaring it above its statement and badge, unless one already
+// does. The verification write-back then fills and pins it. See ADR 01140.
+// A statement is independent of the badge: a test without `badge: true`
+// still gets one.
+function applyBadgeAnchoredTests({ config, results, init = false }: { config: any; results: any; init?: boolean }): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> statement line -> what that line gets. A badge sits on the
+  // line above its test statement, so every badge-flagged test on one line,
+  // including a routed revisit (goToTest) of the same test, shares one badge:
+  // it passes only if every one of them passed. With `init`, `checks` holds
+  // each test id on the line, its result merged the same way, and its test
+  // statement's span: an id written inside that span was authored.
+  type LineWork = { badge?: string; checks: Map<string, { result: string; start: number; end: number }> };
+  const byFile = new Map<string, Map<number, LineWork>>();
+  const merge = (prev: string | undefined, next: string) => (prev === undefined || prev === "PASS" ? next : prev);
+  for (const spec of results.specs) {
+    for (const test of spec?.tests || []) {
+      if (test?.badge !== true && !init) continue;
+      if (!test?.contentPath) continue;
+      if (!test?.location?.line) {
+        if (test.badge === true) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
+          );
+        }
+        continue;
+      }
+      const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
+      const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };
+      if (test.badge === true) work.badge = merge(work.badge, test.result);
+      if (init && typeof test.testId === "string") {
+        const { startIndex: start = 0, endIndex: end = 0 } = test.location;
+        const result = merge(work.checks.get(test.testId)?.result, test.result);
+        work.checks.set(test.testId, { result, start, end });
+      }
+      byLine.set(test.location.line, work);
+      byFile.set(test.contentPath, byLine);
+    }
+  }
+
+  const today = verifiedDate();
+  for (const [file, byLine] of byFile) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const eol = original.includes("\r\n") ? "\r\n" : "\n";
+      const lines = original.split(/\r?\n/);
+      const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
+      const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
+      // A check some statement in the file already declares. Reading `original`,
+      // not `lines`, is deliberate: a goToTest revisit reruns the same test and
+      // reports its location, so one id reaches one line. Two authored tests
+      // sharing an id on different lines each get their own statement.
+      const declared = (id: string) =>
+        new RegExp(`"check"\\s*:\\s*${JSON.stringify(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(original);
+      let changed = false;
+
+      // Bottom-to-top so an insertion doesn't shift indices still to process.
+      for (const [line, work] of [...byLine].sort((a, b) => b[0] - a[0])) {
+        let li = line - 1; // 0-indexed into `lines`: the test statement
+        if (li < 0 || li >= lines.length) continue; // stale location vs. current file
+        const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
+
+        // Freeze a passing test's generated id: write it into the test's own
+        // statement, where it counts as authored from then on. A generated id
+        // changes whenever its test does, so a statement naming it would break.
+        // Right to left, so two statements on one line keep their positions. A
+        // statement can span lines; adding the id never adds one, so every
+        // line index this pass still uses stays valid.
+        const frozen = new Set<string>();
+        for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
+          const text = original.slice(c.start, c.end).replace(/\r\n/g, "\n");
+          if (c.result !== "PASS" || setsTestId(text, id)) continue;
+          const span = text.split("\n").length;
+          const block = lines.slice(li, li + span).join("\n");
+          const at = block.indexOf(text);
+          const next = at === -1 ? undefined : withTestId(text, id);
+          if (next === undefined) {
+            log(
+              config,
+              "warning",
+              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't absent or one JSON object. Add a testId to the statement by hand.`
+            );
+            continue;
+          }
+          lines.splice(li, span, ...(block.slice(0, at) + next + block.slice(at + text.length)).split("\n"));
+          frozen.add(id);
+          changed = true;
+        }
+
+        // Non-pass: leave the existing badge to age.
+        if (work.badge === "PASS") {
+          const img = shieldsBadge(format, today);
+          const existing = li > 0 ? lines[li - 1].match(existingImgRe) : null;
+          if (existing) {
+            if (lines[li - 1] !== `${existing[1]}${img}`) {
+              lines[li - 1] = `${existing[1]}${img}`;
+              changed = true;
+            }
+          } else {
+            lines.splice(li, 0, `${indent}${img}`);
+            li++;
+            changed = true;
+          }
+        }
+
+        const checks = [...work.checks]
+          .filter(
+            ([id, c]) =>
+              c.result === "PASS" && (frozen.has(id) || setsTestId(original.slice(c.start, c.end), id)) && !declared(id)
+          )
+          .map(([id]) => id);
+        const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
+        if (checks.length > 0 && !statement) {
+          log(
+            config,
+            "warning",
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")", so no statement can name it. Rename the testId without ")".`
+          );
+        }
+        if (statement) {
+          const top = li > 0 && existingImgRe.test(lines[li - 1]) ? li - 1 : li;
+          lines.splice(top, 0, `${format === "asciidoc" ? "" : indent}${statement}`);
+          changed = true;
+        }
+      }
+
+      if (changed) writeFileAtomic(file, lines.join(eol));
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Failed to update badge-anchored tests in ${file}: ${error?.message ?? error}`
+      );
+    }
+  }
 }
 
 // Filesystem-safe instant token, matching the `doc-detective debug` dump's
