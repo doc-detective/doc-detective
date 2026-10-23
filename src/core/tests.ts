@@ -6260,6 +6260,9 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
+        // webdriverio 10's `$` throws when a selector matches several
+        // elements. Keep the documented first-match behavior (ADR 01143).
+        strictSelectors: false,
       })).then(
         (d: any) => {
           settle(true);

@@ -47,6 +47,15 @@ is almost always this resolution failure. The `automationName` values don't chan
 majors, so don't chase capability renames. Quick confirmation: `require.resolve("<driver>")`
 throws while `require.resolve("<driver>/package.json")` succeeds.
 
+## Heavy deps whose CommonJS entry re-exports ESM
+
+`loadHeavyDep` resolves with CommonJS conditions, then `import()`s the file. Some packages' CJS
+entry is `module.exports = require('../index.js')`, a require of their ESM build. Node's CJS
+lexer can't see those named exports, so the namespace exposes them only on `default`. geckodriver 8
+ships that shape (ADR 01143). Unwrap with `mod.default ?? mod` at the call site, as the
+geckodriver, sharp, and pixelmatch loads do. Diagnostic: `<x>.<fn> is not a function` right after a
+heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.exports`.
+
 ## Appium extension manifest cache
 
 Appium only scans `APPIUM_HOME/node_modules` for drivers when its manifest cache
