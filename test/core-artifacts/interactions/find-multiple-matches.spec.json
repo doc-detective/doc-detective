@@ -20,7 +20,8 @@
         },
         {
           "stepId": "multi-text-shorthand",
-          "find": "Duplicate text"
+          "find": "Duplicate text",
+          "assertions": "$$outputs.element.tag == \"p\""
         },
         {
           "stepId": "multi-aria-shorthand",
