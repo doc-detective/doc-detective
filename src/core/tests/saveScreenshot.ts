@@ -982,13 +982,16 @@ async function saveScreenshot({
         result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
         return result;
       }
+      // threshold 0: any color change counts (anti-aliasing is still
+      // excused); maxVariation is the only tolerance. Reproduces pixelmatch
+      // 7's counts at its old 0.0005 exactly (ADR 01142).
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
         null,
         width,
         height,
-        { threshold: 0.0005 }
+        { threshold: 0 }
       );
       fractionalDiff = numDiffPixels / (width * height);
 
