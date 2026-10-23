@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Matches Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Multiple Matches Test Page</h1>
+    <!-- Every lookup on this page matches several elements. Each button
+         reports which one was clicked, so a find step proves the step acted
+         on the first match. -->
+    <button class="multi" data-testid="multi" aria-label="Multi button" onclick="reveal('First clicked')">First</button>
+    <button class="multi" data-testid="multi" aria-label="Multi button" onclick="reveal('Second clicked')">Second</button>
+    <button class="multi" data-testid="multi" aria-label="Multi button" onclick="reveal('Third clicked')">Third</button>
+
+    <p class="dup">Duplicate text</p>
+    <p class="dup">Duplicate text</p>
+
+    <div id="messages"></div>
+
+    <script>
+        function reveal(text) {
+            const p = document.createElement("p");
+            p.textContent = text;
+            document.getElementById("messages").appendChild(p);
+        }
+    </script>
+</body>
+</html>

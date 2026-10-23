@@ -30,6 +30,20 @@ describe("driverStart: retried session starts are reported", function () {
     assert.doesNotMatch(messages[0], /stack/);
   });
 
+  // webdriverio 10 makes `$` throw when a selector matches several elements.
+  // Doc Detective documents first-match semantics, so every session opts out
+  // (ADR 01143).
+  it("opts the session out of webdriverio's strict selectors", async function () {
+    let options;
+    await driverStart(iosCaps, 4723, 1, {
+      remote: async (o) => {
+        options = o;
+        return {};
+      },
+    });
+    assert.equal(options.strictSelectors, false);
+  });
+
   it("stays quiet when the first attempt succeeds", async function () {
     const messages = [];
     await driverStart(iosCaps, 4723, 2, {

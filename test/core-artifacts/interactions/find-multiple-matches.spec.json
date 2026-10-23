@@ -1,0 +1,53 @@
+{
+  "specId": "findMultipleMatches",
+  "description": "A lookup that matches several elements acts on the first match, as the find docs promise. webdriverio 10 makes `$` throw on multiple matches, so each string-shorthand strategy (CSS, XPath, text, aria, data-testid) and the click shorthand is pinned here against a page where every lookup matches more than one element (ADR 01143).",
+  "tests": [
+    {
+      "testId": "find-multiple-matches-first-wins",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multiple-matches.html"
+        },
+        {
+          "stepId": "multi-css-shorthand",
+          "find": ".multi",
+          "assertions": "$$outputs.element.text == \"First\""
+        },
+        {
+          "stepId": "multi-xpath-shorthand",
+          "find": "//button[@class='multi']",
+          "assertions": "$$outputs.element.text == \"First\""
+        },
+        {
+          "stepId": "multi-text-shorthand",
+          "find": "Duplicate text"
+        },
+        {
+          "stepId": "multi-aria-shorthand",
+          "find": "Multi button",
+          "assertions": "$$outputs.element.text == \"First\""
+        },
+        {
+          "stepId": "multi-testid-shorthand",
+          "find": "multi",
+          "assertions": "$$outputs.element.text == \"First\""
+        },
+        {
+          "stepId": "multi-selector-object",
+          "find": {
+            "selector": ".multi"
+          },
+          "assertions": "$$outputs.element.text == \"First\""
+        },
+        {
+          "stepId": "multi-click-shorthand",
+          "click": ".multi"
+        },
+        {
+          "stepId": "assert-first-clicked",
+          "find": "First clicked"
+        }
+      ]
+    }
+  ]
+}

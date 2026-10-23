@@ -311,6 +311,32 @@ describe("runtime/browsers", function () {
     expect(record.browsers.geckodriver.installedVersion).to.equal("0.36.0");
   });
 
+  it("ensureBrowserInstalled('geckodriver') unwraps a module whose exports sit on `default`", async function () {
+    // geckodriver 8's CommonJS entry is `module.exports = require('../index.js')`
+    // (require of ESM). import() of it exposes only `default`, so a bare
+    // `gecko.download` is undefined and every install failed.
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const binPath = path.join(
+      browsersDir,
+      process.platform === "win32" ? "geckodriver.exe" : "geckodriver"
+    );
+    const geckodriverModule = {
+      default: {
+        download: async () => {
+          fs.writeFileSync(binPath, "#!/bin/sh\n");
+          return binPath;
+        },
+      },
+    };
+    const verifyExec = async () => ({ code: 0, stdout: "geckodriver 0.37.0\n", stderr: "" });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.path).to.equal(binPath);
+    expect(result.version).to.equal("0.37.0");
+  });
+
   it("ensureBrowserInstalled('geckodriver') probes the cache for the binary when the module exposes no `.path`", async function () {
     // Regression: when gecko.path is empty, resolveBinaryPath used to fall back
     // to the bare cache dir, which then failed driver-binary validation and
