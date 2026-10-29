@@ -119,10 +119,10 @@ function aspectRatiosMatch(
 
 type Size = { width: number; height: number };
 
-// ponytail: a fixed 5% guess at how far an authored window may move before a
-// reference counts as out of date rather than drifted. A viewport is checked
-// exactly and a default has nothing to protect, so only `window` needs it.
-// Storing the authored size in the PNG would make it exact.
+// A fixed 5% guess at how far an authored window may move before a reference
+// counts as out of date rather than drifted. A viewport is checked exactly and
+// a default has nothing to protect, so only `window` needs it. Storing the
+// authored size in the PNG would make it exact (ADR 01144, option 3).
 const WINDOW_DRIFT_TOLERANCE = 0.05;
 
 // The viewport (CSS px) to resize to so a retake matches the reference, or
@@ -199,8 +199,10 @@ async function retakeAtReferenceSize({
   let capture: Size;
   let reference: Size;
   let wanted: Size | null;
-  let window: Size;
+  let originalWindow: Size;
   try {
+    // A malformed image reads back without dimensions: both sides undefined
+    // compare equal, so no resize, and the comparison reports the bad image.
     const captureMeta = await sharp(captureBuffer).metadata();
     const referenceMeta = await sharp(referencePath).metadata();
     capture = { width: captureMeta.width, height: captureMeta.height };
@@ -209,14 +211,14 @@ async function retakeAtReferenceSize({
       "return { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio }",
       []
     );
-    window = await driver.getWindowSize();
+    originalWindow = await driver.getWindowSize();
     wanted = referenceViewport({
       target: driver.state?.sizeTarget,
       capture,
       reference,
       dpr: Number(metrics?.dpr),
       viewport: { width: Number(metrics?.width), height: Number(metrics?.height) },
-      window,
+      window: originalWindow,
     });
   } catch {
     // An unreadable reference fails in the comparison, with its own message.
@@ -224,7 +226,7 @@ async function retakeAtReferenceSize({
   }
   if (!wanted) return null;
   const restore = async () => {
-    await driver.setWindowSize(window.width, window.height);
+    await driver.setWindowSize(originalWindow.width, originalWindow.height);
   };
   let got: string;
   try {

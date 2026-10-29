@@ -376,6 +376,19 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     });
   }
 
+  it("doesn't resize while a recording is running (it would show in the video)", async function () {
+    const file = await reference(1000, 700);
+    const driver = browserDriver({ sizeTarget: defaultTarget });
+    driver.state.recordings = [{}];
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "recording", screenshot: { path: file, maxVariation: 1 } },
+      driver,
+    });
+    assert.deepEqual(driver.calls, []);
+    assert.equal(result.outputs.resizedToReference, undefined);
+  });
+
   it("doesn't resize a recording checkpoint (it would show in the video)", async function () {
     const file = await reference(1000, 700);
     const driver = browserDriver({ sizeTarget: defaultTarget });
