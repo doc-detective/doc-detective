@@ -26,9 +26,9 @@ pick, differ by platform and fonts.
 
 Contexts that set neither `window` nor `viewport` were the most exposed. The runner passed a 1200×800
 default, and a `startSurface` descriptor's `size`, into `getDriverCapabilities`, but no engine used
-them. Unsized sessions got the engine's own default. Measured locally on Windows 11: headless Chrome
-uses a 780×580 window on an 800×600 virtual screen (a 758×426 viewport), and headless Firefox uses
-1366×768 (1366×683). `startSurface`'s documented `size` field had no effect at all.
+them. Unsized sessions got the engine's own default. Measured locally on Windows 11, headless Chrome
+uses a 780×580 window on an 800×600 virtual screen, for a 758×426 viewport. Headless Firefox uses
+1366×768, for 1366×683. `startSurface`'s documented `size` field had no effect at all.
 
 The same measurements answer how far a window can grow. Headless Chrome, headless Firefox, and headed
 Firefox all realized a 4000×3000 window, larger than the screen. Headed Chrome clamped to the display
@@ -76,9 +76,8 @@ This ships as a bug fix, not a breaking change. The runner intended 1200×800 al
 resize below keeps existing references comparable.
 
 **Resize to the reference.** After capturing, `saveScreenshot` checks whether the capture and the
-reference differ in size. If they do, it resizes the window so the viewport matches the reference
-(the reference's pixels divided by `devicePixelRatio`), captures again, and compares that capture
-instead. The window goes back to its original size when the step finishes, after annotations, which
+reference differ in size. If they do, it resizes the window so the viewport matches the reference's
+pixels divided by `devicePixelRatio`. It then captures again and compares that capture instead. The window goes back to its original size when the step finishes, after annotations, which
 resolve against the live page. The output `resizedToReference: { from, to }` reports it.
 
 It applies only when all of these hold:
@@ -95,8 +94,8 @@ It applies only when all of these hold:
   * authored `window`: the window size needed is within 5% of it on each requested axis;
   * default: always. Nothing was authored, so the reference is the only statement of intent.
 
-If the retake still doesn't match (headed Chrome can't grow past the display, and minimum window
-sizes still apply), it logs a warning and compares the original capture as before.
+The retake can still miss: headed Chrome can't grow past the display, and minimum window sizes still
+apply. When it misses, the step logs a warning and compares the original capture as before.
 
 ### Consequences
 
@@ -112,15 +111,16 @@ sizes still apply), it logs a warning and compares the original capture as befor
   through the resize.
 * Bad: the 5% window rule is a guess. It can't tell frame drift from an intentional change smaller
   than 5%. Option 3 would make it exact.
-* Neutral: the floor warning's wording no longer claims the limit is a minimum, since a window can now
-  also be clamped at the display's size.
+* Neutral: the floor warning no longer says the limit is a minimum. A window can now also be clamped
+  at the display's size.
 
 ### Confirmation
 
 * Unit tests for the pure decision (`referenceViewport`), for `applyBrowserSize`, and for
   `saveScreenshot` against a fake driver whose second capture comes back at the reference's size.
-  The skip paths are covered: crop, recording checkpoint, `overwrite: "true"`, no size target, an
-  out-of-date viewport reference, uniform scale, and a retake that still doesn't match.
+  They cover the skip paths: crop, recording checkpoint, `overwrite: "true"`, and no size target.
+  They also cover an out-of-date viewport reference, uniform scale, and a retake that still doesn't
+  match.
 * Feature fixtures in `test/core-artifacts/capture/screenshot-resize-to-reference.spec.json` run each
   target kind headless, including a reference larger than the screen. Fixtures in `sessions/` check
   the default viewport and `startSurface`'s `size`.
