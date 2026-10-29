@@ -23,6 +23,13 @@
           }
         },
         {
+          "description": "The size override landed: the opened session's outer window is exactly 1000×700 (ADR 01144)",
+          "runBrowserScript": {
+            "script": "return window.outerWidth + 'x' + window.outerHeight;",
+            "output": "/^1000x700$/"
+          }
+        },
+        {
           "description": "The opened session is the active surface: a surface-less goTo navigates IT, not the default session",
           "goTo": "http://localhost:8092/multi-tab-child.html?page=admin1"
         },
@@ -84,6 +91,38 @@
           "runBrowserScript": {
             "script": "return String(window.innerWidth);",
             "output": "800",
+            "surface": "chrome"
+          }
+        },
+        {
+          "closeSurface": "chrome"
+        }
+      ]
+    },
+    {
+      "testId": "start-surface-browser-default-size",
+      "description": "ADR 01144: a browser nobody sized renders a 1200×800 viewport, on the context's own session and on a session startSurface opens without `size` or `viewport` (it takes the context's size).",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "The context's own session got the default viewport",
+          "runBrowserScript": {
+            "script": "return window.innerWidth + 'x' + window.innerHeight;",
+            "output": "/^1200x800$/"
+          }
+        },
+        {
+          "startSurface": {
+            "browser": "chrome"
+          }
+        },
+        {
+          "description": "The opened session took the context's (default) size",
+          "runBrowserScript": {
+            "script": "return window.innerWidth + 'x' + window.innerHeight;",
+            "output": "/^1200x800$/",
             "surface": "chrome"
           }
         },

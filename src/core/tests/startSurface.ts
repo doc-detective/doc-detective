@@ -9,7 +9,7 @@ import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } fr
 import {
   resolveShellName,
   resolveShellExecutable,
-  realizeViewport,
+  applyBrowserSize,
 } from "../utils.js";
 import {
   openSession,
@@ -210,12 +210,15 @@ async function startSurfaceStep({
       };
       let rendered: { width: number; height: number };
       try {
-        rendered = await realizeViewport(
+        // Also records the viewport as the session's size target, which a
+        // screenshot reads to tell drift from a changed config (ADR 01144).
+        const sizing = await applyBrowserSize(
           opened.driver,
-          requested,
+          { viewport: requested },
           config,
           `startSurface "${opened.name}"`
         );
+        rendered = sizing.realized!;
       } catch (error: any) {
         return {
           status: "FAIL",

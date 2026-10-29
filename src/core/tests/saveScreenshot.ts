@@ -25,6 +25,10 @@ import {
   getOrInitRunTimestamp,
   redactUrlForOutput,
   sanitizeFilesystemName,
+  realizeViewport,
+  viewportMismatchWarning,
+  VIEWPORT_TOLERANCE_PX,
+  type SizeTarget,
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -76,7 +80,7 @@ async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
   return _pixelmatch;
 }
 
-export { saveScreenshot, clampCropRect, aspectRatiosMatch };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -113,13 +117,168 @@ function aspectRatiosMatch(
   return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
 }
 
+type Size = { width: number; height: number };
+
+// ponytail: a fixed 5% guess at how far an authored window may move before a
+// reference counts as out of date rather than drifted. A viewport is checked
+// exactly and a default has nothing to protect, so only `window` needs it.
+// Storing the authored size in the PNG would make it exact.
+const WINDOW_DRIFT_TOLERANCE = 0.05;
+
+// The viewport (CSS px) to resize to so a retake matches the reference, or
+// null to compare as captured. Null when the sizes already match, when they
+// differ by a uniform scale (a devicePixelRatio difference, which the resample
+// handles — resizing would change the layout instead), or when the reference
+// doesn't show what the author asked for, so an intentional config change
+// isn't reverted to match an out-of-date reference. See ADR 01144.
+function referenceViewport({
+  target,
+  capture,
+  reference,
+  dpr,
+  viewport,
+  window,
+}: {
+  target: SizeTarget | undefined;
+  capture: Size;
+  reference: Size;
+  dpr: number;
+  viewport: Size;
+  window: Size;
+}): Size | null {
+  if (!target) return null;
+  if (capture.width === reference.width && capture.height === reference.height)
+    return null;
+  const scaleW = reference.width / capture.width;
+  const scaleH = reference.height / capture.height;
+  if (Math.abs(scaleW - scaleH) <= 0.01) return null;
+  const ratio = dpr > 0 ? dpr : 1;
+  const wanted = {
+    width: Math.round(reference.width / ratio),
+    height: Math.round(reference.height / ratio),
+  };
+  if (target.kind === "viewport") {
+    if (viewportMismatchWarning(target, wanted, VIEWPORT_TOLERANCE_PX))
+      return null;
+  } else if (target.kind === "window") {
+    for (const dim of ["width", "height"] as const) {
+      const requested = Number(target[dim]);
+      if (!(requested > 0)) continue;
+      const neededWindow = window[dim] + wanted[dim] - viewport[dim];
+      if (Math.abs(neededWindow - requested) > requested * WINDOW_DRIFT_TOLERANCE)
+        return null;
+    }
+  }
+  return wanted;
+}
+
+// Resize the window so the viewport matches the reference and capture again.
+// Returns null when no resize applies or the retake didn't match; the window is
+// already back by then, so later work sees the page the first capture showed.
+// On a match, the caller runs `restore` when the step ends.
+async function retakeAtReferenceSize({
+  driver,
+  captureBuffer,
+  referencePath,
+  sharp,
+  config,
+  label,
+}: {
+  driver: any;
+  captureBuffer: Buffer;
+  referencePath: string;
+  sharp: any;
+  config: any;
+  label: string;
+}): Promise<{
+  restore: () => Promise<void>;
+  buffer: Buffer;
+  from: Size;
+  to: Size;
+} | null> {
+  let capture: Size;
+  let reference: Size;
+  let wanted: Size | null;
+  let window: Size;
+  try {
+    const captureMeta = await sharp(captureBuffer).metadata();
+    const referenceMeta = await sharp(referencePath).metadata();
+    capture = { width: captureMeta.width, height: captureMeta.height };
+    reference = { width: referenceMeta.width, height: referenceMeta.height };
+    const metrics = await driver.execute(
+      "return { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio }",
+      []
+    );
+    window = await driver.getWindowSize();
+    wanted = referenceViewport({
+      target: driver.state?.sizeTarget,
+      capture,
+      reference,
+      dpr: Number(metrics?.dpr),
+      viewport: { width: Number(metrics?.width), height: Number(metrics?.height) },
+      window,
+    });
+  } catch {
+    // An unreadable reference fails in the comparison, with its own message.
+    return null;
+  }
+  if (!wanted) return null;
+  const restore = async () => {
+    await driver.setWindowSize(window.width, window.height);
+  };
+  let got: string;
+  try {
+    await realizeViewport(driver, wanted, config, label, "debug");
+    const buffer = Buffer.from(await driver.takeScreenshot(), "base64");
+    const retaken = await sharp(buffer).metadata();
+    if (
+      retaken.width === reference.width &&
+      retaken.height === reference.height
+    ) {
+      return { restore, buffer, from: capture, to: reference };
+    }
+    got = `${retaken.width}×${retaken.height}`;
+  } catch (error: any) {
+    got = `an error: ${error?.message ?? error}`;
+  }
+  log(
+    config,
+    "warning",
+    `${label}: couldn't render at the reference's ${reference.width}×${reference.height} (got ${got}), so comparing the capture as taken. A headed browser can't grow past the display, and a window can't shrink below the browser's minimum.`
+  );
+  await restore();
+  return null;
+}
+
+// Window restoration lives out here rather than in the body: annotations
+// resolve against the live page after capture, so a resize for the reference
+// must hold until the step is done, whichever return the body takes.
+async function saveScreenshot(
+  args: Parameters<typeof captureScreenshot>[0]
+) {
+  const session: { restoreWindow?: () => Promise<void> } = {};
+  try {
+    return await captureScreenshot(args, session);
+  } finally {
+    try {
+      await session.restoreWindow?.();
+    } catch (error: any) {
+      log(
+        args.config,
+        "warning",
+        `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
+      );
+    }
+  }
+}
+
 // `internal` is a core-only seam (not a schema field): recording checkpoints
 // run comparisons against persistent baselines that must never be written
 // mid-span — baseline writes belong to stopRecord (ADR 01075). In compareOnly
 // mode the fresh capture always persists to `capturePath` (staging) instead,
 // and a missing reference reports `outputs.baselineMissing` rather than
 // seeding the file.
-async function saveScreenshot({
+async function captureScreenshot({
   config,
   step,
   driver,
@@ -141,7 +300,7 @@ async function saveScreenshot({
   // absent (direct callers, unit tests) we fall back to the config level so a
   // config-only theme still applies.
   annotationTheme?: any;
-}) {
+}, session: { restoreWindow?: () => Promise<void> }) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -627,6 +786,35 @@ async function saveScreenshot({
       } catch {
         /* cursor restore is non-essential */
       }
+    }
+  }
+
+  // The reference's size wins over this environment's (#769, ADR 01144): when
+  // they differ, resize the window to the reference's viewport and capture
+  // again rather than resampling. Not for crops (their size is the element's),
+  // app windows, an unconditional local overwrite (nothing to compare), or
+  // recordings (the resize would show in the video).
+  if (
+    !isAppCapture &&
+    !step.screenshot.crop &&
+    existFilePath &&
+    !(step.screenshot.overwrite === "true" && !isUrlPath) &&
+    !internal?.compareOnly &&
+    !recordingActive
+  ) {
+    const retake = await retakeAtReferenceSize({
+      driver: captureDriver,
+      captureBuffer,
+      referencePath: existFilePath,
+      sharp,
+      config,
+      label: `Screenshot ${step.stepId}`,
+    });
+    if (retake) {
+      session.restoreWindow = retake.restore;
+      captureBuffer = retake.buffer;
+      result.outputs.resizedToReference = { from: retake.from, to: retake.to };
+      result.description += ` Resized the window to match the reference's ${retake.to.width}×${retake.to.height} before comparing.`;
     }
   }
 

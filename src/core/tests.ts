@@ -45,7 +45,7 @@ import {
   isRetryableSessionError,
   classifyContextRetry,
   guardBlankDocumentNavigation,
-  realizeViewport,
+  applyBrowserSize,
   isViewportFloored,
   loadAxios,
 } from "./utils.js";
@@ -1317,36 +1317,6 @@ function driverSkipDiagnostic({
   if (lastError) msg += ` Last error: ${lastError}`;
   msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
   return msg;
-}
-
-// Realize a context's target viewport and return the size the page actually
-// rendered. Prefers viewport emulation (exact size, no window floor) and falls
-// back to window resizing, warning if the browser/OS floored the request. The
-// `// Confirm viewport size` intent is now realized by realizeViewport's
-// read-back.
-async function setViewportSize(
-  context: any,
-  driver: any,
-  config: any = {}
-): Promise<{ width: number; height: number } | undefined> {
-  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
-  // these, so a 0/negative/NaN value must not enter the resize path — matching
-  // the startSurface browser descriptor's guard.
-  const vw = Number(context.browser?.viewport?.width);
-  const vh = Number(context.browser?.viewport?.height);
-  if (vw > 0 || vh > 0) {
-    const requested = {
-      ...(vw > 0 ? { width: vw } : {}),
-      ...(vh > 0 ? { height: vh } : {}),
-    };
-    // Attribute the warning so a multi-context run can tell which context's
-    // viewport was floored.
-    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
-      context.platform ?? "host"
-    }`;
-    return realizeViewport(driver, requested, config, label);
-  }
-  return undefined;
 }
 
 async function allowUnsafeSteps({ config }: { config: any }) {
@@ -4627,14 +4597,6 @@ async function runContext({
             runnerDetails,
             name: browserName,
             options: {
-              width:
-                overrides?.size?.width ||
-                context.browser?.window?.width ||
-                1200,
-              height:
-                overrides?.size?.height ||
-                context.browser?.window?.height ||
-                800,
               headless,
               ...recordOptions,
             },
@@ -4800,6 +4762,23 @@ async function runContext({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
+            // A later session takes the context's size unless its
+            // startSurface descriptor sets `size`. A sizing failure leaves
+            // the session usable at its default size, so warn, don't fail.
+            try {
+              await applyBrowserSize(
+                res.driver,
+                overrides?.size ? { window: overrides.size } : context.browser,
+                config,
+                `browser session for ${engine}`
+              );
+            } catch (error: any) {
+              log(
+                config,
+                "warning",
+                `Couldn't size the new ${engine} session: ${error?.message ?? error}`
+              );
+            }
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
@@ -4812,40 +4791,27 @@ async function runContext({
         });
       }
 
-      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
-      // must fall through to the window-size branch rather than entering the
-      // (no-op) viewport path.
-      const viewportW = Number(context.browser?.viewport?.width);
-      const viewportH = Number(context.browser?.viewport?.height);
-      if (viewportW > 0 || viewportH > 0) {
-        // Set driver viewport size
-        const realized = await setViewportSize(context, driver, config);
-        // Stamp the context REPORT (not the context object — the report is a
-        // curated copy) when the browser floored the request. A context-level
-        // viewport has no step output to carry the realized size, so this is
-        // the only signal the post-run `useMobilePlatforms` hint can read.
-        if (
-          isViewportFloored(
-            {
-              ...(viewportW > 0 ? { width: viewportW } : {}),
-              ...(viewportH > 0 ? { height: viewportH } : {}),
-            },
-            realized
-          )
-        ) {
-          contextReport.viewportFloored = true;
-        }
-      } else if (
-        context.browser?.window?.width ||
-        context.browser?.window?.height
+      // Size the session: the authored viewport, else the authored window,
+      // else the default viewport (ADR 01144). The label attributes a floor
+      // warning to this context in a multi-context run.
+      const sizing = await applyBrowserSize(
+        driver,
+        context.browser,
+        config,
+        `viewport for ${context.browser?.name ?? "browser"} on ${
+          context.platform ?? "host"
+        }`
+      );
+      // Stamp the context REPORT (not the context object — the report is a
+      // curated copy) when the browser floored an authored viewport. A
+      // context-level viewport has no step output to carry the realized size,
+      // so this is the only signal the post-run `useMobilePlatforms` hint can
+      // read.
+      if (
+        sizing.target.kind === "viewport" &&
+        isViewportFloored(sizing.target, sizing.realized)
       ) {
-        // Get driver window size
-        const windowSize = await driver.getWindowSize();
-        // Resize window if necessary
-        await driver.setWindowSize(
-          context.browser?.window?.width || windowSize.width,
-          context.browser?.window?.height || windowSize.height
-        );
+        contextReport.viewportFloored = true;
       }
     }
 
