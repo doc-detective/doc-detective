@@ -134,7 +134,7 @@ Annotations change the image's pixels. If you compare against a reference image 
 - The step uses `crop`. A cropped image's size comes from the element, not the window.
 - `overwrite` is `"true"` on a local path, so there's no comparison.
 - A recording is running, because the resize would show in the video.
-- The context's [`viewport` or `window`](/docs/config/contexts#chrome-dimensions-and-visibility) no longer matches the reference image, so a deliberate size change isn't undone. A reference image within 16 pixels of the `viewport` still matches. For a `window`, the window can change by up to 5% to match.
+- The context's [`viewport` or `window`](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) no longer matches the reference image, so a deliberate size change isn't undone. A reference image within 16 pixels of the `viewport` still matches. For a `window`, the window can change by up to 5% to match.
 - Both dimensions differ by the same factor, which means a different pixel density rather than a different size.
 
 If the browser can't reach the reference image's size, Doc Detective logs a warning and compares the first screenshot. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width. Each resize costs a second screenshot, so once an environment change is permanent, refresh the reference image with `"overwrite": "true"`.
