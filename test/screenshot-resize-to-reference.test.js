@@ -346,6 +346,29 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     assert.deepEqual(driver.calls.at(-1), [1224, 900]);
   });
 
+  it("still returns a result when the window can't be restored after a failed retake", async function () {
+    const file = await reference(1000, 700);
+    const driver = browserDriver({ sizeTarget: defaultTarget });
+    const takeScreenshot = driver.takeScreenshot;
+    let shots = 0;
+    driver.takeScreenshot = async function () {
+      if (++shots > 1) throw new Error("session went away");
+      return takeScreenshot.call(this);
+    };
+    const setWindowSize = driver.setWindowSize;
+    driver.setWindowSize = async function (w, h) {
+      if (this.calls.length > 0) throw new Error("can't resize back");
+      return setWindowSize.call(this, w, h);
+    };
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "norestore", screenshot: { path: file, maxVariation: 1 } },
+      driver,
+    });
+    assert.equal(result.outputs.resizedToReference, undefined);
+    assert.equal(result.outputs.width, 1200);
+  });
+
   const noResize = {
     "the session has no size target": () => ({
       driver: browserDriver(),

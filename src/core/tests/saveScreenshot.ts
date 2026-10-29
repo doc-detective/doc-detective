@@ -248,7 +248,17 @@ async function retakeAtReferenceSize({
     "warning",
     `${label}: couldn't render at the reference's ${reference.width}×${reference.height} (got ${got}), so comparing the capture as taken. A headed browser can't grow past the display, and a window can't shrink below the browser's minimum.`
   );
-  await restore();
+  // A session that can't take the screenshot may not resize back either; that
+  // mustn't turn a fallback into a crashed step.
+  try {
+    await restore();
+  } catch (error: any) {
+    log(
+      config,
+      "warning",
+      `${label}: couldn't restore the window size after the failed retake: ${error?.message ?? error}`
+    );
+  }
   return null;
 }
 
