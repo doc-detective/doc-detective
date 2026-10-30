@@ -1,3 +1,13 @@
+## [4.41.4](https://github.com/doc-detective/doc-detective/compare/v4.41.3...v4.41.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* **release:** publish to npm before tagging so a failed publish leaves nothing behind ([141906d](https://github.com/doc-detective/doc-detective/commit/141906d9fe8b6382adbe931bf6655fac9c93e93d))
+* **release:** refuse to reuse a published version with no recorded gitHead ([275752e](https://github.com/doc-detective/doc-detective/commit/275752e76f19708bf6e26d5618d56120d00d8d4b))
+* **release:** remove the deferred-publish marker once it's read ([53ed862](https://github.com/doc-detective/doc-detective/commit/53ed86294b0fe51549fff4f07414153916413112))
+* **release:** tag a partly published version instead of retrying it ([f09a507](https://github.com/doc-detective/doc-detective/commit/f09a507bc2a7025109f56a9c58f9daf736fedd25))
+
 ## [4.41.3](https://github.com/doc-detective/doc-detective/compare/v4.41.2...v4.41.3) (2026-10-30)
 
 
