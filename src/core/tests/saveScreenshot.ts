@@ -207,10 +207,11 @@ async function retakeAtReferenceSize({
     const referenceMeta = await sharp(referencePath).metadata();
     capture = { width: captureMeta.width, height: captureMeta.height };
     reference = { width: referenceMeta.width, height: referenceMeta.height };
-    const metrics = await driver.execute(
-      "return { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio }",
-      []
-    );
+    const metrics = await driver.execute(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+      dpr: window.devicePixelRatio,
+    }));
     originalWindow = await driver.getWindowSize();
     const activeHandle = await driver.getWindowHandle?.();
     wanted = referenceViewport({
