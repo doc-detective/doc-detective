@@ -124,7 +124,9 @@ that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release b
   (`gh workflow run release.yml --ref <branch>`). It retries the same version.
 - If one package reached npm before the failure, the log says the version is "partly on npm".
   npm never accepts a version twice, so the release tags it anyway, fails at its publish step, and
-  the next release moves past it. Nothing is promoted.
+  the next release moves past it. Nothing is promoted. Re-running doesn't cut that next release,
+  because no releasable commit follows the new tag. Fix the cause, then merge a `fix:` or `feat:`
+  commit.
 - If the log says `publish failed` but `npm view doc-detective@X.Y.Z` lists the version, the
   registry was still propagating when the release checked. Re-running the release in CI is safe:
   it reuses a published version only when npm's `gitHead` matches the commit being released. Don't
@@ -135,6 +137,8 @@ that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release b
   with **Bypass two-factor authentication** checked and read-write access to both
   `doc-detective` and `doc-detective-common`. Also check that neither package's **Publishing
   access** setting disallows tokens.
+- `E403` with "You may not perform that action with these credentials" means the token works but
+  has no write access to that package. Grant it read-write on both packages.
 - Tags `v4.38.2` through `v4.41.3` predate ADR 01145 and never reached npm. Leave them alone. The
   next release moves past them.
 

@@ -23,7 +23,11 @@ export const DEFERRED_MARKER = '.tmp/publish-deferred';
 export function onPublishFailure({ version, message, packages, isPublished, marker = DEFERRED_MARKER }) {
   if (!packages.some((pkg) => isPublished(pkg, version))) return 1;
   fs.mkdirSync(path.dirname(marker), { recursive: true });
-  fs.writeFileSync(marker, `${version} is partly on npm, so it can't be retried: ${message}\n`);
+  fs.writeFileSync(
+    marker,
+    `${version} is partly on npm, so it can't be retried: ${message}\n` +
+      `It's tagged anyway. A re-run won't release past it; merge a fix: or feat: commit to release the next version.\n`
+  );
   return 0;
 }
 
