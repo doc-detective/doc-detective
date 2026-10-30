@@ -244,6 +244,8 @@ onboarding
 startSurface
 passthrough
 TUIs
+metacharacter
+metacharacters
 AXIdentifier
 AXRole
 AXTitle
