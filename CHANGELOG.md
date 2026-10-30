@@ -1,3 +1,10 @@
+## [4.41.3](https://github.com/doc-detective/doc-detective/compare/v4.41.2...v4.41.3) (2026-10-30)
+
+
+### Bug Fixes
+
+* **reporter:** restore the logo's rounded bar corner in the HTML report ([fc4ceab](https://github.com/doc-detective/doc-detective/commit/fc4ceabb50a015c9be842d73135246d2621d17dd))
+
 ## [4.41.2](https://github.com/doc-detective/doc-detective/compare/v4.41.1...v4.41.2) (2026-10-30)
 
 
