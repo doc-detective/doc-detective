@@ -4768,7 +4768,10 @@ async function runContext({
             try {
               await applyBrowserSize(
                 res.driver,
-                overrides?.size ? { window: overrides.size } : context.browser,
+                Number(overrides?.size?.width) > 0 ||
+                  Number(overrides?.size?.height) > 0
+                  ? { window: overrides!.size }
+                  : context.browser,
                 config,
                 `browser session for ${engine}`
               );

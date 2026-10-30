@@ -369,6 +369,23 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     assert.equal(result.outputs.width, 1200);
   });
 
+  it("doesn't apply the session's size target to a different window (a popup)", async function () {
+    const file = await reference(1000, 700);
+    const driver = browserDriver();
+    let handle = "main";
+    driver.getWindowHandle = async () => handle;
+    await applyBrowserSize(driver, {}, config);
+    handle = "popup";
+    driver.calls.length = 0;
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "popup", screenshot: { path: file, maxVariation: 1 } },
+      driver,
+    });
+    assert.deepEqual(driver.calls, []);
+    assert.equal(result.outputs.resizedToReference, undefined);
+  });
+
   const noResize = {
     "the session has no size target": () => ({
       driver: browserDriver(),

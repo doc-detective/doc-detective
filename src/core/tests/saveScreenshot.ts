@@ -212,8 +212,12 @@ async function retakeAtReferenceSize({
       []
     );
     originalWindow = await driver.getWindowSize();
+    const activeHandle = await driver.getWindowHandle?.();
     wanted = referenceViewport({
-      target: driver.state?.sizeTarget,
+      target:
+        driver.state?.sizeTargetHandle === activeHandle
+          ? driver.state?.sizeTarget
+          : undefined,
       capture,
       reference,
       dpr: Number(metrics?.dpr),

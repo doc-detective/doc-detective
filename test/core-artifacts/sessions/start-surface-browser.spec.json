@@ -100,6 +100,47 @@
       ]
     },
     {
+      "testId": "start-surface-browser-empty-size",
+      "description": "ADR 01144: a `size` with no positive dimension counts as unset, so the opened session falls back to the context's authored viewport instead of the default.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "firefox",
+              "headless": true,
+              "viewport": {
+                "width": 1000,
+                "height": 700
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "browser": "chrome",
+            "size": {}
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return window.innerWidth + 'x' + window.innerHeight;",
+            "output": "/^1000x700$/",
+            "surface": "chrome"
+          }
+        },
+        {
+          "closeSurface": "chrome"
+        }
+      ]
+    },
+    {
       "testId": "start-surface-browser-default-size",
       "description": "ADR 01144: a browser nobody sized renders a 1200×800 viewport, on the context's own session and on a session startSurface opens without `size` or `viewport` (it takes the context's size).",
       "steps": [

@@ -1854,6 +1854,9 @@ export async function applyBrowserSize(
   }
   driver.state = driver.state ?? {};
   driver.state.sizeTarget = target;
+  // The target belongs to the window that was sized, not to popups the page
+  // opens later in the same session.
+  driver.state.sizeTargetHandle = await driver.getWindowHandle?.();
   return { target, realized };
 }
 
