@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Publish the root and src/common packages with a dist-tag, idempotently.
 //
-// Non-idempotent npm publishes are a problem for staged releases: if the
-// root publish succeeds but `doc-detective-common` fails (network, registry
-// hiccup), the next semantic-release run computes the same version and
-// fails on `npm publish` for the already-published root — leaving the
-// staging tag in limbo.
+// A failed release that left no tag (ADR 01145) re-runs the same version, and
+// npm may already hold a package the earlier run didn't see yet (registry
+// lag). Idempotency lets the re-run reuse it. A version that's partly on npm
+// when the run fails is spent instead: it's tagged, and only a new `fix:` or
+// `feat:` commit releases past it (see publish-guard.js).
 //
 // For each package this script does:
 //   * `npm view` to check if the exact version is already on the registry
