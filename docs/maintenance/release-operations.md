@@ -137,8 +137,10 @@ that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release b
   with **Bypass two-factor authentication** checked and read-write access to both
   `doc-detective` and `doc-detective-common`. Also check that neither package's **Publishing
   access** setting disallows tokens.
-- `E403` with "You may not perform that action with these credentials" means the token works but
-  has no write access to that package. Grant it read-write on both packages.
+- `E403` with `You may not perform that action with these credentials` usually means the token
+  works but has no write access to that package. Grant it read-write on both packages. If it
+  already has that, check the token's 2FA bypass and the package's **Publishing access** setting,
+  as for `EOTP`.
 - Tags `v4.38.2` through `v4.41.3` predate ADR 01145 and never reached npm. Leave them alone. The
   next release moves past them.
 
