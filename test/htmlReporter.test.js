@@ -204,6 +204,21 @@ describe("HTML Reporter", function () {
     expect(html).to.include("body.dark");
   });
 
+  it("embeds the canonical logo paths", async function () {
+    const outputFile = path.join(tmpDir, "report.html");
+    await outputResults({}, outputFile, sampleResults, {
+      reporters: ["html"],
+    });
+    const html = fs.readFileSync(outputFile, "utf-8");
+    const logo = fs.readFileSync(
+      new URL("../docs/fern/assets/logo/doc-detective.svg", import.meta.url),
+      "utf-8"
+    );
+    const paths = [...logo.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
+    expect(paths).to.have.length(3);
+    for (const d of paths) expect(html).to.include(d);
+  });
+
   it("uses the runTests command for naming when specified", async function () {
     const results = await outputResults({}, tmpDir, sampleResults, {
       reporters: ["html"],
