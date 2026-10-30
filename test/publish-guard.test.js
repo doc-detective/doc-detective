@@ -46,6 +46,8 @@ describe("scripts/publish-guard", function () {
     expect(code).to.equal(0);
     expect(fs.readFileSync(marker, "utf8")).to.include("1.2.3").and.include("publish failed");
     expect(checkDeferred(marker)).to.equal(1);
+    // One-shot: a stale marker must not fail a later release in this checkout.
+    expect(checkDeferred(marker)).to.equal(0);
   });
 
   it("passes the publish step when prepare deferred nothing", function () {

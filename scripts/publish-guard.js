@@ -28,6 +28,7 @@ export function onPublishFailure({ version, message, packages, isPublished, mark
 export function checkDeferred(marker = DEFERRED_MARKER) {
   if (!fs.existsSync(marker)) return 0;
   console.error(fs.readFileSync(marker, 'utf8').trim());
+  fs.rmSync(marker);
   return 1;
 }
 
