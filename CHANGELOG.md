@@ -1,3 +1,13 @@
+## [4.41.2](https://github.com/doc-detective/doc-detective/compare/v4.41.1...v4.41.2) (2026-10-30)
+
+
+### Bug Fixes
+
+* **screenshot:** don't fail the step when the window can't be restored after a failed retake ([d92212e](https://github.com/doc-detective/doc-detective/commit/d92212e78c09e38f957badeb2282d466a0ca4b9f))
+* **screenshot:** retake at the reference's size and default unsized browsers to 1200x800 ([e3dc0cf](https://github.com/doc-detective/doc-detective/commit/e3dc0cfc5046fb95ccb6e14af516185586ae6587))
+* **screenshot:** scope the size target to the sized window, and ignore an empty startSurface size ([1e003ef](https://github.com/doc-detective/doc-detective/commit/1e003ef07189d55bca40f50248aa7a8d567abb55))
+* **viewport:** wait for a resize to reach the page before reading the viewport back ([9953649](https://github.com/doc-detective/doc-detective/commit/9953649685472c4d61a1ce5ba8c99a597afc3a44))
+
 ## [4.41.1](https://github.com/doc-detective/doc-detective/compare/v4.41.0...v4.41.1) (2026-10-23)
 
 
