@@ -182,6 +182,9 @@ async function startSurfaceStep({
     // know chrome/firefox/safari, so a schema-valid `edge` must open a chrome
     // session rather than fail at launch.
     const engine = normalizeEngine(d.browser);
+    // Opening sizes the session (`size`, else the context's size, else the
+    // default). A `viewport` below re-sizes it and records the viewport as the
+    // size target, at the cost of one extra resize (ADR 01144).
     const opened = await openSession(browserRegistry, {
       engine,
       name: d.name,

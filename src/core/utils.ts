@@ -1818,18 +1818,18 @@ export async function applyBrowserSize(
   label?: string
 ): Promise<{ target: SizeTarget; realized?: { width: number; height: number } }> {
   const viewport = positiveDimensions(authored?.viewport);
-  const window = positiveDimensions(authored?.window);
+  const windowDims = positiveDimensions(authored?.window);
   let target: SizeTarget;
   let realized: { width: number; height: number } | undefined;
   if (viewport) {
     target = { kind: "viewport", ...viewport };
     realized = await realizeViewport(driver, viewport, config, label);
-  } else if (window) {
-    target = { kind: "window", ...window };
+  } else if (windowDims) {
+    target = { kind: "window", ...windowDims };
     const current = await driver.getWindowSize();
     await driver.setWindowSize(
-      window.width ?? current.width,
-      window.height ?? current.height
+      windowDims.width ?? current.width,
+      windowDims.height ?? current.height
     );
   } else {
     target = { kind: "default", ...DEFAULT_VIEWPORT };

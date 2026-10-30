@@ -27,7 +27,8 @@ header.writeUInt32BE(width, 0);
 header.writeUInt32BE(height, 4);
 header[8] = 8; // bit depth
 header[9] = 2; // RGB
-// Each row: filter byte 0, then white pixels.
+// PNG scanlines each start with a filter-type byte; deflating the pixels alone
+// would make an invalid IDAT. Each row: filter 0 (None), then white pixels.
 const rows = Buffer.alloc((width * 3 + 1) * height, 255);
 for (let y = 0; y < height; y++) rows[y * (width * 3 + 1)] = 0;
 
