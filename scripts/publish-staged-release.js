@@ -14,12 +14,15 @@
 //                  points at the intended version even if a prior run set
 //                  it incorrectly)
 //
-// Exits non-zero if either package fails to reach the desired end state.
+// Exits non-zero if either package fails to reach the desired end state and
+// nothing reached npm. If a package already holds the version, see
+// publish-guard.js.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import semver from 'semver';
 import { transformForPublish } from './publish-manifest.js';
+import { assertSameGitHead, onPublishFailure } from './publish-guard.js';
 
 const version = process.argv[2];
 const tag = process.argv[3];
@@ -74,11 +77,10 @@ function isAlreadyPublished(pkg, ver) {
 function publishOrTag(pkg, workspaceArgs) {
   if (isAlreadyPublished(pkg, version)) {
     console.log(`[${pkg}] ${version} already published; ensuring dist-tag ${tag}`);
+    const { stdout: gitHead } = capture(['view', `${pkg}@${version}`, 'gitHead']);
+    assertSameGitHead(pkg, version, gitHead, process.env.GITHUB_SHA);
     const r = run(['dist-tag', 'add', `${pkg}@${version}`, tag]);
-    if (r.status !== 0) {
-      console.error(`[${pkg}] dist-tag add failed`);
-      process.exit(r.status ?? 1);
-    }
+    if (r.status !== 0) throw new Error(`[${pkg}] dist-tag add failed`);
     return;
   }
 
@@ -89,10 +91,7 @@ function publishOrTag(pkg, workspaceArgs) {
     '--access', 'public',
     '--tag', tag,
   ]);
-  if (r.status !== 0) {
-    console.error(`[${pkg}] publish failed`);
-    process.exit(r.status ?? 1);
-  }
+  if (r.status !== 0) throw new Error(`[${pkg}] publish failed`);
 }
 
 // The published manifest must drop `workspaces` and move the heavy
@@ -106,20 +105,12 @@ function publishOrTag(pkg, workspaceArgs) {
 //     the stripped manifest on disk would commit it into the repo.
 function withTransformedRootManifest(fn) {
   const original = fs.readFileSync('package.json', 'utf8');
-  const restore = () => fs.writeFileSync('package.json', original);
-  // publishOrTag() calls process.exit() on failure, which terminates the
-  // process immediately and bypasses `finally`. Register an `exit` handler
-  // (it fires even on process.exit()) so the original manifest is restored on
-  // that path too — otherwise a failed publish would leave package.json
-  // stripped on disk for @semantic-release/git to commit.
-  process.on('exit', restore);
   try {
     const published = transformForPublish(JSON.parse(original));
     fs.writeFileSync('package.json', JSON.stringify(published, null, 2) + '\n');
     fn();
   } finally {
-    restore();
-    process.off('exit', restore);
+    fs.writeFileSync('package.json', original);
   }
 }
 
@@ -147,14 +138,27 @@ function assertNoOptionalDependencies() {
     !Array.isArray(parsed) &&
     Object.keys(parsed).length > 0
   ) {
-    console.error(
+    throw new Error(
       `[doc-detective] published ${version} still lists optionalDependencies:\n${stdout}\n` +
         'The publish manifest transform did not reach the registry packument.'
     );
-    process.exit(1);
   }
 }
 
-withTransformedRootManifest(() => publishOrTag('doc-detective', []));
-assertNoOptionalDependencies();
-publishOrTag('doc-detective-common', ['--workspace', 'src/common']);
+try {
+  withTransformedRootManifest(() => publishOrTag('doc-detective', []));
+  assertNoOptionalDependencies();
+  publishOrTag('doc-detective-common', ['--workspace', 'src/common']);
+} catch (err) {
+  console.error(err.message);
+  const code = onPublishFailure({
+    version,
+    message: err.message,
+    packages: ['doc-detective', 'doc-detective-common'],
+    isPublished: isAlreadyPublished,
+  });
+  if (code === 0) {
+    console.error(`${version} is already partly on npm. Letting semantic-release tag it so the next release moves past it; the release still fails.`);
+  }
+  process.exit(code);
+}
