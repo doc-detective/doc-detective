@@ -129,6 +129,16 @@ Annotations change the image's pixels. If you compare against a reference image 
 
 **Visual Regression Testing:** If `maxVariation` is set and a reference image exists at the target `path`, the action compares the new screenshot to the reference. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting.
 
+**Size mismatches:** a reference image from one machine can have different dimensions than a new screenshot on another. A new CI runner image, for example, can render the browser at a slightly different size. When the sizes differ, Doc Detective resizes the browser window so the viewport matches the reference image. It then takes the screenshot again and compares that one. The window returns to its original size when the step finishes, and `$$resizedToReference` reports the resize. Doc Detective doesn't resize the window when:
+
+- The step uses `crop`. A cropped image's size comes from the element, not the window.
+- `overwrite` is `"true"` on a local path, so there's no comparison.
+- A recording is running, because the resize would show in the video.
+- The context's [`viewport` or `window`](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) no longer matches the reference image, so a deliberate size change isn't undone. A reference image within 16 pixels of the `viewport` still matches. For a `window`, the window can change by up to 5% to match.
+- Both dimensions differ by the same factor, which means a different pixel density rather than a different size.
+
+If the browser can't reach the reference image's size, Doc Detective logs a warning and compares the first screenshot. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width. Each resize costs a second screenshot, so once an environment change is permanent, refresh the reference image with `"overwrite": "true"`.
+
 **URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads that image once per run. It uses the image as a read-only reference for comparison. The new screenshot is saved to `./doc-detective-runs/<run-timestamp>/<stepId>_<filename>.png` for inspection. The `overwrite` setting is ignored, because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This suits teams that store reference images in cloud storage like S3 without managing local files.
 
 <Note>
@@ -146,6 +156,7 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 - `$$annotationsInBounds`: whether every annotation landed inside the image (when `annotations` is set). The step returns WARNING if one falls outside, which usually means the crop left it out of frame.
 - `$$aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
 - `$$variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
+- `$$resizedToReference`: the pixel sizes of the first screenshot (`from`) and the reference image (`to`), when Doc Detective resized the window to match the reference image. See **Size mismatches**.
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.
 

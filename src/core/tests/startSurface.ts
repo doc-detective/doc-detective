@@ -9,7 +9,7 @@ import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } fr
 import {
   resolveShellName,
   resolveShellExecutable,
-  realizeViewport,
+  applyBrowserSize,
 } from "../utils.js";
 import {
   openSession,
@@ -182,6 +182,9 @@ async function startSurfaceStep({
     // know chrome/firefox/safari, so a schema-valid `edge` must open a chrome
     // session rather than fail at launch.
     const engine = normalizeEngine(d.browser);
+    // Opening sizes the session (`size`, else the context's size, else the
+    // default). A `viewport` below re-sizes it and records the viewport as the
+    // size target, at the cost of one extra resize (ADR 01144).
     const opened = await openSession(browserRegistry, {
       engine,
       name: d.name,
@@ -210,12 +213,15 @@ async function startSurfaceStep({
       };
       let rendered: { width: number; height: number };
       try {
-        rendered = await realizeViewport(
+        // Also records the viewport as the session's size target, which a
+        // screenshot reads to tell drift from a changed config (ADR 01144).
+        const sizing = await applyBrowserSize(
           opened.driver,
-          requested,
+          { viewport: requested },
           config,
           `startSurface "${opened.name}"`
         );
+        rendered = sizing.realized!;
       } catch (error: any) {
         return {
           status: "FAIL",

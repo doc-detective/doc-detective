@@ -1619,6 +1619,9 @@ function logLevelEnabled(config: any, level: string): boolean {
  */
 export const VIEWPORT_TOLERANCE_PX = 16;
 
+/** How long realizeViewport waits for a resize to show up in the page. */
+const VIEWPORT_SETTLE_MS = 2000;
+
 /**
  * Compare a requested browser viewport against the viewport the page actually
  * rendered (window.innerWidth/innerHeight read back after a resize) and produce
@@ -1654,7 +1657,7 @@ export function viewportMismatchWarning(
     }
   }
   if (parts.length === 0) return null;
-  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+  return `Requested viewport not fully realized — the browser or OS limits the window size: ${parts.join(
     "; "
   )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
 }
@@ -1732,7 +1735,8 @@ export async function realizeViewport(
   driver: any,
   requested: { width?: number; height?: number },
   config: any = {},
-  label?: string
+  label?: string,
+  level = "warning"
 ): Promise<{ width: number; height: number }> {
   const current = await readViewport(driver);
   const target = resolveViewportTarget(requested, current);
@@ -1754,16 +1758,129 @@ export async function realizeViewport(
     Math.round(windowSize.height + deltaHeight)
   );
 
-  const actual = await readViewport(driver);
+  // Some engines report the old viewport for a moment after a resize (headless
+  // Chrome on Windows CI). Poll until the target lands or the size stops
+  // changing; a stale read would otherwise skew the next resize's delta and
+  // raise a false floor warning.
+  let actual = await readViewport(driver);
+  let previous: { width: number; height: number } | undefined;
+  const deadline = Date.now() + VIEWPORT_SETTLE_MS;
+  while (
+    viewportMismatchWarning(target, actual, VIEWPORT_TOLERANCE_PX) &&
+    !(
+      previous &&
+      previous.width === actual.width &&
+      previous.height === actual.height &&
+      (actual.width !== current.width || actual.height !== current.height)
+    ) &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    previous = actual;
+    actual = await readViewport(driver);
+  }
   const warning = viewportMismatchWarning(
     requested,
     actual,
     VIEWPORT_TOLERANCE_PX
   );
   if (warning) {
-    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+    await log(config, level, label ? `${label}: ${warning}` : warning);
   }
   return actual;
+}
+
+/**
+ * Viewport for a desktop browser session nobody sized. Without it the size is
+ * whatever the engine and host pick (headless Chrome renders 758×426 on
+ * Windows, headless Firefox 1366×683), which drifts between runner images.
+ * A viewport rather than a window: the window-to-viewport offset is the part
+ * that drifts. See ADR 01144.
+ */
+export const DEFAULT_VIEWPORT = { width: 1200, height: 800 };
+
+/**
+ * The size a browser session was asked for, recorded on `driver.state` so a
+ * screenshot can tell drift from an intentional change (ADR 01144).
+ */
+export type SizeTarget = {
+  kind: "viewport" | "window" | "default";
+  width?: number;
+  height?: number;
+};
+
+// Only positive dimensions count: the schema doesn't floor these, and a
+// 0/negative/NaN value must not reach setWindowSize.
+function positiveDimensions(
+  dims: { width?: number; height?: number } | undefined
+): { width?: number; height?: number } | undefined {
+  const width = Number(dims?.width);
+  const height = Number(dims?.height);
+  if (!(width > 0) && !(height > 0)) return undefined;
+  return {
+    ...(width > 0 ? { width } : {}),
+    ...(height > 0 ? { height } : {}),
+  };
+}
+
+/**
+ * Size a freshly opened desktop browser session: an authored viewport wins,
+ * then an authored window, then DEFAULT_VIEWPORT. Records the choice as
+ * `driver.state.sizeTarget` and returns it, plus the viewport that rendered
+ * when one was realized.
+ */
+export async function applyBrowserSize(
+  driver: any,
+  authored:
+    | {
+        viewport?: { width?: number; height?: number };
+        window?: { width?: number; height?: number };
+      }
+    | undefined,
+  config: any = {},
+  label?: string
+): Promise<{ target: SizeTarget; realized?: { width: number; height: number } }> {
+  const viewport = positiveDimensions(authored?.viewport);
+  const windowDims = positiveDimensions(authored?.window);
+  let target: SizeTarget;
+  let realized: { width: number; height: number } | undefined;
+  if (viewport) {
+    target = { kind: "viewport", ...viewport };
+    realized = await realizeViewport(driver, viewport, config, label);
+  } else if (windowDims) {
+    target = { kind: "window", ...windowDims };
+    const current = await driver.getWindowSize();
+    await driver.setWindowSize(
+      windowDims.width ?? current.width,
+      windowDims.height ?? current.height
+    );
+  } else {
+    target = { kind: "default", ...DEFAULT_VIEWPORT };
+    // Nobody asked for this size, so a host too small to fit it (a headed
+    // desktop on a small display) isn't worth a warning, and a session that
+    // can't be resized at all still runs at the size it opened with.
+    try {
+      realized = await realizeViewport(
+        driver,
+        DEFAULT_VIEWPORT,
+        config,
+        label,
+        "debug"
+      );
+    } catch (error: any) {
+      await log(
+        config,
+        "debug",
+        `Couldn't apply the default ${DEFAULT_VIEWPORT.width}×${DEFAULT_VIEWPORT.height} viewport: ${error?.message ?? error}`
+      );
+    }
+  }
+  driver.state = driver.state ?? {};
+  driver.state.sizeTarget = target;
+  // The target belongs to the window that was sized, not to popups the page
+  // opens later in the same session.
+  driver.state.sizeTargetHandle = await driver.getWindowHandle?.();
+  return { target, realized };
 }
 
 async function log(config: any, level: string, message?: any) {
