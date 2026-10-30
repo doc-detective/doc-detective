@@ -112,6 +112,25 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
   regression.
 
+## Failed npm publishes
+
+The release job publishes during semantic-release's `prepare` step, before it commits or tags
+anything ([ADR 01145](../../adrs/01145-publish-before-tagging-the-release.md)). A failed publish
+leaves no `vX.Y.Z` tag, release commit, or GitHub release behind.
+
+- **Detect:** the Release run's `release` job fails, and its log ends at
+  `publish-staged-release.js` with an `npm error code`.
+- **Recover:** fix the cause, then re-run the Release workflow
+  (`gh workflow run release.yml --ref main`). It retries the same version.
+- `E404` on the publish `PUT` means npm rejected `NPM_TOKEN`. npm reports a bad publish token as
+  404, not 401. Replace the token.
+- `EOTP` means the token authenticates but isn't allowed to skip 2FA. Use a granular access token
+  with **Bypass two-factor authentication** checked and read-write access to both
+  `doc-detective` and `doc-detective-common`. Also check that neither package's **Publishing
+  access** setting disallows tokens.
+- Tags `v4.38.2` through `v4.41.3` predate ADR 01145 and never reached npm. Leave them alone. The
+  next release moves past them.
+
 ## Promoting stale `claude/*` feature branches
 
 Feature branches forked before major `main` work landed will silently **delete** that work if you
