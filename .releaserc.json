@@ -42,7 +42,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}"
+        "prepareCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
+        "publishCmd": "node scripts/publish-guard.js"
       }
     ],
     [

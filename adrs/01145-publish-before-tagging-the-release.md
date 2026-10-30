@@ -48,28 +48,49 @@ after the reconcile entry and before `@semantic-release/git`. Plugin `prepare` s
 order, so a failed publish fails `prepare` and semantic-release stops before it commits, tags, or
 pushes.
 
+Retrying is only safe while the version is unused on npm, which never accepts a version twice.
+[scripts/publish-guard.js](../scripts/publish-guard.js) decides what a failure means:
+
+* **Nothing reached npm:** `prepare` fails. No tag, and a rerun retries the same version.
+* **Either package already holds the version:** the version is spent. `prepare` records the
+  failure and exits 0, so semantic-release tags the version and the next release moves past it.
+  The entry's `publishCmd` then fails the release. No GitHub release is created, and `promote`
+  doesn't run.
+
+Reusing an already-published version also requires npm's recorded `gitHead` to match
+`GITHUB_SHA`. That's the commit a crash-interrupted release was building. Otherwise the script
+refuses, and the version counts as spent.
+
 ### Consequences
 
-* Good: a failed publish leaves no release commit, tag, or GitHub release. After fixing the cause,
-  re-run the Release workflow and it retries the same version.
+* Good: a failed publish that reached nothing leaves no release commit, tag, or GitHub release.
+  After fixing the cause, re-run the Release workflow on the failed branch, and it retries the
+  same version.
+* Good: a partly published version is never reused for a later commit, and never strands the
+  pipeline on a version npm can't accept again.
 * Good: a lockfile that fails verification still stops the release before npm sees it.
-* Good: the job still fails, and `@semantic-release/github` still opens its failure issue.
-* Neutral: npm now gets the version before git does. If the publish succeeds but the push that
-  follows fails, npm holds a version git doesn't. The next run that lands on that version only
-  moves the dist-tag, because the script finds it already published. A run that lands on a later
-  version leaves the stray one on its `staging-<version>` tag, where it never becomes `@latest`.
-  The `release-<ref>` concurrency group serializes release runs, so this needs a push failure
-  right after a successful publish.
-* Bad: only a real release exercises the new ordering. The wiring test covers the configuration,
-  not npm or git.
+* Neutral: the job fails, but an `exec` failure isn't a semantic-release error, so
+  `@semantic-release/github` opens no failure issue. The old `publishCmd` behaved the same way.
+* Neutral: a spent version is tagged with only some of its packages on npm, as every failed
+  release was before this change. It isn't promoted. Publish the missing package by hand only if
+  that exact version matters.
+* Bad: only a real release exercises the new ordering. The tests cover the configuration and the
+  guard, not npm or git.
 
 ### Confirmation
 
 * [test/release-config.test.js](../test/release-config.test.js) asserts that no `publishCmd` runs
   `publish-staged-release.js`, and that its `prepareCmd` sits after the reconcile and before
-  `@semantic-release/git`. The test failed on the old wiring.
+  `@semantic-release/git`, with `publish-guard.js` as its `publishCmd`. The test failed on the old
+  wiring.
+* [test/publish-guard.test.js](../test/publish-guard.test.js) covers the unused, spent, and
+  `gitHead`-mismatch outcomes.
+* `publish-staged-release.js` ran against a stubbed `npm` in five scenarios: nothing published,
+  root published but common failed, reuse from another commit, reuse from the same commit, and
+  success. Each produced the outcome above and restored `package.json`.
 * semantic-release 25.0.9's `index.js` runs `plugins.prepare`, then `tag` and `push`, then
-  `plugins.publish`. That source, not the docs, is what this decision relies on.
+  `plugins.publish`. It calls `fail` plugins only for its own errors. That source, not the docs, is
+  what this decision relies on.
 * The release that ships this change is the first one to run the new ordering.
 
 ## Pros and Cons of the Options
@@ -78,8 +99,8 @@ pushes.
 
 * Good: fixes the ordering itself, so it covers every publish failure: auth, registry outage, or
   the script's own `optionalDependencies` guard.
-* Good: a one-entry change to `.releaserc.json`.
-* Neutral: inverts which side can be ahead after a partial failure, as described above.
+* Neutral: needs the spent-version rule, because npm can now be ahead of git after a partial
+  failure.
 
 ### Option 2: verifyConditions preflight
 

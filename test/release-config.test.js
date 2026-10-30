@@ -31,5 +31,8 @@ describe(".releaserc.json publish wiring", function () {
     // anything reaches npm; before git, so a failed publish pushes nothing.
     expect(publishIdx).to.be.greaterThan(reconcileIdx);
     expect(publishIdx).to.be.lessThan(gitIdx);
+    // A version that's partly on npm gets tagged anyway; this publishCmd then
+    // fails the release so it can't report success.
+    expect(opts[publishIdx].publishCmd).to.match(/publish-guard\.js/);
   });
 });

@@ -116,12 +116,15 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
 
 The release job publishes during semantic-release's `prepare` step, before it commits or tags
 anything ([ADR 01145](../../adrs/01145-publish-before-tagging-the-release.md)). A failed publish
-leaves no `vX.Y.Z` tag, release commit, or GitHub release behind.
+that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release behind.
 
-- **Detect:** the Release run's `release` job fails, and its log ends at
+- **Detect:** the Release run's `release` job fails, and its log shows
   `publish-staged-release.js` with an `npm error code`.
-- **Recover:** fix the cause, then re-run the Release workflow
-  (`gh workflow run release.yml --ref main`). It retries the same version.
+- **Recover:** fix the cause, then re-run the Release workflow on the branch that failed
+  (`gh workflow run release.yml --ref <branch>`). It retries the same version.
+- If one package reached npm before the failure, the log says the version is "partly on npm".
+  npm never accepts a version twice, so the release tags it anyway, fails at its publish step, and
+  the next release moves past it. Nothing is promoted.
 - `E404` on the publish `PUT` means npm rejected `NPM_TOKEN`. npm reports a bad publish token as
   404, not 401. Replace the token.
 - `EOTP` means the token authenticates but isn't allowed to skip 2FA. Use a granular access token
