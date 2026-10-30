@@ -1619,6 +1619,9 @@ function logLevelEnabled(config: any, level: string): boolean {
  */
 export const VIEWPORT_TOLERANCE_PX = 16;
 
+/** How long realizeViewport waits for a resize to show up in the page. */
+const VIEWPORT_SETTLE_MS = 2000;
+
 /**
  * Compare a requested browser viewport against the viewport the page actually
  * rendered (window.innerWidth/innerHeight read back after a resize) and produce
@@ -1755,7 +1758,27 @@ export async function realizeViewport(
     Math.round(windowSize.height + deltaHeight)
   );
 
-  const actual = await readViewport(driver);
+  // Some engines report the old viewport for a moment after a resize (headless
+  // Chrome on Windows CI). Poll until the target lands or the size stops
+  // changing; a stale read would otherwise skew the next resize's delta and
+  // raise a false floor warning.
+  let actual = await readViewport(driver);
+  let previous: { width: number; height: number } | undefined;
+  const deadline = Date.now() + VIEWPORT_SETTLE_MS;
+  while (
+    viewportMismatchWarning(target, actual, VIEWPORT_TOLERANCE_PX) &&
+    !(
+      previous &&
+      previous.width === actual.width &&
+      previous.height === actual.height &&
+      (actual.width !== current.width || actual.height !== current.height)
+    ) &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    previous = actual;
+    actual = await readViewport(driver);
+  }
   const warning = viewportMismatchWarning(
     requested,
     actual,

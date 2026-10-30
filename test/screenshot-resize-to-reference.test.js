@@ -254,6 +254,36 @@ describe("applyBrowserSize", function () {
     assert.equal(target.kind, "default");
   });
 
+  it("waits for a lagging viewport read before sizing again (Windows headless Chrome)", async function () {
+    // The page reports the old viewport for a few reads after each resize, so
+    // a second resize computed from a stale read overshoots (#770 CI).
+    const driver = browserDriver({ window: { width: 788, height: 472 } });
+    const execute = driver.execute;
+    let stale = 0;
+    let last;
+    driver.execute = async function () {
+      const now = await execute.call(this);
+      if (stale > 0) {
+        stale--;
+        return last;
+      }
+      last = now;
+      return now;
+    };
+    const setWindowSize = driver.setWindowSize;
+    driver.setWindowSize = async function (w, h) {
+      await setWindowSize.call(this, w, h);
+      stale = 2;
+    };
+    await applyBrowserSize(driver, {}, config);
+    const { realized } = await applyBrowserSize(
+      driver,
+      { viewport: { width: 800, height: 600 } },
+      config
+    );
+    assert.deepEqual(realized, { width: 800, height: 600 });
+  });
+
   it("keeps the session when the default can't be applied", async function () {
     const driver = browserDriver();
     driver.setWindowSize = async () => {
