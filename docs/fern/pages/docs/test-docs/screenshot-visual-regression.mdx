@@ -95,7 +95,7 @@ Doc Detective refuses to fetch a reference image from a private, loopback, or li
 
 **Solution:**
 
-1. If the test runs in a headed browser, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. See [Test across platforms & browsers](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility).
+1. If the test runs in a headed browser, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) describes these size limits.
 2. If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `"overwrite": "true"`. Safari, for example, doesn't support headless mode.
 
 ## What's next
