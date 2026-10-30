@@ -55,6 +55,8 @@ describe("scripts/publish-guard", function () {
   it("refuses to reuse a version npm built from another commit", function () {
     expect(() => assertSameGitHead("doc-detective", "1.2.3", "aaa", "bbb")).to.throw(/aaa.*bbb/);
     expect(() => assertSameGitHead("doc-detective", "1.2.3", "aaa", "aaa")).not.to.throw();
+    // A failed or empty `npm view ... gitHead` yields "": no proof, no reuse.
+    expect(() => assertSameGitHead("doc-detective", "1.2.3", "", "bbb")).to.throw(/bbb/);
     // A maintainer publishing by hand has no GITHUB_SHA to compare against.
     expect(() => assertSameGitHead("doc-detective", "1.2.3", "aaa", undefined)).not.to.throw();
   });

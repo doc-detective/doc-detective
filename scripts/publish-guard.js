@@ -33,10 +33,11 @@ export function checkDeferred(marker = DEFERRED_MARKER) {
 
 // Reusing an already-published version is only safe when npm built it from
 // the commit being released. `expected` is GITHUB_SHA; a maintainer
-// publishing by hand has none, so there's nothing to compare.
+// publishing by hand has none, so there's nothing to compare. A missing
+// `published` (failed or empty lookup) is no proof, so it refuses too.
 export function assertSameGitHead(pkg, version, published, expected) {
-  if (expected && published && published !== expected) {
-    throw new Error(`[${pkg}] ${version} was published from ${published}, not ${expected}; refusing to reuse it`);
+  if (expected && published !== expected) {
+    throw new Error(`[${pkg}] ${version} was published from ${published || 'an unknown commit'}, not ${expected}; refusing to reuse it`);
   }
 }
 
