@@ -9,6 +9,8 @@
 // next release moves past it, and fail the release from the publish step.
 //
 // As a CLI (the publishCmd), exits non-zero when prepare deferred a failure.
+// DEFERRED_MARKER resolves against the working directory, which is the repo
+// root when semantic-release runs it.
 
 import fs from 'node:fs';
 import path from 'node:path';

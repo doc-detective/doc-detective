@@ -125,6 +125,10 @@ that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release b
 - If one package reached npm before the failure, the log says the version is "partly on npm".
   npm never accepts a version twice, so the release tags it anyway, fails at its publish step, and
   the next release moves past it. Nothing is promoted.
+- If the log says `publish failed` but `npm view doc-detective@X.Y.Z` lists the version, the
+  registry was still propagating when the release checked. Re-running the release in CI is safe:
+  it reuses a published version only when npm's `gitHead` matches the commit being released. Don't
+  publish that version by hand from a different commit, because a manual run skips that check.
 - `E404` on the publish `PUT` means npm rejected `NPM_TOKEN`. npm reports a bad publish token as
   404, not 401. Replace the token.
 - `EOTP` means the token authenticates but isn't allowed to skip 2FA. Use a granular access token
