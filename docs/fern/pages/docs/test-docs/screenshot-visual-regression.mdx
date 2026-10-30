@@ -91,7 +91,7 @@ Doc Detective refuses to fetch a reference image from a private, loopback, or li
 
 ### Screenshots still differ in size from the reference image after a resize
 
-**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it, so the step logs a warning that includes `couldn't render at the reference's`. It compares the first screenshot instead, so the step can report drift. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width.
+**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it. The step logs a warning that includes `couldn't render at the reference's` and compares the first screenshot instead. That comparison can report drift. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width.
 
 **Solution:**
 
