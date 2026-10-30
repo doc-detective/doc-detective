@@ -91,12 +91,12 @@ Doc Detective refuses to fetch a reference image from a private, loopback, or li
 
 ### Screenshots still differ in size from the reference image after a resize
 
-**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it. The step logs a warning that includes `couldn't render at the reference's` and compares the first screenshot instead. That comparison can report drift. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width.
+**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it. The step logs a warning that includes `couldn't render at the reference's` and compares the first screenshot instead. That comparison can report drift. A headed browser window can't grow past the display, and no browser window can shrink below its minimum width.
 
 **Solution:**
 
-1. If the test runs in headed Chrome, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless Chrome isn't limited by the display size. See [Test across platforms & browsers](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility).
-2. If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `"overwrite": "true"`.
+1. If the test runs in a headed browser, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. See [Test across platforms & browsers](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility).
+2. If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `"overwrite": "true"`. Safari, for example, doesn't support headless mode.
 
 ## What's next
 
