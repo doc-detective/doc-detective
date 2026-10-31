@@ -81,7 +81,7 @@ jobs:
           set -euo pipefail
           STAGING_TAG="staging-$VERSION"
           ACTION_VERSION=""
-          for i in $(seq 1 12); do
+          for i in $(seq 1 60); do
             # Prefer the staging tag (automated path or fresh recovery).
             PUB=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
             if [ "$PUB" = "$VERSION" ]; then

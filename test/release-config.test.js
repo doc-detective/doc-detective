@@ -37,6 +37,20 @@ describe(".releaserc.json publish wiring", function () {
   });
 });
 
+describe("promote.yml smoke-test npm wait", function () {
+  it("waits long enough for npm to show a fresh publish", async function () {
+    // 4.41.5 appeared on npm 8s after the 2-minute wait gave up, failing the release.
+    const { parse } = await import("yaml");
+    const wf = parse(fs.readFileSync(path.join(REPO_ROOT, ".github/workflows/promote.yml"), "utf8"));
+    const job = wf.jobs["smoke-test"];
+    const run = job.steps.find((s) => s.id === "resolve").run;
+    const waitSeconds = Number(run.match(/seq 1 (\d+)/)[1]) * Number(run.match(/sleep (\d+)/)[1]);
+    expect(waitSeconds).to.be.at.least(600);
+    // The smoke tests themselves take about a minute; leave them room.
+    expect(job["timeout-minutes"] * 60 - waitSeconds).to.be.at.least(300);
+  });
+});
+
 describe("container:test script", function () {
   it("skips the root mocha config, whose hooks import dist/", function () {
     // Release and manual Docker builds never run `npm run build`, so loading
