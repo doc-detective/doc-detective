@@ -81,7 +81,7 @@ jobs:
           set -euo pipefail
           STAGING_TAG="staging-$VERSION"
           ACTION_VERSION=""
-          for i in $(seq 1 60); do
+          for i in $(seq 1 61); do
             # Prefer the staging tag (automated path or fresh recovery).
             PUB=$(npm view "doc-detective@$STAGING_TAG" version 2>/dev/null || echo "")
             if [ "$PUB" = "$VERSION" ]; then
@@ -98,8 +98,10 @@ jobs:
               echo "staging-$VERSION not present; $VERSION is published — using plain version."
               break
             fi
-            echo "Attempt $i: neither staging-$VERSION nor $VERSION resolves yet. Waiting 10s..."
-            sleep 10
+            if [ "$i" -lt 61 ]; then
+              echo "Attempt $i: neither staging-$VERSION nor $VERSION resolves yet. Waiting 10s..."
+              sleep 10
+            fi
           done
           if [ -z "$ACTION_VERSION" ]; then
             echo "ERROR: Timed out waiting for doc-detective@$VERSION to resolve (staging or plain)." >&2

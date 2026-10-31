@@ -44,7 +44,10 @@ describe("promote.yml smoke-test npm wait", function () {
     const wf = parse(fs.readFileSync(path.join(REPO_ROOT, ".github/workflows/promote.yml"), "utf8"));
     const job = wf.jobs["smoke-test"];
     const run = job.steps.find((s) => s.id === "resolve").run;
-    const waitSeconds = Number(run.match(/seq 1 (\d+)/)[1]) * Number(run.match(/sleep (\d+)/)[1]);
+    const attempts = Number(run.match(/seq 1 (\d+)/)[1]);
+    // Only the sleeps between checks count; one after the last check is wasted.
+    const waitSeconds = (attempts - 1) * Number(run.match(/sleep (\d+)/)[1]);
+    expect(run).to.match(new RegExp(`\\[ "\\$i" -lt ${attempts} \\]`));
     expect(waitSeconds).to.be.at.least(600);
     // The smoke tests themselves take about a minute; leave them room.
     expect(job["timeout-minutes"] * 60 - waitSeconds).to.be.at.least(300);
