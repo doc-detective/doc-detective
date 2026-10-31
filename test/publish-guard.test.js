@@ -45,6 +45,8 @@ describe("scripts/publish-guard", function () {
     });
     expect(code).to.equal(0);
     expect(fs.readFileSync(marker, "utf8")).to.include("1.2.3").and.include("publish failed");
+    // A re-run can't release past a spent version: only a new releasable commit can.
+    expect(fs.readFileSync(marker, "utf8")).to.match(/re-run.*fix:.*feat:/);
     expect(checkDeferred(marker)).to.equal(1);
     // One-shot: a stale marker must not fail a later release in this checkout.
     expect(checkDeferred(marker)).to.equal(0);
