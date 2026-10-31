@@ -61,7 +61,7 @@
     "container:rebuild": "node src/container/scripts/build.cjs --no-cache",
     "container:build:base": "node src/container/scripts/build.cjs --target=base",
     "container:build:base:push": "node src/container/scripts/build.cjs --target=base --push",
-    "container:test": "mocha src/container/test/*.test.cjs --timeout 0"
+    "container:test": "mocha --no-config --exit src/container/test/*.test.cjs --timeout 0"
   },
   "repository": {
     "type": "git",
