@@ -1,3 +1,10 @@
+## [4.41.5](https://github.com/doc-detective/doc-detective/compare/v4.41.4...v4.41.5) (2026-10-31)
+
+
+### Bug Fixes
+
+* **release:** say how to release past a spent version ([631a96c](https://github.com/doc-detective/doc-detective/commit/631a96c3e12c5d68cfa1448a55ca465e4b775ba2))
+
 ## [4.41.4](https://github.com/doc-detective/doc-detective/compare/v4.41.3...v4.41.4) (2026-10-30)
 
 
