@@ -36,3 +36,13 @@ describe(".releaserc.json publish wiring", function () {
     expect(opts[publishIdx].publishCmd).to.match(/publish-guard\.js/);
   });
 });
+
+describe("container:test script", function () {
+  it("skips the root mocha config, whose hooks import dist/", function () {
+    // Release and manual Docker builds never run `npm run build`, so loading
+    // test/hooks.js crashed the 4.41.5 image test before any test ran. PR builds
+    // do build dist/, so only a release could catch it.
+    const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"));
+    expect(pkg.scripts["container:test"]).to.match(/^mocha --no-config --exit /);
+  });
+});
