@@ -579,6 +579,176 @@ describe("elementImage matching", function () {
     });
   });
 
+  describe("what independent verification found", function () {
+    const BLUE = "#1a5fb4";
+    const grid = (count, svgAt) =>
+      Array.from({ length: count }, (_, i) => ({ svg: svgAt(i), x: 10 + (i % 20) * 32, y: 10 + Math.floor(i / 20) * 32 }));
+    const rounded = (rx) =>
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="${rx}" fill="#7c3aed"/></svg>`
+      );
+    const counting = (driver) => {
+      const take = driver.takeScreenshot;
+      driver.looks = 0;
+      driver.takeScreenshot = async () => {
+        driver.looks++;
+        return take();
+      };
+      return driver;
+    };
+
+    it("image-score-min: hundreds of other copies don't crowd out the real one", async function () {
+      const red = icon(GEAR, "#e01b24", 24);
+      const items = grid(301, (i) => (i === 300 ? icon(GEAR, BLUE, 24) : red));
+      const shot = await page({ width: 700, height: 560, items });
+      near((await once(shot, { base64: b64(icon(GEAR, BLUE, 24)) })).match, items[300].x, items[300].y);
+    });
+
+    it("image-annotation-target: all finds hundreds of copies", async function () {
+      const blue = icon(GEAR, BLUE, 24);
+      const shot = await page({ width: 700, height: 560, items: grid(300, () => blue) });
+      const { matches } = await once(shot, { base64: b64(blue) }, { all: true });
+      expect(matches).to.have.length(300);
+    });
+
+    it("image-retries-until-timeout: a look that outlasts the timeout gets one more look", async function () {
+      const blue = icon(GEAR, BLUE, 24);
+      const shot = await page({ items: [{ svg: blue, x: 40, y: 50 }] });
+      const captures = [await page({}), shot];
+      const found = await visual.findByImage({
+        elementImage: { base64: b64(blue) },
+        driver: fakeDriver(shot, { captures }),
+        timeout: 1,
+      });
+      expect(found.error).to.equal(null);
+      near(await found.element.getLocation(), 40, 50);
+    });
+
+    it("image-retries-until-timeout: with timeout 0, it looks once", async function () {
+      const driver = counting(fakeDriver(await page({})));
+      await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, BLUE, 24)) }, driver, timeout: 0 });
+      expect(driver.looks).to.equal(1);
+    });
+
+    it("image-retries-until-timeout: an unchanged page isn't matched again", async function () {
+      // At about a sweep per look, this would manage only a few looks.
+      const driver = counting(fakeDriver(await page({})));
+      await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, BLUE, 24)) }, driver, timeout: 2000 });
+      expect(driver.looks).to.be.at.least(10);
+    });
+
+    it("image-default-threshold: threshold 1 accepts an exact copy", async function () {
+      const file = solid("#333333", 24);
+      const shot = await page({ items: [{ svg: file, x: 40, y: 50 }] });
+      near((await once(shot, { base64: b64(file), threshold: 1 })).match, 40, 50);
+    });
+
+    it("image-uniform-reference: a solid icon with rounded corners is still an icon", async function () {
+      for (const rx of [1, 2, 3]) {
+        const file = rounded(rx);
+        const shot = await page({ items: [{ svg: file, x: 40, y: 50 }] });
+        near((await once(shot, { base64: b64(file) })).match, 40, 50);
+      }
+    });
+
+    it("image-miss-message: only a black file is told about `color`", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, BLUE, 24), x: 40, y: 50 }] });
+      const found = await visual.findByImage({
+        elementImage: { base64: b64(icon(GEAR, "#e01b24", 24)) },
+        driver: fakeDriver(shot),
+        timeout: 0,
+      });
+      expect(found.error).to.match(/shape matched/);
+      expect(found.error).to.not.match(/`color`/);
+    });
+
+    it("image-miss-message: a faint spot isn't called a shape match", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, "#f3f4f6", 24), x: 40, y: 50 }] });
+      const found = await visual.findByImage({
+        elementImage: { base64: b64(icon(GEAR, "currentColor", 24)) },
+        driver: fakeDriver(shot),
+        timeout: 0,
+      });
+      expect(found.error).to.not.match(/shape matched/);
+      expect(found.error).to.not.match(/`color`/);
+    });
+
+    it("image-rescale: a crop from a 1.25× or 1.5× screen works on a 1× screen", async function () {
+      const shot = await page({ items: [{ svg: check("#2ec27e", "#ffffff", 32), x: 44, y: 54 }] });
+      for (const density of [1.25, 1.5]) {
+        const size = Math.round(40 * density);
+        const crop = await sharp({ create: { width: size, height: size, channels: 3, background: "#ffffff" } })
+          .composite([
+            { input: check("#2ec27e", "#ffffff", Math.round(32 * density)), left: Math.round(4 * density), top: Math.round(4 * density) },
+          ])
+          .png()
+          .toBuffer();
+        const { match: found } = await once(shot, { base64: b64(crop) });
+        near(found, 40, 50, 3);
+      }
+    });
+
+    it("image-miss-message: drag, crop, and annotations say why, too", async function () {
+      const missing = path.join(tmp, "not-there.svg");
+      const why = /Couldn't read the image reference/;
+      const shot = await page({ items: [{ svg: icon(GEAR, BLUE, 24), x: 40, y: 50 }] });
+
+      const { dragAndDropElement } = await import("../dist/core/tests/dragAndDrop.js");
+      const dragged = await dragAndDropElement({
+        config: {},
+        step: { dragAndDrop: { source: { elementImage: missing }, target: { elementImage: { base64: b64(icon(GEAR, BLUE, 24)) } } } },
+        driver: fakeDriver(shot),
+      });
+      expect(dragged.status).to.equal("FAIL");
+      expect(dragged.description).to.match(/Couldn't find source element/);
+      expect(dragged.description).to.match(why);
+
+      const { saveScreenshot } = await import("../dist/core/tests/saveScreenshot.js");
+      const cropped = await saveScreenshot({
+        config: {},
+        step: { screenshot: { path: path.join(tmp, "why.png"), crop: { elementImage: missing } } },
+        driver: fakeDriver(shot),
+      });
+      expect(cropped.status).to.equal("FAIL");
+      expect(cropped.description).to.match(/Couldn't find element to crop/);
+      expect(cropped.description).to.match(why);
+
+      const geometry = await import("../dist/core/annotations/geometry.js");
+      for (const all of [false, true]) {
+        const { errors } = await geometry.resolveAnnotationRects({
+          config: {},
+          annotations: [{ type: "blur", target: { elementImage: missing }, all }],
+          driver: fakeDriver(shot),
+          canvas: { width: 400, height: 300 },
+          scale: 1,
+        });
+        expect(errors[0]).to.match(why);
+      }
+    });
+
+    it("image-no-mobile: drag and crop say why on a mobile browser", async function () {
+      const shot = await page({});
+      const mobile = () => Object.assign(fakeDriver(shot), { isMobile: true });
+      const elementImage = { base64: b64(icon(GEAR, BLUE, 24)) };
+
+      const { dragAndDropElement } = await import("../dist/core/tests/dragAndDrop.js");
+      const dragged = await dragAndDropElement({
+        config: {},
+        step: { dragAndDrop: { source: { elementImage }, target: { elementImage } } },
+        driver: mobile(),
+      });
+      expect(dragged.description).to.match(/mobile/);
+
+      const { saveScreenshot } = await import("../dist/core/tests/saveScreenshot.js");
+      const cropped = await saveScreenshot({
+        config: {},
+        step: { screenshot: { path: path.join(tmp, "mobile.png"), crop: { elementImage } } },
+        driver: mobile(),
+      });
+      expect(cropped.description).to.match(/mobile/);
+    });
+  });
+
   describe("actions that build on find", function () {
     const BLUE = "#1a5fb4";
     const blue = () => ({ base64: b64(icon(GEAR, BLUE, 24)) });
@@ -832,6 +1002,14 @@ describe("elementImage in real browsers", function () {
     "image-color-one-color-only: color fails on an opaque reference": {
       find: { elementImage: { path: file("find-image-chart.png"), color: "#112233" } },
     },
+    "image-wait: a goTo wait says why the image wasn't found": {
+      goTo: { url, waitUntil: { find: { elementImage: file("find-image-does-not-exist.svg") } } },
+    },
+  };
+  const why = {
+    "image-missing-file: a missing file fails": /Couldn't read the image reference/,
+    "image-color-one-color-only: color fails on an opaque reference": /`color` works only/,
+    "image-wait: a goTo wait says why the image wasn't found": /Couldn't read the image reference/,
   };
   let contexts;
 
@@ -884,6 +1062,7 @@ describe("elementImage in real browsers", function () {
         const step = context.steps.at(-1);
         expect(step.result, `${context.browser?.name}: ${step.resultDescription}`).to.equal("FAIL");
         expect(step.resultDescription).to.not.include("base64,");
+        if (why[name]) expect(step.resultDescription).to.match(why[name]);
       }
     });
   }

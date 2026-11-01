@@ -670,7 +670,7 @@ async function captureScreenshot({
         statement: `$$outputs.cropElementFound == true`,
         severity: "fail",
       });
-      result.description = `Couldn't find element to crop.`;
+      result.description = `Couldn't find element to crop. ${findResult.description}`;
       return await evaluateApplicable();
     }
     result.outputs.cropElementFound = true;

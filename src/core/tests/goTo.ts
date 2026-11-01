@@ -318,7 +318,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
                 throw new Error(findResult.description);
               }
             } catch (error: any) {
-              waitResults.elementFound.message = `Element not found (${describeFind(step.goTo.waitUntil.find)})`;
+              waitResults.elementFound.message = `Element not found (${describeFind(step.goTo.waitUntil.find)}): ${error.message}`;
               throw error;
             }
           })()

@@ -161,9 +161,10 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
     // Either element missing → FAIL: stop before the drag EXECUTION.
     if (status === "FAIL") {
+      const missing = result.outputs.sourceFound ? targetResult : sourceResult;
       result.description = `Couldn't find ${
         result.outputs.sourceFound ? "target" : "source"
-      } element.`;
+      } element. ${missing.description}`;
       return result;
     }
     sourceElement = sourceResult.outputs.rawElement;
