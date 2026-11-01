@@ -163,6 +163,9 @@ navigation:
               - page: Fill fields
                 path: pages/tutorials/fill-fields.mdx
                 slug: fill-fields
+              - page: Find elements by image
+                path: pages/docs/test-docs/find-elements-by-image.mdx
+                slug: find-elements-by-image
               - section: Screenshots
                 skip-slug: true
                 contents:
