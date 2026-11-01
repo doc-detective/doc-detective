@@ -239,20 +239,20 @@ removes every `unhandledRejection` listener on each call.
 
 These describe behavior no user-facing page should promise, but that the implementation must keep.
 
-<!-- cite image-process-listeners -->
+<!-- cite image-process-listeners image-process-listeners-proof -->
 Matching leaves the process's `unhandledRejection` and `uncaughtException` listeners as it found them.
 
-<!-- cite image-needs-inferred -->
+<!-- cite image-needs-inferred image-needs-inferred-proof -->
 A run whose steps name `elementImage` adds `@appium/opencv`, `opencv-bindings`, and `sharp` to its inferred runtime needs,
 so they install during preflight rather than in the middle of a step.
 
-<!-- cite image-score-min -->
+<!-- cite image-score-min image-score-min-proof -->
 A location's score is the lower of its shape score and its color score, for every kind of reference.
 
 <!-- cite image-sweep-best -->
 When several sizes of a transparent file reach the threshold, the highest score wins, so a false match at an earlier size can't beat the real icon at a later one.
 
-<!-- cite image-device-pixels -->
+<!-- cite image-device-pixels image-device-pixels-proof -->
 On a surface with a display scale above 1, a transparent file matches at its CSS size times the scale, against the capture at device resolution.
 
 ## Plan
