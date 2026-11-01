@@ -21,8 +21,15 @@ export {
 
 const DEFAULT_IMAGE_THRESHOLD = 0.9;
 
+// Scores are floats, so an exact copy can land a hair under 1.
+const HIGHEST_THRESHOLD = 0.999;
+
 // The largest possible RGB distance, so a color score of 0.9 allows 44 levels.
 const MAX_COLOR_DISTANCE = Math.sqrt(3) * 255;
+
+// Fainter than this against its background, a color is within the default tolerance
+// of the background itself.
+const FAINT_CONTRAST = MAX_COLOR_DISTANCE * (1 - DEFAULT_IMAGE_THRESHOLD);
 
 // Past this score a size can't be beaten by enough to matter, so the sweep stops.
 const STOP_SCORE = 0.98;
@@ -30,6 +37,9 @@ const STOP_SCORE = 0.98;
 // Common icon sizes first, so a real icon is usually found early.
 const COMMON_HEIGHTS = [24, 16, 20, 32, 18, 14, 22, 28, 36, 40, 48, 64, 12];
 const WHOLE_HEIGHTS = Array.from({ length: 53 }, (_, i) => i + 12);
+
+// The display scales a crop might have been captured at.
+const CAPTURE_SCALES = [1, 1.25, 1.5, 2];
 
 // Browsers draw thin strokes up to 28% lighter than a file predicts, but the hue
 // stays put. Below this share of ink at full coverage, a stroke counts as thin.
@@ -39,10 +49,6 @@ const THIN_DRIFT = 0.25;
 
 // A file's pixels are its one color if they stay this close to their average.
 const ONE_COLOR_SPREAD = 24;
-
-// A page of repeated flat content can produce many peaks. Color is only worth
-// checking on the strongest.
-const MAX_PEAKS = 200;
 
 type Rgb = [number, number, number];
 type Kind = "opaque" | "oneColor" | "multiColor";
@@ -73,6 +79,7 @@ type Candidate = {
   color: number;
   fileColor: string;
   pageColor: string;
+  contrast: number;
 };
 
 type Capture = {
@@ -202,7 +209,7 @@ async function loadImageReference(
     kind,
     color: kind === "oneColor" ? (spec.color ? fromHex(spec.color) : average) : null,
     colorGiven: spec.color !== undefined,
-    threshold: spec.threshold ?? DEFAULT_IMAGE_THRESHOLD,
+    threshold: Math.min(spec.threshold ?? DEFAULT_IMAGE_THRESHOLD, HIGHEST_THRESHOLD),
     renders: new Map(),
   };
 }
@@ -213,11 +220,13 @@ function classify(rgba: Uint8Array, width: number, height: number): { kind: Kind
   const n = width * height;
   let clear = 0;
   let sum = 0;
+  let seeThrough = false;
   const total = [0, 0, 0];
   const low = [255, 255, 255];
   const high = [0, 0, 0];
   for (let i = 0; i < n; i++) {
     const a = rgba[i * 4 + 3];
+    if (a < 255) seeThrough = true;
     if (a < 128) clear++;
     if (a === 0) continue;
     sum += a;
@@ -231,8 +240,10 @@ function classify(rgba: Uint8Array, width: number, height: number): { kind: Kind
     }
   }
   const average = (sum ? total.map((v) => v / sum) : [0, 0, 0]) as Rgb;
-  if (clear < n * 0.01) {
-    return { kind: "opaque", average, flat: high.every((v, c) => v - low[c] <= 1) };
+  const uniform = high.every((v, c) => v - low[c] <= 1);
+  // Corners are all that give a solid rounded square a shape, however faint they are.
+  if (!seeThrough || (clear < n * 0.01 && !uniform)) {
+    return { kind: "opaque", average, flat: uniform };
   }
   if (clear === n) return { kind: "oneColor", average, flat: true };
   let spread = 0;
@@ -249,7 +260,7 @@ function sweepHeights(reference: ImageReference, scale: number): number[] {
   const { kind, height, isSvg } = reference;
   const heights =
     kind === "opaque"
-      ? [height, height * scale, (height * scale) / 2]
+      ? [height, ...CAPTURE_SCALES.map((captured) => (height * scale) / captured)]
       : [
           // A raster's own size is already in device pixels. An SVG's is in CSS pixels.
           isSvg ? height * scale : height,
@@ -406,11 +417,13 @@ function scoreColor(
   let color: number;
   let fileColor: string;
   let pageColor: string;
+  let contrast = Infinity;
   if (reference.kind === "oneColor") {
     const fit = fitIconColor(capture, x, y, render);
     color = oneColorScore(fit, reference.color!);
     fileColor = toHex(reference.color!);
     pageColor = toHex(fit.icon);
+    contrast = Math.hypot(...fit.icon.map((v, c) => v - fit.background[c]));
   } else {
     const scored = gainOffsetScore(
       capture,
@@ -433,6 +446,7 @@ function scoreColor(
     color,
     fileColor,
     pageColor,
+    contrast,
   };
 }
 
@@ -498,9 +512,7 @@ function scanSize(
       }
     }
     peaks.sort((a, b) => b.shape - a.shape);
-    const candidates = peaks
-      .slice(0, MAX_PEAKS)
-      .map((p) => scoreColor(capture, reference, render, p.x, p.y, p.shape));
+    const candidates = peaks.map((p) => scoreColor(capture, reference, render, p.x, p.y, p.shape));
     const best = candidates.reduce<Candidate | null>((a, b) => (!a || b.score > a.score ? b : a), null);
     // What a miss at this size reports. A location whose shape matched, if any did.
     const closest = best ?? (top.shape === -2 ? null : scoreColor(capture, reference, render, top.x, top.y, top.shape));
@@ -625,9 +637,10 @@ function missMessage(reference: ImageReference, best: Candidate | null, scale: n
     `Couldn't find ${label}. The closest match scored ${best.score.toFixed(2)} ` +
     `(shape ${best.shape.toFixed(2)}, color ${best.color.toFixed(2)}) ` +
     `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the threshold of ${threshold}, with ${surface}.`;
-  if (best.shape >= threshold && best.color < threshold) {
+  // A faint texture can correlate with any shape, and its color isn't worth copying.
+  if (best.shape >= threshold && best.color < threshold && best.contrast >= FAINT_CONTRAST) {
     message += ` The shape matched, but the reference is ${best.fileColor} and the page shows ${best.pageColor}.`;
-    if (reference.kind === "oneColor" && !reference.colorGiven) {
+    if (reference.kind === "oneColor" && !reference.colorGiven && best.fileColor === "#000000") {
       message += " A file drawn in currentColor renders black, so give the icon's color in `color`.";
     }
   }

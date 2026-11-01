@@ -33,7 +33,7 @@ Each annotation names one type, and the type's value is its target. A target tak
 
 An object target also takes `timeout`, the number of milliseconds to wait for its element. Annotations wait 5000 by default. Raise it for anything slower, such as `{ "outline": { "elementTestId": "dashboard", "timeout": 20000 } }`.
 
-An object target can also be a picture, such as `{ "blur": { "elementImage": "logo.svg" }, "all": true }`, which blurs every copy of a logo at any size. See [Find elements by image](/docs/test-docs/find-elements-by-image).
+An object target can also be a picture, such as `{ "blur": { "elementImage": "logo.svg" }, "all": true }`, which blurs every copy of a logo it finds. Check the result, because a copy at a size it doesn't try stays visible. See [Find elements by image](/docs/test-docs/find-elements-by-image).
 
 This example numbers the fields of a sign-in form and redacts an email address, all in one capture:
 

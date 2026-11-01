@@ -116,27 +116,36 @@ async function findByImage({
     const reference = await loadImageReference(elementImage, { cacheDir });
     const startTime = Date.now();
     let miss = `Couldn't find ${reference.label}.`;
-    // do/while so `timeout: 0` means "check once, now".
+    let missed: { capture: Buffer; regions: string } | null = null;
+    let lookedAt: number;
+    // A look can take seconds, so the last one starts at or after the timeout. That
+    // way a target that's there by then is seen. `timeout: 0` looks once.
     do {
+      lookedAt = Date.now();
       const regions = scope ? await scope() : null;
       if (regions && regions.length === 0) {
         miss = `Couldn't find ${reference.label}: no element meets the other criteria.`;
       } else {
         const capture = await captureSurface(driver);
-        const viewport = await driver.execute(() => ({ width: window.innerWidth }));
-        // A PNG stores its width at a fixed offset, which beats a decode.
-        const scale = viewport?.width > 0 ? capture.readUInt32BE(16) / viewport.width : 1;
-        const { match, matches, best } = await matchImageOnce({ capture, reference, scale, regions, all, cacheDir });
-        if (match) {
-          const element = createVisualMatch(driver, match);
-          const elements = all ? matches.map((m) => (m === match ? element : createVisualMatch(driver, m))) : [element];
-          return { element, elements, error: null };
+        const scoped = JSON.stringify(regions);
+        // Nothing changed, so the answer can't have.
+        if (!missed || missed.regions !== scoped || !missed.capture.equals(capture)) {
+          const viewport = await driver.execute(() => ({ width: window.innerWidth }));
+          // A PNG stores its width at a fixed offset, which beats a decode.
+          const scale = viewport?.width > 0 ? capture.readUInt32BE(16) / viewport.width : 1;
+          const { match, matches, best } = await matchImageOnce({ capture, reference, scale, regions, all, cacheDir });
+          if (match) {
+            const element = createVisualMatch(driver, match);
+            const elements = all ? matches.map((m) => (m === match ? element : createVisualMatch(driver, m))) : [element];
+            return { element, elements, error: null };
+          }
+          miss = missMessage(reference, best, scale);
+          missed = { capture, regions: scoped };
         }
-        miss = missMessage(reference, best, scale);
       }
-      if (Date.now() - startTime >= timeout) break;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } while (Date.now() - startTime < timeout);
+      const left = timeout - (Date.now() - startTime);
+      if (left > 0) await new Promise((resolve) => setTimeout(resolve, Math.min(100, left)));
+    } while (lookedAt - startTime < timeout);
     return failed(miss);
   } catch (error: any) {
     // A bad reference won't get better by waiting.

@@ -372,7 +372,7 @@ async function resolveAnnotationRects({
       });
       if (found.error || !found.elements?.length) {
         errors.push(
-          `Couldn't find any element to annotate: ${JSON.stringify(redactElementImage(target))}.`
+          `Couldn't find any element to annotate: ${JSON.stringify(redactElementImage(target))}. ${found.error ?? ""}`.trim()
         );
         continue;
       }
@@ -388,7 +388,7 @@ async function resolveAnnotationRects({
         errors.push(
           `Couldn't find the element to annotate: ${
             typeof target === "string" ? target : JSON.stringify(redactElementImage(target))
-          }.`
+          }. ${findResult.description ?? ""}`.trim()
         );
         continue;
       }
