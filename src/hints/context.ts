@@ -784,9 +784,9 @@ function inspectStep(step: any, data: WalkData): void {
 function inspectFindShape(find: any, data: WalkData): void {
   if (!find || typeof find !== "object" || Array.isArray(find)) return;
   if (typeof find.selector === "string" && find.selector.length > 0) {
-    const hasStableSibling = STABLE_FIND_KEYS.some(
-      (k) => typeof find[k] === "string" && find[k].length > 0
-    );
+    const hasStableSibling =
+      !!find.elementImage ||
+      STABLE_FIND_KEYS.some((k) => typeof find[k] === "string" && find[k].length > 0);
     if (!hasStableSibling) data.usedSelectorOnlyFinds = true;
   }
 }

@@ -11,7 +11,7 @@ import {
   missMessage,
 } from "./imageMatch.js";
 
-export { findByImage, isVisualMatch, visualRect, visualCenter };
+export { findByImage, isVisualMatch, visualRect, visualCenter, viewportCenter };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -28,6 +28,16 @@ function visualRect(element: any): Rect {
 function visualCenter(element: any): { x: number; y: number } {
   const { x, y, width, height } = element.rect;
   return { x: Math.round(x + width / 2), y: Math.round(y + height / 2) };
+}
+
+// Where a pointer goes for either kind of element. A DOM element's getLocation is
+// relative to the document, and pointer actions are relative to the viewport.
+async function viewportCenter(driver: any, element: any): Promise<{ x: number; y: number }> {
+  if (isVisualMatch(element)) return visualCenter(element);
+  return driver.execute((el: any) => {
+    const bounds = el.getBoundingClientRect();
+    return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+  }, element);
 }
 
 function createVisualMatch(driver: any, match: Rect & { score: number }) {

@@ -138,13 +138,14 @@ describe("annotations/geometry", function () {
   describe("appCriteriaError", function () {
     it("names the unsupported criteria on app surfaces", function () {
       // Must stay aligned with buildAppLocator in appSurface.ts, which is the
-      // real gate: it rejects elementClass AND elementAttribute, plus a
-      // CSS-shaped selector. Drifting from that list doesn't change what
+      // real gate: it rejects elementClass, elementAttribute, and elementImage,
+      // plus a CSS-shaped selector. Drifting from that list doesn't change what
       // resolves — it just downgrades a precise error into a vague one.
       assert.deepEqual(APP_UNSUPPORTED_CRITERIA, [
         "selector",
         "elementClass",
         "elementAttribute",
+        "elementImage",
       ]);
     });
 

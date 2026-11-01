@@ -13,6 +13,8 @@
 // Functions are hoisted, so the grouped export lists only them; the constants
 // export inline at their declarations (a top-of-file `export {}` referencing
 // a later `const` trips use-before-declaration analysis).
+import { isVisualMatch, visualCenter } from "./visualMatch.js";
+
 export {
   directionToPoints,
   fractionsToPixels,
@@ -128,7 +130,7 @@ async function performElementPress({
     ({ left: 0, middle: 1, right: 2 } as Record<string, number>)[button] ?? 0;
   await driver
     .action("pointer", { parameters: { pointerType: "mouse" } })
-    .move({ origin: element })
+    .move(isVisualMatch(element) ? visualCenter(element) : { origin: element })
     .down({ button: buttonIndex })
     .pause(duration)
     .up({ button: buttonIndex })

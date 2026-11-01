@@ -36,9 +36,11 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { redactElementImage } from "./imageMatch.js";
 
 export {
   typeKeys,
+  waitForBrowserReadiness,
   translateProcessKeys,
   splitKeyRuns,
   resolveSurface,
@@ -515,7 +517,8 @@ async function typeKeys({
       step.type.elementText ||
       step.type.elementId ||
       step.type.elementTestId ||
-      step.type.elementAria;
+      step.type.elementAria ||
+      step.type.elementImage;
     if (!hasAppElementCriteria && textRuns.length) {
       // Text needs a destination. Android can type into the focused element
       // (mobile: type); iOS can't (XCUITest's mobile: keys is iPad-only), and
@@ -654,7 +657,7 @@ async function typeKeys({
   const hasElementCriteria = step.type.selector || step.type.elementText ||
                              step.type.elementId || step.type.elementTestId ||
                              step.type.elementClass || step.type.elementAttribute ||
-                             step.type.elementAria;
+                             step.type.elementAria || step.type.elementImage;
 
   if (hasElementCriteria) {
     const { element: foundElement, error } = await findElementByCriteria({
@@ -665,8 +668,10 @@ async function typeKeys({
       elementClass: step.type.elementClass,
       elementAttribute: step.type.elementAttribute,
       elementAria: step.type.elementAria,
+      elementImage: step.type.elementImage,
       timeout: 5000,
       driver,
+      cacheDir: config?.cacheDir,
     });
 
     // Compute the existence output and evaluate the implicit assertion through
@@ -774,6 +779,7 @@ async function typeKeys({
       driver,
       waitUntil: step.type.waitUntil,
       timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
+      cacheDir: config?.cacheDir,
     });
     if (!readiness.ok) {
       result.status = "FAIL";
@@ -795,10 +801,12 @@ async function waitForBrowserReadiness({
   driver,
   waitUntil,
   timeout,
+  cacheDir,
 }: {
   driver: any;
   waitUntil: any;
   timeout: number;
+  cacheDir?: string;
 }): Promise<{ ok: boolean; message: string }> {
   const failures: string[] = [];
   const checks: Promise<void>[] = [];
@@ -837,11 +845,13 @@ async function waitForBrowserReadiness({
           elementClass: find.elementClass,
           elementAttribute: find.elementAttribute,
           elementAria: find.elementAria,
+          elementImage: find.elementImage,
           timeout,
           driver,
+          cacheDir,
         });
         if (!element) {
-          const message = `element not found (${JSON.stringify(waitUntil.find)})`;
+          const message = `element not found (${JSON.stringify(redactElementImage(waitUntil.find))})`;
           failures.push(error ? `${message}: ${error}` : message);
           throw new Error(message);
         }

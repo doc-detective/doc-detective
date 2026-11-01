@@ -1,6 +1,8 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
+import { performMovement } from "./movement.js";
+import { isVisualMatch, viewportCenter } from "./visualMatch.js";
 import { log } from "../utils.js";
 import {
   buildConditionContext,
@@ -170,6 +172,23 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;
+    return result;
+  }
+
+  // A match on screen has no DOM node to drag, so the whole drag is pointer input.
+  if (isVisualMatch(sourceElement) || isVisualMatch(targetElement)) {
+    try {
+      await performMovement({
+        driver,
+        from: await viewportCenter(driver, sourceElement),
+        to: await viewportCenter(driver, targetElement),
+        duration,
+      });
+      result.description += " Performed drag and drop.";
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't perform drag and drop. ${error.message}`;
+    }
     return result;
   }
 

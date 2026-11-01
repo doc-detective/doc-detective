@@ -1059,7 +1059,7 @@ function buildAppLocator(
       error: `CSS selectors are browser-only. On app surfaces, use the semantic fields (elementText, elementId, elementAria) or a native locator: an XPath (//Button[@Name="Save"]) or an accessibility id (~SaveButton).`,
     };
   }
-  const unsupported = ["elementClass", "elementAttribute"].filter(
+  const unsupported = ["elementClass", "elementAttribute", "elementImage"].filter(
     (field) => criteria[field] !== undefined
   );
   if (unsupported.length) {

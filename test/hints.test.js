@@ -635,6 +635,15 @@ describe("hints/context", function () {
       expect(data.usedSelectorOnlyFinds).to.equal(true);
     });
 
+    it("does NOT flag usedSelectorOnlyFinds when elementImage narrows the selector", function () {
+      for (const elementImage of ["save.svg", { path: "save.svg", threshold: 0.95 }]) {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [{ find: { selector: "#x", elementImage } }] }] }] }],
+        });
+        expect(data.usedSelectorOnlyFinds).to.equal(false);
+      }
+    });
+
     it("does NOT flag usedSelectorOnlyFinds when a stable sibling is present", function () {
       const data = walkResults({
         specs: [
