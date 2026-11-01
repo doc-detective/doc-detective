@@ -327,8 +327,10 @@ async function findElement({ config, step, driver, click, appSession, processReg
     elementClass: step.find.elementClass,
     elementAttribute: step.find.elementAttribute,
     elementAria: step.find.elementAria,
+    elementImage: step.find.elementImage,
     timeout: step.find.timeout,
     driver,
+    cacheDir: config?.cacheDir,
   });
 
   if (!foundElement) {

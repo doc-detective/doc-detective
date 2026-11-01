@@ -56,6 +56,15 @@ ships that shape (ADR 01143). Unwrap with `mod.default ?? mod` at the call site,
 geckodriver, sharp, and pixelmatch loads do. Diagnostic: `<x>.<fn> is not a function` right after a
 heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.exports`.
 
+## Thenable heavy deps
+
+`opencv-bindings` is an Emscripten module whose `then` calls back with the module itself. Returning
+it from an async function, or awaiting it, resolves the promise with the thenable again, forever. It
+spins the microtask queue at 100% CPU, so timers never fire and mocha's timeout can't catch it. The
+log just stops. `loadOpenCv` deletes `then` before the module reaches a promise. Keep it that way for
+any Emscripten dep. Diagnostic: attach with `process._debugProcess(pid)` and pause; the stack is only
+`Module.then`.
+
 ## Appium extension manifest cache
 
 Appium only scans `APPIUM_HOME/node_modules` for drivers when its manifest cache

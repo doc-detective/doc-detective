@@ -1,8 +1,12 @@
 // Proofs for the claims in docs/design/visual-element-matching.md. Each test name
 // starts with the claim it proves, so `manni cite` can pin a claim to its proof.
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolvePaths } from "../dist/core/files.js";
+import { loadHeavyDep } from "../dist/runtime/loader.js";
+import { setElementOutputs } from "../dist/core/tests/findStrategies.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,5 +47,506 @@ describe("elementImage paths", function () {
   it("image-path-relative: base64 isn't treated as a path", async function () {
     const out = await resolved("file", { base64: "iVBORw0KGgo=" });
     expect(out.find.elementImage).to.deep.equal({ base64: "iVBORw0KGgo=" });
+  });
+});
+
+// ---- The matcher. Pages here are composed with sharp, so these prove the algorithm.
+// test/core-artifacts/interactions/find-image.spec.json proves it across real browsers.
+describe("elementImage matching", function () {
+  this.timeout(180000);
+  let sharp, match, visual, tmp;
+
+  const icon = (body, color, h, stroke = 2) =>
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${h}" height="${h}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${stroke}">${body}</svg>`
+    );
+  const GEAR = `<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/>`;
+  const RING = `<circle cx="12" cy="12" r="9"/>`;
+  const solid = (color, h) =>
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${h}" height="${h}" viewBox="0 0 24 24"><path d="M12 2l10 18H2z" fill="${color}"/></svg>`
+    );
+  const disc = (fill, mark, path_, h) =>
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${h}" height="${h}" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${fill}"/><path d="${path_}" fill="none" stroke="${mark}" stroke-width="7"/></svg>`
+    );
+  const check = (fill, mark, h = 32) => disc(fill, mark, "M18 33l10 10 18-22", h);
+  const cross = (fill, mark, h = 32) => disc(fill, mark, "M20 20l24 24M44 20L20 44", h);
+
+  // items: { svg, x, y }, drawn over a flat background, in device pixels.
+  const page = async ({ width = 400, height = 300, background = "#ffffff", items = [], density = 1 }) =>
+    sharp({ create: { width: width * density, height: height * density, channels: 4, background } })
+      .composite(items.map((item) => ({ input: item.svg, left: item.x, top: item.y })))
+      .png()
+      .toBuffer();
+  const once = (capture, elementImage, options = {}) =>
+    match.matchImageOnce({ capture, elementImage, scale: 1, ...options });
+  const near = (found, x, y, tolerance = 2) => {
+    expect(found, "a match").to.exist;
+    expect(Math.abs(found.x - x), `x ${found.x} vs ${x}`).to.be.at.most(tolerance);
+    expect(Math.abs(found.y - y), `y ${found.y} vs ${y}`).to.be.at.most(tolerance);
+  };
+  const fileOf = (name, buffer) => {
+    const p = path.join(tmp, name);
+    fs.writeFileSync(p, buffer);
+    return p;
+  };
+  const b64 = (buffer) => buffer.toString("base64");
+
+  // A driver with just enough to capture a page and record pointer actions.
+  function fakeDriver(capture, { viewport, captures } = {}) {
+    let size = null;
+    const driver = {
+      actions: [],
+      isMobile: false,
+      takeScreenshot: async () => b64((captures && captures.shift()) || capture),
+      execute: async () => {
+        if (!size) {
+          const info = await sharp(capture).metadata();
+          size = viewport ?? { width: info.width, height: info.height };
+        }
+        return size;
+      },
+    };
+    driver.action = () => {
+      const chain = {
+        move: (args) => (driver.actions.push(["move", args]), chain),
+        down: (args) => (driver.actions.push(["down", args]), chain),
+        up: (args) => (driver.actions.push(["up", args]), chain),
+        pause: (ms) => (driver.actions.push(["pause", ms]), chain),
+        perform: async () => {},
+      };
+      return chain;
+    };
+    return driver;
+  }
+
+  before(async function () {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "find-image-"));
+    const mod = await loadHeavyDep("sharp");
+    sharp = mod.default ?? mod;
+    match = await import("../dist/core/tests/imageMatch.js");
+    visual = await import("../dist/core/tests/visualMatch.js");
+  });
+  after(function () {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  describe("process state", function () {
+    it("image-process-listeners: matching leaves process listeners as it found them", async function () {
+      const rejection = () => {};
+      const exception = () => {};
+      process.on("unhandledRejection", rejection);
+      process.on("uncaughtException", exception);
+      const seen = {
+        unhandledRejection: process.listeners("unhandledRejection"),
+        uncaughtException: process.listeners("uncaughtException"),
+      };
+      try {
+        await match.loadOpenCv();
+        const svg = icon(GEAR, "#333333", 24);
+        await once(await page({ items: [{ svg, x: 40, y: 40 }] }), { base64: b64(svg) });
+        expect(process.listeners("unhandledRejection")).to.deep.equal(seen.unhandledRejection);
+        expect(process.listeners("uncaughtException")).to.deep.equal(seen.uncaughtException);
+      } finally {
+        process.removeListener("unhandledRejection", rejection);
+        process.removeListener("uncaughtException", exception);
+      }
+    });
+  });
+
+  describe("reference forms", function () {
+    it("image-file-formats: a PNG, a JPEG, and an SVG all match", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 80, y: 60 }] });
+      near((await once(shot, fileOf("gear.svg", svg))).match, 80, 60);
+      near((await once(shot, fileOf("gear.png", await sharp(svg).png().toBuffer()))).match, 80, 60);
+      const jpeg = await sharp(shot).extract({ left: 70, top: 50, width: 44, height: 44 }).jpeg({ quality: 100 }).toBuffer();
+      near((await once(shot, fileOf("gear.jpg", jpeg))).match, 70, 50);
+    });
+
+    it("image-base64: the value works with or without a data prefix", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const png = await sharp(svg).png().toBuffer();
+      const shot = await page({ items: [{ svg, x: 80, y: 60 }] });
+      near((await once(shot, { base64: b64(png) })).match, 80, 60);
+      near((await once(shot, { base64: `data:image/png;base64,${b64(png)}` })).match, 80, 60);
+    });
+
+    it("image-missing-file: a missing file fails at once, without waiting", async function () {
+      const started = Date.now();
+      const found = await visual.findByImage({
+        elementImage: path.join(tmp, "none.png"),
+        driver: fakeDriver(await page({})),
+        timeout: 5000,
+      });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/none\.png/);
+      expect(Date.now() - started).to.be.below(2000);
+    });
+
+    it("image-missing-file: a file that isn't an image fails at once", async function () {
+      const started = Date.now();
+      const found = await visual.findByImage({
+        elementImage: fileOf("note.png", Buffer.from("not an image")),
+        driver: fakeDriver(await page({})),
+        timeout: 5000,
+      });
+      expect(found.error).to.match(/isn't an image/);
+      expect(Date.now() - started).to.be.below(2000);
+    });
+
+    it("image-missing-file: an invalid base64 value fails at once", async function () {
+      const started = Date.now();
+      const found = await visual.findByImage({
+        elementImage: { base64: "bm90IGFuIGltYWdl" },
+        driver: fakeDriver(await page({})),
+        timeout: 5000,
+      });
+      expect(found.error).to.match(/base64 reference/);
+      expect(found.error).to.match(/isn't an image/);
+      expect(Date.now() - started).to.be.below(2000);
+    });
+
+    it("image-uniform-reference: a single-color reference with no transparency fails", async function () {
+      const flat = await sharp({ create: { width: 20, height: 20, channels: 3, background: "#336699" } }).png().toBuffer();
+      const found = await visual.findByImage({
+        elementImage: fileOf("flat.png", flat),
+        driver: fakeDriver(await page({ background: "#336699" })),
+        timeout: 0,
+      });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/single color/i);
+    });
+
+    it("image-oversized-reference: a reference larger than the surface fails, giving both sizes", async function () {
+      const big = await sharp({ create: { width: 900, height: 900, channels: 3, background: "#ffffff" } })
+        .composite([{ input: icon(GEAR, "#333333", 64), left: 10, top: 10 }])
+        .png()
+        .toBuffer();
+      const found = await visual.findByImage({
+        elementImage: fileOf("big.png", big),
+        driver: fakeDriver(await page({ width: 200, height: 150 })),
+        timeout: 0,
+      });
+      expect(found.error).to.match(/900×900/);
+      expect(found.error).to.match(/200×150/);
+    });
+  });
+
+  describe("transparent one-color files", function () {
+    it("image-file-one-color: finds its shape on any background, in its own color", async function () {
+      const dark = icon(GEAR, "#333333", 24);
+      near((await once(await page({ items: [{ svg: dark, x: 40, y: 50 }] }), { base64: b64(dark) })).match, 40, 50);
+      near((await once(await page({ background: "#eeeeff", items: [{ svg: dark, x: 40, y: 50 }] }), { base64: b64(dark) })).match, 40, 50);
+      const white = icon(GEAR, "#ffffff", 24);
+      near((await once(await page({ background: "#224455", items: [{ svg: white, x: 40, y: 50 }] }), { base64: b64(white) })).match, 40, 50);
+    });
+
+    it("image-file-one-color: a red file doesn't find a blue icon with the same shape", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, "#1a5fb4", 24), x: 40, y: 50 }] });
+      const result = await once(shot, { base64: b64(icon(GEAR, "#e01b24", 24)) });
+      expect(result.match).to.equal(null);
+      expect(result.best.shape).to.be.above(0.9);
+      expect(result.best.color).to.be.below(0.9);
+    });
+
+    it("image-color-field: color overrides the file's color", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, "#1a5fb4", 24), x: 40, y: 50 }] });
+      const file = b64(icon(GEAR, "currentColor", 24));
+      expect((await once(shot, { base64: file })).match, "black without color").to.equal(null);
+      near((await once(shot, { base64: file, color: "#1a5fb4" })).match, 40, 50);
+      expect((await once(shot, { base64: file, color: "#e01b24" })).match).to.equal(null);
+    });
+
+    it("image-color-one-color-only: color fails on an opaque reference and on a multi-color file", async function () {
+      const opaque = await sharp({ create: { width: 30, height: 30, channels: 3, background: "#ffffff" } })
+        .composite([{ input: icon(GEAR, "#333333", 24), left: 3, top: 3 }])
+        .png()
+        .toBuffer();
+      const multi = await sharp(check("#2ec27e", "#ffffff", 64)).png().toBuffer();
+      for (const buffer of [opaque, multi]) {
+        const found = await visual.findByImage({
+          elementImage: { base64: b64(buffer), color: "#112233" },
+          driver: fakeDriver(await page({})),
+          timeout: 0,
+        });
+        expect(found.element).to.equal(null);
+        expect(found.error).to.match(/`color` works only/);
+      }
+    });
+
+    it("image-color-hue: a change of hue doesn't match, and nearby shades do", async function () {
+      const shot = await page({ items: [{ svg: solid("#e01b24", 24), x: 40, y: 50 }] });
+      const file = b64(solid("#000000", 24));
+      near((await once(shot, { base64: file, color: "#e01b24" })).match, 40, 50);
+      near((await once(shot, { base64: file, color: "#c01c28" })).match, 40, 50);
+      expect((await once(shot, { base64: file, color: "#ff7800" })).match).to.equal(null);
+      expect((await once(shot, { base64: file, color: "#1a5fb4" })).match).to.equal(null);
+      const gray = await page({ items: [{ svg: solid("#888888", 24), x: 40, y: 50 }] });
+      expect((await once(gray, { base64: file, color: "#333333" })).match).to.equal(null);
+    });
+
+    it("image-color-thin: a thin stroke tolerates more lightness drift, and no more hue", async function () {
+      const file = b64(icon(RING, "#333333", 16, 1));
+      const lighter = await page({ items: [{ svg: icon(RING, "#555555", 16, 1), x: 40, y: 50 }] });
+      near((await once(lighter, { base64: file })).match, 40, 50);
+      const blue = await page({ items: [{ svg: icon(RING, "#1a5fb4", 16, 1), x: 40, y: 50 }] });
+      expect((await once(blue, { base64: file })).match).to.equal(null);
+    });
+
+    it("image-score-min: a location's score is the lower of its shape and color scores", async function () {
+      const shot = await page({ items: [{ svg: solid("#555555", 24), x: 40, y: 50 }] });
+      const { best } = await once(shot, { base64: b64(solid("#000000", 24)) });
+      expect(best.shape).to.be.above(0.95);
+      expect(best.color).to.be.below(0.9);
+      expect(best.score).to.equal(Math.min(best.shape, best.color));
+    });
+
+    it("image-file-any-size: tries every whole size from 12 to 64", async function () {
+      const file = b64(icon(GEAR, "#333333", 24));
+      for (const h of [12, 15, 26, 33, 47, 64]) {
+        const shot = await page({ items: [{ svg: icon(GEAR, "#333333", h), x: 40, y: 50 }] });
+        const { match: found } = await once(shot, { base64: file });
+        near(found, 40, 50);
+        expect(found.height, `size ${h}`).to.equal(h);
+      }
+    });
+
+    it("image-file-any-size: resizes a raster much larger than its use", async function () {
+      const file = await sharp(icon(GEAR, "#333333", 256)).png().toBuffer();
+      const shot = await page({ items: [{ svg: icon(GEAR, "#333333", 20), x: 40, y: 50 }] });
+      near((await once(shot, { base64: b64(file) })).match, 40, 50);
+    });
+
+    it("image-sweep-best: the highest score wins over a false match at an earlier size", async function () {
+      // The file's first size, 24, reaches the threshold on a heavier ring. The real icon is 20 tall.
+      const file = b64(icon(RING, "#333333", 24));
+      const heavier = { svg: icon(RING, "#333333", 24, 2.6), x: 40, y: 50 };
+      const alone = await once(await page({ items: [heavier] }), { base64: file });
+      expect(alone.best.score, "the heavier ring alone passes").to.be.at.least(0.9);
+      expect(alone.best.score, "but not perfectly").to.be.below(0.98);
+      const shot = await page({ items: [heavier, { svg: icon(RING, "#333333", 20), x: 200, y: 200 }] });
+      near((await once(shot, { base64: file })).match, 200, 200);
+    });
+
+    it("image-svg-rendered: an SVG stays sharp at a large size, where a small PNG doesn't", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, "#333333", 40), x: 40, y: 50 }] });
+      const svg = await once(shot, { base64: b64(icon(GEAR, "#333333", 24)) });
+      expect(svg.best.score).to.be.above(0.98);
+      const tiny = await sharp(icon(GEAR, "#333333", 12)).png().toBuffer();
+      const png = await once(shot, { base64: b64(tiny) });
+      expect(png.best.shape).to.be.below(svg.best.shape);
+    });
+
+    it("image-device-pixels: a file matches at device resolution on a 2× surface, and reports CSS pixels", async function () {
+      const shot = await page({ width: 200, height: 150, density: 2, items: [{ svg: icon(GEAR, "#333333", 48), x: 81, y: 41 }] });
+      const { match: found } = await once(shot, { base64: b64(icon(GEAR, "#333333", 24)) }, { scale: 2 });
+      near(found, 40.5, 20.5, 1);
+      expect(found.height).to.equal(24);
+      expect(found.score).to.be.above(0.98);
+    });
+  });
+
+  describe("transparent multi-color files", function () {
+    it("image-file-multicolor: matches on any background, keeping different interiors distinct", async function () {
+      const reference = b64(await sharp(check("#2ec27e", "#ffffff", 64)).png().toBuffer());
+      for (const background of ["#ffffff", "#224455"]) {
+        const shot = await page({
+          background,
+          items: [
+            { svg: cross("#2ec27e", "#ffffff"), x: 40, y: 50 },
+            { svg: check("#2ec27e", "#ffffff"), x: 200, y: 50 },
+          ],
+        });
+        near((await once(shot, { base64: reference })).match, 200, 50);
+      }
+    });
+
+    it("image-file-multicolor: a blue disc doesn't match a green one", async function () {
+      const shot = await page({ items: [{ svg: check("#3584e4", "#ffffff"), x: 40, y: 50 }] });
+      const result = await once(shot, { base64: b64(await sharp(check("#2ec27e", "#ffffff", 32)).png().toBuffer()) });
+      expect(result.match).to.equal(null);
+      expect(result.best.color).to.be.below(0.9);
+    });
+  });
+
+  describe("opaque references", function () {
+    const crop = async (shot, x, y, size = 32) =>
+      sharp(shot).extract({ left: x, top: y, width: size, height: size }).png().toBuffer();
+
+    it("image-opaque-exact: matches its colors and background", async function () {
+      const white = await page({ items: [{ svg: solid("#333333", 24), x: 44, y: 54 }] });
+      const reference = b64(await crop(white, 40, 50));
+      near((await once(white, { base64: reference })).match, 40, 50);
+      const toolbar = await page({ background: "#224455", items: [{ svg: solid("#333333", 24), x: 44, y: 54 }] });
+      expect((await once(toolbar, { base64: reference })).match, "another background").to.equal(null);
+      const recolored = await page({ items: [{ svg: solid("#1a5fb4", 24), x: 44, y: 54 }] });
+      const result = await once(recolored, { base64: reference });
+      expect(result.match, "another color").to.equal(null);
+      expect(result.best.shape).to.be.above(0.9);
+    });
+
+    it("image-rescale: a 2× crop works on a 1× surface, and the other way round", async function () {
+      const one = await page({ items: [{ svg: icon(GEAR, "#333333", 24), x: 44, y: 54 }] });
+      const two = await page({ density: 2, items: [{ svg: icon(GEAR, "#333333", 48), x: 88, y: 108 }] });
+      near((await once(one, { base64: b64(await crop(two, 80, 100, 64)) })).match, 40, 50);
+      near((await once(two, { base64: b64(await crop(one, 40, 50)) }, { scale: 2 })).match, 40, 50);
+    });
+
+    it("image-first-match: when places tie, the topmost wins, then the leftmost", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const file = { base64: b64(svg) };
+      near((await once(await page({ items: [{ svg, x: 200, y: 200 }, { svg, x: 300, y: 40 }, { svg, x: 40, y: 200 }] }), file)).match, 300, 40);
+      near((await once(await page({ items: [{ svg, x: 300, y: 40 }, { svg, x: 40, y: 40 }] }), file)).match, 40, 40);
+    });
+
+    it("image-default-threshold: defaults to 0.9, and threshold overrides it", async function () {
+      const chart = (height) =>
+        Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="#fff"/><rect x="10" y="30" width="20" height="50" fill="#1a5fb4"/><rect x="50" y="${80 - height}" width="20" height="${height}" fill="#1a5fb4"/><rect x="90" y="10" width="20" height="70" fill="#1a5fb4"/></svg>`
+        );
+      const reference = b64(await sharp(chart(40)).png().toBuffer());
+      const changed = await page({ items: [{ svg: chart(30), x: 40, y: 40 }] });
+      const result = await once(changed, { base64: reference });
+      expect(result.best.score).to.be.within(0.9, 0.99);
+      near(result.match, 40, 40);
+      expect((await once(changed, { base64: reference, threshold: 0.99 })).match).to.equal(null);
+      expect(match.DEFAULT_IMAGE_THRESHOLD).to.equal(0.9);
+    });
+  });
+
+  describe("finding on a surface", function () {
+    it("image-outputs: outputs describe the match in CSS pixels, and everything else is null", async function () {
+      const shot = await page({ width: 200, height: 150, density: 2, items: [{ svg: icon(GEAR, "#333333", 48), x: 80, y: 40 }] });
+      const driver = fakeDriver(shot, { viewport: { width: 200, height: 150 } });
+      const found = await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, "#333333", 24)) }, driver, timeout: 0 });
+      const outputs = await setElementOutputs({ element: found.element });
+      expect(outputs.element.location).to.deep.equal({ x: 40, y: 20 });
+      expect(outputs.element.size).to.deep.equal({ width: 24, height: 24 });
+      expect(outputs.element.matchScore).to.be.above(0.98);
+      for (const field of ["text", "html", "tag", "value", "clickable", "enabled", "selected", "displayed", "displayedInViewport"]) {
+        expect(outputs.element[field], field).to.equal(null);
+      }
+    });
+
+    it("image-retries-until-timeout: keeps looking until the image appears", async function () {
+      const blank = await page({});
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = fakeDriver(shot, { captures: [blank, blank] });
+      const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 20000 });
+      expect(found.element.isVisualMatch).to.equal(true);
+    });
+
+    it("image-retries-until-timeout: timeout 0 checks once", async function () {
+      const blank = await page({});
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = fakeDriver(shot, { captures: [blank] });
+      const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.element).to.equal(null);
+    });
+
+    it("image-combined: other criteria scope the match to their elements", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }, { svg, x: 300, y: 200 }] });
+      const found = await visual.findByImage({
+        elementImage: { base64: b64(svg) },
+        driver: fakeDriver(shot),
+        timeout: 0,
+        scope: async () => [{ x: 280, y: 180, width: 80, height: 80 }],
+      });
+      expect(await found.element.getLocation()).to.deep.equal({ x: 300, y: 200 });
+      const nothing = await visual.findByImage({
+        elementImage: { base64: b64(svg) },
+        driver: fakeDriver(shot),
+        timeout: 0,
+        scope: async () => [],
+      });
+      expect(nothing.element).to.equal(null);
+    });
+
+    it("image-miss-message: names the score, its parts, where it was, the threshold, and the display scale", async function () {
+      const shot = await page({ width: 200, height: 150, density: 2, items: [{ svg: icon(GEAR, "#1a5fb4", 48), x: 80, y: 40 }] });
+      const driver = fakeDriver(shot, { viewport: { width: 200, height: 150 } });
+      const found = await visual.findByImage({ elementImage: fileOf("save.svg", icon(GEAR, "#e01b24", 24)), driver, timeout: 0 });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/save\.svg/);
+      expect(found.error).to.match(/scored 0\.\d\d/);
+      expect(found.error).to.match(/shape (0\.\d\d|1\.00)/);
+      expect(found.error).to.match(/color 0\.\d\d/);
+      expect(found.error).to.match(/\(40, 20\)/);
+      expect(found.error).to.match(/threshold of 0\.9/);
+      expect(found.error).to.match(/display scale of 2/);
+      expect(found.error).to.match(/#e01b24/);
+      expect(found.error).to.match(/#1[0-9a-f]5[0-9a-f]b[0-9a-f]/);
+    });
+
+    it("image-color-field: a miss on a black file suggests `color`", async function () {
+      const shot = await page({ items: [{ svg: icon(GEAR, "#1a5fb4", 24), x: 40, y: 50 }] });
+      const found = await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, "currentColor", 24)) }, driver: fakeDriver(shot), timeout: 0 });
+      expect(found.error).to.match(/`color`/);
+    });
+
+    it("image-base64-not-printed: failure messages call it a base64 reference", async function () {
+      const value = b64(icon(GEAR, "#e01b24", 24));
+      const found = await visual.findByImage({ elementImage: { base64: value }, driver: fakeDriver(await page({})), timeout: 0 });
+      expect(found.error).to.match(/base64 reference/);
+      expect(found.error).to.not.include(value);
+      const redacted = match.redactElementImage({ selector: "#a", elementImage: { base64: value, threshold: 0.8 } });
+      expect(JSON.stringify(redacted)).to.not.include(value);
+      expect(redacted.selector).to.equal("#a");
+      expect(redacted.elementImage).to.equal("base64 reference");
+    });
+
+    it("image-no-mobile: fails on a mobile browser and says so", async function () {
+      const driver = fakeDriver(await page({}));
+      driver.isMobile = true;
+      const found = await visual.findByImage({ elementImage: fileOf("m.svg", icon(GEAR, "#333333", 24)), driver, timeout: 5000 });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/mobile/i);
+    });
+  });
+
+  describe("a match stands in for an element", function () {
+    const located = async () => {
+      const svg = icon(GEAR, "#333333", 24);
+      const driver = fakeDriver(await page({ items: [{ svg, x: 40, y: 50 }] }));
+      const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      return { driver, element: found.element };
+    };
+
+    it("image-click-center: click presses the center of the match", async function () {
+      const { driver, element } = await located();
+      await element.click();
+      expect(driver.actions).to.deep.equal([
+        ["move", { x: 52, y: 62 }],
+        ["down", { button: 0 }],
+        ["up", { button: 0 }],
+      ]);
+    });
+
+    it("image-click-center: click honors the button", async function () {
+      const { driver, element } = await located();
+      await element.click({ button: "right" });
+      expect(driver.actions).to.deep.equal([
+        ["move", { x: 52, y: 62 }],
+        ["down", { button: 2 }],
+        ["up", { button: 2 }],
+      ]);
+    });
+
+    it("image-annotation-target: all returns every match", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }, { svg, x: 200, y: 50 }, { svg, x: 40, y: 200 }] });
+      const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver: fakeDriver(shot), timeout: 0, all: true });
+      expect(found.elements).to.have.length(3);
+      expect(await Promise.all(found.elements.map((e) => e.getLocation()))).to.have.deep.members([
+        { x: 40, y: 50 },
+        { x: 200, y: 50 },
+        { x: 40, y: 200 },
+      ]);
+    });
   });
 });
