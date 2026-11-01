@@ -5640,3 +5640,69 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
   });
+
+  describe("elementImage", function () {
+    const forms = {
+      "a path": "icons/save.svg",
+      "an object with a path": { path: "icons/save.svg" },
+      "an object with base64": { base64: "iVBORw0KGgo=" },
+      "a threshold": { path: "icons/save.svg", threshold: 0.95 },
+      "the highest threshold": { path: "icons/save.svg", threshold: 1 },
+      "a color": { path: "icons/save.svg", color: "#1a5fb4" },
+      "every field": { base64: "iVBORw0KGgo=", threshold: 0.8, color: "#1A5FB4" },
+    };
+    const invalid = {
+      "an empty string": "",
+      "neither path nor base64": { threshold: 0.9 },
+      "both path and base64": { path: "a.png", base64: "iVBORw0KGgo=" },
+      "an empty path": { path: "" },
+      "an empty base64": { base64: "" },
+      "a threshold of 0": { path: "a.png", threshold: 0 },
+      "a threshold above 1": { path: "a.png", threshold: 1.5 },
+      "a color name": { path: "a.png", color: "red" },
+      "a three-digit color": { path: "a.png", color: "#123" },
+      "an unknown field": { path: "a.png", scale: 2 },
+    };
+    const steps = {
+      find: (image) => ({ find: { elementImage: image } }),
+      click: (image) => ({ click: { elementImage: image, button: "right" } }),
+      "dragAndDrop source": (image) => ({ dragAndDrop: { source: { elementImage: image }, target: "#drop" } }),
+      "dragAndDrop target": (image) => ({ dragAndDrop: { source: "#drag", target: { elementImage: image } } }),
+      type: (image) => ({ type: { keys: "text", elementImage: image } }),
+      "goTo.waitUntil.find": (image) => ({ goTo: { url: "https://example.com", waitUntil: { find: { elementImage: image } } } }),
+      "screenshot.crop": (image) => ({ screenshot: { path: "a.png", crop: { elementImage: image } } }),
+      "screenshot annotation": (image) => ({ screenshot: { path: "a.png", annotations: [{ outline: { elementImage: image } }] } }),
+      annotate: (image) => ({ annotate: { add: [{ outline: { elementImage: image } }] } }),
+    };
+
+    for (const [name, build] of Object.entries(steps)) {
+      describe(name, function () {
+        for (const [label, image] of Object.entries(forms)) {
+          it(`accepts ${label}`, function () {
+            const result = validate({ schemaKey: "step_v3", object: build(image) });
+            expect(result.valid, result.errors).to.be.true;
+          });
+        }
+        for (const [label, image] of Object.entries(invalid)) {
+          it(`rejects ${label}`, function () {
+            expect(validate({ schemaKey: "step_v3", object: build(image) }).valid).to.be.false;
+          });
+        }
+      });
+    }
+
+    it("is accepted by waitUntil_v3", function () {
+      const result = validate({ schemaKey: "waitUntil_v3", object: { find: { elementImage: "a.png" } } });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("works alongside other criteria", function () {
+      const result = validate({ schemaKey: "step_v3", object: { find: { selector: "#toolbar", elementImage: "a.png" } } });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("doesn't inject a default threshold, since the runtime owns it", function () {
+      const result = validate({ schemaKey: "step_v3", object: { find: { elementImage: { path: "a.png" } } } });
+      expect(result.object.find.elementImage).to.deep.equal({ path: "a.png" });
+    });
+  });

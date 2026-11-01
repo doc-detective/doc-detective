@@ -443,4 +443,40 @@ describe("runtime/inferRuntimeNeeds", function () {
     ]);
     expect(needs.npmPackages.has("webdriverio")).to.equal(true);
   });
+
+  describe("elementImage", function () {
+    const image = "icons/save.svg";
+    const imageSteps = {
+      find: { find: { elementImage: image } },
+      "find, object form": { find: { elementImage: { path: image, threshold: 0.95 } } },
+      click: { click: { elementImage: { base64: "iVBOR" } } },
+      type: { type: { keys: "x", elementImage: image } },
+      "dragAndDrop source": { dragAndDrop: { source: { elementImage: image }, target: "#b" } },
+      "dragAndDrop target": { dragAndDrop: { source: "#a", target: { elementImage: image } } },
+      "goTo.waitUntil.find": { goTo: { url: "https://x.test", waitUntil: { find: { elementImage: image } } } },
+      "screenshot.crop": { screenshot: { path: "a.png", crop: { elementImage: image } } },
+      "screenshot annotation": { screenshot: { path: "a.png", annotations: [{ outline: { elementImage: image } }] } },
+      annotate: { annotate: { add: [{ outline: { elementImage: image } }] } },
+    };
+    for (const [name, step] of Object.entries(imageSteps)) {
+      it(`image-needs-inferred: ${name} adds the image matcher and sharp`, function () {
+        const needs = inferRuntimeNeeds([makeSpec([step])]);
+        expect(needs.npmPackages.has("@appium/opencv")).to.equal(true);
+        expect(needs.npmPackages.has("opencv-bindings")).to.equal(true);
+        expect(needs.npmPackages.has("sharp")).to.equal(true);
+      });
+    }
+
+    it("image-needs-inferred: a step without elementImage doesn't add the image matcher", function () {
+      const needs = inferRuntimeNeeds([
+        makeSpec([
+          { find: { elementText: "Save" } },
+          { screenshot: { path: "a.png", crop: "#a" } },
+          { runShell: { command: "echo elementImage" } },
+        ]),
+      ]);
+      expect(needs.npmPackages.has("@appium/opencv")).to.equal(false);
+      expect(needs.npmPackages.has("opencv-bindings")).to.equal(false);
+    });
+  });
 });

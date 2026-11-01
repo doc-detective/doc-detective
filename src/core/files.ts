@@ -135,6 +135,7 @@ async function resolvePaths({
     "specPath",
     "descriptionPath",
     "workingDirectory",
+    "elementImage",
   ];
   // Spec objects that are configurable by the user and shouldn't be resolved
   const specNoResolve = [

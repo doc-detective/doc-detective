@@ -89,6 +89,11 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "required": [
+              "elementImage"
+            ]
           }
         ],
         "properties": {
@@ -138,6 +143,9 @@
                 }
               ]
             }
+          },
+          "elementImage": {
+            "$ref": "elementImage_v3.schema.json#"
           },
           "elementAria": {
             "type": "string",

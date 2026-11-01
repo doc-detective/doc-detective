@@ -59,6 +59,11 @@
               "required": [
                 "elementAria"
               ]
+            },
+            {
+              "required": [
+                "elementImage"
+              ]
             }
           ],
           "properties": {
@@ -108,6 +113,126 @@
                   }
                 ]
               }
+            },
+            "elementImage": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "title": "elementImage",
+              "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+              "anyOf": [
+                {
+                  "title": "Image path",
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                },
+                {
+                  "title": "Image (detailed)",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "oneOf": [
+                    {
+                      "required": [
+                        "path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "base64"
+                      ]
+                    }
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                    },
+                    "base64": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                    },
+                    "threshold": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1,
+                      "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$",
+                      "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                    }
+                  }
+                }
+              ],
+              "components": {
+                "schemas": {
+                  "path": {
+                    "title": "Image path",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                  },
+                  "object": {
+                    "title": "Image (detailed)",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "path"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "base64"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                      },
+                      "base64": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1,
+                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$",
+                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": [
+                "icons/save.svg",
+                {
+                  "path": "icons/save.svg"
+                },
+                {
+                  "path": "chart.png",
+                  "threshold": 0.99
+                },
+                {
+                  "path": "icons/save.svg",
+                  "color": "#1a5fb4"
+                },
+                {
+                  "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg=="
+                }
+              ]
             },
             "elementAria": {
               "type": "string",
@@ -186,6 +311,11 @@
               "required": [
                 "elementAria"
               ]
+            },
+            {
+              "required": [
+                "elementImage"
+              ]
             }
           ],
           "properties": {
@@ -235,6 +365,126 @@
                   }
                 ]
               }
+            },
+            "elementImage": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "title": "elementImage",
+              "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+              "anyOf": [
+                {
+                  "title": "Image path",
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                },
+                {
+                  "title": "Image (detailed)",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "oneOf": [
+                    {
+                      "required": [
+                        "path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "base64"
+                      ]
+                    }
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                    },
+                    "base64": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                    },
+                    "threshold": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1,
+                      "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$",
+                      "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                    }
+                  }
+                }
+              ],
+              "components": {
+                "schemas": {
+                  "path": {
+                    "title": "Image path",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                  },
+                  "object": {
+                    "title": "Image (detailed)",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "path"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "base64"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                      },
+                      "base64": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1,
+                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$",
+                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": [
+                "icons/save.svg",
+                {
+                  "path": "icons/save.svg"
+                },
+                {
+                  "path": "chart.png",
+                  "threshold": 0.99
+                },
+                {
+                  "path": "icons/save.svg",
+                  "color": "#1a5fb4"
+                },
+                {
+                  "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg=="
+                }
+              ]
             },
             "elementAria": {
               "type": "string",
@@ -303,6 +553,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -353,6 +608,126 @@
                   ]
                 }
               },
+              "elementImage": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "elementImage",
+                "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                "anyOf": [
+                  {
+                    "title": "Image path",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                  },
+                  {
+                    "title": "Image (detailed)",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "path"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "base64"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                      },
+                      "base64": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1,
+                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$",
+                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                      }
+                    }
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "path": {
+                      "title": "Image path",
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                    },
+                    "object": {
+                      "title": "Image (detailed)",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "oneOf": [
+                        {
+                          "required": [
+                            "path"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "base64"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                        },
+                        "base64": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                        },
+                        "threshold": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 1,
+                          "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                        },
+                        "color": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$",
+                          "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": [
+                  "icons/save.svg",
+                  {
+                    "path": "icons/save.svg"
+                  },
+                  {
+                    "path": "chart.png",
+                    "threshold": 0.99
+                  },
+                  {
+                    "path": "icons/save.svg",
+                    "color": "#1a5fb4"
+                  },
+                  {
+                    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg=="
+                  }
+                ]
+              },
               "elementAria": {
                 "type": "string",
                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
@@ -400,6 +775,11 @@
           {
             "required": [
               "elementAria"
+            ]
+          },
+          {
+            "required": [
+              "elementImage"
             ]
           }
         ],
@@ -450,6 +830,126 @@
                 }
               ]
             }
+          },
+          "elementImage": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "elementImage",
+            "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+            "anyOf": [
+              {
+                "title": "Image path",
+                "type": "string",
+                "minLength": 1,
+                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+              },
+              {
+                "title": "Image (detailed)",
+                "type": "object",
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "required": [
+                      "path"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "base64"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                  },
+                  "base64": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$",
+                    "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                  }
+                }
+              }
+            ],
+            "components": {
+              "schemas": {
+                "path": {
+                  "title": "Image path",
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                },
+                "object": {
+                  "title": "Image (detailed)",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "oneOf": [
+                    {
+                      "required": [
+                        "path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "base64"
+                      ]
+                    }
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                    },
+                    "base64": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                    },
+                    "threshold": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1,
+                      "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                    },
+                    "color": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$",
+                      "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                    }
+                  }
+                }
+              }
+            },
+            "examples": [
+              "icons/save.svg",
+              {
+                "path": "icons/save.svg"
+              },
+              {
+                "path": "chart.png",
+                "threshold": 0.99
+              },
+              {
+                "path": "icons/save.svg",
+                "color": "#1a5fb4"
+              },
+              {
+                "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg=="
+              }
+            ]
           },
           "elementAria": {
             "type": "string",
@@ -508,6 +1008,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -557,6 +1062,126 @@
                     }
                   ]
                 }
+              },
+              "elementImage": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "elementImage",
+                "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                "anyOf": [
+                  {
+                    "title": "Image path",
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                  },
+                  {
+                    "title": "Image (detailed)",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "path"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "base64"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                      },
+                      "base64": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1,
+                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$",
+                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                      }
+                    }
+                  }
+                ],
+                "components": {
+                  "schemas": {
+                    "path": {
+                      "title": "Image path",
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                    },
+                    "object": {
+                      "title": "Image (detailed)",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "oneOf": [
+                        {
+                          "required": [
+                            "path"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "base64"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                        },
+                        "base64": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                        },
+                        "threshold": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 1,
+                          "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                        },
+                        "color": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$",
+                          "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": [
+                  "icons/save.svg",
+                  {
+                    "path": "icons/save.svg"
+                  },
+                  {
+                    "path": "chart.png",
+                    "threshold": 0.99
+                  },
+                  {
+                    "path": "icons/save.svg",
+                    "color": "#1a5fb4"
+                  },
+                  {
+                    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg=="
+                  }
+                ]
               },
               "elementAria": {
                 "type": "string",

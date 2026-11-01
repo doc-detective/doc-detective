@@ -38,6 +38,8 @@ describe("runtime/heavyDeps", function () {
       "pixelmatch",
       "pngjs",
       "@homebridge/node-pty-prebuilt-multiarch",
+      "@appium/opencv",
+      "opencv-bindings",
     ]);
   });
 

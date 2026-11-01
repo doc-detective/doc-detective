@@ -55,6 +55,11 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "required": [
+              "elementImage"
+            ]
           }
         ],
         "additionalProperties": false,
@@ -119,6 +124,9 @@
                 }
               ]
             }
+          },
+          "elementImage": {
+            "$ref": "elementImage_v3.schema.json#"
           },
           "elementAria": {
             "type": "string",

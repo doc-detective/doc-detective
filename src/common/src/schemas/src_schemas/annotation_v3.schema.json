@@ -192,6 +192,12 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "elementImage"
+            ]
           }
         ]
       },
@@ -247,6 +253,9 @@
               ]
             },
             "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+          },
+          "elementImage": {
+            "$ref": "elementImage_v3.schema.json#"
           },
           "elementAria": {
             "type": "string",
