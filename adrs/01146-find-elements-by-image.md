@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Every `find` criterion reads the DOM or the accessibility tree, so anything drawn rather than structured
+Every `find` criterion reads the DOM or the accessibility tree. Anything drawn rather than structured
 is out of reach: an icon with no text or label, a canvas, a chart, or a custom-drawn widget. Authors fall
 back to hard-coded coordinates, which break when the layout moves.
 
@@ -43,18 +43,18 @@ The measurements behind this decision are in
 
 ## Decision Outcome
 
-Chosen option: **A**, because icons and graphics then match in both browsers measured, solid or thin outline, on any
-background when the reference is an icon file, color always counts, and the real icon outranks a lookalike when it's on
-screen.
+Chosen option: **A**, because icons and graphics then match in both browsers measured, solid or thin outline. They match
+on any background when the reference is an icon file. Color always counts, and the real icon outranks a lookalike when
+it's on screen.
 
 1. `elementImage` is a new criterion, taking a path, or an object with either `path` or `base64` and an
    optional `threshold` and `color`. It's accepted wherever the other criteria are: `find`, `click`, `dragAndDrop`,
    `type`, `goTo.waitUntil.find`, `waitUntil.find`, `screenshot.crop`, and annotation targets.
 2. A location's score is the lower of its shape score and its color score. An opaque reference is compared as it is, and a
-   transparent multi-color file through an OpenCV mask, each with color from a per-channel gain and offset. A transparent
-   one-color file finds its shape by silhouette, and its color by fitting the capture against its alpha, where hue counts
+   transparent multi-color file through an OpenCV mask. Each has color from a per-channel gain and offset. A transparent
+   one-color file finds its shape by silhouette. It finds its color by fitting the capture against its alpha, where hue counts
    in full and lightness past a tolerance. `color` sets a one-color file's color, for files drawn in `currentColor`.
-3. A transparent one-color file is tried at every whole size from 12 to 64 CSS pixels, and a multi-color file at 13
+3. A transparent one-color file is tried at every whole size from 12 to 64 CSS pixels. A multi-color file is tried at 13
    common sizes. The best score wins, at device resolution. An SVG is rendered at each size, and a raster is resized. An
    opaque reference that misses at its own size is retried at 1× and 2× sizes.
 4. The default threshold is 0.9.
@@ -67,7 +67,7 @@ screen.
 
 ### Consequences
 
-* Good, because an author can name an icon's own file, and it matches on any background, at any whole size from 12 to
+* Good, because an author can name an icon's own file. It matches on any background, at any whole size from 12 to
   64 pixels, in Chrome and Firefox.
 * Good, because a red icon doesn't match a blue one with the same shape, whichever kind of reference finds it.
 * Good, because canvases and custom-drawn interfaces become testable without coordinates.
@@ -75,18 +75,18 @@ screen.
   `sharp`, which is already a heavy dep.
 * Bad, because a file drawn in `currentColor`, which most icon sets ship, renders black, so an icon in another color needs
   `color` on the step.
-* Bad, because shades about 32 levels apart or closer still match, and thin strokes tolerate more lightness drift, since
+* Bad, because shades about 32 levels apart or closer still match. Thin strokes tolerate more lightness drift, since
   browsers draw them up to 28% lighter than a file predicts.
 * Bad, because content with text falls below the default threshold across browsers, so it needs `elementText`,
   a lower step-level `threshold`, or a reference per browser.
 * Bad, because a near-identical element can pass when the real target is gone, such as a chart with one bar
   changed at 0.94. Authors who care raise `threshold` to 0.99.
-* Bad, because an icon that's gone can pass on a lookalike in the same color: `square` for `square-check` up to 0.96, or a
+* Bad, because an icon that's gone can pass on a lookalike in the same color. The lookalike can be `square` for `square-check` up to 0.96, or a
   `+` in text for `plus`. Authors checking a state raise `threshold` on that step, and authors matching a simple glyph scope the search.
-* Bad, because thin icons at fractional sizes or under a sub-pixel `transform` can fall below the default, with 33–98%
-  of outlines reaching it depending on the set. Those steps need a lower `threshold`.
-* Bad, because trying many sizes costs up to 1.6 s per attempt at 1× and 4.5 s at 2× for a one-color file, and 3 s at 1× for a
-  multi-color one, when nothing matches.
+* Bad, because thin icons at fractional sizes or under a sub-pixel `transform` can fall below the default. Depending on the set, 33–98%
+  of outlines reach the default. Those steps need a lower `threshold`.
+* Bad, because trying many sizes costs a one-color file up to 1.6 s per attempt at 1× and 4.5 s at 2×. It costs a
+  multi-color one 3 s at 1×. Both costs apply when nothing matches.
 * Bad, because matching sees only what's on screen, unlike the DOM criteria.
 * Bad, because the mask path calls `opencv-bindings` directly, as `@appium/opencv` doesn't expose a mask.
 * Neutral, because a sharp upgrade that diverges from `@appium/opencv`'s exact pin installs a second copy
@@ -105,13 +105,13 @@ implementation and proofs with `manni cite`, and CI runs `manni cite check`. The
 
 * Good, because headings at 0.88, most icon buttons, and thin icons at fractional sizes pass without a step-level
   `threshold`.
-* Bad, because it finds no more real icons at whole sizes than 0.9, and with the icon gone, something else on its page
+* Bad, because it finds no more real icons at whole sizes than 0.9 does. With the icon gone, something else on its page
   passes for 29–53% of the icons measured, against 0–23% at 0.9.
 
 ### C. Threshold 0.5
 
 * Good, because some buttons with text would match across browsers.
-* Bad, because a different button with the same styling scores up to 0.77, and an input rendered by the
+* Bad, because a different button with the same styling scores up to 0.77. Likewise, an input rendered by the
   other browser lands on the wrong input at 0.71.
 
 ### D. Compare every reference as opaque
@@ -143,8 +143,8 @@ implementation and proofs with `manni cite`, and CI runs `manni cite check`. The
 ### I. Threshold 0.95
 
 * Good, because with the icon gone, something else on its page passes for 0–10% of the icons measured, against 0–23% at 0.9.
-* Bad, because the real icon is chosen 94–100% of the time rather than 98–100%, multi-color files that score 0.91 stop
-  matching, and only 19–86% of icons at fractional sizes or under a sub-pixel `transform` reach it.
+* Bad, because the real icon is chosen 94–100% of the time rather than 98–100%. Multi-color files that score 0.91 stop
+  matching. Only 19–86% of icons at fractional sizes or under a sub-pixel `transform` reach 0.95.
 
 ### J. Shape only for a one-color file
 
