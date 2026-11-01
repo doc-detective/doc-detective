@@ -11,7 +11,7 @@ Follow [docs/design/docs-as-spec-process.md](../../../docs/design/docs-as-spec-p
 
 Measure anything the spec will assert as a number or a default. Keep probes under `.tmp/`. Record the results in the spec.
 
-Measure the content the feature is for, not whatever page is handy, and sample widely before a number sets a default or rules an option out. Say what you didn't measure.
+Measure the content the feature is for, not whatever page is handy. Sample widely before a number sets a default or rules an option out. Say what you didn't measure.
 
 ## 2. Spec
 
@@ -77,11 +77,17 @@ Red → green, one claim at a time. Confirm each test fails for the expected rea
 
 Commit as you go. `manni cite` resolves sources through `git ls-files`.
 
+Run proofs under a hard limit, such as `timeout -k 5 300 npx mocha ...`. A test runner's own timeout can't fire when the microtask queue is spinning, and the pilot lost 70 minutes that way.
+
+When a step produces an artifact, open it at least once. A passing check can't tell you that a blur missed something.
+
 If building shows that a claim can't hold, stop that claim and go to the person who approved the spec. Don't edit the sentence to match what you built.
 
 ## 6. Verify
 
-Spawn a fresh agent. Give it the spec path, the page path, and the code. Don't give it your conclusions. Tell it to assume every claim is false until the code or a real run proves it, and to report per claim: holds, fails, or unprovable, with `file:line` evidence.
+Spawn a fresh agent. Give it the spec path, the page path, and the code. Don't give it your conclusions. Tell it to assume every claim is false until the code or a real run proves it. Tell it to report per claim: holds, fails, or unprovable, with `file:line` evidence. Tell it that a test's name isn't evidence, and to read each sentence literally the way a user relying on it would. Tell it to report what the page should warn about but doesn't.
+
+Treat its report as leads. Reproduce each finding before acting on it: a failing test for a code fix, a real run for a changed sentence.
 
 For each failure, fix the code. If the spec is what's wrong, propose the changed sentence to the person who approved it, and wait. Never soften a sentence just to make it pass.
 

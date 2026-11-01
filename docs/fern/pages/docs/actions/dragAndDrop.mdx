@@ -41,7 +41,7 @@ When using detailed objects for `source` or `target`, you can specify:
 
 - `elementText`: (Optional) Display text of the element. If combined with `selector`, the element must match both the text and the selector.
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element. If combined with `elementText`, the element must match both the text and the selector.
-- `elementImage`: (Optional) A picture of the element. A drag with an image at either end presses and releases at the centers using pointer input only, so it reaches pages that handle mouse events, but it doesn't use the HTML5 fallback. See [Find elements by image](/docs/test-docs/find-elements-by-image).
+- `elementImage`: (Optional) A picture of the element. A drag with an image at either end presses and releases at the centers using pointer input only. It reaches pages that handle mouse events, but it doesn't use the HTML5 fallback. See [Find elements by image](/docs/test-docs/find-elements-by-image).
 - `timeout`: (Optional) Maximum duration in milliseconds to wait for this specific element to exist.
 
 **Outputs:** the action exposes `outputs.sourceFound` and `outputs.targetFound`, booleans indicating whether the source and target elements were located. To capture them for later steps, use the step-level `variables` object with the expressions `$$sourceFound` and `$$targetFound`.
