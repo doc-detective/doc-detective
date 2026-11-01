@@ -126,7 +126,7 @@ async function findByImage({
         const viewport = await driver.execute(() => ({ width: window.innerWidth }));
         // A PNG stores its width at a fixed offset, which beats a decode.
         const scale = viewport?.width > 0 ? capture.readUInt32BE(16) / viewport.width : 1;
-        const { match, matches, best } = await matchImageOnce({ capture, reference, scale, regions, cacheDir });
+        const { match, matches, best } = await matchImageOnce({ capture, reference, scale, regions, all, cacheDir });
         if (match) {
           const element = createVisualMatch(driver, match);
           const elements = all ? matches.map((m) => (m === match ? element : createVisualMatch(driver, m))) : [element];

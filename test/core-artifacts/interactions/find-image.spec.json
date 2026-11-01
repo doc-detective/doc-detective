@@ -1,0 +1,495 @@
+{
+  "specId": "find-image",
+  "description": "Finding elements by image through the real runner, in Chrome and Firefox. Pages draw their icons in the browser and references come from files, so every step here is a cross-renderer comparison. The two PNGs were captured in Chrome and are also matched in Firefox. Negative cases and exact messages are in test/find-image.test.js, because a fixture can't assert a FAIL.",
+  "runOn": [
+    {
+      "platforms": [
+        "windows",
+        "mac",
+        "linux"
+      ],
+      "browsers": [
+        {
+          "name": "chrome",
+          "headless": true
+        },
+        {
+          "name": "firefox",
+          "headless": true
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testId": "find-image-reference-forms",
+      "description": "Each shape elementImage can take. image-field-forms, image-file-formats, image-base64, image-outputs.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-string-path",
+          "find": {
+            "elementImage": "../../server/public/find-image-save.svg"
+          },
+          "assertions": [
+            "$$outputs.element.matchScore >= 0.9",
+            "$$outputs.element.size.width == 24",
+            "$$outputs.element.size.height == 24"
+          ]
+        },
+        {
+          "stepId": "find-image-object-path",
+          "find": {
+            "elementImage": {
+              "path": "../../server/public/find-image-save.svg"
+            }
+          }
+        },
+        {
+          "stepId": "find-image-threshold",
+          "find": {
+            "elementImage": {
+              "path": "../../server/public/find-image-save.svg",
+              "threshold": 0.95
+            }
+          }
+        },
+        {
+          "stepId": "find-image-base64",
+          "find": {
+            "elementImage": {
+              "base64": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg=="
+            }
+          },
+          "assertions": "$$outputs.element.size.width == 24"
+        },
+        {
+          "stepId": "find-image-base64-data-url",
+          "find": {
+            "elementImage": {
+              "base64": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg=="
+            }
+          },
+          "assertions": "$$outputs.element.size.width == 24"
+        },
+        {
+          "stepId": "find-image-png-crop-from-chrome",
+          "find": {
+            "elementImage": "../../server/public/find-image-chart.png"
+          },
+          "assertions": "$$outputs.element.matchScore >= 0.9"
+        },
+        {
+          "stepId": "find-image-icon-crop-from-chrome",
+          "find": {
+            "elementImage": "../../server/public/find-image-check-crop.png"
+          },
+          "assertions": "$$outputs.element.matchScore >= 0.9"
+        }
+      ]
+    },
+    {
+      "testId": "find-image-color-counts",
+      "description": "The same shape in several colors. Each file reaches only its own copy. image-file-one-color, image-color-hue, image-color-field, image-first-match.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-blue-file-skips-red-copy",
+          "description": "The red copy is to the left, and would win if color didn't count.",
+          "click": {
+            "elementImage": "../../server/public/find-image-save.svg"
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=save"
+          }
+        },
+        {
+          "stepId": "find-image-color-overrides-file",
+          "click": {
+            "elementImage": {
+              "path": "../../server/public/find-image-save.svg",
+              "color": "#e01b24"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=red-save"
+          }
+        },
+        {
+          "stepId": "find-image-current-color-white",
+          "description": "A file in currentColor, on a dark bar.",
+          "click": {
+            "elementImage": {
+              "path": "../../server/public/find-image-gear.svg",
+              "color": "#ffffff"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=white-gear"
+          }
+        },
+        {
+          "stepId": "find-image-current-color-teal",
+          "click": {
+            "elementImage": {
+              "path": "../../server/public/find-image-gear.svg",
+              "color": "#0f766e"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=teal-gear"
+          }
+        },
+        {
+          "stepId": "find-image-multicolor",
+          "click": {
+            "elementImage": "../../server/public/find-image-check.svg"
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=check"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-scope-and-size",
+      "description": "Other criteria choose between identical images, on any background and at any size. image-combined, image-file-any-size.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-scoped-tinted",
+          "click": {
+            "selector": "#tinted",
+            "elementImage": "../../server/public/find-image-save.svg"
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=tinted-save"
+          }
+        },
+        {
+          "stepId": "find-image-smaller-than-file",
+          "find": {
+            "selector": "#small-save",
+            "elementImage": "../../server/public/find-image-save.svg",
+            "click": true
+          },
+          "assertions": "$$outputs.element.size.width == 18"
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=small-save"
+          }
+        },
+        {
+          "stepId": "find-image-larger-than-file",
+          "find": {
+            "selector": "#large-save",
+            "elementImage": "../../server/public/find-image-save.svg",
+            "click": true
+          },
+          "assertions": "$$outputs.element.size.width == 36"
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=large-save"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-pointer",
+      "description": "Every way of pressing a match, and moving to one. image-click-center, image-moveto.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-right-click",
+          "click": {
+            "elementImage": "../../server/public/find-image-check.svg",
+            "button": "right"
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=2 target=check"
+          }
+        },
+        {
+          "stepId": "find-image-middle-click-shorthand",
+          "find": {
+            "elementImage": "../../server/public/find-image-check.svg",
+            "click": "middle"
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=1 target=check"
+          }
+        },
+        {
+          "stepId": "find-image-long-press",
+          "find": {
+            "elementImage": "../../server/public/find-image-save.svg",
+            "click": {
+              "duration": 300
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "click button=0 target=save"
+          }
+        },
+        {
+          "stepId": "find-image-move-to",
+          "find": {
+            "elementImage": "../../server/public/find-image-search.svg",
+            "moveTo": true
+          }
+        },
+        {
+          "find": {
+            "selector": "#hover",
+            "elementText": "search-icon"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-type",
+      "description": "A label's icon focuses its input. image-type-focuses.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-type-into-match",
+          "type": {
+            "keys": "hello",
+            "elementImage": "../../server/public/find-image-search.svg"
+          }
+        },
+        {
+          "find": {
+            "selector": "#echo",
+            "elementText": "hello"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-drag",
+      "description": "A drag with an image at either end or both. The page reloads between drags, to reset it. image-drag.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-drag-both-ends",
+          "dragAndDrop": {
+            "source": {
+              "elementImage": "../../server/public/find-image-handle.svg"
+            },
+            "target": {
+              "elementImage": "../../server/public/find-image-target.svg"
+            },
+            "duration": 200
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "drop on=target"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-drag-to-selector",
+          "dragAndDrop": {
+            "source": {
+              "elementImage": "../../server/public/find-image-handle.svg"
+            },
+            "target": {
+              "selector": "#zone"
+            },
+            "duration": 200
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "drop on=zone"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-drag-from-selector",
+          "dragAndDrop": {
+            "source": {
+              "selector": "#lift"
+            },
+            "target": {
+              "elementImage": "../../server/public/find-image-target.svg"
+            },
+            "duration": 200
+          }
+        },
+        {
+          "find": {
+            "selector": "#log",
+            "elementText": "drop on=target"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-screenshots",
+      "description": "Crops and annotations. image-crop, image-annotation-target.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-crop",
+          "screenshot": {
+            "path": "find-image-crop.png",
+            "directory": "./.dd-output",
+            "overwrite": "true",
+            "crop": {
+              "elementImage": "../../server/public/find-image-check.svg",
+              "padding": 8
+            }
+          }
+        },
+        {
+          "stepId": "find-image-annotation",
+          "screenshot": {
+            "path": "find-image-outline.png",
+            "directory": "./.dd-output",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "outline": {
+                  "elementImage": "../../server/public/find-image-check.svg"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "find-image-annotation-all",
+          "description": "Copies of this file at 18, 24, and 36 pixels all get blurred, and the red copy doesn't.",
+          "screenshot": {
+            "path": "find-image-blur.png",
+            "directory": "./.dd-output",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "blur": {
+                  "elementImage": "../../server/public/find-image-save.svg"
+                },
+                "all": true
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "find-image-live-annotation",
+          "annotate": {
+            "add": [
+              {
+                "outline": {
+                  "elementImage": "../../server/public/find-image-check.svg"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-waits",
+      "description": "An icon that appears 3 seconds after load. image-retries-until-timeout, image-wait.",
+      "steps": [
+        {
+          "stepId": "find-image-goto-wait",
+          "goTo": {
+            "url": "http://localhost:8092/find-image.html?late=1",
+            "waitUntil": {
+              "find": {
+                "elementImage": "../../server/public/find-image-late.svg"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "find-image-already-there",
+          "description": "With timeout 0, this checks once, so the goTo had to have waited.",
+          "find": {
+            "elementImage": "../../server/public/find-image-late.svg",
+            "timeout": 0
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/find-image.html?late=1"
+        },
+        {
+          "stepId": "find-image-retries",
+          "find": {
+            "elementImage": "../../server/public/find-image-late.svg",
+            "timeout": 10000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-on-screen",
+      "description": "An anchor brings an off-screen icon into view, because matching doesn't scroll. image-on-screen-only.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html#far"
+        },
+        {
+          "stepId": "find-image-after-scroll",
+          "find": {
+            "elementImage": "../../server/public/find-image-far.svg"
+          }
+        }
+      ]
+    }
+  ]
+}

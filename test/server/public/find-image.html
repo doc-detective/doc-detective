@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Find by image</title>
+    <style>
+      body { margin: 16px; font: 14px sans-serif; background: #fff; color: #222; }
+      .bar { display: flex; align-items: center; gap: 16px; padding: 8px; margin-bottom: 8px; }
+      .bar > [id] { display: inline-flex; padding: 4px; border: 0; background: none; cursor: pointer; }
+      #tinted { background: #dde6f3; }
+      #dark { background: #1f2937; }
+      #late-slot { width: 40px; height: 40px; }
+      #zone { width: 96px; height: 48px; background: #f3f4f6; align-items: center; justify-content: center; }
+      #lift { padding: 8px; background: #f3f4f6; }
+      #far { margin-top: 3000px; }
+      #status span { margin-right: 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="status">
+      <span id="log">none</span>
+      <span id="hover">none</span>
+      <span id="echo">none</span>
+    </div>
+
+    <div id="toolbar" class="bar">
+      <!-- The red copy comes first, so a blue file only reaches #save if color counts. -->
+      <button id="red-save">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e01b24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-8H7v8" /><path d="M7 3v5h8" />
+        </svg>
+      </button>
+      <button id="save"><img src="find-image-save.svg" width="24" height="24" alt="" /></button>
+      <button id="check"><img src="find-image-check.svg" width="32" height="32" alt="" /></button>
+      <span id="late-slot"></span>
+    </div>
+
+    <div id="tinted" class="bar">
+      <button id="tinted-save"><img src="find-image-save.svg" width="24" height="24" alt="" /></button>
+    </div>
+
+    <div id="sizes" class="bar">
+      <button id="small-save"><img src="find-image-save.svg" width="18" height="18" alt="" /></button>
+      <button id="large-save"><img src="find-image-save.svg" width="36" height="36" alt="" /></button>
+    </div>
+
+    <div id="dark" class="bar">
+      <button id="white-gear">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="gears" class="bar">
+      <button id="teal-gear">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3" />
+        </svg>
+      </button>
+    </div>
+
+    <canvas id="sample-chart" width="160" height="90"></canvas>
+
+    <div class="bar">
+      <label id="search-icon" for="query"><img src="find-image-search.svg" width="24" height="24" alt="" /></label>
+      <input id="query" />
+    </div>
+
+    <div id="drag-row" class="bar">
+      <span id="handle" data-drag><img src="find-image-handle.svg" width="32" height="32" alt="" draggable="false" /></span>
+      <span id="lift" data-drag>Lift</span>
+      <span id="target"><img src="find-image-target.svg" width="40" height="40" alt="" draggable="false" /></span>
+      <span id="zone">Zone</span>
+    </div>
+
+    <div id="far"><img src="find-image-far.svg" width="32" height="32" alt="" /></div>
+
+    <script>
+      const log = document.getElementById("log");
+      const idAt = (x, y) => document.elementFromPoint(x, y)?.closest("[id]")?.id ?? "none";
+      let dragging = null;
+
+      addEventListener("contextmenu", (e) => e.preventDefault());
+      addEventListener("mousedown", (e) => {
+        dragging = e.button === 0 ? e.target.closest("[data-drag]") : null;
+        if (dragging) dragging.style.pointerEvents = "none";
+      });
+      addEventListener("mousemove", (e) => {
+        document.getElementById("hover").textContent = idAt(e.clientX, e.clientY);
+      });
+      addEventListener("mouseup", (e) => {
+        const on = idAt(e.clientX, e.clientY);
+        log.textContent = dragging ? `drop on=${on}` : `click button=${e.button} target=${on}`;
+        if (dragging) dragging.style.pointerEvents = "";
+        dragging = null;
+      });
+      document.getElementById("query").addEventListener("input", (e) => {
+        document.getElementById("echo").textContent = e.target.value;
+      });
+
+      const chart = document.getElementById("sample-chart").getContext("2d");
+      const sky = chart.createLinearGradient(0, 0, 0, 90);
+      sky.addColorStop(0, "#fef3c7");
+      sky.addColorStop(1, "#bfdbfe");
+      chart.fillStyle = sky;
+      chart.fillRect(0, 0, 160, 90);
+      [40, 70, 25, 60, 50].forEach((height, i) => {
+        chart.fillStyle = ["#1a5fb4", "#26a269", "#e5a50a", "#c01c28", "#613583"][i];
+        chart.fillRect(12 + i * 28, 90 - height, 20, height);
+      });
+
+      // A target that arrives after the page settles, for waits and retries.
+      if (new URLSearchParams(location.search).has("late")) {
+        setTimeout(() => {
+          const late = document.createElement("img");
+          late.src = "find-image-late.svg";
+          late.width = late.height = 32;
+          document.getElementById("late-slot").append(late);
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
