@@ -24,6 +24,7 @@ Specify the target element directly with a string for basic text or selector loo
 - **Object Format:** Use an object with the following properties:
   - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
   - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
+  - `elementImage`: (Optional) A picture of the element to find, for targets with no usable text or selector. If combined with other criteria, the match has to lie inside an element that meets them. See [Find elements by image](/docs/test-docs/find-elements-by-image).
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
   - `moveTo`: (Optional) Move the cursor to the element. An element that isn't visible is scrolled into view. Defaults to `false`. A bare `find` leaves the viewport and cursor where they're already sitting. Set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
   - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).

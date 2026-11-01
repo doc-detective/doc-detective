@@ -19,8 +19,9 @@ You can specify the screenshot action in several ways:
     - `"true"`: Always overwrite the reference image with the new capture.
     - `"aboveVariation"`: Overwrite only if the visual difference exceeds `maxVariation` (default).
   - `crop`: (Optional) Crop the screenshot to a specific element. Provide a CSS/XPath selector string (for example, `"#myElement"`) or an object:
-    - `selector`: (Required in object) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
+    - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text to further specify the element if the selector isn't unique.
+    - `elementImage`: (Optional) A picture of the area to crop to. Unlike the other fields, it doesn't scroll first. See [Find elements by image](/docs/test-docs/find-elements-by-image).
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
   - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).

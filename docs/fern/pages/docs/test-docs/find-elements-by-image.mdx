@@ -32,7 +32,7 @@ For anything else, crop a reference from a screenshot with a `screenshot` step. 
   "tests": [
     {
       "steps": [
-        { "goTo": "http://localhost:8092/find-image.html?samples=1" },
+        { "goTo": "http://localhost:8092/find-image.html" },
         {
           "screenshot": {
             "path": "chart.png",
@@ -67,9 +67,9 @@ Name the reference in `elementImage`:
 }
 ```
 
-{/* step {"stepId":"find-by-image-guide-samples","description":"Open the page with the sample chart","goTo":"http://localhost:8092/find-image.html?samples=1"} */}
+{/* step {"stepId":"find-by-image-guide-open","description":"Open the page","goTo":"http://localhost:8092/find-image.html"} */}
 {/* step {"stepId":"find-by-image-guide-capture","description":"Capture the reference, directed at a gitignored output folder","screenshot":{"path":"chart.png","directory":"./.dd-output","overwrite":"true","crop":{"selector":"#sample-chart"}}} */}
-{/* step {"stepId":"find-by-image-guide-goto","description":"Open the page without the samples","goTo":"http://localhost:8092/find-image.html"} */}
+{/* step {"stepId":"find-by-image-guide-goto","description":"Reload the page, because the crop scrolled it","goTo":"http://localhost:8092/find-image.html"} */}
 {/* step {"stepId":"find-by-image-guide-find-icon","description":"Find the icon by its file","find":{"elementImage":"../../../../../test/server/public/find-image-save.svg"}} */}
 {/* step {"stepId":"find-by-image-guide-click","description":"Click the icon by its file","click":{"elementImage":"../../../../../test/server/public/find-image-save.svg"}} */}
 {/* step {"stepId":"find-by-image-guide-check","description":"Confirm the click landed on the icon","find":{"selector":"#log","elementText":"/^click button=0/"}} */}
