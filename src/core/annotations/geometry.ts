@@ -33,6 +33,8 @@
 import { findElement } from "../tests/findElement.js";
 import { findElementByCriteria } from "../tests/findStrategies.js";
 import { anchorPoint } from "./svg.js";
+import { redactElementImage } from "../tests/imageMatch.js";
+import { isVisualMatch, visualRect } from "../tests/visualMatch.js";
 import type { ResolvedAnnotation } from "./model.js";
 import type { PlacedAnnotation, Rect } from "./svg.js";
 
@@ -64,6 +66,7 @@ const APP_UNSUPPORTED_CRITERIA = [
   "selector",
   "elementClass",
   "elementAttribute",
+  "elementImage",
 ];
 const APP_SUPPORTED_CRITERIA = [
   "elementText",
@@ -224,6 +227,7 @@ function criteriaFromTarget(target: any): any {
     elementClass: target?.elementClass,
     elementAttribute: target?.elementAttribute,
     elementAria: target?.elementAria,
+    elementImage: target?.elementImage,
     timeout: target?.timeout,
   };
 }
@@ -232,6 +236,7 @@ function criteriaFromTarget(target: any): any {
 // read so annotations and crops agree on where an element is, down to the
 // same post-scroll coordinate space.
 async function browserElementRect(driver: any, element: any): Promise<Rect> {
+  if (isVisualMatch(element)) return { ...visualRect(element) };
   return await driver.execute((el: any) => {
     const bounds = el.getBoundingClientRect();
     return {
@@ -363,10 +368,11 @@ async function resolveAnnotationRects({
         ...criteriaFromTarget(target),
         driver,
         all: true,
+        cacheDir: config?.cacheDir,
       });
       if (found.error || !found.elements?.length) {
         errors.push(
-          `Couldn't find any element to annotate: ${JSON.stringify(target)}.`
+          `Couldn't find any element to annotate: ${JSON.stringify(redactElementImage(target))}.`
         );
         continue;
       }
@@ -381,7 +387,7 @@ async function resolveAnnotationRects({
       if (findResult.status === "FAIL" || !element) {
         errors.push(
           `Couldn't find the element to annotate: ${
-            typeof target === "string" ? target : JSON.stringify(target)
+            typeof target === "string" ? target : JSON.stringify(redactElementImage(target))
           }.`
         );
         continue;

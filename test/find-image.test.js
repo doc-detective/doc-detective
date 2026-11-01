@@ -94,13 +94,42 @@ describe("elementImage matching", function () {
   const b64 = (buffer) => buffer.toString("base64");
 
   // A driver with just enough to capture a page and record pointer actions.
-  function fakeDriver(capture, { viewport, captures } = {}) {
+  function fakeDriver(capture, { viewport, captures, dom } = {}) {
     let size = null;
+    const nothing = async () => null;
+    // A DOM element, for the end of a drag that doesn't use an image.
+    const domElement = dom && {
+      elementId: "dom",
+      dom,
+      getText: nothing,
+      getHTML: nothing,
+      getTagName: nothing,
+      getValue: nothing,
+      isClickable: nothing,
+      isEnabled: nothing,
+      isSelected: nothing,
+      isDisplayed: nothing,
+      getLocation: async () => ({ x: dom.x, y: dom.y }),
+      getSize: async () => ({ width: dom.width, height: dom.height }),
+    };
     const driver = {
       actions: [],
+      executed: [],
+      typed: [],
       isMobile: false,
+      state: {},
       takeScreenshot: async () => b64((captures && captures.shift()) || capture),
-      execute: async () => {
+      pause: nothing,
+      keys: async (keys) => driver.typed.push(...[].concat(keys)),
+      getWindowSize: async () => ({ width: 400, height: 300 }),
+      $$: async () => (domElement ? [domElement] : []),
+      execute: async (fn, ...args) => {
+        driver.executed.push(String(fn));
+        if (args[0]?.dom) {
+          const { x, y, width, height } = args[0].dom;
+          return { x: x + width / 2, y: y + height / 2 };
+        }
+        if (String(fn).includes("devicePixelRatio")) return 1;
         if (!size) {
           const info = await sharp(capture).metadata();
           size = viewport ?? { width: info.width, height: info.height };
@@ -547,6 +576,203 @@ describe("elementImage matching", function () {
         { x: 200, y: 50 },
         { x: 40, y: 200 },
       ]);
+    });
+  });
+
+  describe("actions that build on find", function () {
+    const BLUE = "#1a5fb4";
+    const blue = () => ({ base64: b64(icon(GEAR, BLUE, 24)) });
+    const red = () => ({ base64: b64(check("#e01b24", "#ffffff", 32)) });
+    const blueCenter = { x: 52, y: 62 };
+    const redCenter = { x: 216, y: 116 };
+    const moves = (driver) => driver.actions.filter(([kind]) => kind === "move").map(([, args]) => args);
+    let shot, findElement, dragAndDropElement, typeKeys, waitForBrowserReadiness, saveScreenshot, geometry, buildAppLocator;
+
+    before(async function () {
+      ({ findElement } = await import("../dist/core/tests/findElement.js"));
+      ({ dragAndDropElement } = await import("../dist/core/tests/dragAndDrop.js"));
+      ({ typeKeys, waitForBrowserReadiness } = await import("../dist/core/tests/typeKeys.js"));
+      ({ saveScreenshot } = await import("../dist/core/tests/saveScreenshot.js"));
+      ({ buildAppLocator } = await import("../dist/core/tests/appSurface.js"));
+      geometry = await import("../dist/core/annotations/geometry.js");
+      shot = await page({
+        items: [
+          { svg: icon(GEAR, BLUE, 24), x: 40, y: 50 },
+          { svg: check("#e01b24", "#ffffff", 32), x: 200, y: 100 },
+        ],
+      });
+    });
+
+    it("image-click-center: click presses and releases at the center of the match", async function () {
+      const driver = fakeDriver(shot);
+      const result = await findElement({ config: {}, step: { find: { elementImage: blue(), click: true } }, driver });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(moves(driver)).to.deep.equal([blueCenter]);
+      expect(driver.actions.map(([kind]) => kind)).to.deep.equal(["move", "down", "up"]);
+    });
+
+    it("image-click-center: a right click and a long press happen at the center too", async function () {
+      const right = fakeDriver(shot);
+      await findElement({ config: {}, step: { find: { elementImage: blue(), click: { button: "right" } } }, driver: right });
+      expect(moves(right)).to.deep.equal([blueCenter]);
+      expect(right.actions.find(([kind]) => kind === "down")[1]).to.deep.equal({ button: 2 });
+
+      const held = fakeDriver(shot);
+      const result = await findElement({ config: {}, step: { find: { elementImage: blue(), click: { duration: 50 } } }, driver: held });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(moves(held)).to.deep.equal([blueCenter]);
+      expect(held.actions.map(([kind]) => kind)).to.include("pause");
+    });
+
+    it("image-moveto: moveTo goes to the center of the match", async function () {
+      const driver = fakeDriver(shot);
+      const result = await findElement({ config: {}, step: { find: { elementImage: blue(), moveTo: true } }, driver });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(moves(driver)[0]).to.include(blueCenter);
+    });
+
+    it("image-type-focuses: type clicks the center of the match, then types", async function () {
+      const driver = fakeDriver(shot);
+      const result = await typeKeys({ config: {}, step: { type: { keys: ["hello"], elementImage: blue() } }, driver });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(moves(driver)).to.deep.equal([blueCenter]);
+      expect(driver.typed).to.deep.equal(["hello"]);
+    });
+
+    it("image-type-focuses: a missing image fails without typing", async function () {
+      const driver = fakeDriver(await page({}));
+      const result = await typeKeys({ config: {}, step: { type: { keys: ["hello"], elementImage: blue() } }, driver });
+      expect(result.status).to.equal("FAIL");
+      expect(driver.typed).to.deep.equal([]);
+      expect(result.description).to.not.include(blue().base64);
+    });
+
+    it("image-drag: both ends can be images, using pointer input only", async function () {
+      const driver = fakeDriver(shot);
+      const result = await dragAndDropElement({
+        config: {},
+        step: { dragAndDrop: { source: { elementImage: blue() }, target: { elementImage: red() }, duration: 10 } },
+        driver,
+      });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(moves(driver)).to.deep.equal([blueCenter, { duration: 10, ...redCenter }]);
+      expect(driver.actions.map(([kind]) => kind)).to.deep.equal(["move", "down", "pause", "move", "up"]);
+    });
+
+    it("image-drag: the other end can use other criteria", async function () {
+      const dom = { x: 300, y: 200, width: 40, height: 20 };
+      const toDom = fakeDriver(shot, { dom });
+      const dropped = await dragAndDropElement({
+        config: {},
+        step: { dragAndDrop: { source: { elementImage: blue() }, target: { selector: "#drop" }, duration: 10 } },
+        driver: toDom,
+      });
+      expect(dropped.status, dropped.description).to.equal("PASS");
+      expect(moves(toDom)).to.deep.equal([blueCenter, { duration: 10, x: 320, y: 210 }]);
+
+      const fromDom = fakeDriver(shot, { dom });
+      const lifted = await dragAndDropElement({
+        config: {},
+        step: { dragAndDrop: { source: { selector: "#drag" }, target: { elementImage: blue() }, duration: 10 } },
+        driver: fromDom,
+      });
+      expect(lifted.status, lifted.description).to.equal("PASS");
+      expect(moves(fromDom)).to.deep.equal([{ x: 320, y: 210 }, { duration: 10, ...blueCenter }]);
+    });
+
+    it("image-crop: crops to the match plus padding, without scrolling", async function () {
+      const file = path.join(tmp, "crop.png");
+      const driver = fakeDriver(shot);
+      const result = await saveScreenshot({
+        config: {},
+        step: { screenshot: { path: file, crop: { elementImage: blue(), padding: 5 } } },
+        driver,
+      });
+      expect(result.status, result.description).to.equal("PASS");
+      expect(driver.executed.some((source) => source.includes("scrollIntoView"))).to.equal(false);
+      const cropped = await sharp(file).metadata();
+      expect([cropped.width, cropped.height]).to.deep.equal([34, 34]);
+    });
+
+    it("image-annotation-target: marks the match, and every match with all", async function () {
+      const resolve = (annotation, capture) =>
+        geometry.resolveAnnotationRects({
+          config: {},
+          annotations: [annotation],
+          driver: fakeDriver(capture),
+          canvas: { width: 400, height: 300 },
+          scale: 1,
+        });
+      const one = await resolve({ type: "blur", target: { elementImage: blue() } }, shot);
+      expect(one.errors).to.deep.equal([]);
+      expect(one.placed[0].rect).to.deep.equal({ x: 40, y: 50, width: 24, height: 24 });
+
+      const twice = await page({
+        items: [
+          { svg: icon(GEAR, BLUE, 24), x: 40, y: 50 },
+          { svg: icon(GEAR, BLUE, 24), x: 200, y: 50 },
+        ],
+      });
+      const all = await resolve({ type: "blur", target: { elementImage: blue() }, all: true }, twice);
+      expect(all.placed.map((p) => p.rect.x)).to.have.members([40, 200]);
+    });
+
+    it("image-base64-not-printed: annotation and wait failures don't print the value", async function () {
+      for (const all of [false, true]) {
+        const { errors } = await geometry.resolveAnnotationRects({
+          config: {},
+          annotations: [{ type: "blur", target: { elementImage: blue(), timeout: 0 }, all }],
+          driver: fakeDriver(await page({})),
+          canvas: { width: 400, height: 300 },
+          scale: 1,
+        });
+        expect(errors).to.have.length(1);
+        expect(errors[0]).to.not.include(blue().base64);
+      }
+      const waited = await waitForBrowserReadiness({
+        driver: fakeDriver(await page({})),
+        waitUntil: { find: { elementImage: blue() } },
+        timeout: 0,
+      });
+      expect(waited.ok).to.equal(false);
+      expect(waited.message).to.not.include(blue().base64);
+      expect(waited.message).to.match(/base64 reference/);
+    });
+
+    it("image-wait: a wait passes once the image appears", async function () {
+      const captures = [await page({}), shot];
+      const waited = await waitForBrowserReadiness({
+        driver: fakeDriver(shot, { captures }),
+        waitUntil: { find: { elementImage: blue() } },
+        timeout: 5000,
+      });
+      expect(waited.ok, waited.message).to.equal(true);
+      expect(captures).to.have.length(0);
+    });
+
+    it("image-browser-only: an app surface fails and says so", async function () {
+      expect(buildAppLocator({ elementImage: blue() }).error).to.match(/elementImage/);
+      expect(geometry.appCriteriaError({ elementImage: blue() })).to.match(/elementImage/);
+
+      const { createAppSessionState } = await import("../dist/core/tests/appSurface.js");
+      const appSession = createAppSessionState();
+      const typed = [];
+      appSession.surfaces.set("chat", {
+        name: "chat",
+        appId: "com.example.chat",
+        platform: "android",
+        driver: { execute: async (_script, args) => typed.push(args) },
+        launchedByUs: true,
+      });
+      const result = await typeKeys({
+        config: {},
+        step: { type: { keys: ["hello"], elementImage: blue(), surface: { app: "chat" } } },
+        driver: undefined,
+        appSession,
+      });
+      expect(result.status).to.equal("FAIL");
+      expect(result.description).to.match(/elementImage/);
+      expect(typed, "nothing typed into the focused element").to.deep.equal([]);
     });
   });
 });

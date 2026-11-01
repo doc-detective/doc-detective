@@ -22,6 +22,7 @@ import {
   TARGET_ATTRIBUTE,
 } from "../annotations/domAdapter.js";
 import { log } from "../utils.js";
+import { isVisualMatch } from "./visualMatch.js";
 
 export { annotate, applyAnnotateOps, pruneExpired, renderLayer };
 
@@ -200,7 +201,10 @@ async function renderLayer({
     idCounts.set(base, seen + 1);
     item.id = seen === 0 ? base : `${base}--${seen}`;
   }
-  const tracked = (placed as any[]).filter((item) => item.track && item.element);
+  // A match on screen has no DOM node to tag, so it doesn't follow the page.
+  const tracked = (placed as any[]).filter(
+    (item) => item.track && item.element && !isVisualMatch(item.element)
+  );
   for (const item of tracked) {
     try {
       await driver.execute(
