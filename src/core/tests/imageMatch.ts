@@ -512,14 +512,17 @@ function scanSize(
   }
 }
 
-// Several locations can mark one place. Keep the strongest of each.
+// Several locations can mark one place, including at different sizes. Keep the
+// strongest of each.
 function suppressOverlaps(candidates: Candidate[]): Candidate[] {
+  const centerIn = (a: Candidate, b: Candidate) => {
+    const x = a.x + a.width / 2;
+    const y = a.y + a.height / 2;
+    return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height;
+  };
   const kept: Candidate[] = [];
   for (const c of [...candidates].sort((a, b) => b.score - a.score)) {
-    const overlaps = kept.some(
-      (k) => Math.hypot(k.x - c.x, k.y - c.y) < Math.min(c.width, c.height) / 2
-    );
-    if (!overlaps) kept.push(c);
+    if (!kept.some((k) => centerIn(c, k) || centerIn(k, c))) kept.push(c);
   }
   return kept;
 }
@@ -540,6 +543,7 @@ async function matchImageOnce({
   reference,
   scale = 1,
   regions = null,
+  all = false,
   cacheDir,
 }: {
   capture: Buffer;
@@ -547,6 +551,9 @@ async function matchImageOnce({
   reference?: ImageReference;
   scale?: number;
   regions?: { x: number; y: number; width: number; height: number }[] | null;
+  // Collect every copy, at every size, instead of the best size. Slower, because
+  // the sweep can't stop early, but redacting every copy depends on it.
+  all?: boolean;
   cacheDir?: string;
 }): Promise<{ match: Candidate | null; matches: Candidate[]; best: Candidate | null; threshold: number }> {
   const ctx = { cacheDir };
@@ -577,14 +584,16 @@ async function matchImageOnce({
       if (render.width > width || render.height > height) continue;
       fits = true;
       const scan = scanSize(cv, surface, ref, render, deviceRegions);
+      const passed = scan.candidates.filter((c) => c.score >= ref.threshold);
+      if (all) matches.push(...passed);
       if (scan.best && (!best || scan.best.score > best.score)) {
         best = scan.best;
-        matches = scan.candidates.filter((c) => c.score >= ref.threshold);
+        if (!all) matches = passed;
       }
       // Across sizes a miss goes by shape, not score. A neighboring size can score
       // higher while misreading the color, and people copy that color into `color`.
       if (scan.closest && (!closest || scan.closest.shape > closest.shape)) closest = scan.closest;
-      if (best && best.score >= STOP_SCORE) break;
+      if (!all && best && best.score >= STOP_SCORE) break;
     }
     if (!fits) {
       throw new ImageReferenceError(

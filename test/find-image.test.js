@@ -717,6 +717,30 @@ describe("elementImage matching", function () {
       expect(all.placed.map((p) => p.rect.x)).to.have.members([40, 200]);
     });
 
+    it("image-annotation-target: all marks every copy, at every size", async function () {
+      const capture = await page({
+        items: [
+          { svg: icon(GEAR, BLUE, 24), x: 40, y: 50 },
+          { svg: icon(GEAR, BLUE, 36), x: 120, y: 50 },
+          { svg: icon(GEAR, BLUE, 18), x: 220, y: 50 },
+          { svg: icon(GEAR, "#e01b24", 24), x: 300, y: 50 },
+        ],
+      });
+      const { placed, errors } = await geometry.resolveAnnotationRects({
+        config: {},
+        annotations: [{ type: "blur", target: { elementImage: blue() }, all: true }],
+        driver: fakeDriver(capture),
+        canvas: { width: 400, height: 300 },
+        scale: 1,
+      });
+      expect(errors).to.deep.equal([]);
+      expect(placed.map((p) => [p.rect.x, p.rect.width]).sort((a, b) => a[0] - b[0])).to.deep.equal([
+        [40, 24],
+        [120, 36],
+        [220, 18],
+      ]);
+    });
+
     it("image-base64-not-printed: annotation and wait failures don't print the value", async function () {
       for (const all of [false, true]) {
         const { errors } = await geometry.resolveAnnotationRects({
@@ -774,5 +798,104 @@ describe("elementImage matching", function () {
       expect(result.description).to.match(/elementImage/);
       expect(typed, "nothing typed into the focused element").to.deep.equal([]);
     });
+  });
+});
+
+// ---- What a fixture can't express, because a spec can't assert that a step fails.
+describe("elementImage in real browsers", function () {
+  this.timeout(300000);
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const file = (name) => path.join(here, "server", "public", name);
+  const url = "http://localhost:8092/find-image.html";
+  const failing = {
+    "image-color-hue: a file doesn't find its shape in another hue": {
+      find: { selector: "#tinted", elementImage: { path: file("find-image-save.svg"), color: "#ff7800" }, timeout: 0 },
+    },
+    "image-color-hue: a file doesn't find its shape in a clearly different shade": {
+      find: { selector: "#tinted", elementImage: { path: file("find-image-save.svg"), color: "#0a2a50" }, timeout: 0 },
+    },
+    "image-file-one-color: a black file doesn't find a white icon": {
+      find: { selector: "#dark", elementImage: file("find-image-gear.svg"), timeout: 0 },
+    },
+    "image-file-multicolor: a recolored multi-color file doesn't match": {
+      find: { elementImage: { base64: "__DISC__" }, timeout: 0 },
+    },
+    "image-on-screen-only: an icon below the fold isn't found": {
+      find: { elementImage: file("find-image-far.svg"), timeout: 0 },
+    },
+    "image-combined: an image outside the other criteria isn't found": {
+      find: { selector: "#tinted", elementImage: file("find-image-check.svg"), timeout: 0 },
+    },
+    "image-missing-file: a missing file fails": {
+      find: { elementImage: file("find-image-does-not-exist.svg") },
+    },
+    "image-color-one-color-only: color fails on an opaque reference": {
+      find: { elementImage: { path: file("find-image-chart.png"), color: "#112233" } },
+    },
+  };
+  let contexts;
+
+  before(async function () {
+    const { runTests } = await import("../dist/core/index.js");
+    const disc = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1a5fb4"/><path d="M18 33l10 10 18-22" fill="none" stroke="#ffffff" stroke-width="7"/></svg>`
+    ).toString("base64");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "find-image-browsers-"));
+    const input = path.join(dir, "negatives.spec.json");
+    fs.writeFileSync(
+      input,
+      JSON.stringify({
+        tests: Object.entries(failing).map(([testId, step]) => ({
+          testId,
+          steps: [{ goTo: url }, JSON.parse(JSON.stringify(step).replace("__DISC__", disc))],
+        })),
+      })
+    );
+    try {
+      const result = await runTests({
+        input,
+        output: dir,
+        logLevel: "silent",
+        telemetry: { send: false },
+        detectSteps: false,
+        runOn: [
+          {
+            platforms: ["windows", "mac", "linux"],
+            browsers: [
+              { name: "chrome", headless: true },
+              { name: "firefox", headless: true },
+            ],
+          },
+        ],
+      });
+      contexts = result.specs[0].tests.flatMap((test) =>
+        test.contexts.map((context) => ({ testId: test.testId, context }))
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  for (const name of Object.keys(failing)) {
+    it(name, function () {
+      const ran = contexts.filter((c) => c.testId === name && c.context.result !== "SKIPPED");
+      expect(ran, "a browser ran it").to.not.have.length(0);
+      for (const { context } of ran) {
+        const step = context.steps.at(-1);
+        expect(step.result, `${context.browser?.name}: ${step.resultDescription}`).to.equal("FAIL");
+        expect(step.resultDescription).to.not.include("base64,");
+      }
+    });
+  }
+
+  it("image-miss-message: a miss in a browser gives the color on the page", function () {
+    const name = "image-color-hue: a file doesn't find its shape in another hue";
+    const ran = contexts.filter((c) => c.testId === name && c.context.result !== "SKIPPED");
+    for (const { context } of ran) {
+      const message = context.steps.at(-1).resultDescription;
+      expect(message).to.match(/shape matched/);
+      expect(message).to.include("#ff7800");
+      expect(message).to.match(/#1[0-9a-f]5[0-9a-f]b[0-9a-f]/);
+    }
   });
 });
