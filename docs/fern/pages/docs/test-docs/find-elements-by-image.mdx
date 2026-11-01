@@ -16,7 +16,7 @@ Make sure you have the following:
 - A test that runs in Chrome or Firefox on a desktop.
 - A page with the target you want to find. The examples below use a local page.
 
-{/* cite image-auto-install */}
+{/* cite image-auto-install image-auto-install-proof */}
 Doc Detective installs the image matcher, `@appium/opencv`, the first time a run needs it.
 
 ## Step 1: Choose a reference image
@@ -45,7 +45,7 @@ For anything else, crop a reference from a screenshot with a `screenshot` step. 
 }
 ```
 
-{/* cite image-file-formats */}
+{/* cite image-file-formats image-file-formats-proof */}
 A reference can be a PNG, JPEG, or SVG.
 
 ## Step 2: Find it
@@ -76,10 +76,10 @@ Name the reference in `elementImage`:
 {/* step {"stepId":"find-by-image-guide-find-chart","description":"Find the chart by its cropped reference","find":{"elementImage":"./.dd-output/chart.png"}} */}
 {/* test end */}
 
-{/* cite image-field-forms */}
+{/* cite image-field-forms image-field-forms-proof */}
 `elementImage` takes a path, or an object with either a `path` or a `base64` value, and an optional `threshold` and `color`.
 
-{/* cite image-path-relative */}
+{/* cite image-path-relative image-path-relative-proof */}
 A relative path resolves the way every other path in a spec does, against the spec file unless you've set `relativePathBase` to `cwd`.
 
 To keep a small reference inside the spec, give its bytes as base64:
@@ -88,7 +88,7 @@ To keep a small reference inside the spec, give its bytes as base64:
 { "find": { "elementImage": { "base64": "iVBORw0KGgoAAAANSUhEUgAA..." } } }
 ```
 
-{/* cite image-base64 */}
+{/* cite image-base64 image-base64-proof */}
 The `base64` value works with or without a `data:image/png;base64,` prefix.
 
 {/* cite image-base64-not-printed */}
@@ -103,26 +103,26 @@ Doc Detective always matches on both shape and color. What's in the reference de
 {/* cite image-file-one-color */}
 **A transparent file in one color** matches its shape and its color, on any background. A dark gray file finds a dark gray icon on a white page or a tinted toolbar, and a white file finds a white icon on a dark toolbar. A red file doesn't find a blue icon with the same shape.
 
-{/* cite image-file-multicolor */}
+{/* cite image-file-multicolor image-file-multicolor-proof */}
 **A transparent file in several colors** matches its colors and shape on any background, so a green check and a red cross in the same disc stay distinct, and a blue disc doesn't match a green one.
 
 {/* cite image-file-any-size */}
 A transparent file doesn't need to be the size it's displayed at. Doc Detective tries a one-color file at its own size, then every whole size from 12 to 64 pixels tall. It tries a multi-color file at its own size, then at 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, and 64 pixels. The best score wins.
 
-{/* cite image-svg-rendered */}
+{/* cite image-svg-rendered image-svg-rendered-proof */}
 An SVG is rendered fresh at each size, so thin strokes stay sharp. A PNG is resized, so use one at least as tall as the icon is on the page.
 
-{/* cite image-opaque-exact */}
+{/* cite image-opaque-exact image-opaque-exact-proof */}
 **A reference with no transparency,** such as a crop from a screenshot, matches its colors and its background. An icon cropped from a white page won't match the same icon on a dark toolbar, or in a different color.
 
-{/* cite image-rescale */}
+{/* cite image-rescale image-rescale-proof */}
 If it doesn't match at its own size, Doc Detective tries it at the sizes a capture from a standard or high-density display would have. A crop from a 2× screen therefore works on a 1× screen, and the other way round.
 
 ### Match an icon set's files
 
 Most icon sets, such as Lucide, Feather, and Heroicons, draw in `currentColor`, which has no color until a page sets one. Doc Detective renders a file like that in black.
 
-{/* cite image-color-field */}
+{/* cite image-color-field image-color-field-proof */}
 If the icon is another color on the page, give that color in `color`, as a six-digit hex value:
 
 ```json
@@ -131,7 +131,7 @@ If the icon is another color on the page, give that color in `color`, as a six-d
 
 Use the color on screen. An icon with `opacity` looks lighter than the color its CSS names.
 
-{/* cite image-color-one-color-only */}
+{/* cite image-color-one-color-only image-color-one-color-only-proof */}
 `color` works only with a transparent file in one color. With any other reference, the step fails and says so.
 
 ### How close a color has to be
@@ -146,28 +146,28 @@ Browsers draw strokes thinner than about 1.5 pixels lighter than a file predicts
 
 Every field that accepts `elementText` also accepts `elementImage`.
 
-{/* cite image-click-center */}
+{/* cite image-click-center image-click-center-proof */}
 [`click`](/docs/actions/click), and `click` inside `find`, press the center of the match. Every `button` value and `duration` work.
 
-{/* cite image-moveto */}
+{/* cite image-moveto image-moveto-proof */}
 `moveTo` in `find` moves the cursor to the center of the match.
 
-{/* cite image-type-focuses */}
+{/* cite image-type-focuses image-type-focuses-proof */}
 [`type`](/docs/actions/type) with `elementImage` clicks the center of the match, then types.
 
-{/* cite image-drag */}
+{/* cite image-drag image-drag-proof */}
 [`dragAndDrop`](/docs/actions/draganddrop) accepts `elementImage` on `source`, `target`, or both, and either end can use other criteria instead. The drag presses at the center of one end and releases at the center of the other, using pointer input only.
 
-{/* cite image-crop */}
+{/* cite image-crop image-crop-proof */}
 [`screenshot`](/docs/actions/screenshot) `crop` with `elementImage` crops to the match plus any `padding`. It doesn't scroll first, because the match is already on screen.
 
 {/* cite image-annotation-target */}
 An [annotation](/docs/test-docs/annotate-screenshots) `target` with `elementImage` marks the match. With `all: true`, it marks every match, which is useful for blurring every copy of a logo.
 
-{/* cite image-wait */}
+{/* cite image-wait image-wait-proof */}
 `find` in a `waitUntil` condition, on [`goTo`](/docs/actions/goto) and [`type`](/docs/actions/type), waits for the image to appear.
 
-{/* cite image-combined */}
+{/* cite image-combined image-combined-proof */}
 When you combine `elementImage` with other criteria, the match has to lie inside an element that meets them. Use this to choose between identical images:
 
 ```json
@@ -178,19 +178,19 @@ When you combine `elementImage` with other criteria, the match has to lie inside
 
 Doc Detective takes a screenshot of the surface and scores the reference at every location, for shape and for color. The lower of the two is the location's score, so a perfect shape in the wrong color still scores low. A score of 1 means a perfect match.
 
-{/* cite image-default-threshold */}
+{/* cite image-default-threshold image-default-threshold-proof */}
 A location counts as a match when its score reaches `threshold`, which defaults to 0.9 and accepts values above 0, up to 1.
 
-{/* cite image-on-screen-only */}
+{/* cite image-on-screen-only image-on-screen-only-proof */}
 Matching sees only what's on screen, and it doesn't scroll. Scroll to the target first if it might be off screen.
 
-{/* cite image-retries-until-timeout */}
+{/* cite image-retries-until-timeout image-retries-until-timeout-proof */}
 `find` keeps looking until it finds a match or `timeout` runs out, which is 5000 milliseconds by default. With `timeout: 0`, it checks once.
 
 {/* cite image-first-match */}
 When several places match within 0.01 of the best score, the topmost wins, then the leftmost.
 
-{/* cite image-outputs */}
+{/* cite image-outputs image-outputs-proof */}
 After a match, `outputs.element.location` and `outputs.element.size` describe the match in CSS pixels relative to the viewport, and `outputs.element.matchScore` holds its score. The other `outputs.element` fields are `null`, because a match has no DOM element behind it.
 
 ## Which references work across browsers
@@ -238,10 +238,10 @@ For an icon file, thin strokes score lower in these situations:
 - The page overrides the icon's stroke width. Use a file with the same stroke width as the page.
 - The file is a small PNG that was enlarged. Use an SVG, or a larger PNG.
 
-{/* cite image-missing-file */}
+{/* cite image-missing-file image-missing-file-proof */}
 A reference that's missing or isn't an image, including an invalid `base64` value, fails the step immediately, with no waiting.
 
-{/* cite image-uniform-reference */}
+{/* cite image-uniform-reference image-uniform-reference-proof */}
 A single-color reference with no transparency fails the step, because it would match any area of that color.
 
 {/* cite image-oversized-reference */}
@@ -249,8 +249,8 @@ A reference larger than the surface fails the step, and the message gives both s
 
 ## Limits
 
-{/* cite image-browser-only */}
+{/* cite image-browser-only image-browser-only-proof */}
 `elementImage` works on browser surfaces only. On an [app surface](/docs/test-docs/native-apps/windows), the step fails and says so.
 
-{/* cite image-no-mobile */}
+{/* cite image-no-mobile image-no-mobile-proof */}
 On a browser running on a mobile device, the step also fails and says so.
