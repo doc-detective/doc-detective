@@ -214,6 +214,11 @@
                         "required": [
                           "elementAria"
                         ]
+                      },
+                      {
+                        "required": [
+                          "elementImage"
+                        ]
                       }
                     ],
                     "properties": {
@@ -253,6 +258,9 @@
                         "additionalProperties": {
                           "type": ["boolean", "number", "string"]
                         }
+                      },
+                      "elementImage": {
+                        "$ref": "elementImage_v3.schema.json#"
                       },
                       "elementAria": {
                         "type": "string",
