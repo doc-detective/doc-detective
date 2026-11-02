@@ -666,6 +666,24 @@ describe("elementImage matching", function () {
       expect(await found.element.getLocation()).to.deep.equal({ x: 40, y: 50 });
     });
 
+    it("image-combined: one replaced element doesn't discard the others, even with timeout 0", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = fakeDriver(shot, { dom: { x: 20, y: 30, width: 80, height: 80 } });
+      const [element] = await driver.$$();
+      driver.$$ = async () => [element, { ...element }];
+      const execute = driver.execute;
+      let reads = 0;
+      driver.execute = async (fn, ...args) => {
+        if (!String(fn).includes("getBoundingClientRect")) return execute(fn, ...args);
+        if (++reads === 1) throw new Error("stale element reference");
+        return { x: 20, y: 30, width: 80, height: 80 };
+      };
+      const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.error).to.equal(null);
+      expect(await found.element.getLocation()).to.deep.equal({ x: 40, y: 50 });
+    });
+
     it("image-miss-message: names the score, its parts, where it was, the threshold, and the display scale", async function () {
       const shot = await page({ width: 200, height: 150, density: 2, items: [{ svg: icon(GEAR, "#1a5fb4", 48), x: 80, y: 40 }] });
       const driver = fakeDriver(shot, { viewport: { width: 200, height: 150 } });
