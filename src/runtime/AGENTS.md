@@ -61,7 +61,8 @@ heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.
 `opencv-bindings` is an Emscripten module whose `then` calls back with the module itself. Returning
 it from an async function, or awaiting it, resolves the promise with the thenable again, forever. It
 spins the microtask queue at 100% CPU, so timers never fire and mocha's timeout can't catch it. The
-log just stops. `loadOpenCv` deletes `then` before the module reaches a promise. Keep it that way for
+log just stops. `loadOpenCv` deletes `then` before the module reaches a promise. The delete lasts for the whole
+process, so anything else that loads `opencv-bindings` gets the module without `then`. Keep it that way for
 any Emscripten dep. Diagnostic: attach with `process._debugProcess(pid)` and pause; the stack is only
 `Module.then`.
 

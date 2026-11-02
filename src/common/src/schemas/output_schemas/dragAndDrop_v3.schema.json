@@ -114,6 +114,7 @@
                   "title": "Image path",
                   "type": "string",
                   "minLength": 1,
+                  "pattern": "\\S",
                   "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                 },
                 {
@@ -136,11 +137,13 @@
                     "path": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                     },
                     "base64": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                     },
                     "threshold": {
@@ -163,6 +166,7 @@
                     "title": "Image path",
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                   },
                   "object": {
@@ -185,11 +189,13 @@
                       "path": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                       },
                       "base64": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                       },
                       "threshold": {
@@ -344,6 +350,7 @@
                   "title": "Image path",
                   "type": "string",
                   "minLength": 1,
+                  "pattern": "\\S",
                   "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                 },
                 {
@@ -366,11 +373,13 @@
                     "path": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                     },
                     "base64": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                     },
                     "threshold": {
@@ -393,6 +402,7 @@
                     "title": "Image path",
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                   },
                   "object": {
@@ -415,11 +425,13 @@
                       "path": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                       },
                       "base64": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                       },
                       "threshold": {
@@ -734,6 +746,7 @@
                     "title": "Image path",
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                   },
                   {
@@ -756,11 +769,13 @@
                       "path": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                       },
                       "base64": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "\\S",
                         "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                       },
                       "threshold": {
@@ -783,6 +798,7 @@
                       "title": "Image path",
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                     },
                     "object": {
@@ -805,11 +821,13 @@
                         "path": {
                           "type": "string",
                           "minLength": 1,
+                          "pattern": "\\S",
                           "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                         },
                         "base64": {
                           "type": "string",
                           "minLength": 1,
+                          "pattern": "\\S",
                           "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                         },
                         "threshold": {
@@ -961,6 +979,7 @@
                 "title": "Image path",
                 "type": "string",
                 "minLength": 1,
+                "pattern": "\\S",
                 "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
               },
               {
@@ -983,11 +1002,13 @@
                   "path": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                   },
                   "base64": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                   },
                   "threshold": {
@@ -1010,6 +1031,7 @@
                   "title": "Image path",
                   "type": "string",
                   "minLength": 1,
+                  "pattern": "\\S",
                   "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                 },
                 "object": {
@@ -1032,11 +1054,13 @@
                     "path": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
                     },
                     "base64": {
                       "type": "string",
                       "minLength": 1,
+                      "pattern": "\\S",
                       "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
                     },
                     "threshold": {

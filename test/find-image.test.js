@@ -182,6 +182,26 @@ describe("elementImage matching", function () {
         process.removeListener("uncaughtException", exception);
       }
     });
+
+    it("image-load-retry: a failed load isn't kept, so a later step can load the matcher", async function () {
+      // A fresh copy of the module, because every other test shares one that's already loaded.
+      const fresh = await import(`../dist/core/tests/imageMatch.js?retry=${Date.now()}`);
+      // An unsafe cache path fails the install before anything downloads.
+      const failure = await fresh.loadOpenCv({ cacheDir: path.join(tmp, "bad;dir") }).catch((error) => error);
+      expect(failure.message).to.include("shell-metacharacter");
+      const cv = await fresh.loadOpenCv();
+      expect(cv.getBuildInformation).to.be.a("function");
+    });
+
+    it("image-matcher-error: an error while matching fails the step with a reason", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      for (const capture of [Buffer.from("short"), Buffer.alloc(2048, 65)]) {
+        const driver = { isMobile: false, takeScreenshot: async () => b64(capture), execute: async () => ({ width: 400 }) };
+        const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+        expect(found.element).to.equal(null);
+        expect(found.error).to.match(/^Couldn't match base64 reference: ./);
+      }
+    });
   });
 
   describe("reference forms", function () {

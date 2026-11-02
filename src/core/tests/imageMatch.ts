@@ -133,7 +133,11 @@ function loadOpenCv(ctx: { cacheDir?: string } = {}): Promise<any> {
           for (const listener of listeners[i]) process.on(event as any, listener as any);
         });
       }
-    })();
+    })().catch((error) => {
+      // Don't keep a failure, so that a later step can retry a failed install.
+      _cv = null;
+      throw error;
+    });
   }
   return _cv;
 }

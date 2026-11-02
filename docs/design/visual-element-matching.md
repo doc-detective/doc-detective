@@ -349,6 +349,12 @@ These describe behavior no user-facing page should promise, but that the impleme
 <!-- cite image-process-listeners image-process-listeners-proof -->
 Matching leaves the process's `unhandledRejection` and `uncaughtException` listeners as it found them.
 
+<!-- cite image-matcher-error image-matcher-error-proof -->
+An error while matching, such as a matcher that won't install or a capture it can't read, fails that step with the error's message.
+
+<!-- cite image-load-retry image-load-retry-proof -->
+A failed load of the matcher isn't kept, so a later step tries it again.
+
 <!-- cite image-needs-inferred image-needs-inferred-proof -->
 A run whose steps name `elementImage` adds `@appium/opencv`, `opencv-bindings`, and `sharp` to its inferred runtime needs,
 so they install during preflight rather than in the middle of a step.
@@ -401,6 +407,8 @@ Every claim, its proof, and the wave that builds it. Test names in
 | `image-uniform-reference` | find-image.test.js | 2 |
 | `image-oversized-reference` | find-image.test.js | 2 |
 | `image-process-listeners` | find-image.test.js | 2 |
+| `image-matcher-error` | find-image.test.js | 2 |
+| `image-load-retry` | find-image.test.js | 2 |
 | `image-timeout-overrun` | find-image.test.js | 2 |
 | `image-click-center` | fixture | 3 |
 | `image-click-hover` | find-image.test.js, fixture | 3 |

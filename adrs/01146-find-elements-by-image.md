@@ -71,6 +71,8 @@ it's on screen.
 14. A multi-color file compares its solid pixels, or its visible pixels when too few are solid. Sizes with too few of either are skipped.
 15. Sizes that mark one place compete on shape first, because a neighboring size can read a color close enough to pass.
 16. A one-color file whose transparency varies has a shape, even when nothing in it is fully opaque.
+17. An error while matching fails that step with its message. A throw would crash the context, and lose the report of every step in it.
+18. A failed load of the matcher isn't kept, so a later step tries it again.
 
 ### Consequences
 
