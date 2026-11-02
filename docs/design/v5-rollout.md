@@ -398,7 +398,7 @@ with the variable unset and with it set, a major on a prerelease channel, and a 
 
 ### Phase 1 exit gate
 
-Action v1.7 is on `v1`. A failing run on v1.7 against CLI 4 and against an RC build both produce results,
+Action v1.7 is on `v1`. A failing run on v1.7 against CLI 4 and against a local build of the flip both produce results,
 issue, and PR. Failure output shows a near match in a real run.
 
 ## Phase 2: release candidate
