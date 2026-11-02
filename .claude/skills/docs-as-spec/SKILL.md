@@ -18,7 +18,7 @@ Measure the content the feature is for, not whatever page is handy. Sample widel
 Write these, and nothing that implements them:
 
 - `docs/design/<slug>.md`: the internal spec. Status line, problem, measurements, decisions, deferred work.
-- The user-facing page under `docs/fern/pages/docs/`. Consult [docs/content-strategy/](../../../docs/content-strategy/) first, and record the page in the IA map.
+- The user-facing page under `docs/fern/pages/docs/`. Consult [docs/content-strategy/](../../../docs/content-strategy/) first, and record the page in the IA map. Write it in plain language: what a reader sees and does. Exact scores, color values, and constants go in the internal spec, even when a test found them. A plain sentence is still a checkable one.
 - `adrs/NNNNN-<slug>.md`: decisions and trade-offs, with `status: proposed`. List the claim IDs in *Confirmation*, or link to the table that does.
 
 Put a marker directly above each sentence a reader could check, with a blank line above the marker:
@@ -89,11 +89,11 @@ Spawn a fresh agent. Give it the spec path, the page path, and the code. Don't g
 
 Treat its report as leads. Reproduce each finding before acting on it: a failing test for a code fix, a real run for a changed sentence.
 
-For each failure, fix the code. If the spec is what's wrong, propose the changed sentence to the person who approved it, and wait. Never soften a sentence just to make it pass.
+For each failure, fix the code. If the spec is what's wrong, propose the changed sentence to the person who approved it, and wait. Propose what a reader should see on the page, in plain language, not a transcript of what the test measured. Never soften a sentence just to make it pass.
 
 ## 7. Pin
 
-Only for claims that held. Pin each one to its implementation and to its proof, using two entries on one marker:
+Only for claims that held. Commit the implementation and proofs first, because manni pins only committed lines. Pin each claim to its implementation and to its proof, using two entries on one marker:
 
 ```bash
 npx @hawkeyexl/manni cite add <page>:<line> <impl-file>:<lines> --id <claim-id> --marker
@@ -103,7 +103,7 @@ npx @hawkeyexl/manni cite add <page>:<line> <impl-file>:<lines> --id <claim-id> 
 npx @hawkeyexl/manni cite add <page>:<line> <proof-file>:<lines> --id <claim-id>-proof --marker
 ```
 
-The first command adds a marker line, so the sentence moves down one line for the second. Until manni's `cite add` adopts an existing marker, delete the placeholder marker first, because `--marker` refuses to run while one exists.
+`--marker` adopts a placeholder marker that's already there, and the second command joins it. With no marker yet, the first command adds a line, so the sentence moves down one for the second. This needs manni 4.28.0 or later. When a sentence also states a limit, add a proof of the limit to the same marker, such as `<claim-id>-limit-proof`.
 
 Cite the narrowest lines that decide the claim. A wide range goes stale on every nearby edit.
 
