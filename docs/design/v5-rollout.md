@@ -62,7 +62,7 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 |---|---|---|---|
 | All specs PASS, WARNING, or SKIPPED | 0 | 0 | 0 |
 | At least one spec FAIL | 0 | **1** | 0 |
-| No specs found | 0 | **2** | 0 |
+| No specs found (subject to open decision 2) | 0 | **2** | 0 |
 | Invalid config or crash | 1 | **2** | 2 |
 
 - `WARNING` and `SKIPPED` never fail a run, matching `shouldFailRun` (`src/core/utils.ts:1167`).
@@ -378,6 +378,9 @@ exempt. Another sandbox dry run gave:
 | `docs:` with a `BREAKING CHANGE:` footer | Release fails before anything publishes |
 | The same commit, with `ALLOW_MAJOR_RELEASE=true` | `5.0.0` |
 | `git revert` of that commit | `4.41.6`, so main can release again |
+
+Put the check in a small script, and cover it red to green in `test/release-config.test.js`. Test a major
+with the variable unset and with it set, a major on a prerelease channel, and a non-major.
 
 ### 1.6 Docs and communications
 
