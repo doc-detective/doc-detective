@@ -37,9 +37,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-45066cf3acebf85241f306ad0e4938aabe267956548d9943337c39cca8b294fb
       source:
         file: src/common/src/schemas/src_schemas/elementImage_v3.schema.json
-        lines: 5-59
-        integrity: sha256-7a8260016d245a0413c10d15373101dcb57c49ecfafd6abf4cc8e4a735a29adb
-        commit-sha: 28afb9de5924d33267e6eb200236f9951d3acd5f
+        lines: 5-69
+        integrity: sha256-f4db5638aa728885bef5f39167502979bf19874d4aead0bb9526da38b74a184f
+        commit-sha: ede6863f5f9b0e881f77c54c026f345219af4d2e
     - id: image-field-forms-proof
       claim:
         integrity: sha256-45066cf3acebf85241f306ad0e4938aabe267956548d9943337c39cca8b294fb
