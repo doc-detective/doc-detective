@@ -578,3 +578,24 @@ redirects:
     destination: /reference/schemas/config
   - source: /docs/references/schemas/:slug
     destination: /reference/schemas/:slug
+  # Renamed or camelCase .html URLs from older READMEs. The pattern above also
+  # forwards /docs/references/schemas/<name>.html here. Lowercase .html names
+  # already resolve.
+  - source: /reference/schemas/checkLink.html
+    destination: /reference/schemas/checklink
+  - source: /reference/schemas/goTo.html
+    destination: /reference/schemas/goto
+  - source: /reference/schemas/httpRequest.html
+    destination: /reference/schemas/httprequest
+  - source: /reference/schemas/runShell.html
+    destination: /reference/schemas/runshell
+  - source: /reference/schemas/saveScreenshot.html
+    destination: /reference/schemas/screenshot
+  - source: /reference/schemas/setVariables.html
+    destination: /reference/schemas/loadvariables
+  - source: /reference/schemas/startRecording.html
+    destination: /reference/schemas/record
+  - source: /reference/schemas/stopRecording.html
+    destination: /reference/schemas/stoprecord
+  - source: /reference/schemas/typeKeys.html
+    destination: /reference/schemas/type
