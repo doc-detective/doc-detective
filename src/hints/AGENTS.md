@@ -59,7 +59,7 @@ to ignore the entire feature.
     "+ find: { elementText: \"Sign in\", elementAria: \"Sign in to your account\" }",
     "```",
     "",
-    "More: [doc-detective.com/docs/find](https://doc-detective.com/docs/references/schemas/find)",
+    "More: [find](https://docs.doc-detective.com/docs/actions/find)",
   ].join("\n"),
   when: (ctx) => ctx.failedCount > 0 && ctx.usedSelectorOnlyFinds,
 }
@@ -197,9 +197,11 @@ Style:
   tutorial.
 - **Prefer linking the docs** when there's a relevant page that
   expands on the hint. Add a markdown link to
-  `doc-detective.com/docs/...` at the end of the body so the user
-  knows where to read more. For hints whose advice IS the entire
-  payload (`enableDebugLog`, `setOutputDir`, `addJsonReporterForCi`),
+  `docs.doc-detective.com/...` at the end of the body so the user
+  knows where to read more. Copy the URL from the live page: the bare
+  `doc-detective.com` host drops the path, and some nav sections double
+  their slug (`/reference/reference/cli/install`). For hints whose advice
+  IS the entire payload (`enableDebugLog`, `setOutputDir`, `addJsonReporterForCi`),
   one flag or one config field, no further nuance), skipping the
   link is fine.
 - **No headings.** The hint is already prefixed with `💡 Hint:`.

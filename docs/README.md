@@ -35,7 +35,7 @@ You can also [see existing issues or create a new one](https://github.com/doc-de
 Doc Detective tests its own documentation! Learn about our testing approach:
 
 - **Run tests**: `npm run test`
-- **Write tests**: See our [Testing Guide](https://doc-detective.com/docs/contribute/docs/testing)
+- **Write tests**: See our [Testing Guide](https://docs.doc-detective.com/contribute/contribute/testing)
 - **Test files**: Look for `.spec.json` files throughout the docs
 
 ## Questions or ideas?
