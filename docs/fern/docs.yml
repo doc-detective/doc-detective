@@ -478,20 +478,20 @@ redirects:
   - source: /docs/get-started/integrations
     destination: /docs/test-docs/integrations
   - source: /docs/get-started/self-healing
-    destination: /ai/self-healing
+    destination: /ai/ai-agents/self-healing
   - source: /docs/get-started/resources
-    destination: /resources
+    destination: /support/support/resources
   # Agent tools → AI & Agents pillar
   - source: /docs/agent-tools/overview
-    destination: /ai/overview
+    destination: /ai/ai-agents/overview
   - source: /docs/agent-tools/claude-code
-    destination: /ai/claude-code
+    destination: /ai/ai-agents/claude-code
   - source: /docs/agent-tools/copilot-cli
-    destination: /ai/copilot-cli
+    destination: /ai/ai-agents/copilot-cli
   - source: /docs/agent-tools/gemini-cli
-    destination: /ai/gemini-cli
+    destination: /ai/ai-agents/gemini-cli
   - source: /docs/agent-tools/other-assistants
-    destination: /ai/other-assistants
+    destination: /ai/ai-agents/other-assistants
   # Tutorials tab dissolved into tracks
   - source: /tutorials
     destination: /docs/test-docs/overview
@@ -505,29 +505,97 @@ redirects:
     destination: /docs/ci/set-up-environment
   # Contribute → own tab (explicit; Fern redirects match literal paths)
   - source: /docs/contribute/contribute-to-the-docs
-    destination: /contribute/index
+    destination: /contribute/contribute/index
   - source: /docs/contribute/quick-start
-    destination: /contribute/quick-start
+    destination: /contribute/contribute/quick-start
   - source: /docs/contribute/standard-contributions
-    destination: /contribute/standard-contributions
+    destination: /contribute/contribute/standard-contributions
   - source: /docs/contribute/substantial-contributions
-    destination: /contribute/substantial-contributions
+    destination: /contribute/contribute/substantial-contributions
   - source: /docs/contribute/local-development
-    destination: /contribute/local-development
+    destination: /contribute/contribute/local-development
   - source: /docs/contribute/review-process
-    destination: /contribute/review-process
+    destination: /contribute/contribute/review-process
   - source: /docs/contribute/testing
-    destination: /contribute/testing
+    destination: /contribute/contribute/testing
   - source: /docs/contribute/how-to
-    destination: /contribute/how-to
+    destination: /contribute/contribute/content-templates/how-to
   - source: /docs/contribute/tutorial
-    destination: /contribute/tutorial
+    destination: /contribute/contribute/content-templates/tutorial
   - source: /docs/contribute/reference
-    destination: /contribute/reference
+    destination: /contribute/contribute/content-templates/reference
   - source: /docs/contribute/feature
-    destination: /contribute/feature
+    destination: /contribute/contribute/content-templates/feature
   - source: /docs/contribute/troubleshooting
-    destination: /contribute/troubleshooting
+    destination: /contribute/contribute/content-templates/troubleshooting
   # Legal → Support
   - source: /docs/legal/privacy-policy-companion-app
-    destination: /legal/privacy-policy-companion
+    destination: /support/support/legal/privacy-policy-companion
+  # Older paths published in the README, samples, and CLI hints
+  - source: /docs/get-started/intro
+    destination: /docs/get-started/introduction
+  - source: /docs/get-started/tests
+    destination: /docs/get-started/how-testing-works
+  - source: /docs/get-started/configuration
+    destination: /reference/schemas/config
+  - source: /docs/get-started/config/contexts
+    destination: /docs/test-docs/platforms-and-browsers
+  - source: /docs/integrations/ai-agents
+    destination: /ai/ai-agents/overview
+  - source: /docs/contribute/docs/testing
+    destination: /contribute/contribute/testing
+  - source: /reference/cli/install
+    destination: /reference/reference/cli/install
+  # Action slugs are now lowercase, so a :slug pattern can't map these
+  - source: /docs/get-started/actions/checkLink
+    destination: /docs/actions/checklink
+  - source: /docs/get-started/actions/click
+    destination: /docs/actions/click
+  - source: /docs/get-started/actions/find
+    destination: /docs/actions/find
+  - source: /docs/get-started/actions/goTo
+    destination: /docs/actions/goto
+  - source: /docs/get-started/actions/httpRequest
+    destination: /docs/actions/httprequest
+  - source: /docs/get-started/actions/loadVariables
+    destination: /docs/actions/loadvariables
+  - source: /docs/get-started/actions/record
+    destination: /docs/actions/record
+  - source: /docs/get-started/actions/runCode
+    destination: /docs/actions/runcode
+  - source: /docs/get-started/actions/runShell
+    destination: /docs/actions/runshell
+  - source: /docs/get-started/actions/screenshot
+    destination: /docs/actions/screenshot
+  - source: /docs/get-started/actions/stopRecord
+    destination: /docs/actions/stoprecord
+  - source: /docs/get-started/actions/type
+    destination: /docs/actions/type
+  - source: /docs/get-started/actions/wait
+    destination: /docs/actions/wait
+  # Schema slugs are unchanged, so a pattern covers them. Literal entry first.
+  - source: /docs/references/schemas/config.html
+    destination: /reference/schemas/config
+  - source: /docs/references/schemas/:slug
+    destination: /reference/schemas/:slug
+  # Renamed or camelCase .html URLs from older READMEs. The pattern above also
+  # forwards /docs/references/schemas/<name>.html here. Lowercase .html names
+  # already resolve.
+  - source: /reference/schemas/checkLink.html
+    destination: /reference/schemas/checklink
+  - source: /reference/schemas/goTo.html
+    destination: /reference/schemas/goto
+  - source: /reference/schemas/httpRequest.html
+    destination: /reference/schemas/httprequest
+  - source: /reference/schemas/runShell.html
+    destination: /reference/schemas/runshell
+  - source: /reference/schemas/saveScreenshot.html
+    destination: /reference/schemas/screenshot
+  - source: /reference/schemas/setVariables.html
+    destination: /reference/schemas/loadvariables
+  - source: /reference/schemas/startRecording.html
+    destination: /reference/schemas/record
+  - source: /reference/schemas/stopRecording.html
+    destination: /reference/schemas/stoprecord
+  - source: /reference/schemas/typeKeys.html
+    destination: /reference/schemas/type

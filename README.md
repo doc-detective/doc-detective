@@ -93,7 +93,7 @@ By default, Doc Detective scans the current directory for valid tests, but you c
 npx doc-detective --input doc-content-inline-tests.md
 ```
 
-To customize your test, file type, and directory options, create a `.doc-detective.json` [config](https://doc-detective.com/docs/references/schemas/config.html) file. If a `.doc-detective.json` file exists in the directory when you run the comment, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
+To customize your test, file type, and directory options, create a `.doc-detective.json` [config](https://docs.doc-detective.com/reference/schemas/config) file. If a `.doc-detective.json` file exists in the directory when you run the comment, Doc Detective loads the config. Otherwise, you can specify a config path with the `--config` argument.
 
 ```bash
 npx doc-detective --config .doc-detective.json
@@ -114,22 +114,22 @@ You can find test and config samples in the [samples](https://github.com/doc-det
 ## Concepts
 
 - **Test specification**: A group of tests to run in one or more contexts. Conceptually parallel to a document.
-- [**Test**](https://doc-detective.com/docs/get-started/tests): A sequence of steps to perform. Conceptually parallel to a procedure.
+- [**Test**](https://docs.doc-detective.com/docs/get-started/how-testing-works): A sequence of steps to perform. Conceptually parallel to a procedure.
 - **Step**: A portion of a test that includes a single action. Conceptually parallel to a step in a procedure.
 - **Action**: The task a performed in a step. Doc Detective supports a variety of actions:
-  - [**checkLink**](https://doc-detective.com/docs/get-started/actions/checkLink): Check if a URL returns an acceptable status code from a GET request.
-  - [**click**](https://doc-detective.com/docs/get-started/actions/click): Click an element with the specified text or selector.
-  - [**find**](https://doc-detective.com/docs/get-started/actions/find): Check if an element exists with the specified text or selector and optionally interact with it.
-  - [**goTo**](https://doc-detective.com/docs/get-started/actions/goTo): Navigate to a specified URL.
-  - [**httpRequest**](https://doc-detective.com/docs/get-started/actions/httpRequest): Perform a generic HTTP request, for example to an API.
-  - [**runCode**](https://doc-detective.com/docs/get-started/actions/runCode): Execute code, such as how it appears in a code block.
-  - [**runShell**](https://doc-detective.com/docs/get-started/actions/runShell): Perform a native shell command.
-  - [**screenshot**](https://doc-detective.com/docs/get-started/actions/screenshot): Take a screenshot in PNG format.
-  - [**loadVariables**](https://doc-detective.com/docs/get-started/actions/loadVariables): Load environment variables from a `.env` file.
-  - [**record**](https://doc-detective.com/docs/get-started/actions/record) and [**stopRecord**](https://doc-detective.com/docs/get-started/actions/stopRecord): Capture a video of test execution.
-  - [**type**](https://doc-detective.com/docs/get-started/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
-  - [**wait**](https://doc-detective.com/docs/get-started/actions/wait): Pause before performing the next action.
-- [**Context**](https://doc-detective.com/docs/get-started/config/contexts): A combination of platform and application to run tests on.
+  - [**checkLink**](https://docs.doc-detective.com/docs/actions/checklink): Check if a URL returns an acceptable status code from a GET request.
+  - [**click**](https://docs.doc-detective.com/docs/actions/click): Click an element with the specified text or selector.
+  - [**find**](https://docs.doc-detective.com/docs/actions/find): Check if an element exists with the specified text or selector and optionally interact with it.
+  - [**goTo**](https://docs.doc-detective.com/docs/actions/goto): Navigate to a specified URL.
+  - [**httpRequest**](https://docs.doc-detective.com/docs/actions/httprequest): Perform a generic HTTP request, for example to an API.
+  - [**runCode**](https://docs.doc-detective.com/docs/actions/runcode): Execute code, such as how it appears in a code block.
+  - [**runShell**](https://docs.doc-detective.com/docs/actions/runshell): Perform a native shell command.
+  - [**screenshot**](https://docs.doc-detective.com/docs/actions/screenshot): Take a screenshot in PNG format.
+  - [**loadVariables**](https://docs.doc-detective.com/docs/actions/loadvariables): Load environment variables from a `.env` file.
+  - [**record**](https://docs.doc-detective.com/docs/actions/record) and [**stopRecord**](https://docs.doc-detective.com/docs/actions/stoprecord): Capture a video of test execution.
+  - [**type**](https://docs.doc-detective.com/docs/actions/type): Type keys. To type special keys, begin and end the string with `$` and use the special key’s enum. For example, to type the Escape key, enter `$ESCAPE$`.
+  - [**wait**](https://docs.doc-detective.com/docs/actions/wait): Pause before performing the next action.
+- [**Context**](https://docs.doc-detective.com/docs/test-docs/platforms-and-browsers): A combination of platform and application to run tests on.
 
 ## Develop
 
