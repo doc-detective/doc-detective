@@ -518,15 +518,18 @@ async function findElementByCriteria({
     const scope = named.length
       ? async () => {
           const found = await findElementByCriteria({ ...others, timeout: 0, driver, all: true });
-          return Promise.all(
+          const regions = await Promise.all(
             (found.elements ?? []).map((element: any) =>
-              driver.execute((el: any) => {
-                const bounds = el.getBoundingClientRect();
-                return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height };
-              }, element)
+              driver
+                .execute((el: any) => {
+                  const bounds = el.getBoundingClientRect();
+                  return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height };
+                }, element)
+                // An element the page just replaced isn't there this look, as with DOM criteria.
+                .catch(() => null)
             )
-            // An element the page just replaced isn't there this look. Try again, as DOM criteria do.
-          ).catch(() => []);
+          );
+          return regions.filter(Boolean);
         }
       : undefined;
     const found = await findByImage({ elementImage, driver, timeout, all, scope, cacheDir });
