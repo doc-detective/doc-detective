@@ -12,6 +12,9 @@
       #late-slot { width: 40px; height: 40px; }
       #zone { width: 96px; height: 48px; background: #f3f4f6; align-items: center; justify-content: center; }
       #lift { padding: 8px; background: #f3f4f6; }
+      #hover-icon { color: #1a5fb4; }
+      #hover-icon:hover { color: #e01b24; }
+      #html5-item, #html5-zone { padding: 8px; background: #f3f4f6; }
       #far { margin-top: 3000px; }
       #status span { margin-right: 16px; }
     </style>
@@ -21,6 +24,7 @@
       <span id="log">none</span>
       <span id="hover">none</span>
       <span id="echo">none</span>
+      <span id="html5-log">none</span>
     </div>
 
     <div id="toolbar" class="bar">
@@ -50,6 +54,7 @@
           <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3" />
         </svg>
       </button>
+      <span id="outline-dark"><img src="find-image-outline.svg" width="24" height="24" alt="" /></span>
     </div>
 
     <div id="gears" class="bar">
@@ -72,6 +77,17 @@
       <span id="lift" data-drag>Lift</span>
       <span id="target"><img src="find-image-target.svg" width="40" height="40" alt="" draggable="false" /></span>
       <span id="zone">Zone</span>
+    </div>
+
+    <div id="edge-cases" class="bar">
+      <button id="hover-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l9 16H3z" /><path d="M12 10v4" />
+        </svg>
+      </button>
+      <span id="html5-item" draggable="true"><img src="find-image-drag5.svg" width="28" height="28" alt="" draggable="false" /></span>
+      <span id="html5-zone">Drop here <img src="find-image-target5.svg" width="28" height="28" alt="" /></span>
+      <span id="outline-light"><img src="find-image-outline.svg" width="24" height="24" alt="" /></span>
     </div>
 
     <div id="far"><img src="find-image-far.svg" width="32" height="32" alt="" /></div>
@@ -97,6 +113,14 @@
       });
       document.getElementById("query").addEventListener("input", (e) => {
         document.getElementById("echo").textContent = e.target.value;
+      });
+
+      const html5Zone = document.getElementById("html5-zone");
+      document.getElementById("html5-item").addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", "item"));
+      html5Zone.addEventListener("dragover", (e) => e.preventDefault());
+      html5Zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        document.getElementById("html5-log").textContent = "dropped";
       });
 
       const chart = document.getElementById("sample-chart").getContext("2d");
