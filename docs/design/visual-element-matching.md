@@ -350,7 +350,7 @@ These describe behavior no user-facing page should promise, but that the impleme
 Matching leaves the process's `unhandledRejection` and `uncaughtException` listeners as it found them.
 
 <!-- cite image-matcher-error image-matcher-error-proof -->
-An error while matching, such as a matcher that won't install or a capture it can't read, fails that step with the error's message.
+An error while matching, such as a failed install or an unreadable capture, fails that step with the error's message.
 
 <!-- cite image-load-retry image-load-retry-proof -->
 A failed load of the matcher isn't kept, so a later step tries it again.
