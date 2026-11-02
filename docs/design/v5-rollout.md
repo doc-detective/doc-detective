@@ -497,7 +497,9 @@ When support ends, run `npm deprecate` on 4.x so installs say so.
 This release exists to tell v4 users that v5 is out and how to move. It waits two days after GA so that
 nobody is sent to 5.0 during the riskiest window.
 
-1. Cut `4.x` from the last 4.x tag and push it.
+1. Cut `4.x` from the last 4.x tag and push it. Every push there can publish to npm, and the `main` ruleset
+   doesn't cover it, so add a ruleset that blocks deletion and force-pushes. Don't require PRs unless the
+   release token can bypass the rule, because `@semantic-release/git` pushes its release commit there.
 2. On `4.x`, land `fix(cli): point 4.x users to Doc Detective 5`, red to green. The release publishes the
    next patch to `release-4.x` and skips promotion.
 3. Dispatch `docker-build.yml` with that version and `publish_latest_tags: false`, so a current 4.x image
