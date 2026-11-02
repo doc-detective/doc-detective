@@ -57,6 +57,15 @@
           }
         },
         {
+          "stepId": "find-image-threshold-multicolor",
+          "find": {
+            "elementImage": {
+              "path": "../../server/public/find-image-check.svg",
+              "threshold": 0.97
+            }
+          }
+        },
+        {
           "stepId": "find-image-base64",
           "find": {
             "elementImage": {
@@ -487,6 +496,81 @@
           "stepId": "find-image-after-scroll",
           "find": {
             "elementImage": "../../server/public/find-image-far.svg"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-hover-away",
+      "description": "Moving the cursor off an icon that recolors on hover lets a later find see it. image-click-hover.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "click": {
+            "elementImage": "../../server/public/find-image-hover.svg"
+          }
+        },
+        {
+          "stepId": "find-image-move-away",
+          "find": {
+            "selector": "#status",
+            "moveTo": true
+          }
+        },
+        {
+          "find": {
+            "elementImage": "../../server/public/find-image-hover.svg"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-html5-drag-by-selector",
+      "description": "A selector drops an HTML5 draggable in every browser, where a drag by image can't. image-drag-firefox.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-html5-drag",
+          "dragAndDrop": {
+            "source": {
+              "selector": "#html5-item"
+            },
+            "target": {
+              "selector": "#html5-zone"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#html5-log",
+            "elementText": "dropped"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-image-multicolor-outline",
+      "description": "A thin multi-color outline matches on light and dark backgrounds alike. image-file-multicolor.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-image.html"
+        },
+        {
+          "stepId": "find-image-outline-light",
+          "find": {
+            "selector": "#outline-light",
+            "elementImage": "../../server/public/find-image-outline.svg"
+          }
+        },
+        {
+          "stepId": "find-image-outline-dark",
+          "find": {
+            "selector": "#outline-dark",
+            "elementImage": "../../server/public/find-image-outline.svg"
           }
         }
       ]

@@ -47,13 +47,20 @@ const THIN_INK_SHARE = 0.75;
 const THICK_DRIFT = 0.05;
 const THIN_DRIFT = 0.25;
 
+// A multi-color file compares its solid pixels, because edge pixels blend with whatever
+// is behind them on the page. Without enough solid ones, a thin line's edges have to
+// count instead. With fewer than MIN_MASK_PIXELS of those, a score means nothing.
+const SOLID_ALPHA = 230;
+const VISIBLE_ALPHA = 128;
+const MIN_MASK_PIXELS = 16;
+
 // A file's pixels are its one color if they stay this close to their average.
 const ONE_COLOR_SPREAD = 24;
 
 type Rgb = [number, number, number];
 type Kind = "opaque" | "oneColor" | "multiColor";
 
-type Render = { rgba: Uint8Array; width: number; height: number };
+type Render = { rgba: Uint8Array; width: number; height: number; maskAlpha: number; maskPixels: number };
 
 type ImageReference = {
   label: string;
@@ -221,12 +228,16 @@ function classify(rgba: Uint8Array, width: number, height: number): { kind: Kind
   let clear = 0;
   let sum = 0;
   let seeThrough = false;
+  let alphaLow = 255;
+  let alphaHigh = 0;
   const total = [0, 0, 0];
   const low = [255, 255, 255];
   const high = [0, 0, 0];
   for (let i = 0; i < n; i++) {
     const a = rgba[i * 4 + 3];
     if (a < 255) seeThrough = true;
+    if (a < alphaLow) alphaLow = a;
+    if (a > alphaHigh) alphaHigh = a;
     if (a < 128) clear++;
     if (a === 0) continue;
     sum += a;
@@ -245,7 +256,8 @@ function classify(rgba: Uint8Array, width: number, height: number): { kind: Kind
   if (!seeThrough || (clear < n * 0.01 && !uniform)) {
     return { kind: "opaque", average, flat: uniform };
   }
-  if (clear === n) return { kind: "oneColor", average, flat: true };
+  // A thin line can be see-through everywhere, but it still has a shape. An even veil doesn't.
+  if (alphaHigh - alphaLow <= 1) return { kind: "oneColor", average, flat: true };
   let spread = 0;
   for (let i = 0; i < n; i++) {
     if (rgba[i * 4 + 3] < 128) continue;
@@ -287,7 +299,20 @@ async function renderAt(reference: ImageReference, height: number, ctx: { cacheD
     pipeline = pipeline.resize({ height });
   }
   const { data, info } = await pipeline.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const render = { rgba: data, width: info.width, height: info.height };
+  let solid = 0;
+  let visible = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] >= SOLID_ALPHA) solid++;
+    if (data[i] >= VISIBLE_ALPHA) visible++;
+  }
+  const useSolid = solid >= MIN_MASK_PIXELS;
+  const render = {
+    rgba: data,
+    width: info.width,
+    height: info.height,
+    maskAlpha: useSolid ? SOLID_ALPHA : VISIBLE_ALPHA,
+    maskPixels: useSolid ? solid : visible,
+  };
   reference.renders.set(height, render);
   return render;
 }
@@ -430,7 +455,7 @@ function scoreColor(
       x,
       y,
       render,
-      reference.kind === "opaque" ? () => true : (alpha) => alpha >= 230
+      reference.kind === "opaque" ? () => true : (alpha) => alpha >= render.maskAlpha
     );
     color = scored.score;
     fileColor = scored.fileColor;
@@ -458,6 +483,9 @@ function scanSize(
   render: Render,
   regions: { x: number; y: number; width: number; height: number }[] | null
 ): { candidates: Candidate[]; best: Candidate | null; closest: Candidate | null } {
+  if (reference.kind === "multiColor" && render.maskPixels < MIN_MASK_PIXELS) {
+    return { candidates: [], best: null, closest: null };
+  }
   const { width: tw, height: th, rgba } = render;
   const n = tw * th;
   const isOneColor = reference.kind === "oneColor";
@@ -472,7 +500,7 @@ function scanSize(
       template.data[i * 3 + 1] = rgba[q + 1];
       template.data[i * 3 + 2] = rgba[q + 2];
     }
-    if (mask) mask.data[i] = rgba[q + 3] > 127 ? 255 : 0;
+    if (mask) mask.data[i] = rgba[q + 3] >= render.maskAlpha ? 255 : 0;
   }
   const result = new cv.Mat();
   try {
@@ -524,16 +552,17 @@ function scanSize(
   }
 }
 
-// Several locations can mark one place, including at different sizes. Keep the
-// strongest of each.
-function suppressOverlaps(candidates: Candidate[]): Candidate[] {
+// Several locations can mark one place, including at different sizes. The strongest
+// shape speaks for each place, because that's the size whose color reading is right.
+// A neighboring size can read a color close enough to pass, when the place's isn't.
+function onePerPlace(candidates: Candidate[]): Candidate[] {
   const centerIn = (a: Candidate, b: Candidate) => {
     const x = a.x + a.width / 2;
     const y = a.y + a.height / 2;
     return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height;
   };
   const kept: Candidate[] = [];
-  for (const c of [...candidates].sort((a, b) => b.score - a.score)) {
+  for (const c of [...candidates].sort((a, b) => b.shape - a.shape || b.score - a.score)) {
     if (!kept.some((k) => centerIn(c, k) || centerIn(k, c))) kept.push(c);
   }
   return kept;
@@ -587,33 +616,30 @@ async function matchImageOnce({
     : null;
 
   try {
-    let best: Candidate | null = null;
     let closest: Candidate | null = null;
-    let matches: Candidate[] = [];
+    const seen: Candidate[] = [];
     let fits = false;
     for (const h of sweepHeights(ref, scale)) {
       const render = await renderAt(ref, h, ctx);
       if (render.width > width || render.height > height) continue;
       fits = true;
       const scan = scanSize(cv, surface, ref, render, deviceRegions);
-      const passed = scan.candidates.filter((c) => c.score >= ref.threshold);
-      if (all) matches.push(...passed);
-      if (scan.best && (!best || scan.best.score > best.score)) {
-        best = scan.best;
-        if (!all) matches = passed;
-      }
-      // Across sizes a miss goes by shape, not score. A neighboring size can score
-      // higher while misreading the color, and people copy that color into `color`.
+      seen.push(...scan.candidates);
+      // Across sizes a miss goes by shape too, because people copy its color into `color`.
       if (scan.closest && (!closest || scan.closest.shape > closest.shape)) closest = scan.closest;
-      if (!all && best && best.score >= STOP_SCORE) break;
+      if (!all && scan.best && scan.best.score >= STOP_SCORE) break;
     }
     if (!fits) {
       throw new ImageReferenceError(
         `The image reference ${ref.label} is ${ref.width}×${ref.height} pixels, larger than the ${width}×${height} surface.`
       );
     }
-    const kept = suppressOverlaps(matches);
+    let kept = onePerPlace(seen).filter((c) => c.score >= ref.threshold);
     const top = kept.length ? Math.max(...kept.map((c) => c.score)) : 0;
+    if (!all) {
+      const winner = kept.find((c) => c.score === top);
+      kept = kept.filter((c) => c.height === winner?.height);
+    }
     const first = kept
       .filter((c) => c.score >= top - 0.01)
       .sort((a, b) => a.y - b.y || a.x - b.x)[0];
