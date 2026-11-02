@@ -128,12 +128,18 @@ author's proofs test what the author thought of, and that's the gap this step ex
 **Review changed the design before any code existed.** The approver rejected shape-only matching in a comment on
 one sentence. That reversal cost a spec revision and some measurements, not a rewrite.
 
+**A finding isn't page copy.** The first changed sentences carried test results onto the page, with hex values and RGB
+distances, and the approver sent them back. The page now says what a reader sees and does. The spec keeps a table of
+what each plain phrase means exactly, so the claims stay checkable. Verification also added four warnings, for 44 claims.
+
 **Look at real output.** A passing fixture hid the `all` bug until someone looked at the blurred screenshot. A step
 that produces an artifact needs its artifact opened at least once.
 
 **Pinning is cheap at pin time.** 30 claims took about 10 minutes with a throwaway script that found each range by
-pattern rather than by line number. Deleting each placeholder marker first is still needed until manni's `cite add`
-adopts one.
+pattern rather than by line number. Since manni 4.28.0, `cite add` adopts a placeholder marker, so nothing has to be deleted first.
+
+**One round of verification may not be enough.** A second independent check, run on the first round's fixes, found 5 of 20 claims
+failing and 3 warnings missing. Three of those were code bugs. Run another round after a round that changes the code.
 
 **What verification costs falls on the spec's sentences.** Most of the 12 failures needed a code fix, but 7 were
 sentences that said more than the code does. Examples include "every", "any", and "the best score wins". Sentences that can be tested

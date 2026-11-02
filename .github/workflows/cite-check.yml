@@ -19,4 +19,4 @@ jobs:
 
       - name: Check that pinned claims still match their code
         # Pinned so that a new manni rule can't fail an unrelated PR.
-        run: npx --yes @hawkeyexl/manni@4.27.2 cite check
+        run: npx --yes @hawkeyexl/manni@4.28.0 cite check
