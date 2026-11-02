@@ -363,6 +363,16 @@
                   ]
                 }
               ],
+              "examples": [
+                {
+                  "path": "icons/save.svg",
+                  "threshold": 0.95,
+                  "color": "#1a5fb4"
+                },
+                {
+                  "base64": "iVBORw0KGgo="
+                }
+              ],
               "properties": {
                 "path": {
                   "type": "string",
@@ -413,6 +423,16 @@
                     "required": [
                       "base64"
                     ]
+                  }
+                ],
+                "examples": [
+                  {
+                    "path": "icons/save.svg",
+                    "threshold": 0.95,
+                    "color": "#1a5fb4"
+                  },
+                  {
+                    "base64": "iVBORw0KGgo="
                   }
                 ],
                 "properties": {
@@ -847,6 +867,16 @@
                     ]
                   }
                 ],
+                "examples": [
+                  {
+                    "path": "icons/save.svg",
+                    "threshold": 0.95,
+                    "color": "#1a5fb4"
+                  },
+                  {
+                    "base64": "iVBORw0KGgo="
+                  }
+                ],
                 "properties": {
                   "path": {
                     "type": "string",
@@ -897,6 +927,16 @@
                       "required": [
                         "base64"
                       ]
+                    }
+                  ],
+                  "examples": [
+                    {
+                      "path": "icons/save.svg",
+                      "threshold": 0.95,
+                      "color": "#1a5fb4"
+                    },
+                    {
+                      "base64": "iVBORw0KGgo="
                     }
                   ],
                   "properties": {
