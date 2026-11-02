@@ -332,12 +332,15 @@ Log a warning just before the exit check at `src/cli.ts:275` when a run has fail
 Action v1.7 has its own notice. Detecting an unset value needs the default move in the
 [implementation note](#the-500-contract), so that change lands in Phase 1.
 
+Runs with no failures stay quiet on purpose, so a fully passing suite gets no warning here. The change
+doesn't break it, and the announcement and the final 4.x update still reach it.
+
 ### 1.4 Action v1.7.0
 
 See [v1.7.0](#v170-the-last-planned-v1-release-phase-1). Then update this repository's pins at
 `.github/workflows/promote.yml:124` and `.github/workflows/fixtures.yml:342`.
 
-### 1.5 Release wiring
+### 1.5 Release wiring and major-release guard
 
 The final 4.x update has to publish after main has moved to 5.x, which today's pipeline can't do. Land
 this as a `ci:` commit on main, so the branch inherits it when it's cut at GA:
@@ -446,9 +449,9 @@ feedback from December 23 to January 2.
 
 ### Phase 2 exit gate
 
-Two weeks pass with no open blocker. All contract table rows are covered by tests, and every Action
-compatibility row has been exercised. The migration guide has been followed end to end on a real
-repository.
+Two weeks of calendar time pass with no open blocker. All contract table rows are covered by tests, and
+every Action compatibility row has been exercised. The migration guide has been followed end to end on a
+real repository. If a blocker is open on January 8, GA moves a week, to January 19.
 
 ## Phase 3: GA runbook
 
@@ -457,8 +460,8 @@ Target: Tuesday, January 12, 2027. In order:
 1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
 2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge the `feat/v5-rc` PR with
    `gh pr merge --merge`, not the web UI. A squash could drop the footer and cut a patch instead.
-   On the merge, semantic-release cuts 5.0.0 to `staging-5.0.0`, which
-   publishes the docs. Unset the variable afterward.
+   On the merge, semantic-release cuts 5.0.0 to `staging-5.0.0`, which publishes the docs. Unset the
+   variable once `npm view doc-detective@5.0.0 version` returns, so a failed release can still be re-run.
 3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
    it runs Docker `latest`.
 4. Publish Action v2.0.0, which moves `v2`.
@@ -514,6 +517,8 @@ Upgrade:
 Guide: https://docs.doc-detective.com/docs/ci/upgrade-to-v5
 ```
 
+Fill in the date from open decision 5 before drafting this release's PR.
+
 When `GITHUB_ACTIONS` is `true`, also print `::notice title=Doc Detective 5 is available::`, followed by
 the first line and the guide link. The runner reads workflow commands from stdout, so it appears on the
 run page at any Action version (read, not run). A passing job gives nobody a reason to open its log.
@@ -529,7 +534,7 @@ The Action reads results from the file it passes to `--output`, so the extra std
 | CI with a lockfile or exact pin | Their next bump, including Dependabot and Renovate PRs. Until then, only the announcement |
 | Docker on an exact tag | Their next bump. There's no floating `4` tag. Until then, only the announcement |
 | Action v1.6.1 or earlier on default `latest` | Already on CLI 5, so the shim's `::notice` points them to `@v2` |
-| Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them for eight weeks |
+| Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them only if a test failed during the eight weeks |
 
 ### Phase 3 exit gate
 
@@ -672,6 +677,7 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 | Solo-maintainer capacity | Dates slip | Phases 0 and 1 are valuable alone. Only the flip is date-bound, and it can move |
 | Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes only after step 3 |
 | A 5.0 regression reaches Online at promotion | Hosted runs break with no soak | Accepted by decision 5. Entrypoint test, fix forward, and `RUNNER_IMAGE` as the emergency override |
+| A fully passing suite gets no 1.3 notice | Its first failure after GA is a surprise | The change doesn't break it. The announcement and final 4.x update reach it, and the guide explains the new exit |
 | Pinned CI users miss the final 4.x update | They find out about v5 late | They aren't broken, since a pin holds. The announcement and dependency-bump PRs reach them |
 
 ## Open decisions
