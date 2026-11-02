@@ -467,8 +467,8 @@ Target: Tuesday, January 12, 2027. In order:
 
 1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
 2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge the `feat/v5-rc` PR with
-   `gh pr merge --merge`, not the web UI. A squash could drop the footer and cut a patch instead.
-   On the merge, semantic-release cuts 5.0.0 to `staging-5.0.0`, which publishes the docs. Unset the
+   `gh pr merge --merge`, not the web UI. A squash could drop the footer, and then no 5.0.0 gets cut.
+   On the merge, semantic-release cuts 5.0.0 to the `staging-5.0.0` dist-tag, which publishes the docs. Unset the
    variable once `npm view doc-detective@5.0.0 version` returns, so a failed release can still be re-run.
 3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
    it runs Docker `latest`.
