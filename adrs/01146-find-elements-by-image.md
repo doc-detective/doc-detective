@@ -44,7 +44,7 @@ The measurements behind this decision are in
 ## Decision Outcome
 
 Chosen option: **A**, because icons and graphics then match in both browsers measured, solid or thin outline. They match
-on any background when the reference is an icon file. Color always counts, and the real icon outranks a lookalike when
+on any lighter or darker background when the reference is an icon file. Color always counts, and the real icon outranks a lookalike when
 it's on screen.
 
 1. `elementImage` is a new criterion, taking a path, or an object with either `path` or `base64` and an
@@ -55,28 +55,48 @@ it's on screen.
    one-color file finds its shape by silhouette. It finds its color by fitting the capture against its alpha, where hue counts
    in full and lightness past a tolerance. `color` sets a one-color file's color, for files drawn in `currentColor`.
 3. A transparent one-color file is tried at every whole size from 12 to 64 CSS pixels. A multi-color file is tried at 13
-   common sizes. The best score wins, at device resolution. An SVG is rendered at each size, and a raster is resized. An
-   opaque reference that misses at its own size is retried at 1× and 2× sizes.
+   common sizes. A score of 0.98 ends the search, and otherwise the best score wins, at device resolution. An SVG is rendered
+   at each size, and a raster is resized. An opaque reference is also tried at the sizes a 1×, 1.25×, 1.5×, or 2× capture would give.
 4. The default threshold is 0.9.
 5. A match stands in for an element, and its center is where every pointer action lands.
 6. Other criteria scope the search to their elements.
-7. A single-color reference and a reference larger than the surface fail with their own message, because
+7. A single-color reference and a reference too large at every size fail with their own message.
    OpenCV scores both as a false 1.0.
 8. Matching restores the process listeners that `@appium/opencv` and `opencv-bindings` change.
 9. App surfaces and mobile browsers fail with a message saying so.
+10. Looks repeat until one starts at or after the timeout, and a look at an unchanged page skips matching.
+11. `all` collects every place that passes, at every size tried.
+12. A miss reports the place with the strongest shape across sizes, because the highest score can misread the color.
+13. The user-facing page uses plain language, and the design doc holds the exact numbers.
+14. A multi-color file compares its solid pixels, or its visible pixels when too few are solid. Sizes with too few of either are skipped.
+15. Sizes that mark one place compete on shape first, because a neighboring size can read a color close enough to pass.
+16. A one-color file whose transparency varies has a shape, even when nothing in it is fully opaque.
 
 ### Consequences
 
-* Good, because an author can name an icon's own file. It matches on any background, at any whole size from 12 to
-  64 pixels, in Chrome and Firefox.
+* Good, because an author can name an icon's own file. It matches on any lighter or darker background, at any whole size
+  from 12 to 64 pixels, in Chrome and Firefox.
 * Good, because a red icon doesn't match a blue one with the same shape, whichever kind of reference finds it.
 * Good, because canvases and custom-drawn interfaces become testable without coordinates.
 * Good, because the dependencies are WebAssembly, so they add no native binary to install: 8 MB on top of
   `sharp`, which is already a heavy dep.
 * Bad, because a file drawn in `currentColor`, which most icon sets ship, renders black, so an icon in another color needs
   `color` on the step.
-* Bad, because shades about 32 levels apart or closer still match. Thin strokes tolerate more lightness drift, since
-  browsers draw them up to 28% lighter than a file predicts.
+* Bad, because colors within about 44 RGB levels still match, even across hues. Thin strokes tolerate more lightness drift,
+  since browsers draw them up to 28% lighter than a file predicts.
+* Bad, because thin strokes also mean `threshold` can't separate a lighter shade from a darker one.
+* Bad, because an icon that stands out mainly by color rather than lightness can be missed, as shape is compared in grayscale. A
+  second pass in color would double the time a miss takes.
+* Bad, because a multi-color file with very thin lines can miss at small sizes, as blended edges can't give a true color. A miss was
+  chosen over ignoring color.
+* Bad, because a multi-color file is tried at only 13 sizes, so it can miss at others, or report a neighboring size.
+* Bad, because a crop with thin lines or text can miss on a screen with a higher density than the one it came from.
+* Bad, because a recolored multi-color file fails as a low shape score, and its message names no colors.
+* Bad, because a lookalike scoring 0.98 or above at an earlier size beats the real icon at a later one.
+* Bad, because `all` leaves a copy unmarked in another color or at a size it doesn't try, and the step still passes. Redaction needs checking.
+* Bad, because a step can run past `timeout`, since a look under way isn't interrupted. One look takes up to 30 s at 3840×2160.
+* Bad, because a `click` leaves the cursor on the icon, so an icon that recolors on hover fails a later `find`.
+* Bad, because a drag by image uses pointer input only, so in Firefox it can pass without dropping an HTML5 `draggable`.
 * Bad, because content with text falls below the default threshold across browsers, so it needs `elementText`,
   a lower step-level `threshold`, or a reference per browser.
 * Bad, because a near-identical element can pass when the real target is gone, such as a chart with one bar
@@ -85,8 +105,8 @@ it's on screen.
   `+` in text for `plus`. Authors checking a state raise `threshold` on that step, and authors matching a simple glyph scope the search.
 * Bad, because thin icons at fractional sizes or under a sub-pixel `transform` can fall below the default. Depending on the set, 33–98%
   of outlines reach the default. Those steps need a lower `threshold`.
-* Bad, because trying many sizes costs a one-color file up to 1.6 s per attempt at 1× and 4.5 s at 2×. It costs a
-  multi-color one 3 s at 1×. Both costs apply when nothing matches.
+* Bad, because trying many sizes is slow when nothing matches. One look costs a one-color file 1.5 s at 1200×800, and 5.4 s at
+  2400×1600. It costs a multi-color one 3.1 s and 11.9 s.
 * Bad, because matching sees only what's on screen, unlike the DOM criteria.
 * Bad, because the mask path calls `opencv-bindings` directly, as `@appium/opencv` doesn't expose a mask.
 * Neutral, because a sharp upgrade that diverges from `@appium/opencv`'s exact pin installs a second copy
@@ -143,8 +163,7 @@ implementation and proofs with `manni cite`, and CI runs `manni cite check`. The
 ### I. Threshold 0.95
 
 * Good, because with the icon gone, something else on its page passes for 0–10% of the icons measured, against 0–23% at 0.9.
-* Bad, because the real icon is chosen 94–100% of the time rather than 98–100%. Multi-color files that score 0.91 stop
-  matching. Only 19–86% of icons at fractional sizes or under a sub-pixel `transform` reach 0.95.
+* Bad, because the real icon is chosen 94–100% of the time rather than 98–100%. Only 19–86% of icons at fractional sizes or under a sub-pixel `transform` reach 0.95.
 
 ### J. Shape only for a one-color file
 
