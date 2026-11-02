@@ -183,6 +183,19 @@ describe("elementImage matching", function () {
       }
     });
 
+    it("image-process-listeners: a one-time listener stays one-time", async function () {
+      // A fresh copy of the module, because every other test shares one that's already loaded.
+      const fresh = await import(`../dist/core/tests/imageMatch.js?once=${Date.now()}`);
+      const rejection = () => {};
+      process.once("unhandledRejection", rejection);
+      try {
+        await fresh.loadOpenCv();
+        expect(process.rawListeners("unhandledRejection").some((l) => l.listener === rejection)).to.equal(true);
+      } finally {
+        process.removeListener("unhandledRejection", rejection);
+      }
+    });
+
     it("image-load-retry: a failed load isn't kept, so a later step can load the matcher", async function () {
       // A fresh copy of the module, because every other test shares one that's already loaded.
       const fresh = await import(`../dist/core/tests/imageMatch.js?retry=${Date.now()}`);
