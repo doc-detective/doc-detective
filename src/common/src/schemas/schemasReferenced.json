@@ -1986,7 +1986,8 @@
         "schemas": {
           "path": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "object": {
             "type": "object",
@@ -2006,11 +2007,13 @@
             "properties": {
               "path": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "base64": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "threshold": {
                 "type": "number",
@@ -9463,7 +9466,8 @@
         "schemas": {
           "path": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "object": {
             "type": "object",
@@ -9483,11 +9487,13 @@
             "properties": {
               "path": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "base64": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "threshold": {
                 "type": "number",

@@ -9,6 +9,7 @@ import {
   loadImageReference,
   matchImageOnce,
   missMessage,
+  referenceLabel,
 } from "./imageMatch.js";
 
 export { findByImage, isVisualMatch, visualRect, visualCenter, viewportCenter };
@@ -150,6 +151,8 @@ async function findByImage({
   } catch (error: any) {
     // A bad reference won't get better by waiting.
     if (error instanceof ImageReferenceError) return failed(error.message);
-    throw error;
+    // Anything else, such as a matcher that won't install, fails this step. A throw
+    // would crash the context and lose the report of every step in it.
+    return failed(`Couldn't match ${referenceLabel(elementImage)}: ${error?.message ?? error}`);
   }
 }
