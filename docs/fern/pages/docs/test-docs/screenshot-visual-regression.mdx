@@ -48,6 +48,12 @@ Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the max
 
 When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatch` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
 
+### Compare on machines that render at different sizes
+
+A reference image from one machine can have different dimensions than a new screenshot on another. This can happen after your CI provider updates its runner image. When the sizes differ, Doc Detective resizes the browser window to match the reference image, takes the screenshot again, and compares that one. The window returns to its original size when the step ends. The step's `$$resizedToReference` output records the resize: `from` is the size of the first screenshot, and `to` is the size of the reference image. Doc Detective doesn't resize for cropped screenshots or during a recording. It also doesn't resize when the context's `viewport` or `window` setting targets a different size than the reference image. Doc Detective treats that as a deliberate size change and compares the screenshot as taken. For the full list, see **Size mismatches** in the [`screenshot`](/docs/actions/screenshot) reference.
+
+Each resize costs a second screenshot. If `$$resizedToReference` shows up on every run in an environment that won't change back, refresh the reference image there with `"overwrite": "true"`.
+
 ### Reference images in cloud storage
 
 `path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference. It writes the new capture to `./doc-detective-runs/<run-timestamp>/` for inspection, and ignores `overwrite` because it never mutates remote storage:
@@ -82,6 +88,15 @@ Doc Detective refuses to fetch a reference image from a private, loopback, or li
 **Cause:** the SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
 
 **Solution:** host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
+
+### Screenshots still differ in size from the reference image after a resize
+
+**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it. The step logs a warning that includes `couldn't render at the reference's` and compares the first screenshot instead. That comparison can report drift. A headed browser window can't grow past the display, and no browser window can shrink below its minimum width.
+
+**Solution:**
+
+1. If the test runs in a headed browser, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) describes these size limits.
+2. If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `"overwrite": "true"`. Safari, for example, doesn't support headless mode.
 
 ## What's next
 
