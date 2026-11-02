@@ -3,7 +3,7 @@
 Status: **proposed** (2026-11-02). This plan turns the November 2026 project review into a release
 sequence across the CLI, the GitHub Action, Online, and agent-tools. Claims about today's behavior
 were checked against the code or a run of published `doc-detective@4.41.5`. Anything only read, not
-run, says so. Dates are proposals.
+run, says so. Dates are proposals, and line references are a snapshot that will drift.
 
 ## Summary
 
@@ -116,7 +116,7 @@ From `doc-detective/github-action` `src/index.ts`, `action.yml`, and open issues
 | v1.6.1 or earlier | 4.x | Exit 0, normal flow. Today's behavior |
 | v1.6.1 or earlier | 5.x, through default `latest` | Without the shim: job red, no results, issue, or PR. With the shim: exit 0, normal flow |
 | v1.7 | 4.x, the new default | Exit 0, normal flow |
-| v1.7 | 5.x, set explicitly | The Action doesn't pass `exit_on_fail` to the CLI. The shim makes the CLI exit 0, unless config sets `exitOnFail: true`. That exit 1 is tolerated. Normal flow, job stays green |
+| v1.7 | 5.x, set explicitly | The Action doesn't pass `exit_on_fail` to the CLI. The shim makes the CLI exit 0, so normal flow and the job stays green. If config sets `exitOnFail: true`, the CLI exits 1 and the job goes red after the results, issue, and PR steps, as that config asks |
 | v2.0 | 5.x, the new default | Passes `--no-exit-on-fail`, and the Action makes the one failure decision |
 
 ### v1.7.0, the last planned v1 release (Phase 1)
@@ -125,11 +125,12 @@ Moves the floating `v1` tag, so most users get it without a change.
 
 1. Merge the Dependabot majors in one PR, so the following tests run against the final API.
 2. Pass `ignoreReturnCode: true`, and delete any stale output file first. `loadResults` already
-   throws when the file is missing, so a real crash still fails the job. `exit_on_fail: true` keeps
-   failing the job through the existing `setFailed` (`src/index.ts:226-228`), which reads the results
-   and runs after the issue and PR steps. Add one rule: a non-zero exit with no failed specs fails the
-   job whatever the input says. In that case, something broke after the results were written. Test exit 1 with
-   `exit_on_fail` on and off, with and without failed specs.
+   throws when the file is missing, so a real crash still fails the job. v1.7 doesn't change whether a
+   job is red or green, only what happens first. A non-zero exit still fails the job whatever the input
+   says, now after the results, issue, and PR steps. `exit_on_fail: true` keeps failing the job through
+   the existing `setFailed` (`src/index.ts:226-228`), which reads the results. This matters because `v1`
+   floats: someone with `exitOnFail: true` in their config would otherwise go green with no change on
+   their side. Test exit 0 and exit 1 with `exit_on_fail` on and off, with and without failed specs.
 3. Change the `version` default from `latest` to `4`.
 4. Merge [#81](https://github.com/doc-detective/github-action/pull/81), the job summary.
 5. Cap `$RESULTS` to fit the issue limit and link to the run. This closes
@@ -262,7 +263,7 @@ cases.
 **Today:** I ran a page with an untested procedure and one external link. The link passed, and the page
 received `verified-by` and `last-verified`.
 
-**Change:** `applyVerifiedMarkers` (`src/core/utils.ts:2235`) and `applyBadgeAnchoredTests` declare a
+**Change:** `applyVerifiedMarkers` (`src/core/utils.ts:2234`) and `applyBadgeAnchoredTests` (`:2342`) declare a
 page only when its spec has a passing step beyond `checkLink` and `goTo`. Pages that declare their own
 entry keep working, since the author made that claim. Log why a page was skipped.
 
@@ -399,7 +400,9 @@ issue, and PR. Failure output shows a near match in a real run.
 
 ## Phase 2: release candidate
 
-**Branch:** `feat/v5-rc`, published as `5.0.0-v5-rc.N` on the `v5-rc` dist-tag.
+**Branch:** `feat/v5-rc`, published as `5.0.0-v5-rc.N` on the `v5-rc` dist-tag. `doc-detective-common`
+publishes at the same version and tag, because `scripts/publish-staged-release.js` handles both packages.
+The same applies to `release-4.x`.
 
 - `feat/v5` won't work. `v5` is a valid semver range (`>=5.0.0 <6.0.0-0`), and npm rejects ranges as
   dist-tags. `v5-rc` isn't one.
@@ -596,7 +599,7 @@ Online assumes v5 compatibility, so it has no rollout work beyond a dependency b
 
 ### agent-tools
 
-- 16 unversioned `npx doc-detective` calls will move at GA with no pin, so skills must describe a
+- Unversioned `npx doc-detective` calls, 16 as of this plan, will move at GA with no pin. Skills must describe a
   non-zero exit as normal for failing tests. Update `doc-detective-test` and its fix loop to read the
   results after a non-zero exit instead of treating it as a crash.
 - Update `doc-detective-init` and `doc-detective-project-bootstrap`, where `--exit-on-fail` is described as
