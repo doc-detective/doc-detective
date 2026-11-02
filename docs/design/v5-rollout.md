@@ -28,7 +28,7 @@ run, says so. Dates are proposals.
 | Phase | Window | What ships | Channel |
 |---|---|---|---|
 | 0. Safety | Nov 2 to Nov 15 | Secret masking, runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
-| 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, release wiring | CLI 4.x, Action v1.7 |
+| 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
 | 2. RC | Dec 14 to Jan 8 | The flip, Action v2 RC, migration guide | `doc-detective@v5-rc` |
 | 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update on Jan 14 | `@latest`, `@v2`, `release-4.x` |
 | 4. Build | Jan to Apr 2027 | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
@@ -71,6 +71,8 @@ groundwork), Linux native apps, real devices, and cloud device farms.
   exits 1 and still writes the results file.
 - An empty run fails because a mistyped `input` currently looks like success. It's the same gap
   `scripts/check-fixture-results.cjs` covers for this repository's own CI.
+- An empty folder, a missing path, and a page with no tests all count as empty. I ran each on today's
+  build. Each exited 0, logged "No tests detected.", and wrote `null` as its results.
 - Exit 2 means the run tested nothing. Callers treat an empty run and a crash as the same fatal setup
   error, so the shared code is deliberate. The log says which one happened.
 
@@ -109,7 +111,7 @@ From `doc-detective/github-action` `src/index.ts`, `action.yml`, and open issues
 
 ### Compatibility
 
-| Action | CLI | What happens when a test fails with `exit_on_fail: false` |
+| Action | CLI | What happens when a test fails with `exit_on_fail` false or unset |
 |---|---|---|
 | v1.6.1 or earlier | 4.x | Exit 0, normal flow. Today's behavior |
 | v1.6.1 or earlier | 5.x, through default `latest` | Without the shim: job red, no results, issue, or PR. With the shim: exit 0, normal flow |
@@ -170,14 +172,16 @@ Non-breaking changes in the same release:
 - Pass arguments as an array, so paths with spaces work.
 - Always pass `--no-exit-on-fail`, and move the decision into a pure `decideOutcome({ exitCode,
   results, exitOnFail })`, matching the style of `shouldSetUpAndroid`. Because that flag is always passed,
-  failed tests and empty runs arrive as exit 0, and `decideOutcome` finds them in `results`. They fail
-  unless `exit_on_fail` is `false`. Any non-zero exit or missing results file then means a crash, and
+  failed tests and empty runs arrive as exit 0, and `decideOutcome` finds them in `results`. A failure
+  is `summary.specs.fail` above 0, and an empty run is `results` being `null`. Both fail unless
+  `exit_on_fail` is `false`. Any non-zero exit or missing results file then means a crash, and
   fails regardless of the input.
 - Declare `results_path`, `summary_path`, `issue_url`, and `pull_request_url` as outputs.
 
 Verification, red to green in the Action repository:
 
-- A `decideOutcome` table test covering exit codes 0, 1, and 2 against `exit_on_fail` on and off.
+- A `decideOutcome` table test covering exit codes 0, 1, and 2 against `exit_on_fail` on and off. For
+  exit 0, cover results with failures, results without them, and `null`.
 - Tests for issue reuse, PR reuse, and base-branch resolution using mocked Octokit.
 - `test-current-release.yml` pointed at `v5-rc` during Phase 2 and `5` after GA.
 
@@ -402,7 +406,15 @@ issue, and PR. Failure output shows a near match in a real run.
 
 **Contents:**
 
-1. `feat(cli)!: fail the run when tests fail`, with a `BREAKING CHANGE:` footer. The footer is required.
+1. The flip, as a commit with this message. The footer is required, and it has to stay in history at
+   merge (see the [GA runbook](#phase-3-ga-runbook)):
+
+   ```text
+   feat(cli)!: fail the run when tests fail
+
+   BREAKING CHANGE: a failed test now fails the run with exit code 1.
+   ```
+
    `.releaserc.json` uses commit-analyzer's default preset, which doesn't read `!`. Run against this
    repository's config, `feat(cli)!:` alone returns no release, and adding the footer returns `major`.
    Build the change red to green using the "TDD cycle per flag" in `CLAUDE.md`:
@@ -429,7 +441,8 @@ gate on. Pin `doc-detective@4` if you can't move yet.
 
 **Soak:** This repository's fixtures and docs tests, the Action RC, and Promptless if willing. Also run
 agent-tools' test suite with `doc-detective@v5-rc` installed in its checkout. Its bare `npx doc-detective`
-calls then resolve to the RC, not `latest`.
+calls then resolve to the RC, not `latest`. The window spans the holidays, so expect little outside
+feedback from December 23 to January 2.
 
 ### Phase 2 exit gate
 
