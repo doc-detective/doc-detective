@@ -357,7 +357,8 @@ The last row means an early cut wouldn't block main. The two branches would then
 version, though, so the branch waits until GA.
 
 **Major-release guard.** The same commit adds a `verifyReleaseCmd` that fails a `major` on main unless
-`ALLOW_MAJOR_RELEASE` is `true`. Squash bodies never reach the commit-msg hook, and `release.yml` promotes
+`ALLOW_MAJOR_RELEASE` is `true`. It's a repository variable, not a secret, passed in `release.yml` from
+`vars.ALLOW_MAJOR_RELEASE`, and unset is the normal, locked state. Squash bodies never reach the commit-msg hook, and `release.yml` promotes
 to `@latest` on its own once the smoke test passes. A stray footer would otherwise reach users. The check
 reads the computed release type, so it covers every route a footer can take, and prerelease channels are
 exempt. Another sandbox dry run gave:
@@ -424,8 +425,9 @@ gate on. Pin `doc-detective@4` if you can't move yet.
 - No `BREAKING CHANGE:` footer on main before GA, including in squash bodies. semantic-release would
   cut 5.0.0 immediately. The guard in 1.5 is the backstop.
 
-**Soak:** This repository's fixtures and docs tests, the Action RC, agent-tools' test suite, and
-Promptless if willing.
+**Soak:** This repository's fixtures and docs tests, the Action RC, and Promptless if willing. Also run
+agent-tools' test suite with `doc-detective@v5-rc` installed in its checkout. Its bare `npx doc-detective`
+calls then resolve to the RC, not `latest`.
 
 ### Phase 2 exit gate
 
@@ -438,8 +440,9 @@ repository.
 Target: Tuesday, January 12, 2027. In order:
 
 1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
-2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge `feat/v5-rc` to main with a merge commit,
-   not a squash, so the footer stays in history. semantic-release cuts 5.0.0 to `staging-5.0.0`, which
+2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge the `feat/v5-rc` PR with
+   `gh pr merge --merge`, not the web UI. A squash could drop the footer and cut a patch instead.
+   On the merge, semantic-release cuts 5.0.0 to `staging-5.0.0`, which
    publishes the docs. Unset the variable afterward.
 3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
    it runs Docker `latest`.
@@ -574,7 +577,8 @@ Online assumes v5 compatibility, so it has no rollout work beyond a dependency b
 ### agent-tools
 
 - 16 unversioned `npx doc-detective` calls will move at GA with no pin, so skills must describe a
-  non-zero exit as normal for failing tests. Check `doc-detective-test`, including its fix loop.
+  non-zero exit as normal for failing tests. Update `doc-detective-test` and its fix loop to read the
+  results after a non-zero exit instead of treating it as a crash.
 - Update `doc-detective-init` and `doc-detective-project-bootstrap`, where `--exit-on-fail` is described as
   a `--ci` choice.
 - Update `doc-detective-install-github-action` to `@v2` and its `exit_on_fail` default.
