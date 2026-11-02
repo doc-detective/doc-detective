@@ -562,7 +562,7 @@ All additive and ordered by who's blocked and what later work depends on.
 | 5.1 | Login ([#307](https://github.com/doc-detective/doc-detective/issues/307)) | Wren, W1, W2 | `saveState` and `loadState` for cookies plus `localStorage`, building on `saveCookie` and `loadCookie`. A TOTP expression using `node:crypto`, with no new dependency. A documented `beforeAny` login pattern, and a stated limit for SSO |
 | 5.1 | File upload and iframes | Wren, W2 | Both block real UI procedures, and both sit near the login work |
 | 5.2 | Screenshot variants and reuse | Wren, W2, W3 | `locale`, `colorScheme`, `timezone`, and `deviceScaleFactor` on contexts. One generic `matrix` for user-defined dimensions, instead of a key per dimension. `include` for reusable steps |
-| 5.3 | `doc-detective audit` | Wren, W1 | Read-only: broken links, screenshots no test produces, untested procedures, and a rot ranking. Gives value before any test is written. Adds a coverage figure that verification can report. Replaces the `runCoverage` leftovers |
+| 5.3 | `doc-detective audit` | Wren, W1 | Read-only: broken links, screenshots no test produces, untested procedures, and a rot ranking. Gives value before any test is written. Adds the coverage figures in [coverage.md](coverage.md), which verification can report. Replaces the `runCoverage` leftovers |
 | 5.4 | Source fidelity and run history | Wren, Diego, Priya; X1 | Resolve includes and conrefs in detection. Persistent `runShell` sessions so a documented `cd` or `export` carries over. More `runCode` languages ([#200](https://github.com/doc-detective/doc-detective/issues/200)). Compare runs through the existing run folder |
 | 5.5 | Docs impact map | Priya, Wren; P1, W2 | Invert specs into an index from URL, selector, and endpoint to pages. `doc-detective impact --changed` reports affected pages. Also reports OpenAPI endpoints with no documented example |
 
@@ -701,5 +701,5 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
    it has to be settled before the final 4.x update's PR is drafted. It doesn't block GA.
-6. **What coverage measures.** Still being explored. Item 5.3 and verified answers both depend on the
-   definition, and it has to stay deterministic.
+6. **What coverage measures.** Proposed in [coverage.md](coverage.md): separate counts by kind, led by
+   procedure steps, with no model or combined score. Item 5.3 and verified answers both depend on it.
