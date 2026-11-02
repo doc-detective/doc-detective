@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolvePaths } from "../dist/core/files.js";
 import { loadHeavyDep } from "../dist/runtime/loader.js";
-import { setElementOutputs } from "../dist/core/tests/findStrategies.js";
+import { findElementByCriteria, setElementOutputs } from "../dist/core/tests/findStrategies.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -634,6 +634,23 @@ describe("elementImage matching", function () {
         scope: async () => [],
       });
       expect(nothing.element).to.equal(null);
+    });
+
+    it("image-combined: an element replaced during a look is retried, and doesn't fail the step", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = fakeDriver(shot, { dom: { x: 20, y: 30, width: 80, height: 80 } });
+      const execute = driver.execute;
+      let reads = 0;
+      driver.execute = async (fn, ...args) => {
+        if (!String(fn).includes("getBoundingClientRect")) return execute(fn, ...args);
+        if (++reads === 1) throw new Error("stale element reference");
+        return { x: 20, y: 30, width: 80, height: 80 };
+      };
+      const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 3000 });
+      expect(found.error).to.equal(null);
+      expect(reads).to.be.at.least(2);
+      expect(await found.element.getLocation()).to.deep.equal({ x: 40, y: 50 });
     });
 
     it("image-miss-message: names the score, its parts, where it was, the threshold, and the display scale", async function () {

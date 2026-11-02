@@ -525,7 +525,8 @@ async function findElementByCriteria({
                 return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height };
               }, element)
             )
-          );
+            // An element the page just replaced isn't there this look. Try again, as DOM criteria do.
+          ).catch(() => []);
         }
       : undefined;
     const found = await findByImage({ elementImage, driver, timeout, all, scope, cacheDir });

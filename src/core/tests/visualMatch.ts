@@ -137,7 +137,7 @@ async function findByImage({
           const { match, matches, best } = await matchImageOnce({ capture, reference, scale, regions, all, cacheDir });
           if (match) {
             const element = createVisualMatch(driver, match);
-            const elements = all ? matches.map((m) => (m === match ? element : createVisualMatch(driver, m))) : [element];
+            const elements = all ? matches.map((m) => createVisualMatch(driver, m)) : [element];
             return { element, elements, error: null };
           }
           miss = missMessage(reference, best, scale);
