@@ -112,27 +112,29 @@ async function getSharp(ctx: { cacheDir?: string } = {}): Promise<any> {
 
 // opencv-bindings aborts the process on any unhandled rejection, and adds an
 // uncaughtException handler. @appium/opencv's init then removes EVERY
-// unhandledRejection listener, including the runner's. Restore both once loaded.
+// unhandledRejection listener, including the runner's. Restore both after the init,
+// which is the only step that changes them, so a slow install can't lose a listener
+// added meanwhile. Raw listeners keep a `once` listener one-time.
 function loadOpenCv(ctx: { cacheDir?: string } = {}): Promise<any> {
   if (!_cv) {
     _cv = (async () => {
+      const appium = await loadHeavyDep<any>("@appium/opencv", { ctx });
       const events = ["unhandledRejection", "uncaughtException"] as const;
-      const listeners = events.map((event) => process.listeners(event as any));
+      const listeners = events.map((event) => process.rawListeners(event as any));
       try {
-        const appium = await loadHeavyDep<any>("@appium/opencv", { ctx });
         await appium.initOpenCv();
-        const bindings = await loadHeavyDep<any>("opencv-bindings", { ctx });
-        const cv = bindings.default ?? bindings;
-        // The module is a thenable that resolves to itself. Handing it to a promise
-        // spins the microtask queue forever, where no timeout can ever fire.
-        delete cv.then;
-        return cv;
       } finally {
         events.forEach((event, i) => {
           process.removeAllListeners(event);
           for (const listener of listeners[i]) process.on(event as any, listener as any);
         });
       }
+      const bindings = await loadHeavyDep<any>("opencv-bindings", { ctx });
+      const cv = bindings.default ?? bindings;
+      // The module is a thenable that resolves to itself. Handing it to a promise
+      // spins the microtask queue forever, where no timeout can ever fire.
+      delete cv.then;
+      return cv;
     })().catch((error) => {
       // Don't keep a failure, so that a later step can retry a failed install.
       _cv = null;
