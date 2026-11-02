@@ -1,6 +1,6 @@
 # Design: find elements by image
 
-Status: **pre-approved by hawkeyexl on 2026-11-01, revision 5**. This is the first change run
+Status: **pre-approved by hawkeyexl on 2026-11-01, revision 5, with the sentences changed by both rounds of verification approved by hawkeyexl**. This is the first change run
 through [docs as the spec](docs-as-spec-process.md). The user-facing half of the spec is
 [Find elements by image](../fern/pages/docs/test-docs/find-elements-by-image.mdx), and the decision
 record is [ADR 01146](../../adrs/01146-find-elements-by-image.md).
@@ -50,7 +50,7 @@ icons without changing their shapes:
 
 | Reference, against the same shape in another color | Reached 0.9 on correlation alone | Reached 0.9 with color counted, decisions 2–5 |
 |---|---|---|
-| One-color file | All, because a silhouette has no color | None with a different hue, only nearby shades |
+| One-color file | All, because a silhouette has no color | None of the 18, apart from nearby shades |
 | Opaque crop | 59%, 864 of 1,456 | 3%, 48 of 1,456, all nearby shades, and up to 4% on the thinnest strokes |
 | Multi-color file | 19%, 60 of 312 | 11%, 34 of 312, all nearby shades |
 
@@ -59,9 +59,54 @@ color at every stroke width and size measured. Multi-color files scored 0.98 or 
 reaching 0.9 in 99–100% of cases. In the whole-size sweep at 0.9, no real icon was lost to color, of 5,426. Graphics
 stayed at 0.98 or above, a paragraph at 0.97, and a heading at 0.99.
 
-"Nearby" means about 32 RGB levels apart or closer, such as `#e01b24` and `#c01c28`, or `#222222` and `#333333`. Thin strokes
-have one more allowance. Below about 1.5 pixels, browsers draw a stroke up to 28% lighter than a file predicts, but its hue
-stays within 2 levels. So a `#333333` file can also match `#555555` on a thin icon, but never a different hue.
+"Nearby" means within the 44 RGB levels the default threshold allows for hue, counting all three channels together, such as `#e01b24`
+and `#c01c28`, or `#222222` and `#333333`. Lightness gets a further allowance that grows with the icon's contrast against its
+background, as decision 4 describes. It's a distance rather than a rule about hue, so verification found matches across
+hues that the 18 colors had missed. `#1a5fb4` matched `#2a3fb4` at 0.923, and `#4a4a4a` matched `#4a724a` at 0.924. Thin strokes
+have a larger allowance. Below about 1.5 pixels, browsers draw a stroke up to 28% lighter than a file predicts, but its hue
+stays within 2 levels. So a `#333333` file against `#777777` scored 0.938 at a stroke of 1 pixel, and missed with 0.774 at 2 pixels.
+Against `#555555`, it's close enough at any thickness, with 0.908 for a 2-pixel stroke and 0.926 for a solid disc. The allowance
+means `threshold` can't separate those on very thin lines. A `#333333` file against a `#555555` ring at a stroke of 1 pixel scored
+1.000, even at a threshold of 0.99.
+
+**The second round of verification changed three results.** It compared the matcher before and after each fix on real Chrome and
+Firefox captures of 5 icon sets:
+
+| Case | Before | After |
+|---|---|---|
+| Real icons in their own color, 3,256 runs | 0 lost | 0 lost, 44 gained |
+| Black file on `#333333` | 33.0% pass | 3.4% |
+| `#1a5fb4` file on `#3584e4` | 19.3% | 3.4% |
+| `#333333` file on `#888888` | 5.7% | 0% |
+| `#333333` file on `#555555`, thick strokes | 97.7% | 94.3% |
+| Multi-color, own colors | 100%, lowest score 0.918 | 100%, lowest score 0.983 |
+| Multi-color, recolored | 26.5% | 23.5% |
+| Multi-color, other icons | 0% | 0% |
+
+Before the fixes, a wrong color could pass by matching at a neighboring size. A multi-color file's edge pixels also counted against
+it on light backgrounds.
+
+**Multi-color outlines depend on stroke.** On white, yellow, and dark backgrounds, in Chrome and Firefox, at 16, 20, 24, 32, and 48 pixels:
+
+| Stroke at 24 pixels | Reached 0.9, before the fixes | Reached 0.9, after |
+|---|---|---|
+| 2 | 18 of 30 | 30 of 30 |
+| 1.5 | 15 of 30 | 24 of 30 |
+| 1 | 18 of 30 | 12 of 30, at 32 pixels and up |
+| 0.75 | 30 of 30, mostly at a wrong 14-pixel size with color effectively ignored | 11 of 30 |
+
+Wrong icons and swapped colors passed 0 of 48 times, before and after. At sizes off the 13-size list, a disc passed 42 of 72 times, and
+an outline 16 of 66. A match there can report a neighboring size, such as 24 pixels for a 26-pixel icon.
+
+**A crop's density matters most for thin lines.** Chrome crops at 1×, 1.25×, 1.5×, and 2×, against every other density:
+
+| Reference | Toward a lower density | Toward a higher density |
+|---|---|---|
+| Canvas chart | 0.983–1.000 | 0.993–0.998 |
+| Solid icon | 0.999–1.000 | 0.969–0.981 |
+| Gear, 2-pixel stroke | 0.953–0.984 | 0.886–0.924 |
+| Ring, 1-pixel stroke | 0.904–0.951 | 0.645–0.864 |
+| Paragraph | 0.872–0.939 | 0.761–0.908 |
 
 **Thin outlines match as well as solid icons, at whole sizes.** Scores at the real icon, in both browsers, trying every
 whole size:
@@ -129,6 +174,9 @@ solid `circle` against the head of `user`.
 | Buttons with text in page flow | 0.50–0.73 | 0.81–0.82 |
 | Form inputs in page flow | 0.67–0.71, on the wrong input | Not measured |
 
+Verification's Chrome crops of paragraphs scored about 0.7–0.95 in Firefox, and most missed the default. So the page's table says
+paragraphs work sometimes. The fixture's multi-color file scores 0.992, up from about 0.95 before decision 5 changed. So the page no longer warns about it at a threshold of 0.97.
+
 **Near-identical elements score high when the real target is gone.** A form input with different placeholder text
 scored 0.96–0.97, and canvas text one letter shorter 0.95. Likewise, a chart with one bar changed scored 0.94, and a button whose text
 is one letter shorter 0.93. Beneath those, a gear with 6 teeth instead of 8 scored 0.83, and a different button with
@@ -176,22 +224,29 @@ removes every `unhandledRejection` listener on each call.
    least-squares slope shrinks when a stroke is slightly misaligned. The difference from the file's color then splits in two.
    The part off the line from the background to the file's color is hue, and counts in full. The part along that line is
    lightness. It counts only past a tolerance of 5%, or 25% when `Σα² / Σα`, the share of ink at full coverage, is below 0.75.
-5. **A transparent multi-color file finds its shape through an OpenCV mask.** Only its opaque pixels count, so the background
-   doesn't matter and the colors and interior do. A silhouette can't do this, because a green check and a red cross in the
-   same disc share one. Color comes from gain and offset over the opaque pixels, as in decision 3. `getImageOccurrence` has
+5. **A transparent multi-color file finds its shape through an OpenCV mask.** Only its solid pixels count, so the background
+   doesn't matter and the colors and interior do. A solid pixel has an alpha of at least 230, because edge pixels blend with
+   whatever is behind them on the page. At a size with fewer than 16 of those, pixels with an alpha of at least 128 count instead. A
+   thin line then still has a shape. A size with fewer than 16 of either is skipped, because a score over so few pixels means nothing. Blended
+   edges can't give a true color, so a very thin multi-color line can miss at small sizes. That's a loud miss, and decision 2 rules out
+   ignoring color instead. A silhouette can't do this job, because a green check and a red cross in the
+   same disc share one. Color comes from gain and offset over the same pixels, as in decision 3. Changed colors therefore
+   usually show as a low shape score rather than a low color score, since correlation over several colors sees the change. `getImageOccurrence` has
    no mask argument, so this path calls `matchTemplate` through `opencv-bindings`, the package `@appium/opencv` wraps. A mask
    gives no usable result for one color, which is why decision 4 exists.
 6. **`color` says what color an icon is on the page.** Icon sets draw in `currentColor`, which has no color until a page sets
    one, so such a file renders black. `color` overrides the file's color, and a file with no `color` matches its own. This
-   leaves no way to ignore color, on purpose. A failed match names both colors and suggests `color`, so the fix is one field.
+   leaves no way to ignore color, on purpose. A failed match names both colors, and suggests `color` when a file renders black, so the fix is one field.
    `color` applies only to a transparent one-color file, and on anything else it fails the step.
-7. **A transparent file is tried at many sizes, and the best score wins.** Files are rarely the size they're displayed at.
+7. **A transparent file is tried at many sizes, stopping at a score of 0.98 or higher.** Files are rarely the size they're displayed at.
    A one-color file is tried at its own size. It is then tried at 24, 16, 20, 32, 18, 14, 22, 28, 36, 40, 48, 64, and 12 CSS
    pixels tall. Then it is tried at every other whole size from 12 to 64. A list of common sizes isn't enough. A 15-pixel
    icon reached 0.9 at most 13% of the time, and a 26-pixel one at most 57%. Trying every whole size finds all of them but
    one, which scored 0.89. Taking the first size to reach the threshold isn't enough either: it chose the wrong place up to
    7% of the time. That happened because a false match at an earlier size came before the real icon at a later one.
-   Stopping as soon as a score reaches 0.98 saves about half the time when the icon is there. A multi-color file is tried
+   Stopping as soon as a score reaches 0.98 saves about half the time when the icon is there. Below that, the best score wins.
+   The cost is that a very close lookalike at an earlier size ends the search before the real icon's size. A ring with a stroke
+   of 2.2 scored 0.995 at 24 pixels. That beat the real ring, a perfect match at 20 pixels. A multi-color file is tried
    at its own size and the 13 listed sizes only. That's because each masked comparison takes about seven times as long.
 8. **Transparent files match at device resolution.** On a surface with display scale `s`, each CSS size is multiplied by `s`,
    and the capture stays as it is. Scaling the capture down would be cheaper, but it blurs anything at a half CSS pixel
@@ -210,8 +265,7 @@ removes every `unhandledRejection` listener on each call.
     | 0.97 | 85–100% | 7–57% | 0–7% | 0% |
 
     0.8 finds no more real icons at whole sizes than 0.9, and it lets far more wrong ones through. 0.95 is stricter, and
-    it's what an author should choose when a state matters. But it starts missing the thinnest icons, and several-color files
-    that score as low as 0.91. Misses say what happened and take one field to fix, while a false pass is silent. So this
+    it's what an author should choose when a state matters. But it starts missing the thinnest icons. Misses say what happened and take one field to fix, while a false pass is silent. So this
     leans strict without giving up real icons. Headings at 0.88 and some icon buttons at 0.84 need a step-level `threshold`.
     So do thin icons at fractional sizes or under a sub-pixel `transform`.
 11. **Lookalikes in the same color pass at the default.** An icon that's gone can pass on a page showing a sibling with the same
@@ -219,9 +273,11 @@ removes every `unhandledRejection` listener on each call.
     color, such as `+` for `plus`. The real icon nearly always outranks these when it's there, so clicks land correctly. An
     author checking a state raises `threshold` on that step, and one matching a simple glyph scopes the search with other
     criteria. See [Deferred](#deferred) for an automatic check.
-12. **An opaque reference that misses at its own size is retried at 1× and 2× sizes.** The retries use `s` and `s/2` times
-    its size, where `s` is the surface's display scale. Icons score 0.92–1.00 this way. Of 34 opaque references tried with
-    the target masked out, only two smooth gradient badges falsely passed at 0.8, both at half size.
+12. **An opaque reference is also tried at the sizes other display scales would give.** After its own size, it's tried at
+    `s/c` times that size. Here `s` is the surface's display scale, and `c` is 1, 1.25, 1.5, and 2 in turn. A score of 0.98
+    ends the search, so a reference that passes below that at its own size still tries the others. Icons score 0.92–1.00 this
+    way. Of 34 opaque references tried with the target masked out, only two smooth gradient badges falsely passed at 0.8, both
+    at half size.
 13. **Cross-browser buttons with text aren't solved.** They score 0.50–0.73, and a different button scores up to 0.77, so no
     threshold can accept one and reject the other. They have text, so `elementText` is the better tool.
 14. **A match stands in for an element.** It's a small object with the methods callers already use, whose rectangle comes
@@ -234,6 +290,57 @@ removes every `unhandledRejection` listener on each call.
 17. **Other criteria scope the search.** That keeps the existing rule that every criterion must hold, and it's the way to
     pick one of several identical matches.
 18. **Browser surfaces on desktop only, for now.** See [Deferred](#deferred).
+19. **Looks repeat until one starts at or after the timeout.** One look on a large surface can outlast the whole timeout.
+    Checking the clock after a look can then miss an icon that appeared during it. This makes `timeout: 0` exactly one look. A look
+    under way isn't interrupted, so a step can overrun by up to two looks on a page that keeps changing. One look that finds
+    nothing takes:
+
+    | Surface | One-color file | Multi-color file |
+    |---|---|---|
+    | 1200×800 | 1.5 s | 3.1 s |
+    | 2400×1600 | 5.4 s | 11.9 s |
+    | 3840×2160 | 15.3 s | 29.9 s |
+
+20. **An unchanged page isn't matched again.** A look that sees the same capture and scope as the last miss skips matching. On
+    a large surface, this turns a few looks per timeout into many.
+21. **`all` tries every size.** It collects every place that passes at every size, and nothing ends the search early, because
+    redaction depends on it. A copy at a size the sweep doesn't try still stays unmarked, and the step passes. A 24-pixel file
+    doesn't mark an 80-pixel copy. That's why the page tells authors to check the result.
+22. **A miss reports the place with the strongest shape, across sizes.** The highest score can come from a neighboring size
+    that misreads the color. In one miss, it reported `#434343` where the page showed `#555555`. Authors copy that value into `color`.
+    The sentence naming both colors is left out when the place's contrast is under 44 levels. A faint texture can correlate
+    with any shape.
+23. **`threshold: 1` accepts an exact copy.** Scores are capped below 1 by rounding, so the threshold is capped at 0.999.
+24. **The page uses plain language.** It says what a reader sees and does. Exact scores, color values, and constants stay in
+    this document, and the table below connects the two.
+25. **The strongest shape speaks for each place.** Sizes that mark the same place compete on shape first, because the best-fitting size
+    is the one whose color reading is right. A neighboring size can read a color close enough to pass when the place's own color
+    isn't. In one case, a `#333333` file passed on a `#666666` icon by trying 22 pixels instead of the real 24. Without `all`, only copies at
+    the winning size compete, so a copy at another size can't take the match by being higher on the page.
+26. **A thin one-color file isn't a uniform image.** A file whose alpha varies has a shape, even if nothing in it is fully opaque, such as
+    Phosphor's thin `minus` and `menu`. Only an even veil of one color, with alpha varying by at most 1 level, fails as a single color.
+
+## What the page's plain words mean
+
+| The page says | Exactly |
+|---|---|
+| "near-perfect match" | A score of 0.98 or higher. |
+| "sizes from 12 to 64 pixels tall" | A one-color file's own size, then every whole size. A multi-color file's own size, then 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, and 64. |
+| "screens with a different display scale" | Captures at 1×, 1.25×, 1.5×, and 2×. |
+| "stands out mainly by color rather than lightness" | Shape is compared in grayscale, so a small grayscale difference scores low. Shape scores: `#ff0000` on `#7f7f7f` 0.41, `#2a9d8f` on `#e76f51` 0.76, `#00ff00` on `#ff00ff` 0.88. Red on `#00ff00` still matches at 0.96. |
+| "colors have to be close" | Hue within about 44 RGB levels at the default threshold, counting all three channels together. Lightness has an allowance that grows with the icon's contrast against its background. |
+| "Red doesn't match orange" | `#e01b24` against `#ff7800`. |
+| "dark gray doesn't match medium gray" | `#333333` against a solid `#888888`. |
+| "two similar reds or two similar blues" | `#e01b24` and `#c01c28`, and `#1a5fb4` and `#2a3fb4`. |
+| "very thin lines" | Strokes below about 1.5 pixels. The proof uses `#333333` and `#777777` at 1 pixel. That pair scored 0.907 in Chrome and 0.87 in Firefox on real captures, which "can" covers. For a multi-color file, a stroke of 1 pixel or less, where few pixels are solid. |
+| "common icon sizes" | The 13 sizes in decision 7. |
+| "a graphic or a solid icon" and "thin lines or text" | The crop table in [Measurements](#measurements). |
+| "about equally well" | Within 0.01 of the best score, at the winning size. |
+| "well past `timeout`, sometimes by tens of seconds" | Up to two looks, as decision 19 describes. |
+| "an unusual size" | Any size the sweep in decision 7 doesn't try. |
+| "a copy in another color" | One whose color fails the check in decision 2. `all` marks only what passes. |
+| "usually names both colors" | When the shape reached the threshold, the color didn't, and the contrast is at least 44 levels. |
+| "too large to fit on screen" | Larger than the capture at every size tried. A 900-pixel SVG on a 400×300 surface matches at 24 pixels. |
 
 ## Internal claims
 
@@ -249,11 +356,11 @@ so they install during preflight rather than in the middle of a step.
 <!-- cite image-score-min image-score-min-proof -->
 A location's score is the lower of its shape score and its color score, for every kind of reference.
 
-<!-- cite image-sweep-best -->
-When several sizes of a transparent file reach the threshold, the highest score wins, so a false match at an earlier size can't beat the real icon at a later one.
+<!-- cite image-sweep-best image-sweep-best-proof -->
+Each place is judged at the size of a transparent file whose shape fits it best, and the place with the highest score wins. A size that scores 0.98 or higher ends the search.
 
 <!-- cite image-device-pixels image-device-pixels-proof -->
-On a surface with a display scale above 1, a transparent file matches at its CSS size times the scale, against the capture at device resolution.
+On a surface with a display scale above 1, a transparent file matches at its CSS size times the scale. The capture stays at device resolution.
 
 ## Plan
 
@@ -294,11 +401,15 @@ Every claim, its proof, and the wave that builds it. Test names in
 | `image-uniform-reference` | find-image.test.js | 2 |
 | `image-oversized-reference` | find-image.test.js | 2 |
 | `image-process-listeners` | find-image.test.js | 2 |
+| `image-timeout-overrun` | find-image.test.js | 2 |
 | `image-click-center` | fixture | 3 |
+| `image-click-hover` | find-image.test.js, fixture | 3 |
 | `image-moveto` | fixture | 3 |
 | `image-type-focuses` | fixture | 3 |
 | `image-drag` | fixture | 3 |
+| `image-drag-firefox` | find-image.test.js, fixture | 3 |
 | `image-crop` | find-image.test.js, fixture | 3 |
+| `image-crop-scrolls` | find-image.test.js | 3 |
 | `image-annotation-target` | find-image.test.js, fixture | 3 |
 | `image-wait` | fixture | 3 |
 | `image-browser-only` | find-image.test.js | 3 |
@@ -314,11 +425,9 @@ The waves run in order, because each builds on the one before it.
 - Headed browsers using a GPU, which may rasterize canvas and SVG differently from these headless captures.
 - Firefox at 2×. The 2× results are from Chrome, with device-size matching sampled on 10 of the 30 icons.
 - Icon files with semi-transparent shadows, and detailed multi-color files such as photographs.
-- Multi-color outline icons, and multi-color files at sizes off their 13-size list.
 - How often lookalikes occur on real pages. The rates above come from a set chosen to contain them.
 - Display color profiles. These captures are sRGB, and a macOS capture under a wide-gamut profile may shift colors past the
   tolerance.
-- An icon whose color has the same grayscale value as its background. It has no contrast for the silhouette to find.
 - Icons with `opacity` over a varied background. On a flat background, the color on screen is what `color` has to name.
 
 ## Deferred

@@ -91,23 +91,21 @@ To keep a small reference inside the spec, give its bytes as base64:
 {/* cite image-base64 image-base64-proof */}
 The `base64` value works with or without a `data:image/png;base64,` prefix.
 
-{/* cite image-base64-not-printed */}
-Failure messages call it `base64 reference` rather than printing the value.
-
-Results repeat each step as you wrote it, so a long value makes reports larger. Prefer a path for anything but a small image.
+{/* cite image-base64-not-printed image-base64-not-printed-proof */}
+A failed step's message leaves the value out. Results and validation warnings repeat the step as you wrote it, so a long value makes them longer. Prefer a path for anything but a small image.
 
 ## How a reference matches
 
 Doc Detective always matches on both shape and color. What's in the reference decides how it compares them. All of these work in Chrome and Firefox.
 
-{/* cite image-file-one-color */}
-**A transparent file in one color** matches its shape and its color, on any background. A dark gray file finds a dark gray icon on a white page or a tinted toolbar, and a white file finds a white icon on a dark toolbar. A red file doesn't find a blue icon with the same shape.
+{/* cite image-file-one-color image-file-one-color-proof image-file-one-color-limit-proof */}
+**A transparent file in one color** matches its shape and its color on a background that's lighter or darker than the icon. A dark gray file finds a dark gray icon on a white page or a tinted toolbar. A white file finds a white icon on a dark toolbar. A red file doesn't find a blue icon with the same shape. It can miss an icon that stands out mainly by color rather than lightness, such as red on medium gray or green on magenta.
 
-{/* cite image-file-multicolor image-file-multicolor-proof */}
-**A transparent file in several colors** matches its colors and shape on any background, so a green check and a red cross in the same disc stay distinct, and a blue disc doesn't match a green one.
+{/* cite image-file-multicolor image-file-multicolor-proof image-file-multicolor-thin-proof */}
+**A transparent file in several colors** matches its colors and shape on any background. A green check and a red cross in the same disc stay distinct, and a blue disc doesn't match a green one. It can miss an icon drawn with very thin lines, especially at small sizes.
 
-{/* cite image-file-any-size */}
-A transparent file doesn't need to be the size it's displayed at. Doc Detective tries a one-color file at its own size, then every whole size from 12 to 64 pixels tall. It tries a multi-color file at its own size, then at 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, and 64 pixels. The best score wins.
+{/* cite image-file-any-size image-file-any-size-proof image-file-any-size-limit-proof */}
+A transparent file doesn't need to be the size it's displayed at. Doc Detective tries it at its own size, then at sizes from 12 to 64 pixels tall, and stops at the first near-perfect match. If there isn't one, the best match wins. A file in several colors is tried only at common icon sizes, such as 16, 24, and 32 pixels, so it can miss at others.
 
 {/* cite image-svg-rendered image-svg-rendered-proof */}
 An SVG is rendered fresh at each size, so thin strokes stay sharp. A PNG is resized, so use one at least as tall as the icon is on the page.
@@ -115,8 +113,8 @@ An SVG is rendered fresh at each size, so thin strokes stay sharp. A PNG is resi
 {/* cite image-opaque-exact image-opaque-exact-proof */}
 **A reference with no transparency,** such as a crop from a screenshot, matches its colors and its background. An icon cropped from a white page won't match the same icon on a dark toolbar, or in a different color.
 
-{/* cite image-rescale image-rescale-proof */}
-If it doesn't match at its own size, Doc Detective tries it at the sizes a capture from a standard or high-density display would have. A crop from a 2× screen therefore works on a 1× screen, and the other way round.
+{/* cite image-rescale image-rescale-proof image-rescale-limit-proof */}
+Doc Detective also tries it at the sizes it would have on screens with a different display scale. A crop of a graphic or a solid icon therefore works from a high-density screen on a standard one, and the other way round. A crop with thin lines or text can miss, especially on a screen with a higher density than the one it came from.
 
 ### Match an icon set's files
 
@@ -136,11 +134,11 @@ Use the color on screen. An icon with `opacity` looks lighter than the color its
 
 ### How close a color has to be
 
-{/* cite image-color-hue */}
-At the default threshold, a change of hue doesn't match, and neither does a clearly different shade. A `#e01b24` file doesn't match a `#ff7800` icon, and a `#333333` file doesn't match a solid `#888888` icon. Shades about 32 RGB levels apart or closer do match, such as `#e01b24` and `#c01c28`, because rendering varies by about that much.
+{/* cite image-color-hue image-color-hue-proof image-color-hue-limit-proof */}
+At the default threshold, colors have to be close. Red doesn't match orange, and dark gray doesn't match medium gray. Close shades do match, such as two similar reds or two similar blues, because browsers don't draw colors identically. To tell close colors apart, raise `threshold`. On very thin lines, this can't separate a lighter shade from a darker one.
 
-{/* cite image-color-thin */}
-Browsers draw strokes thinner than about 1.5 pixels lighter than a file predicts, so lightness counts less on thin icons. A `#333333` file can also match a thin `#555555` icon. Hue still counts in full.
+{/* cite image-color-thin image-color-thin-proof */}
+Browsers draw very thin lines lighter than their real color, so lightness counts for less on thin icons. A dark gray file can match a medium gray icon drawn with very thin lines. A red file still won't match a blue one.
 
 ## Use a match in other steps
 
@@ -148,6 +146,9 @@ Every field that accepts `elementText` also accepts `elementImage`.
 
 {/* cite image-click-center image-click-center-proof */}
 [`click`](/docs/actions/click), and `click` inside `find`, press the center of the match. Every `button` value and `duration` work.
+
+{/* cite image-click-hover image-click-hover-proof */}
+A `click` leaves the cursor on the icon. If the icon changes color on hover, a later `find` for it can fail, so move the cursor away first.
 
 {/* cite image-moveto image-moveto-proof */}
 `moveTo` in `find` moves the cursor to the center of the match.
@@ -158,11 +159,17 @@ Every field that accepts `elementText` also accepts `elementImage`.
 {/* cite image-drag image-drag-proof */}
 [`dragAndDrop`](/docs/actions/draganddrop) accepts `elementImage` on `source`, `target`, or both, and either end can use other criteria instead. The drag presses at the center of one end and releases at the center of the other, using pointer input only.
 
+{/* cite image-drag-firefox image-drag-firefox-proof image-drag-firefox-selector-proof */}
+In Firefox, a drag by image can report success without dropping an element that uses HTML5 drag and drop. Confirm the drop with a `find` afterward, or use a `selector` at both ends.
+
 {/* cite image-crop image-crop-proof */}
 [`screenshot`](/docs/actions/screenshot) `crop` with `elementImage` crops to the match plus any `padding`. It doesn't scroll first, because the match is already on screen.
 
-{/* cite image-annotation-target */}
-An [annotation](/docs/test-docs/annotate-screenshots) `target` with `elementImage` marks the match. With `all: true`, it marks every match, which is useful for blurring every copy of a logo.
+{/* cite image-crop-scrolls image-crop-scrolls-proof */}
+A `crop` with a `selector` scrolls the page, so a later `find` by image might not see what was on screen before it.
+
+{/* cite image-annotation-target image-annotation-target-proof image-annotation-target-limit-proof */}
+An [annotation](/docs/test-docs/annotate-screenshots) `target` with `elementImage` marks the first match. To mark every copy instead, such as to blur a logo everywhere it appears, add `all: true` to the annotation. When you're hiding something sensitive, check the result. A copy in another color or at an unusual size can stay visible while the step passes.
 
 {/* cite image-wait image-wait-proof */}
 `find` in a `waitUntil` condition, on [`goTo`](/docs/actions/goto) and [`type`](/docs/actions/type), waits for the image to appear.
@@ -187,8 +194,11 @@ Matching sees only what's on screen, and it doesn't scroll. Scroll to the target
 {/* cite image-retries-until-timeout image-retries-until-timeout-proof */}
 `find` keeps looking until it finds a match or `timeout` runs out, which is 5000 milliseconds by default. With `timeout: 0`, it checks once.
 
-{/* cite image-first-match */}
-When several places match within 0.01 of the best score, the topmost wins, then the leftmost.
+{/* cite image-timeout-overrun image-timeout-overrun-proof */}
+It finishes any check it has started, so a step can run well past `timeout` on a large screen, sometimes by tens of seconds.
+
+{/* cite image-first-match image-first-match-proof image-first-match-size-proof */}
+When several places match about equally well, the topmost wins, then the leftmost. This only compares copies at the same size. To choose between copies at different sizes, add a `selector`.
 
 {/* cite image-outputs image-outputs-proof */}
 After a match, `outputs.element.location` and `outputs.element.size` describe the match in CSS pixels relative to the viewport, and `outputs.element.matchScore` holds its score. The other `outputs.element` fields are `null`, because a match has no DOM element behind it.
@@ -203,8 +213,7 @@ Icons and graphics work across browsers. Text is what doesn't, because each brow
 | Icons cropped from a screenshot | Yes |
 | Canvas drawings, charts, gradients, and bitmaps | Yes |
 | Text drawn in a canvas | Yes |
-| Paragraphs | Yes |
-| Headings, and buttons with an icon and a label | Sometimes |
+| Paragraphs, headings, and buttons with an icon and a label | Sometimes |
 | Buttons with text, and form inputs | No |
 
 A button with text has text you can target, so use `elementText` for it. To keep using an image, lower `threshold` for that step, or capture one per browser in tests gated with `runOn`.
@@ -221,16 +230,16 @@ To reject near-identical images, set a higher `threshold`:
 
 Graphics scored above 0.99 across browsers, so a high threshold doesn't stop them from matching.
 
-Icons work the same way. An icon that differs from another of the same color by a small detail can pass when it's gone: `square-check` scored up to 0.94 against `square`. If your test depends on that detail, such as whether a box is checked, set `threshold` to 0.97. This can miss very thin icons, so check the score the step reports.
+Icons work the same way. An icon that differs from another of the same color by a small detail can pass when it's gone. For example, `square-check` scored up to 0.94 against `square`. If your test depends on that detail, such as whether a box is checked, set `threshold` to 0.97. This can miss thin icons, so check the match's score in `outputs.element.matchScore`.
 
-A very simple icon can also match text with the same shape and color. A `plus` icon scored up to 0.96 against a `+` in a paragraph, and `chevron-right` scored up to 0.95 against a `>`. To keep the search away from text, combine `elementImage` with a `selector` for the icon's container.
+An icon with a basic shape can also match text with the same shape and color. A `plus` icon scored up to 0.96 against a `+` in a paragraph, and `chevron-right` scored up to 0.95 against a `>`. To keep the search away from text, combine `elementImage` with a `selector` for the icon's container.
 
 ## When a match fails
 
-{/* cite image-miss-message */}
-A failed step reports the best score with its shape and color parts, where it was, the threshold, and the surface's display scale. When the shape matched but the color didn't, it names the reference's color and the color on the page.
+{/* cite image-miss-message image-miss-message-proof */}
+A failed step tells you how close the closest match came, where it was, and whether its shape or its color fell short. When only the color was wrong, it usually names both colors.
 
-A low shape score usually means that the reference has text rendered by another browser, or that a cropped reference's background changed. A low color score usually means that the page's color changed, or that a file drawn in `currentColor` needs `color`.
+A low shape score usually means that the reference has text rendered by another browser. It can also mean that a cropped reference's background changed, or that a multi-color file's colors changed. A low color score usually means that the page's color changed, or that a file drawn in `currentColor` needs `color`.
 
 For an icon file, thin strokes score lower in these situations:
 
@@ -244,8 +253,8 @@ A reference that's missing or isn't an image, including an invalid `base64` valu
 {/* cite image-uniform-reference image-uniform-reference-proof */}
 A single-color reference with no transparency fails the step, because it would match any area of that color.
 
-{/* cite image-oversized-reference */}
-A reference larger than the surface fails the step, and the message gives both sizes.
+{/* cite image-oversized-reference image-oversized-reference-proof */}
+A reference too large to fit on screen, even at the smaller sizes Doc Detective tries, fails the step.
 
 ## Limits
 
