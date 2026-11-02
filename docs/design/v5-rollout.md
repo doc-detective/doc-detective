@@ -38,8 +38,8 @@ The notice window is eight weeks, from the Phase 1 warning to GA. GA lands in Ja
 flip away from the holidays.
 
 **Work-in-progress rule.** New surfaces wait until Phase 3 is done and login has shipped. That
-parks [native-app-surfaces.md](native-app-surfaces.md) A8, Linux native apps, real devices, and cloud
-device farms.
+parks Phase A8 of [native-app-surfaces.md](native-app-surfaces.md) (Linux investigation and remote
+groundwork), Linux native apps, real devices, and cloud device farms.
 
 ## Settled decisions
 
@@ -321,7 +321,7 @@ depends on it.
 
 ### 1.3 Upgrade notice
 
-Log a warning at `src/cli.ts:275` when a run has failures and the user didn't set `exitOnFail`. It says
+Log a warning just before the exit check at `src/cli.ts:275` when a run has failures and the user didn't set `exitOnFail`. It says
 5.0 will exit 1 and links the preview page from 1.6. The legacy Action path stays quiet, because
 Action v1.7 has its own notice. Detecting an unset value needs the default move in the
 [implementation note](#the-500-contract), so that change lands in Phase 1.
@@ -438,9 +438,9 @@ repository.
 Target: Tuesday, January 12, 2027. In order:
 
 1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
-2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge `feat/v5-rc` to main with its footer
-   intact. semantic-release cuts 5.0.0 to `staging-5.0.0`, which publishes the docs. Unset the variable
-   afterward.
+2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge `feat/v5-rc` to main with a merge commit,
+   not a squash, so the footer stays in history. semantic-release cuts 5.0.0 to `staging-5.0.0`, which
+   publishes the docs. Unset the variable afterward.
 3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
    it runs Docker `latest`.
 4. Publish Action v2.0.0, which moves `v2`.
@@ -512,6 +512,12 @@ The Action reads results from the file it passes to `--output`, so the extra std
 | Docker on an exact tag | Their next bump. There's no floating `4` tag. Until then, only the announcement |
 | Action v1.6.1 or earlier on default `latest` | Already on CLI 5, so the shim's `::notice` points them to `@v2` |
 | Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them for eight weeks |
+
+### Phase 3 exit gate
+
+Two weeks pass with no open blocker. `@latest`, Docker `latest`, and Action `v2` are all on the new major,
+and `ALLOW_MAJOR_RELEASE` is unset. `doc-detective@4` resolves to the final 4.x update, and a real `@v1` run
+shows its notice.
 
 ## Phase 4: build on 5.x
 
@@ -658,6 +664,6 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
-   it has to be settled before January 14.
+   it has to be settled before that release's PR is drafted, which means before January 12.
 6. **What coverage measures.** Still being explored. Item 5.3 and verified answers both depend on the
    definition, and it has to stay deterministic.
