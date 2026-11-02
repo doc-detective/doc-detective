@@ -28,7 +28,7 @@ run, says so. Dates are proposals.
 | Phase | Window | What ships | Channel |
 |---|---|---|---|
 | 0. Safety | Nov 2 to Nov 15 | Secret masking, runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
-| 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release wiring | CLI 4.x, Action v1.7 |
+| 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, release wiring | CLI 4.x, Action v1.7 |
 | 2. RC | Dec 14 to Jan 8 | The flip, Action v2 RC, migration guide | `doc-detective@v5-rc` |
 | 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update on Jan 14 | `@latest`, `@v2`, `release-4.x` |
 | 4. Build | Jan to Apr 2027 | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
@@ -71,6 +71,8 @@ device farms.
   exits 1 and still writes the results file.
 - An empty run fails because a mistyped `input` currently looks like success. It's the same gap
   `scripts/check-fixture-results.cjs` covers for this repository's own CI.
+- Exit 2 means the run tested nothing. Callers treat an empty run and a crash as the same fatal setup
+  error, so the shared code is deliberate. The log says which one happened.
 
 **Legacy Action shim.** When `DOC_DETECTIVE_META.dist_interface` is `github-actions` and the user
 didn't set `exitOnFail`, it defaults to `false`. This protects pinned Actions at v1.6.1 or earlier,
@@ -315,14 +317,15 @@ depends on it.
 
 Log a warning at `src/cli.ts:275` when a run has failures and the user didn't set `exitOnFail`. It says
 5.0 will exit 1 and links the preview page from 1.6. The legacy Action path stays quiet, because
-Action v1.7 has its own notice.
+Action v1.7 has its own notice. Detecting an unset value needs the default move in the
+[implementation note](#the-500-contract), so that change lands in Phase 1.
 
 ### 1.4 Action v1.7.0
 
 See [v1.7.0](#v170-the-last-planned-v1-release-phase-1). Then update this repository's pins at
 `.github/workflows/promote.yml:124` and `.github/workflows/fixtures.yml:342`.
 
-### 1.5 `4.x` release wiring
+### 1.5 Release wiring
 
 The final 4.x update has to publish after main has moved to 5.x, which today's pipeline can't do. Land
 this as a `ci:` commit on main, so the branch inherits it when it's cut at GA:
@@ -346,6 +349,18 @@ latest (read, not run). A sandbox dry run with semantic-release 25 and this entr
 
 The last row means an early cut wouldn't block main. The two branches would then compete for the same
 version, though, so the branch waits until GA.
+
+**Major-release guard.** The same commit adds a `verifyReleaseCmd` that fails a `major` on main unless
+`ALLOW_MAJOR_RELEASE` is `true`. Squash bodies never reach the commit-msg hook, and `release.yml` promotes
+to `@latest` on its own once the smoke test passes. A stray footer would otherwise reach users. The check
+reads the computed release type, so it covers every route a footer can take, and prerelease channels are
+exempt. Another sandbox dry run gave:
+
+| Commit on main | Result |
+|---|---|
+| `docs:` with a `BREAKING CHANGE:` footer | Release fails before anything publishes |
+| The same commit, with `ALLOW_MAJOR_RELEASE=true` | `5.0.0` |
+| `git revert` of that commit | `4.41.6`, so main can release again |
 
 ### 1.6 Docs and communications
 
@@ -377,8 +392,10 @@ issue, and PR. Failure output shows a near match in a real run.
 
 **Contents:**
 
-1. `feat(cli)!: fail the run when tests fail`, built red to green using the "TDD cycle per flag" in
-   `CLAUDE.md`:
+1. `feat(cli)!: fail the run when tests fail`, with a `BREAKING CHANGE:` footer. The footer is required.
+   `.releaserc.json` uses commit-analyzer's default preset, which doesn't read `!`. Run against this
+   repository's config, `feat(cli)!:` alone returns no release, and adding the footer returns `major`.
+   Build the change red to green using the "TDD cycle per flag" in `CLAUDE.md`:
    - The default and exit codes in `src/cli.ts:40`, `:126`, `:273-276`, and `src/utils.ts:209`,
      `:236`, `:261`.
    - The empty-run rule and the legacy Action shim.
@@ -397,8 +414,8 @@ gate on. Pin `doc-detective@4` if you can't move yet.
 **Branch rules:**
 
 - Rebase on main weekly. The branch stays small.
-- No `!` or `BREAKING CHANGE:` on main before GA, including in squash bodies. semantic-release would
-  cut 5.0.0 immediately.
+- No `BREAKING CHANGE:` footer on main before GA, including in squash bodies. semantic-release would
+  cut 5.0.0 immediately. The guard in 1.5 is the backstop.
 
 **Soak:** This repository's fixtures and docs tests, the Action RC, agent-tools' test suite, and
 Promptless if willing.
@@ -414,7 +431,9 @@ repository.
 Target: Tuesday, January 12, 2027. In order:
 
 1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
-2. Merge `feat/v5-rc` to main. semantic-release cuts 5.0.0 to `staging-5.0.0`, which publishes the docs.
+2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge `feat/v5-rc` to main with its footer
+   intact. semantic-release cuts 5.0.0 to `staging-5.0.0`, which publishes the docs. Unset the variable
+   afterward.
 3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
    it runs Docker `latest`.
 4. Publish Action v2.0.0, which moves `v2`.
@@ -433,8 +452,8 @@ so this path has to be documented in advance. If the final 4.x update is already
 on `4.x` first, because it tells people to move to the release being pulled. The notice from 0.3 goes
 quiet on its own once `latest` is 4.x again. Action v1 stays safe throughout because it pins `4`.
 
-**4.x support:** Security fixes only, as `fix:` commits on `4.x`, through July 12, 2027. When support
-ends, run `npm deprecate` on 4.x so installs say so.
+**4.x support:** Security fixes only, as `fix:` commits on `4.x`, through the date from open decision 5.
+When support ends, run `npm deprecate` on 4.x so installs say so.
 
 ### Final 4.x update
 
@@ -457,7 +476,7 @@ Print this after the reporters finish, next to `maybeShowHint` (`src/cli.ts:267`
 also means it works in CI, where the update check doesn't run (`src/cli.ts:188`).
 
 ```text
-Doc Detective 5 is available. 4.x now gets security fixes only, through July 12, 2027.
+Doc Detective 5 is available. 4.x now gets security fixes only, through <end-of-support date>.
 
 What changes: a failed test now fails the run with exit code 1.
 To keep today's behavior while you triage, use --no-exit-on-fail, or exit_on_fail: false in the Action.
@@ -615,7 +634,7 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 |---|---|---|
 | Users see a wall of red at the upgrade | They pin to 4 or remove the gate | Failure help first, an eight-week notice, and migration advice to triage before gating |
 | A pinned old Action meets CLI 5 | Lost issue and PR flow | Legacy shim, tested in the compatibility matrix |
-| A stray `BREAKING CHANGE:` lands on main | 5.0.0 is cut early | Branch rule in Phase 2. The flip stays on the RC branch, and stage-then-promote limits the reach |
+| A stray `BREAKING CHANGE:` lands on main | 5.0.0 is cut early | The guard in 1.5 fails the release before it publishes, and reverting the commit recovers. The flip stays on the RC branch |
 | Masking misses a secret or over-masks | A false sense of safety, or noisy reports | Explicit `secrets` config, a documented built-in list, and stated limits for images |
 | Solo-maintainer capacity | Dates slip | Phases 0 and 1 are valuable alone. Only the flip is date-bound, and it can move |
 | Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes only after step 3 |
