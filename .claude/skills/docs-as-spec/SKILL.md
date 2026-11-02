@@ -30,10 +30,10 @@ The default threshold is 0.9.
 
 MDX uses `{/* cite find-image-default-threshold */}`. IDs are kebab-case and unique per page. Mark defaults, limits, field names, outputs, and failure and skip behavior. Don't mark rationale.
 
-Run this. Every marker should report `marker-orphan`, which is your to-do list:
+Run this on Node 24 or later, which manni requires. Use the manni version pinned in [cite-check.yml](../../../.github/workflows/cite-check.yml). Every marker should report `marker-orphan`, which is your to-do list:
 
 ```bash
-npx @hawkeyexl/manni cite check <page>
+npx @hawkeyexl/manni@4.28.0 cite check <page>
 ```
 
 ## 3. Map claims to proofs
@@ -96,14 +96,14 @@ For each failure, fix the code. If the spec is what's wrong, propose the changed
 Only for claims that held. Commit the implementation and proofs first, because manni pins only committed lines. Pin each claim to its implementation and to its proof, using two entries on one marker:
 
 ```bash
-npx @hawkeyexl/manni cite add <page>:<line> <impl-file>:<lines> --id <claim-id> --marker
+npx @hawkeyexl/manni@4.28.0 cite add <page>:<line> <impl-file>:<lines> --id <claim-id> --marker
 ```
 
 ```bash
-npx @hawkeyexl/manni cite add <page>:<line> <proof-file>:<lines> --id <claim-id>-proof --marker
+npx @hawkeyexl/manni@4.28.0 cite add <page>:<line> <proof-file>:<lines> --id <claim-id>-proof --marker
 ```
 
-`--marker` adopts a placeholder marker that's already there, and the second command joins it. With no marker yet, the first command adds a line, so the sentence moves down one for the second. This needs manni 4.28.0 or later. When a sentence also states a limit, add a proof of the limit to the same marker, such as `<claim-id>-limit-proof`.
+`--marker` adopts a placeholder marker that's already there, and the second command joins it. With no marker yet, the first command adds a line, so the sentence moves down one for the second. When a sentence also states a limit, add a proof of the limit to the same marker, such as `<claim-id>-limit-proof`.
 
 Cite the narrowest lines that decide the claim. A wide range goes stale on every nearby edit.
 
@@ -114,7 +114,7 @@ Check that every claim has both entries. `cite add` without `--marker` can clear
 This must pass before the PR:
 
 ```bash
-npx @hawkeyexl/manni cite check
+npx @hawkeyexl/manni@4.28.0 cite check
 ```
 
 Say in the PR who approved the spec, which claims were pinned, what the verifier found, and what changed as a result. A PR is a second human review of the code. It doesn't replace the review in step 4.
