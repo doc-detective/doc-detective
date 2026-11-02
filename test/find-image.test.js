@@ -827,10 +827,21 @@ describe("elementImage matching", function () {
     });
 
     it("image-retries-until-timeout: an unchanged page isn't matched again", async function () {
-      // At about a sweep per look, this would manage only a few looks.
-      const driver = counting(fakeDriver(await page({})));
-      await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, BLUE, 24)) }, driver, timeout: 2000 });
-      expect(driver.looks).to.be.at.least(10);
+      const shot = await page({});
+      // The same picture in different bytes, so a look can't tell that nothing changed.
+      const other = await sharp(shot).png({ compressionLevel: 1 }).toBuffer();
+      expect(other.equals(shot)).to.equal(false);
+      const elementImage = { base64: b64(icon(GEAR, BLUE, 24)) };
+      const started = Date.now();
+      await visual.findByImage({ elementImage, driver: fakeDriver(shot), timeout: 0 });
+      // Compare the two rather than count looks, because CI runners differ several times over in speed.
+      const timeout = Math.max(2000, 4 * (Date.now() - started));
+      const unchanged = counting(fakeDriver(shot));
+      await visual.findByImage({ elementImage, driver: unchanged, timeout });
+      const captures = Array.from({ length: 500 }, (_, i) => (i % 2 ? shot : other));
+      const changing = counting(fakeDriver(shot, { captures }));
+      await visual.findByImage({ elementImage, driver: changing, timeout });
+      expect(unchanged.looks).to.be.above(changing.looks);
     });
 
     it("image-timeout-overrun: a step finishes the check it started, past the timeout", async function () {
@@ -1212,7 +1223,8 @@ describe("elementImage matching", function () {
 
 // ---- What a fixture can't express, because a spec can't assert that a step fails.
 describe("elementImage in real browsers", function () {
-  this.timeout(300000);
+  // The setup runs every case in two browsers: 2.5 to over 5 minutes on CI runners.
+  this.timeout(600000);
   const here = path.dirname(fileURLToPath(import.meta.url));
   const file = (name) => path.join(here, "server", "public", name);
   const url = "http://localhost:8092/find-image.html";
