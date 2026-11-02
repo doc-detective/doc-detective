@@ -114,7 +114,7 @@ From `doc-detective/github-action` `src/index.ts`, `action.yml`, and open issues
 | v1.6.1 or earlier | 4.x | Exit 0, normal flow. Today's behavior |
 | v1.6.1 or earlier | 5.x, through default `latest` | Without the shim: job red, no results, issue, or PR. With the shim: exit 0, normal flow |
 | v1.7 | 4.x, the new default | Exit 0, normal flow |
-| v1.7 | 5.x, set explicitly | Exit 1 is tolerated, normal flow, job stays green |
+| v1.7 | 5.x, set explicitly | The Action doesn't pass `exit_on_fail` to the CLI. The shim makes the CLI exit 0, unless config sets `exitOnFail: true`. That exit 1 is tolerated. Normal flow, job stays green |
 | v2.0 | 5.x, the new default | Passes `--no-exit-on-fail`, and the Action makes the one failure decision |
 
 ### v1.7.0, the last planned v1 release (Phase 1)
@@ -123,7 +123,11 @@ Moves the floating `v1` tag, so most users get it without a change.
 
 1. Merge the Dependabot majors in one PR, so the following tests run against the final API.
 2. Pass `ignoreReturnCode: true`, and delete any stale output file first. `loadResults` already
-   throws when the file is missing, so a real crash still fails the job.
+   throws when the file is missing, so a real crash still fails the job. `exit_on_fail: true` keeps
+   failing the job through the existing `setFailed` (`src/index.ts:226-228`), which reads the results
+   and runs after the issue and PR steps. Add one rule: a non-zero exit with no failed specs fails the
+   job whatever the input says, because something broke after the results were written. Test exit 1 with
+   `exit_on_fail` on and off, with and without failed specs.
 3. Change the `version` default from `latest` to `4`.
 4. Merge [#81](https://github.com/doc-detective/github-action/pull/81), the job summary.
 5. Cap `$RESULTS` to fit the issue limit and link to the run. This closes
@@ -132,7 +136,9 @@ Moves the floating `v1` tag, so most users get it without a change.
    `annotations` input to turn off. Use `contentPath` and `step.location.line`. My probe confirmed
    that detected steps carry `location.line`. Standalone specs annotate the file only. GitHub limits
    annotations per step, so emit the first 10 and point to the summary for the rest.
-7. Add a `core.notice` when `exit_on_fail` is unset, saying v2 defaults it to `true`.
+7. Remove the `exit_on_fail` default from `action.yml` and treat an empty value as `false`. With the
+   default in place, an unset input and an explicit `false` look the same. Add a `core.notice` when it's
+   empty, saying v2 defaults it to `true`, and test both cases.
 
 Annotations ship here, not in v2, so every user gets better failure feedback before the flip.
 
@@ -364,8 +370,9 @@ exempt. Another sandbox dry run gave:
 
 ### 1.6 Docs and communications
 
-- Publish a short preview at the guide's final URL, `docs/fern/pages/docs/ci/upgrade-to-v5.mdx`, on main,
-  and record it in [information-architecture.md](../content-strategy/information-architecture.md). It
+- Publish a short preview on main at `docs/fern/pages/docs/ci/upgrade-to-v5.mdx`. Add it to
+  `docs/fern/docs.yml` so it's served at `/docs/ci/upgrade-to-v5`, the route the notice links to, and
+  record it in [information-architecture.md](../content-strategy/information-architecture.md). It
   says what's coming and how to try it now with `--exit-on-fail`. Without it, the 1.3 notice would link
   to a missing page for eight weeks, because the guide itself lands at GA. The full guide replaces it.
 - Draft the migration guide on `feat/v5-rc`.
@@ -547,8 +554,9 @@ Online assumes v5 compatibility, so it has no rollout work beyond a dependency b
   (`src/lib/server/platform-constants.ts:47`), so Online moves at promotion. `RUNNER_IMAGE` remains an
   emergency override, not a planned step.
 - **Run status:** The Phase 2 entrypoint change ships in the image. A run with failing tests still
-  finalizes as `succeeded`, and a crash still finalizes as `failed`. Online's code doesn't read
-  `exitOnFail`, so moving its default doesn't affect it.
+  finalizes as `succeeded`, and a crash still finalizes as `failed`. An empty run also stays
+  `succeeded`, as it does today, because `exitOnFail: false` relaxes it too (see open decision 2).
+  Online's code doesn't read `exitOnFail`, so moving its default doesn't affect it.
 - **`doc-detective-common`:** Pinned exactly at `4.41.5`. Bump it to 5 as a normal dependency update after
   GA. Schema names stay `_v3`, so no code change is expected.
 - **New work:** Build against the 5.x contract from now on.
@@ -644,7 +652,9 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 ## Open decisions
 
 1. **GA date.** Proposed January 12, 2027.
-2. **Empty runs.** Proposed: exit 2 unless `exitOnFail: false`.
+2. **Empty runs.** Proposed: exit 2 unless `exitOnFail: false`. That leaves a mistyped `input` on Online
+   reporting `succeeded`, as it does today. Failing it there needs either an exit code that ignores
+   `exitOnFail` or an entrypoint that reads the results, since it only sees the exit code.
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
