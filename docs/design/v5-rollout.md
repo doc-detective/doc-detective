@@ -169,8 +169,10 @@ Non-breaking changes in the same release:
 
 - Pass arguments as an array, so paths with spaces work.
 - Always pass `--no-exit-on-fail`, and move the decision into a pure `decideOutcome({ exitCode,
-  results, exitOnFail })`, matching the style of `shouldSetUpAndroid`. Any exit above 1, or a missing
-  results file, fails regardless of the input. An empty run fails unless `exit_on_fail` is `false`.
+  results, exitOnFail })`, matching the style of `shouldSetUpAndroid`. Because that flag is always passed,
+  failed tests and empty runs arrive as exit 0, and `decideOutcome` finds them in `results`. They fail
+  unless `exit_on_fail` is `false`. Any non-zero exit or missing results file then means a crash, and
+  fails regardless of the input.
 - Declare `results_path`, `summary_path`, `issue_url`, and `pull_request_url` as outputs.
 
 Verification, red to green in the Action repository:
@@ -587,7 +589,7 @@ Online assumes v5 compatibility, so it has no rollout work beyond a dependency b
 ### GitLab, Docker, and direct CLI use
 
 - **GitLab:** Update exit behavior in the docs at GA. Build the component
-  ([#685](https://github.com/doc-detective/doc-detective/issues/685)) on the 5.x contract, with the same
+  ([#685](https://github.com/doc-detective/doc-detective/issues/685)) in Phase 4 on the 5.x contract, with the same
   major-pinning rule as the Action.
 - **Docker and direct CLI:** These get the flip with no shim. The migration guide covers them, and they're
   the main audience for the eight-week notice and the final 4.x update.
@@ -668,6 +670,6 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
-   it has to be settled before that release's PR is drafted, which means before January 12.
+   it has to be settled before the January 14 release's PR is drafted. It doesn't block GA.
 6. **What coverage measures.** Still being explored. Item 5.3 and verified answers both depend on the
    definition, and it has to stay deterministic.
