@@ -126,7 +126,7 @@ Moves the floating `v1` tag, so most users get it without a change.
    throws when the file is missing, so a real crash still fails the job. `exit_on_fail: true` keeps
    failing the job through the existing `setFailed` (`src/index.ts:226-228`), which reads the results
    and runs after the issue and PR steps. Add one rule: a non-zero exit with no failed specs fails the
-   job whatever the input says, because something broke after the results were written. Test exit 1 with
+   job whatever the input says. In that case, something broke after the results were written. Test exit 1 with
    `exit_on_fail` on and off, with and without failed specs.
 3. Change the `version` default from `latest` to `4`.
 4. Merge [#81](https://github.com/doc-detective/github-action/pull/81), the job summary.
