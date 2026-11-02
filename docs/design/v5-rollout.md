@@ -30,7 +30,7 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 | 0. Safety | Nov 2 to Nov 15 | Secret masking, runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
 | 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
 | 2. RC | Dec 14 to Jan 8 | The flip, Action v2 RC, migration guide | `doc-detective@v5-rc` |
-| 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update on Jan 14 | `@latest`, `@v2`, `release-4.x` |
+| 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update two days later | `@latest`, `@v2`, `release-4.x` |
 | 4. Build | Jan to Apr 2027 | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
 | 5. Bets | Apr 2027 onward | Capture once, verified answers | agent-tools, Online |
 
@@ -182,7 +182,8 @@ Non-breaking changes in the same release:
 Verification, red to green in the Action repository:
 
 - A `decideOutcome` table test covering exit codes 0, 1, and 2 against `exit_on_fail` on and off. For
-  exit 0, cover results with failures, results without them, and `null`.
+  exit 0, cover results with failures, results without them, and `null`. For exit 1 and 2, cover a
+  results file being present, which still fails.
 - Tests for issue reuse, PR reuse, and base-branch resolution using mocked Octokit.
 - `test-current-release.yml` pointed at `v5-rc` during Phase 2 and `5` after GA.
 
@@ -398,8 +399,9 @@ with the variable unset and with it set, a major on a prerelease channel, and a 
 
 ### Phase 1 exit gate
 
-Action v1.7 is on `v1`. A failing run on v1.7 against CLI 4 and against a local build of the flip both produce results,
-issue, and PR. Failure output shows a near match in a real run.
+Action v1.7 is on `v1`. A test workflow has issue and PR creation on, and its run changes a file. Failing
+runs of it on v1.7, against CLI 4 and a local build of the flip, each produce results, an issue, and a PR.
+Failure output shows a near match in a real run.
 
 ## Phase 2: release candidate
 
@@ -475,7 +477,8 @@ Target: Tuesday, January 12, 2027. In order:
 6. Publish the announcement, led by what v5 means for users: a green result means something now. Include
    everything shipped since November.
 7. Delete `feat/v5-rc`.
-8. On Thursday, January 14, ship the [final 4.x update](#final-4x-update).
+8. Two days after GA, ship the [final 4.x update](#final-4x-update). That's Thursday, January 14, if GA
+   holds its date.
 
 **Watch for two weeks:** new issues, the Action's `test-current-release.yml`, and PostHog runs by
 `core_version` and `dist_interface` for adoption.
@@ -695,6 +698,6 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
-   it has to be settled before the January 14 release's PR is drafted. It doesn't block GA.
+   it has to be settled before the final 4.x update's PR is drafted. It doesn't block GA.
 6. **What coverage measures.** Still being explored. Item 5.3 and verified answers both depend on the
    definition, and it has to stay deterministic.
