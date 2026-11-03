@@ -186,8 +186,8 @@ these.
 **Preprocessing didn't help.** Grayscale and Gaussian blur raised the wrong matches as fast as the right ones. Blurring
 also put fewer references in the right place: 18 of 28 at σ=2, and 12 of 28 at σ=5, against 21 of 28 unprocessed.
 
-**Three inputs score a false 1.000:** a single-color reference, a fine pattern at a size where resizing blurs it into one color, and a
-reference larger than the capture. The last does so because OpenCV swaps the two images when the template is the larger one.
+**Three inputs score a false 1.000.** The first is a single-color reference. The second is a fine pattern, at a size where resizing blurs it
+into one color. The third is a reference larger than the capture, because OpenCV swaps the two images when the template is the larger one.
 
 **Cost at 1200×800.** `getImageOccurrence` takes about 95 ms, most of it converting images. Calling `matchTemplate` directly
 on a single channel takes about 31 ms, and 85 ms at 2400×1600. That one result holds both polarities, because the score
