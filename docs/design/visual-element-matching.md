@@ -186,8 +186,8 @@ these.
 **Preprocessing didn't help.** Grayscale and Gaussian blur raised the wrong matches as fast as the right ones. Blurring
 also put fewer references in the right place: 18 of 28 at σ=2, and 12 of 28 at σ=5, against 21 of 28 unprocessed.
 
-**Two inputs score a false 1.000:** a single-color reference, and a reference larger than the capture. The second does so because OpenCV
-swaps the two images when the template is the larger one.
+**Three inputs score a false 1.000:** a single-color reference, a fine pattern at a size where resizing blurs it into one color, and a
+reference larger than the capture. The last does so because OpenCV swaps the two images when the template is the larger one.
 
 **Cost at 1200×800.** `getImageOccurrence` takes about 95 ms, most of it converting images. Calling `matchTemplate` directly
 on a single channel takes about 31 ms, and 85 ms at 2400×1600. That one result holds both polarities, because the score
@@ -319,6 +319,8 @@ removes every `unhandledRejection` listener on each call.
     the winning size compete, so a copy at another size can't take the match by being higher on the page.
 26. **A thin one-color file isn't a uniform image.** A file whose alpha varies has a shape, even if nothing in it is fully opaque, such as
     Phosphor's thin `minus` and `menu`. Only an even veil of one color, with alpha varying by at most 1 level, fails as a single color.
+27. **A size that blurs into one color is skipped.** Resizing can average a fine pattern, such as one-pixel checks, into one color. OpenCV
+    scores that 1 at every location, so a plain page of that color matched at its top-left corner.
 
 ## What the page's plain words mean
 

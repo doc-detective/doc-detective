@@ -510,6 +510,12 @@ function scanSize(
   }
   const result = new cv.Mat();
   try {
+    // Resizing can blur a fine pattern into one color. That has no shape, and OpenCV
+    // scores it 1 at every location.
+    const channels = isOneColor ? 1 : 3;
+    if (template.data.every((v: number, i: number) => v === template.data[i % channels])) {
+      return { candidates: [], best: null, closest: null };
+    }
     const source = isOneColor ? capture.grayMat : capture.rgbMat;
     if (mask) cv.matchTemplate(source, template, result, cv.TM_CCOEFF_NORMED, mask);
     else cv.matchTemplate(source, template, result, cv.TM_CCOEFF_NORMED);
