@@ -45,9 +45,9 @@ docs/design/visual-element-matching.md:
         integrity: sha256-6e54ae3ed15383c2f8e804350012967bd21dfe65182a5118e2284aae1f31f8d2
       source:
         file: test/find-image.test.js
-        lines: 433-439
+        lines: 440-446
         integrity: sha256-2047cea1dcfbb89320312277fd681453eee50cf12d098662f9760dc0d5098255
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: fc9b8cea3fea3db35330dbbb6d957cbedc32b627
     - id: image-device-pixels
       claim:
         integrity: sha256-28fa400a04b1fb4f9495272de94ca00a75b757dc152662909993f47ed4c24da2
@@ -61,9 +61,9 @@ docs/design/visual-element-matching.md:
         integrity: sha256-28fa400a04b1fb4f9495272de94ca00a75b757dc152662909993f47ed4c24da2
       source:
         file: test/find-image.test.js
-        lines: 501-507
+        lines: 508-514
         integrity: sha256-d73bd4a1e86ff4aa14597ec163a8bb97e1228a2b8bc1e2754f71f645de095c7f
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: fc9b8cea3fea3db35330dbbb6d957cbedc32b627
     - id: image-sweep-best
       claim:
         integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
@@ -77,9 +77,9 @@ docs/design/visual-element-matching.md:
         integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
       source:
         file: test/find-image.test.js
-        lines: 481-490
+        lines: 488-497
         integrity: sha256-b6387f760b4499df87c2a8fa0c843a73268e37ee5eb47cc61a051a29064c87a1
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: fc9b8cea3fea3db35330dbbb6d957cbedc32b627
     - id: image-matcher-error
       claim:
         integrity: sha256-7e6599f2de45249fece9c64fb306fc5310cf6c41b6f04ec0a1f765f4d2f0617e
