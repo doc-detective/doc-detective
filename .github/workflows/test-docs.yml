@@ -1,7 +1,8 @@
 # Runs Doc Detective against the documentation so the inline tests embedded in
-# the docs (the docs-as-tests pattern) execute on every docs change. A single
-# Doc Detective Action picks up and runs all tests under docs/fern/pages and
-# fails the job on any FAIL (exit_on_fail).
+# the docs (the docs-as-tests pattern) execute on every docs change. Two jobs,
+# one on ubuntu-latest and one on windows-latest, each run all tests under
+# docs/fern/pages through the Doc Detective Action and fail on any FAIL
+# (exit_on_fail). The Windows job also fails when a Windows test is skipped.
 #
 # It runs the repo's OWN build (build + `npm link`, then the Action with an empty
 # `version` so bare `npx doc-detective` resolves the linked local build) rather
@@ -50,3 +51,115 @@ jobs:
           config: docs/.doc-detective.json
           input: docs/fern/pages
           exit_on_fail: true
+
+  # Runs the same docs suite on a Windows runner, so the Windows-only inline
+  # tests (runOn platforms windows: native app surfaces, PowerShell commands)
+  # actually run instead of being skipped by the Linux job above. windows-latest
+  # runs an interactive desktop session, which native app surfaces need. The
+  # gate after the run fails the job when any Windows context was skipped, so a
+  # runner or driver regression can't turn the Windows tests into silent skips.
+  test-docs-windows:
+    name: Test docs (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Keep npm's cache on D:, before setup-node restores into it. C: is slow
+      # at small-file I/O (see the dd-cache action).
+      - shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Doc Detective install cache (browsers, drivers, git-bash), shared with
+      # test.yml and fixtures.yml. See docs/maintenance/ci-cache-warming.md.
+      - uses: ./.github/actions/dd-cache
+        with:
+          node: '24'
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Link local build
+        run: npm link --no-audit --no-fund
+
+      # Android tests run in the Linux job above, which has KVM for the
+      # emulator. Windows runners have no hardware acceleration, so the emulator
+      # can't boot here: turn off the lazy SDK install so the Android test
+      # skips on this runner instead of downloading the SDK and timing out.
+      - name: Run Doc Detective on the docs
+        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
+        with:
+          version: "" # bare npx doc-detective -> the linked local build above
+          config: docs/.doc-detective.json
+          input: docs/fern/pages
+          exit_on_fail: true
+          android: 'false'
+          ios: 'false'
+
+      # The action writes its results to $RUNNER_TEMP/doc-detective-output.json,
+      # the same file fixtures.yml gates on (scripts/check-fixture-results.cjs).
+      # Fail when the run found no specs, found no Windows contexts, or any
+      # context that targets Windows was SKIPPED. On this runner every Windows
+      # test must run. A spec skipped at spec level (for example a spec-level
+      # runOn for another platform) reports no contexts, so it counts toward
+      # neither list.
+      - name: Require every Windows test to run
+        if: always()
+        shell: node {0}
+        run: |
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const file = path.join(process.env.RUNNER_TEMP, "doc-detective-output.json");
+          if (!fs.existsSync(file)) {
+            console.error(`No results file at ${file}.`);
+            process.exit(1);
+          }
+          const specs = JSON.parse(fs.readFileSync(file, "utf8")).specs || [];
+          if (specs.length === 0) {
+            console.error("No specs ran. Check the input path.");
+            process.exit(1);
+          }
+          const ran = [];
+          const skipped = [];
+          for (const spec of specs) {
+            for (const test of spec.tests || []) {
+              for (const context of test.contexts || []) {
+                if (!context || context.platform !== "windows") continue;
+                const row = `${test.testId} (${spec.specId}): ${context.result}`;
+                if (context.result === "SKIPPED") {
+                  skipped.push(`${row} - ${context.resultDescription || "no reason given"}`);
+                } else {
+                  ran.push(row);
+                }
+              }
+            }
+          }
+          if (ran.length === 0 && skipped.length === 0) {
+            console.error("No Windows contexts in the results. Expected at least one Windows test to run.");
+            process.exit(1);
+          }
+          console.log(`Windows contexts that ran (${ran.length}):`);
+          for (const row of ran) console.log(`  ${row}`);
+          if (skipped.length > 0) {
+            console.error(`Windows contexts that were skipped (${skipped.length}):`);
+            for (const row of skipped) console.error(`  ${row}`);
+            process.exit(1);
+          }
+
+      - if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-docs-windows-output
+          path: ${{ runner.temp }}/doc-detective-output.json
+          retention-days: 3
+          if-no-files-found: warn

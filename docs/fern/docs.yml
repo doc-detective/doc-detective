@@ -205,6 +205,9 @@ navigation:
               - section: Native & mobile apps (experimental)
                 skip-slug: true
                 contents:
+                  - page: Windows app tutorial
+                    path: pages/docs/test-docs/native-apps/windows-tutorial.mdx
+                    slug: windows-app-tutorial
                   - page: Native Windows apps
                     path: pages/docs/test-docs/native-apps/windows.mdx
                     slug: native-windows-apps

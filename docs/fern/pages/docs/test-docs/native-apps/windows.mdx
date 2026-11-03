@@ -12,6 +12,12 @@ Doc Detective can open and drive native Windows desktop apps as part of a test. 
 
 </Info>
 
+<Tip>
+
+New to Doc Detective? The [Windows app tutorial](/docs/test-docs/windows-app-tutorial) walks you through installing Doc Detective, running your first app test, and testing a how-to from start to finish.
+
+</Tip>
+
 ## Before you begin
 
 Windows app tests run only on a **Windows host**. On any other platform, Doc Detective skips the test with a reason rather than failing it, so a mixed-platform spec stays green.
@@ -120,10 +126,10 @@ On a host that isn't Windows, the test skips with a reason rather than failing. 
 - **Cause:** An app with more than one window defaults to its main window.
 - **Solution:** Reintroduce an explicit `surface` on the step and add a `window` selector to address a specific window. For example, `"surface": { "app": "charmap", "window": -1 }`, where `-1` is the newest window. A title or object form also works. See [App windows](/docs/actions/find#app-windows).
 
-**Doc Detective rejects a working directory setting elsewhere**
+**A `startSurface` step that sets `workingDirectory` fails**
 
-- **Cause:** Doc Detective supports `workingDirectory` on Windows only. On other platforms, setting it fails the step.
-- **Solution:** Keep `workingDirectory` in Windows-only specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
+- **Cause:** The Windows app driver doesn't honor a launch working directory. Doc Detective fails the step rather than launch the app from the wrong folder.
+- **Solution:** Remove `workingDirectory` from the step. If the app needs a specific working directory, launch it with [`runShell`](/docs/actions/runshell) instead. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
 ## What's next
 

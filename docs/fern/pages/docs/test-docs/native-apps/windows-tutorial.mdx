@@ -1,0 +1,401 @@
+---
+title: Test the docs for a native Windows app from scratch
+sidebar-title: Windows app tutorial
+description: Install Doc Detective on Windows, run your first test against a native desktop app, and keep a how-to and its screenshot in sync with the app.
+---
+
+This tutorial takes you from a fresh Windows machine to a tested how-to for a native Windows desktop app. You install Doc Detective, run a test that drives Character Map, and read the results. Then you move the test into a Markdown how-to, so every run checks the procedure and refreshes its screenshot. Last, you adapt the test to your own app.
+
+You don't need any earlier experience with Doc Detective. You need to be comfortable running commands in a terminal and editing JSON in a text editor. Allow about 30 minutes. If you'd rather have a coding agent write tests for you, see [AI & Agents](/ai/ai-agents/overview). This tutorial still helps you check what the agent writes.
+
+<Info>
+
+**Experimental**: Native and mobile app testing is experimental and subject to change.
+
+</Info>
+
+This tutorial doesn't cover browser-based apps or CI pipelines. For browser apps, start with [Create your first test](/docs/get-started/create-your-first-test). For a quick reference on Windows app tests once you know the basics, see [Test native Windows apps](/docs/test-docs/native-windows-apps).
+
+## How Doc Detective tests a desktop app
+
+A Doc Detective **test** is a list of **steps**. Each step performs one **action**. Clicking a button is one action, and taking a screenshot is another. You can save tests in their own JSON file, called a test spec, or write them as comments inside the doc they check.
+
+To test a desktop app, the first step launches the app with the [`startSurface`](/docs/actions/startsurface) action. Doc Detective calls the launched app a **surface**. The steps that follow act on that app window. They use the same [`find`](/docs/actions/find), [`click`](/docs/actions/click), [`type`](/docs/actions/type), and [`screenshot`](/docs/actions/screenshot) actions that browser tests use. A final [`closeSurface`](/docs/actions/closesurface) step closes the app.
+
+Doc Detective finds controls through UI Automation, the accessibility layer that Windows exposes for every app. That means a test can look for a button by the name a screen reader announces, rather than by its position on the screen.
+
+## Before you begin
+
+You need:
+
+- A Windows 10 or Windows 11 computer that you're signed in to. Doc Detective opens the app on your desktop and clicks its controls, so the session must be unlocked while tests run.
+- An internet connection. The first app test downloads the Windows automation driver.
+- A terminal. This tutorial uses PowerShell.
+- A text editor.
+
+This tutorial uses Character Map (`charmap.exe`) because it ships with every edition of Windows, so you don't need to install an app to follow along.
+
+## Install Doc Detective
+
+Doc Detective runs on Node.js and installs with npm, the package manager that comes with Node.js.
+
+{/* Inline tests on this page. windows-tutorial-install runs on every platform. windows-tutorial-walkthrough and windows-tutorial-get-startapps run only on Windows, in PowerShell as the tutorial does. The Test docs (Windows) job in .github/workflows/test-docs.yml runs all three on a windows-latest runner and fails if any Windows test is skipped. The Linux job runs only windows-tutorial-install. The npm install and Set-ExecutionPolicy steps sit in test ignore blocks, with the reason next to each. */}
+{/* The walkthrough follows the reader in a charmap-docs folder next to this page, which it removes at the end. A workingDirectory of "." is this page's folder (native-apps/), because paths resolve relative to the file that holds the test. It copies the samples from windows-tutorial/, which the page renders with <Code src>. They use a .txt extension so Doc Detective doesn't also run them in place. If you edit a sample, update the steps that depend on it: the step counts in windows-tutorial-run-spec (6) and windows-tutorial-run-howto (5), and the Select/Choose replacement in windows-tutorial-break-click and windows-tutorial-restore-click. */}
+{/* test {"testId":"windows-tutorial-install","detectSteps":false} */}
+
+1. Install [Node.js](https://nodejs.org/) v22.22.0 or later on the v22 line, or v24 or later.
+2. Open a new terminal window, so it picks up the updated `PATH`.
+3. Check that Node.js is installed:
+
+    ```powershell
+    node --version
+    ```
+
+    {/* step {"stepId":"windows-tutorial-node-version","description":"Check that Node.js is installed.","runShell":{"command":"node --version","stdio":"/^v\\d+\\.\\d+\\.\\d+/"}} */}
+
+    The command prints the version number, such as `v24.1.0`.
+
+4. Install Doc Detective globally:
+
+    ```powershell
+    npm i -g doc-detective
+    ```
+
+    {/* Not run in the docs gate: a global npm install changes the machine's environment and would replace the npm-linked local build that the docs CI jobs test. */}
+    {/* test ignore start */}
+    {/* step {"stepId":"windows-tutorial-npm-install","description":"Install Doc Detective globally.","runShell":{"command":"npm i -g doc-detective","timeout":600000}} */}
+    {/* test ignore end */}
+
+    The install also downloads the browsers and other assets that browser tests use, so it can take a few minutes.
+
+5. Check that Doc Detective is installed:
+
+    ```powershell
+    doc-detective --version
+    ```
+
+    {/* step {"stepId":"windows-tutorial-cli-version","description":"Check that Doc Detective is installed.","runShell":{"command":"doc-detective --version","stdio":"/\\d+\\.\\d+\\.\\d+/"}} */}
+
+    The command prints the installed version.
+
+{/* test end */}
+
+If PowerShell blocks the `npm` or `doc-detective` command, see [Troubleshooting](#troubleshooting).
+
+The [Installation](/docs/get-started/installation) page also describes a Docker option. Use the npm install for this tutorial, because Doc Detective needs to open the app on your own desktop.
+
+## Write your first test
+
+Create a folder for the tutorial and a test spec inside it.
+
+{/* test {"testId":"windows-tutorial-walkthrough","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+{/* step {"stepId":"windows-tutorial-reset-folder","description":"Remove a charmap-docs folder that an earlier run left behind.","runShell":{"command":"if (Test-Path charmap-docs) { Remove-Item -Recurse -Force charmap-docs }","shell":"powershell","workingDirectory":"."}} */}
+
+1. Create a folder and move into it:
+
+    ```powershell
+    mkdir charmap-docs
+    cd charmap-docs
+    ```
+
+    {/* step {"stepId":"windows-tutorial-mkdir","description":"Create the tutorial folder and move into it.","runShell":{"command":"mkdir charmap-docs; cd charmap-docs","shell":"powershell","workingDirectory":".","stdio":"charmap-docs"}} */}
+
+2. In your text editor, create a file named `charmap.spec.json` in that folder and paste in this test:
+
+    <Code src="windows-tutorial/charmap.spec.json.txt" title="charmap.spec.json" language="json" />
+
+    {/* step {"stepId":"windows-tutorial-save-spec","description":"Save the charmap.spec.json sample in the folder, as the reader does by pasting it.","runShell":{"command":"Copy-Item ../windows-tutorial/charmap.spec.json.txt charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs"}} */}
+
+3. Save the file.
+
+Here's what each part of the test does:
+
+- `runOn` limits the test to Windows. On macOS or Linux, Doc Detective skips the test and reports why, rather than failing it.
+- `startSurface` launches Character Map by its executable path. Backslashes in JSON strings are doubled, so `C:\Windows` becomes `C:\\Windows`.
+  - `waitUntil.find` holds the step until a control named `Select` exists, so later steps don't run before the window finishes drawing.
+  - `timeout` allows 120,000 milliseconds (two minutes) for the launch. The first run also downloads the automation driver, which takes longer than a normal launch.
+- `click` and `find` look up controls by `elementText`, which matches the control's UI Automation name. For a button, that's usually its label.
+- `type` sends keystrokes to a control. In Character Map, a text label and a text box share the same name. This step uses an XPath `selector` to pick the text box, whose control type is `Edit`. For most controls, `elementText` is enough.
+- `screenshot` saves an image of the app window to `charmap.png`, next to the spec file.
+- `closeSurface` closes the app. Doc Detective names the surface after the executable file, so `charmap.exe` becomes `charmap`.
+
+The steps between `startSurface` and `closeSurface` don't say which app to act on. They act on the app that `startSurface` opened most recently.
+
+## Run the test
+
+1. In the terminal, from the `charmap-docs` folder, run the test:
+
+    ```powershell
+    doc-detective --input charmap.spec.json
+    ```
+
+    {/* step {"stepId":"windows-tutorial-run-spec","description":"Run the test and check that all six steps pass.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 6\\r?\\n[^\\n]*Passed: 6/"}} */}
+    {/* step {"stepId":"windows-tutorial-check-screenshot","description":"Check that the run saved charmap.png next to the spec file.","runShell":{"command":"Test-Path charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
+
+2. Wait for the run to finish, and don't use the mouse or keyboard while it runs. Character Map opens, a character appears in the **Characters to copy** box followed by `AB`, and then the window closes.
+
+    The first run takes longer, because Doc Detective installs the Windows automation driver before it opens the app. Later runs skip that download.
+
+When the run finishes, the terminal prints a results summary. Every step in a passing run counts as passed:
+
+```text
+===== Doc Detective Results Summary =====
+
+Specs:
+Total: 1
+Passed: 1
+Failed: 0
+
+Tests:
+Total: 1
+Passed: 1
+Failed: 0
+
+Contexts:
+Total: 1
+Passed: 1
+Failed: 0
+
+Steps:
+Total: 6
+Passed: 6
+Failed: 0
+```
+
+The run also leaves new files in the folder, including:
+
+- `charmap.png`: the screenshot of Character Map. Open it to check what the test saw.
+- `testResults-<timestamp>.json`: the full results, with a `PASS`, `FAIL`, `WARNING`, or `SKIPPED` result and a description for each step. The terminal prints this file's path after `See detailed results at`.
+
+Doc Detective also archives a copy of the results, plus an HTML report, in a `.doc-detective` folder it creates alongside them. You can ignore it for this tutorial. To learn what each reporter writes, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+If Doc Detective can't run the test on your machine, for example because the machine isn't running Windows, it skips the test instead. The summary then counts the test as `Skipped` rather than `Passed`, reports no steps, and ends with a warning:
+
+```text
+===== Doc Detective Results Summary =====
+
+Specs:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Tests:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Contexts:
+Total: 1
+Passed: 0
+Failed: 0
+Skipped: 1
+
+Steps:
+Total: 0
+Passed: 0
+Failed: 0
+
+⚠️  All items were skipped. No specs passed or failed. ⚠️
+```
+
+A skipped test isn't a failure, so the run still exits with code `0`. But the test didn't check anything either, so a skipped run doesn't mean your doc is correct. To find out why Doc Detective skipped the test, read the reason in the results file. See [Troubleshooting](#troubleshooting).
+
+## See what a failure looks like
+
+A test is useful because it fails when the app no longer matches the doc. To see that happen, change the test so it looks for a button that doesn't exist.
+
+1. In `charmap.spec.json`, find the `click` step and change `Select` to `Choose`:
+
+    ```json
+    {
+      "description": "Select the highlighted character.",
+      "click": { "elementText": "Choose" }
+    }
+    ```
+
+    {/* step {"stepId":"windows-tutorial-break-click","description":"Change Select to Choose in the click step, and check that the change landed.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22)Select(?=\\x22)', '$1Choose' | Set-Content charmap.spec.json; (Get-Content -Raw charmap.spec.json) -match '\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22Choose\\x22'","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
+
+2. Run the test again:
+
+    ```powershell
+    doc-detective --input charmap.spec.json
+    ```
+
+    {/* step {"stepId":"windows-tutorial-run-failing","description":"Run the test again and check that one step fails and the run still exits with code 0.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[\\s\\S]*Failed: 1/"}} */}
+    {/* step {"stepId":"windows-tutorial-close-after-failing","description":"Close the Character Map window that windows-tutorial-run-failing left open, so the --exit-on-fail run starts its own.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+    {/* step {"stepId":"windows-tutorial-exit-on-fail","description":"Check that --exit-on-fail, described after this procedure, makes the failing run exit with a nonzero code.","runShell":{"command":"doc-detective --input charmap.spec.json --exit-on-fail","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"exitCodes":[1]}} */}
+    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close the Character Map window that the --exit-on-fail run left open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+
+    The summary reports one failed step, and the steps after it as skipped. Under **Failed Items**, the terminal lists the step that failed. The results file describes why: Doc Detective couldn't find an element with the text `Choose`.
+
+3. Change `Choose` back to `Select` and save the file.
+
+    {/* step {"stepId":"windows-tutorial-restore-click","description":"Change Choose back to Select in the click step, and check that the change landed.","runShell":{"command":"(Get-Content -Raw charmap.spec.json) -replace '(\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22)Choose(?=\\x22)', '$1Select' | Set-Content charmap.spec.json; (Get-Content -Raw charmap.spec.json) -match '\\x22click\\x22:\\s*\\{\\s*\\x22elementText\\x22:\\s*\\x22Select\\x22'","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
+
+This is what happens when a release renames a control that your docs mention. The failed step points you to the instruction that's now wrong.
+
+By default, `doc-detective` still exits with code `0` when a test fails. To make a failed test return a nonzero exit code, for example in a script or a CI job, add the `--exit-on-fail` flag. A skipped test doesn't count as a failure, so it never triggers a nonzero exit code.
+
+## Put the test in your how-to
+
+A separate spec file works, but a test that sits inside the how-to it checks is harder to forget when someone edits the doc. With [inline tests](/docs/test-docs/inline), you add each step as a comment next to the instruction it checks. Comments don't appear on the published page, so readers see only the procedure.
+
+1. In the `charmap-docs` folder, create a file named `copy-characters.md` with this content:
+
+    <Code src="windows-tutorial/copy-characters.md.txt" title="copy-characters.md" language="markdown" />
+
+    {/* step {"stepId":"windows-tutorial-save-howto","description":"Save the copy-characters.md sample in the folder, as the reader does.","runShell":{"command":"Copy-Item ../windows-tutorial/copy-characters.md.txt copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs"}} */}
+
+2. Save the file.
+3. Run Doc Detective on the how-to:
+
+    ```powershell
+    doc-detective --input copy-characters.md
+    ```
+
+    {/* step {"stepId":"windows-tutorial-run-howto","description":"Run the how-to and check that all five inline steps pass.","runShell":{"command":"doc-detective --input copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 5\\r?\\n[^\\n]*Passed: 5/"}} */}
+    {/* step {"stepId":"windows-tutorial-check-howto-screenshot","description":"Check that the run created images/charmap.png for the how-to's image link.","runShell":{"command":"Test-Path images/charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
+
+Doc Detective reads the `test` and `step` comments and runs them in order. The inline test follows the how-to's own steps, so it differs from the spec file in two ways. It clicks **Copy**, as step 3 tells the reader to, instead of only checking that the button exists. It also leaves out the `type` step, because the procedure doesn't ask the reader to type anything.
+
+Each comment must fit on one line. In an MDX file, write the same comments in JSX form, such as `{/* step {...} */}`. Two settings in the `test` comment matter here:
+
+- `runOn` limits the test to Windows, as in the spec file.
+- `detectSteps: false` tells Doc Detective to run only the steps you wrote. Without it, Doc Detective also infers steps from the Markdown itself. See [Detected tests](/docs/test-docs/detected).
+
+The `screenshot` step saves the image to `images/charmap.png`, the same path the image link in the how-to uses. Doc Detective creates the `images` folder if it doesn't exist. Paths in a test are relative to the file that contains it, so the image lands next to the how-to. Every run now checks the procedure and refreshes the picture readers see.
+
+On later runs, Doc Detective compares each new screenshot with the existing file. If the two differ by more than 5%, it replaces the file and reports a `WARNING` for that step. The warning tells you that the app's appearance changed. Review the new image before you commit it with your doc. For more on comparisons, see [Screenshot visual regression](/docs/test-docs/screenshot-visual-regression).
+
+To run every test in a folder at once, pass the folder instead of a file, such as `doc-detective --input .`.
+
+{/* step {"stepId":"windows-tutorial-run-folder","description":"Run every test in the folder and check that both tests pass.","runShell":{"command":"doc-detective --input .","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Tests:[^\\n]*\\nTotal: 2\\r?\\n[^\\n]*Passed: 2/"}} */}
+{/* step {"stepId":"windows-tutorial-remove-folder","description":"Remove the charmap-docs folder so later docs runs don't pick up its tests.","runShell":{"command":"Remove-Item -Recurse -Force charmap-docs","shell":"powershell","workingDirectory":"."}} */}
+{/* test end */}
+
+## Test your own app
+
+To point the test at your own app, change the app identifier and the controls the steps look for.
+
+### Find your app's identifier
+
+How you name the app in `startSurface` depends on how it's installed:
+
+- **A desktop app with an `.exe` file**: Use the full path to the executable, such as `C:\\Program Files\\Contoso\\Contoso.exe`. To find the path, right-click the app's shortcut, select **Properties**, and copy the **Target** value.
+- **A Microsoft Store or other packaged (UWP) app**: Use its AppUserModelID, such as `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`. To list the IDs of installed apps, run `Get-StartApps` in PowerShell and copy the `AppID` value.
+
+  {/* test {"testId":"windows-tutorial-get-startapps","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+  {/* step {"stepId":"windows-tutorial-get-startapps","description":"List installed apps and check that the output has an AppID column.","runShell":{"command":"Get-StartApps","shell":"powershell","stdio":"AppID"}} */}
+  {/* test end */}
+
+Some built-in apps install an `.exe` file that only hands off to the Store version. For example, `notepad.exe` behaves this way on Windows 11. The process that Doc Detective launches never owns a window, so the test can't find any controls. Use the AppUserModelID for those apps instead.
+
+Doc Detective names the surface after the executable filename or the app token in the AppUserModelID. `Contoso.exe` becomes `Contoso`, and `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`. Use that name in `closeSurface`, or set your own with `name` on `startSurface`.
+
+### Find the controls to target
+
+Doc Detective matches controls by their UI Automation properties:
+
+| To match a control by | Use | UI Automation property |
+| --- | --- | --- |
+| Its visible text or label | `elementText` | Name |
+| A developer-assigned ID | `elementId` | AutomationId |
+| Its control type, such as `button` | `elementAria` | ControlType (in browsers, `elementAria` matches the accessible name instead) |
+| A combination of type and properties | `selector` (XPath), such as `//Button[@Name="Save"]` | Control type and any property |
+
+The name a control shows on screen isn't always its UI Automation name. To see a control's properties, use an inspection tool such as [Accessibility Insights for Windows](https://accessibilityinsights.io/docs/windows/overview/) or Inspect, which ships with the Windows SDK. Hover over the control and read its Name, AutomationId, and ControlType values.
+
+Prefer `elementId` when your app's developers set an AutomationId, because an ID usually stays the same when a label's wording changes. When no single field fits, use an XPath `selector`, as the `type` step in this tutorial does. CSS selectors work only in browsers.
+
+### Adapt the test
+
+Replace the Character Map steps with the steps from your own procedure. This example opens a hypothetical app, enters a name, and saves a screenshot of the result:
+
+```json title="contoso.spec.json"
+{
+  "tests": [
+    {
+      "runOn": [
+        {
+          "platforms": ["windows"],
+          "requires": {
+            "files": ["C:\\Program Files\\Contoso\\Contoso.exe"]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Program Files\\Contoso\\Contoso.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": { "elementId": "NewProjectButton" }
+            }
+          }
+        },
+        {
+          "click": { "elementId": "NewProjectButton" }
+        },
+        {
+          "type": {
+            "keys": ["Quarterly report"],
+            "elementId": "ProjectNameBox"
+          }
+        },
+        {
+          "click": { "elementText": "Create" }
+        },
+        {
+          "screenshot": "new-project.png"
+        },
+        {
+          "closeSurface": { "app": "Contoso" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+The `requires.files` setting skips the test on machines where the app isn't installed, instead of failing it. To pass launch arguments to your app, see the `args` field in the [app descriptor](/reference/schemas/app-descriptor) reference.
+
+## Troubleshooting
+
+**PowerShell says running scripts is disabled on this system**
+
+- **Cause:** PowerShell's execution policy blocks the script files that npm installs for `npm` and `doc-detective`.
+- **Solution:** Run the command from Command Prompt instead, or allow local scripts for your user account with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, and then open a new terminal.
+
+  {/* Not run in the docs gate: Set-ExecutionPolicy changes the user's PowerShell security policy, which a test shouldn't do to the machine it runs on. */}
+  {/* test ignore start */}
+  {/* test {"testId":"windows-tutorial-execution-policy","detectSteps":false,"runOn":[{"platforms":["windows"]}]} */}
+  {/* step {"stepId":"windows-tutorial-execution-policy","description":"Allow local scripts for the current user.","runShell":{"command":"Set-ExecutionPolicy -Scope CurrentUser RemoteSigned","shell":"powershell"}} */}
+  {/* test end */}
+  {/* test ignore end */}
+
+**The test is skipped instead of run**
+
+- **Cause:** Doc Detective skips an app test when it can't run it on this machine. That happens when the machine isn't running Windows, when the `requires.files` path doesn't exist, or when the automation driver couldn't download.
+- **Solution:** Read the skip reason in the results file. If the driver download failed, check your network connection. Then run the test again. A skipped test doesn't fail the run, so check for skipped app tests when a run looks green but didn't open the app.
+
+**The app doesn't launch**
+
+- **Cause:** The app identifier is wrong, or the Windows session isn't interactive, for example because the screen is locked.
+- **Solution:** Check the executable path or AppUserModelID, unlock the session, and run the test again.
+
+**The step can't find a control**
+
+- **Cause:** The value in the step doesn't match the control's UI Automation property, or the window hasn't finished drawing.
+- **Solution:** Check the control's Name or AutomationId with an inspection tool. If the window draws slowly, add a `waitUntil.find` on `startSurface` for a control that appears once the window is ready. For more causes, see [Troubleshooting](/docs/test-docs/native-windows-apps#troubleshooting) on the Windows app guide.
+
+## Next steps
+
+- To learn more about Windows app tests, including packaged apps, launch arguments, and multi-window apps, see [Test native Windows apps](/docs/test-docs/native-windows-apps).
+- To target a dialog or a second window of your app, see [App windows](/docs/actions/find#app-windows).
+- To add outlines and numbered badges to the screenshots in your docs, see [Annotate screenshots](/docs/test-docs/annotate-screenshots).
+- To write inline tests in HTML, AsciiDoc, or DITA sources, see [Inline tests](/docs/test-docs/inline).
+- To control where each test runs, see [Test across platforms and browsers](/docs/test-docs/platforms-and-browsers).
+- To run your doc tests automatically, use a Windows CI runner with a desktop session, such as GitHub's `windows-latest`. See [GitHub Action](/docs/ci/github-action).
+- To have a coding agent write and maintain your tests, see [AI & Agents](/ai/ai-agents/overview).
