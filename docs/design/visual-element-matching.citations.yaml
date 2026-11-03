@@ -45,9 +45,9 @@ docs/design/visual-element-matching.md:
         integrity: sha256-6e54ae3ed15383c2f8e804350012967bd21dfe65182a5118e2284aae1f31f8d2
       source:
         file: test/find-image.test.js
-        lines: 417-423
+        lines: 433-439
         integrity: sha256-2047cea1dcfbb89320312277fd681453eee50cf12d098662f9760dc0d5098255
-        commit-sha: d68e20460f14c7b835b83b0ff615545c0ef1d171
+        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
     - id: image-device-pixels
       claim:
         integrity: sha256-28fa400a04b1fb4f9495272de94ca00a75b757dc152662909993f47ed4c24da2
@@ -61,25 +61,25 @@ docs/design/visual-element-matching.md:
         integrity: sha256-28fa400a04b1fb4f9495272de94ca00a75b757dc152662909993f47ed4c24da2
       source:
         file: test/find-image.test.js
-        lines: 485-491
+        lines: 501-507
         integrity: sha256-d73bd4a1e86ff4aa14597ec163a8bb97e1228a2b8bc1e2754f71f645de095c7f
-        commit-sha: d68e20460f14c7b835b83b0ff615545c0ef1d171
+        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
     - id: image-sweep-best
       claim:
         integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 636-647
+        lines: 642-653
         integrity: sha256-642c2e383b138bd4a5ee3b1f5b7fe88347b554f9fa83148a53301dd76d293758
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
     - id: image-sweep-best-proof
       claim:
         integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
       source:
         file: test/find-image.test.js
-        lines: 465-474
+        lines: 481-490
         integrity: sha256-b6387f760b4499df87c2a8fa0c843a73268e37ee5eb47cc61a051a29064c87a1
-        commit-sha: d68e20460f14c7b835b83b0ff615545c0ef1d171
+        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
     - id: image-matcher-error
       claim:
         integrity: sha256-7e6599f2de45249fece9c64fb306fc5310cf6c41b6f04ec0a1f765f4d2f0617e
