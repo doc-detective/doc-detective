@@ -73,6 +73,7 @@ it's on screen.
 16. A one-color file whose transparency varies has a shape, even when nothing in it is fully opaque.
 17. An error while matching fails that step with its message. A throw would crash the context, and lose the report of every step in it.
 18. A failed load of the matcher isn't kept, so a later step tries it again.
+19. A size where resizing blurs the file into one color is skipped, because it has no shape to compare.
 
 ### Consequences
 

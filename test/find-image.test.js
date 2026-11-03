@@ -295,6 +295,22 @@ describe("elementImage matching", function () {
       expect(found.error).to.match(/single color/i);
     });
 
+    it("image-uniform-reference: a fine pattern that averages out when resized doesn't match a plain page", async function () {
+      // One-pixel cells blur into a single value at some sizes, which leaves no shape.
+      const checker = (size, pixel) => {
+        const raw = Buffer.alloc(size * size * 4);
+        for (let i = 0; i < size * size; i++) raw.set(pixel(i % size % 2 === Math.floor(i / size) % 2), i * 4);
+        return sharp(raw, { raw: { width: size, height: size, channels: 4 } }).png().toBuffer();
+      };
+      const transparent = await checker(64, (on) => [0x33, 0x33, 0x33, on ? 255 : 0]);
+      const opaque = await checker(32, (on) => (on ? [0, 0, 0, 255] : [255, 255, 255, 255]));
+      for (const [file, background] of [[transparent, "#333333"], [opaque, "#808080"]]) {
+        expect((await once(await page({ background }), { base64: b64(file) })).match).to.equal(null);
+        // The pattern itself is still found.
+        near((await once(await page({ items: [{ svg: file, x: 40, y: 50 }] }), { base64: b64(file) })).match, 40, 50);
+      }
+    });
+
     it("image-oversized-reference: a reference too large at every size fails, giving both sizes", async function () {
       const big = await sharp({ create: { width: 900, height: 900, channels: 3, background: "#ffffff" } })
         .composite([{ input: icon(GEAR, "#333333", 64), left: 10, top: 10 }])
