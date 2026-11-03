@@ -218,6 +218,13 @@ describe("elementImage matching", function () {
   });
 
   describe("reference forms", function () {
+    it("image-field-forms: the schema's base64 example works if someone copies it", async function () {
+      const schema = path.join(__dirname, "../src/common/src/schemas/src_schemas/elementImage_v3.schema.json");
+      const example = JSON.parse(fs.readFileSync(schema, "utf8")).examples.find((item) => item.base64);
+      const shot = await page({ items: [{ svg: Buffer.from(example.base64, "base64"), x: 40, y: 50 }] });
+      near((await once(shot, example)).match, 40, 50);
+    });
+
     it("image-file-formats: a PNG, a JPEG, and an SVG all match", async function () {
       const svg = icon(GEAR, "#333333", 24);
       const shot = await page({ items: [{ svg, x: 80, y: 60 }] });
