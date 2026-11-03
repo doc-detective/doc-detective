@@ -124,7 +124,7 @@ Two hazards come with generation:
 4. Run `npm run build`, which sequences `dereferenceSchemas`, `generate:types`, and `compile`. It does NOT run tests. Run `npm run test:coverage` separately, per ADR 01057.
 5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
 
-**Lines in a widely used schema multiply.** Dereferencing inlines a schema everywhere it's referenced, so one source line can generate thousands. In `elementImage_v3`, a 3-line `pattern` change added 14,000 generated lines, and a 10-line `examples` block added 60,000 lines and 2.3 MB. After building, check `git diff --shortstat`. Very large diffs also fail the `vale` job (see the flake playbook in [test/AGENTS.md](../../test/AGENTS.md)).
+**Lines in a widely used schema multiply.** Dereferencing inlines a schema everywhere it's referenced, so one source line can generate thousands. In `elementImage_v3`, a 3-line `pattern` change added 14,000 generated lines, and a 10-line `examples` block added 60,000 lines and 2.3 MB, so both were reverted. After building, check `git diff --shortstat`. Very large diffs also fail the `vale` job (see the flake playbook in [test/AGENTS.md](../../test/AGENTS.md)).
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
 

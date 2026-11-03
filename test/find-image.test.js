@@ -270,6 +270,20 @@ describe("elementImage matching", function () {
       expect(Date.now() - started).to.be.below(2000);
     });
 
+    it("image-missing-file: a blank reference fails at once", async function () {
+      for (const elementImage of ["   ", { path: "   " }, { base64: "   " }]) {
+        const started = Date.now();
+        const found = await visual.findByImage({
+          elementImage,
+          driver: fakeDriver(await page({})),
+          timeout: 5000,
+        });
+        expect(found.element).to.equal(null);
+        expect(found.error).to.match(/image reference/);
+        expect(Date.now() - started).to.be.below(2000);
+      }
+    });
+
     it("image-uniform-reference: a single-color reference with no transparency fails", async function () {
       const flat = await sharp({ create: { width: 20, height: 20, channels: 3, background: "#336699" } }).png().toBuffer();
       const found = await visual.findByImage({
