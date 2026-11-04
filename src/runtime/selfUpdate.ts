@@ -135,7 +135,11 @@ export async function checkForUpdate(
         "info"
       );
       const maintenance: string | undefined = tags[`release-${majorOf(currentVersion)}.x`];
-      if (typeof maintenance === "string" && compareVersions(maintenance, currentVersion) > 0) {
+      if (
+        typeof maintenance === "string" &&
+        majorOf(maintenance) === majorOf(currentVersion) &&
+        compareVersions(maintenance, currentVersion) > 0
+      ) {
         return { latest: maintenance, newer: true };
       }
       return { latest, newer: false };

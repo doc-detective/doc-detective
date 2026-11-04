@@ -280,6 +280,10 @@ describe("checkForUpdate across majors", function () {
     const deps = registry({ latest: "6.0.0", "release-5.x": "5.9.0" });
     expect(await checkForUpdate("5.0.0", deps)).to.deep.equal({ latest: "5.9.0", newer: true });
   });
+  it("ignores a maintenance tag holding another major", async function () {
+    const deps = registry({ latest: "7.0.0", "release-5.x": "6.0.0" });
+    expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
+  });
   it("ignores a maintenance tag that isn't newer", async function () {
     const deps = registry({ latest: "6.0.0", "release-5.x": "5.0.0" });
     expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
