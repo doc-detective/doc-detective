@@ -533,6 +533,14 @@ describe("CLI contract", function () {
       expect(run(["--version"], { env: { DOC_DETECTIVE_META: "" } }).status).to.equal(0);
     });
 
+    it("explains a dry run that finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-n", "-i", "empty.md"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("No tests found");
+      expect(r.stdout).to.equal("");
+    });
+
     it("keeps the raw schema errors for -d", function () {
       fs.writeFileSync(
         path.join(cwd, "invalid.spec.json"),

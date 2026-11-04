@@ -187,7 +187,11 @@ async function runTestsHandler(args: any) {
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
-    if (!results && config.exitOnFail !== false) process.exitCode = 2;
+    if (!results && config.exitOnFail !== false) {
+      // Dry runs silence logs to keep stdout clean, so say why there's no plan.
+      console.error("No tests found, so there's no test plan to print.");
+      process.exitCode = 2;
+    }
     return;
   }
 

@@ -2674,6 +2674,27 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
     });
 
     describe("config_v3 transformations", function () {
+      it("should keep a v2 .json output as the results file", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", output: "./results.json", logLevel: "info" },
+        });
+        expect(result.output).to.equal("./results.json");
+        // The schema's default.
+        expect(result.outputDir).to.equal(".");
+      });
+
+      it("should leave output unset without a v2 output", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", logLevel: "info" },
+        });
+        expect(result.output).to.equal(undefined);
+        expect(result.outputDir).to.equal(".");
+      });
+
       it("should transform config_v2 to config_v3", function () {
         const result = transformToSchemaKey({
           currentSchema: "config_v2",
