@@ -7,8 +7,11 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 
 ## Summary
 
-- **5.0.0 has one breaking behavior: a failed test fails the run.** Everything else is additive. It
-  ships on 4.x before the flip or 5.x after it, because nothing else needs a major version.
+- **5.0.0 is one major carrying every breaking CLI change.** A failed test fails the run, and the CLI
+  conforms to clig.dev. [ADR 01146](../../adrs/01146-cli-v5-contract.md) is the contract. Users migrate
+  once. Work that isn't part of the contract still ships on 4.x before it or 5.x after it.
+- **Nothing is retained for assets we control.** The Action, agent-tools, the VS Code extension, Online,
+  and Docker images get updated to the new CLI, with no shims. v4-era assets refuse v5 instead.
 - **The GitHub Action gets a matching major.** Action v2 uses CLI 5, and Action v1 stays on CLI 4.
   In a sample of public workflows, 82 of 97 refs use `@v1`, so most Action users move only when they
   choose to.
@@ -17,11 +20,12 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 - **Red has to be useful before it's the default.** Better failure messages and inline annotations
   land before the flip. Otherwise the first thing the change delivers is a wall of "No elements
   matched."
-- **There's no long-lived v5 branch.** Main keeps shipping 4.x. The RC branch carries only the flip.
+- **All CLI work lands on `feat/v5-rc`.** Main keeps shipping 4.x, and the branch reaches it as a single
+  5.0.0.
 - **v4 users get told.** Two days after GA, a final 4.x update points to v5 and gives upgrade
   instructions on every run. On GitHub Actions, that includes the run page.
-- **Online assumes v5.** It stays on Docker `latest` with no pin. The runner entrypoint in this repository
-  keeps run statuses meaning what they mean today.
+- **Online moves in lockstep.** The runner becomes `doc-detective runner`, so Online pins its image
+  before GA and deploys the new entrypoint with Docker `latest` at GA.
 
 ## Timeline
 
@@ -29,7 +33,7 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 |---|---|---|---|
 | 0. Safety | Nov 2 to Nov 15 | Secret masking, runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
 | 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
-| 2. RC | Dec 14 to Jan 8 | The flip, Action v2 RC, migration guide | `doc-detective@v5-rc` |
+| 2. RC | Now to Jan 8, feature-complete by Dec 14 | The ADR 01146 contract, Action v2 RC, downstream PRs, migration guide | `doc-detective@v5-rc` |
 | 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update two days later | `@latest`, `@v2`, `release-4.x` |
 | 4. Build | Jan to Apr 2027 | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
 | 5. Bets | Apr 2027 onward | Capture once, verified answers | agent-tools, Online |
@@ -51,10 +55,12 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 2. **Fenced code stays gated.** Default markup marks detected code fences `unsafe: true`
    (`src/core/config.ts:368`) because nobody authored them as tests. That's unchanged by decision 1.
 3. **An Action major pins a CLI major.** v1 uses `4`, v2 uses `5`. Users can still set `version`.
-4. **Schema names stay `_v3`.** The flip changes a default, not a shape. Bumping them would force a
-   migration with no user benefit.
-5. **Online assumes v5.** It moves when Docker `latest` does, with no pin and no Online-side rollout
-   work. See [Online](#online).
+4. **Schema names stay `_v3`.** The only shape change is an added `outputDir` key, and a folder value
+   in `output` fails with a pointer to it. Bumping the names would force a migration with no user
+   benefit.
+5. **Online moves in lockstep with GA.** See [Online](#online).
+6. **Telemetry stays opt-out, and self-update stays on by default.** Both are recorded departures from
+   clig in ADR 01146.
 
 ## The 5.0.0 contract
 
@@ -62,8 +68,9 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 |---|---|---|---|
 | All specs PASS, WARNING, or SKIPPED | 0 | 0 | 0 |
 | At least one spec FAIL | 0 | **1** | 0 |
-| No specs found (subject to open decision 2) | 0 | **2** | 0 |
-| Invalid config or crash | 1 | **2** | 2 |
+| No specs found | 0 | **2** | 0 |
+| Invalid spec | 0, skipped with a warning | **2**, before any test runs | 0, skipped with a warning |
+| Usage error, invalid config, or crash | 1 | **2** | 2 |
 
 - `WARNING` and `SKIPPED` never fail a run, matching `shouldFailRun` (`src/core/utils.ts:1167`).
 - The way out already exists: `exitOnFail: false` or `--no-exit-on-fail`.
@@ -76,14 +83,13 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 - Exit 2 means the run tested nothing. Callers treat an empty run and a crash as the same fatal setup
   error, so the shared code is deliberate. The log says which one happened.
 
-**Legacy Action shim.** When `DOC_DETECTIVE_META.dist_interface` is `github-actions` and the user
-didn't set `exitOnFail`, it defaults to `false`. This protects pinned Actions at v1.6.1 or earlier,
-which would otherwise break (see the [compatibility table](#compatibility)). It also prints a
-`::notice` pointing to `@v2`, because these users reached CLI 5 without choosing it and their tests no
-longer gate anything. Remove the shim in v6.
+**No legacy Action shim.** The moving `v1` tag gets v1.7, which defaults to CLI 4 and refuses `version`
+5 or later with a pointer to `@v2`. Workflows pinned exactly to v1.6.1 or earlier on the default
+`latest` get CLI 5 with no protection (see the [compatibility table](#compatibility)), and the migration
+guide covers them.
 
-**Implementation note.** The Phase 1 notice and the shim both need to know whether the user set
-`exitOnFail`. AJV fills schema defaults, so move the default out of `config_v3` and apply it at the
+**Implementation note.** The Phase 1 notice needs to know whether the user set `exitOnFail`. AJV fills
+schema defaults, so move the default out of `config_v3` and apply it at the
 consumption site, keeping it in the field's description.
 
 ## GitHub Action plan
@@ -114,10 +120,10 @@ From `doc-detective/github-action` `src/index.ts`, `action.yml`, and open issues
 | Action | CLI | What happens when a test fails with `exit_on_fail` false or unset |
 |---|---|---|
 | v1.6.1 or earlier | 4.x | Exit 0, normal flow. Today's behavior |
-| v1.6.1 or earlier | 5.x, through default `latest` | Without the shim: job red, no results, issue, or PR. With the shim: exit 0, normal flow |
+| v1.6.1 or earlier, pinned exactly | 5.x, through default `latest` | Job red, with no results, issue, or PR. Accepted, and covered by the migration guide |
 | v1.7 | 4.x, the new default | Exit 0, normal flow |
-| v1.7 | 5.x, set explicitly | The Action doesn't pass `exit_on_fail` to the CLI. The shim makes the CLI exit 0, so normal flow and the job stays green. If config sets `exitOnFail: true`, the CLI exits 1 and the job goes red after the results, issue, and PR steps, as that config asks |
-| v2.0 | 5.x, the new default | Passes `--no-exit-on-fail`, and the Action makes the one failure decision |
+| v1.7 | 5.x, set explicitly | Refused, with a pointer to `@v2` |
+| v2.0 | 5.x, the new default | Reads the CLI's exit code. `1` follows `exit_on_fail`, and `2` always fails |
 
 ### v1.7.0, the last planned v1 release (Phase 1)
 
@@ -131,7 +137,8 @@ Moves the floating `v1` tag, so most users get it without a change.
    the existing `setFailed` (`src/index.ts:226-228`), which reads the results. This matters because `v1`
    floats: someone with `exitOnFail: true` in their config would otherwise go green with no change on
    their side. Test exit 0 and exit 1 with `exit_on_fail` on and off, with and without failed specs.
-3. Change the `version` default from `latest` to `4`.
+3. Change the `version` default from `latest` to `4`, and fail with a pointer to `@v2` if `version` asks
+   for 5 or later.
 4. Merge [#81](https://github.com/doc-detective/github-action/pull/81), the job summary.
 5. Cap `$RESULTS` to fit the issue limit and link to the run. This closes
    [#80](https://github.com/doc-detective/github-action/issues/80).
@@ -171,19 +178,15 @@ Breaking changes:
 Non-breaking changes in the same release:
 
 - Pass arguments as an array, so paths with spaces work.
-- Always pass `--no-exit-on-fail`, and move the decision into a pure `decideOutcome({ exitCode,
-  results, exitOnFail })`, matching the style of `shouldSetUpAndroid`. Because that flag is always passed,
-  failed tests and empty runs arrive as exit 0, and `decideOutcome` finds them in `results`. A failure
-  is `summary.specs.fail` above 0, and an empty run is `results` being `null`. Both fail unless
-  `exit_on_fail` is `false`. Any non-zero exit or missing results file then means a crash, and
-  fails regardless of the input.
+- Run with `ignoreReturnCode`, and move the decision into a pure `decideOutcome({ exitCode, exitOnFail })`,
+  matching the style of `shouldSetUpAndroid`. `0` passes, `1` fails unless `exit_on_fail` is `false`, and
+  `2` always fails, since nothing valid was tested. Results load whenever the file exists, so the issue
+  and PR steps still run on `1`.
 - Declare `results_path`, `summary_path`, `issue_url`, and `pull_request_url` as outputs.
 
 Verification, red to green in the Action repository:
 
-- A `decideOutcome` table test covering exit codes 0, 1, and 2 against `exit_on_fail` on and off. For
-  exit 0, cover results with failures, results without them, and `null`. For exit 1 and 2, cover a
-  results file being present, which still fails.
+- A `decideOutcome` table test covering exit codes 0, 1, and 2 against `exit_on_fail` on and off.
 - Tests for issue reuse, PR reuse, and base-branch resolution using mocked Octokit.
 - `test-current-release.yml` pointed at `v5-rc` during Phase 2 and `5` after GA.
 
@@ -417,7 +420,9 @@ The same applies to `release-4.x`.
 
 **Contents:**
 
-1. The flip, as a commit with this message. The footer is required, and it has to stay in history at
+1. The ADR 01146 contract, in steps, each as a PR into `feat/v5-rc` merged with `gh pr merge --merge`.
+   The parser swap from yargs to commander lands first, with no behavior change. Every breaking commit
+   carries its own footer, so the 5.0.0 notes list each one, and the footers have to stay in history at
    merge (see the [GA runbook](#phase-3-ga-runbook)):
 
    ```text
@@ -428,15 +433,13 @@ The same applies to `release-4.x`.
 
    `.releaserc.json` uses commit-analyzer's default preset, which doesn't read `!`. Run against this
    repository's config, `feat(cli)!:` alone returns no release, and adding the footer returns `major`.
-   Build the change red to green using the "TDD cycle per flag" in `CLAUDE.md`:
-   - The default and exit codes in `src/cli.ts:40`, `:126`, `:273-276`, and `src/utils.ts:209`,
-     `:236`, `:261`.
-   - The empty-run rule and the legacy Action shim.
-   - `bin/runner-entrypoint.js`: set `exitOnFail: false` in `buildEffectiveConfig` (`:398`), with the
-     other platform-controlled overrides, and cover it in `test/runner-entrypoint.test.js`. Otherwise
-     lines 747-753 report test failures as `failed` with `nonzero_exit`, the same as a crash. This is
-     what lets Online assume v5: a run with failing tests still finalizes as `succeeded`.
-   - Focused `it(...)` cases that spawn the CLI and assert each exit code in the contract table.
+   Build each change red to green using the "TDD cycle per flag" in `CLAUDE.md`:
+   - The default and exit codes in `src/cli.ts` and `src/utils.ts`.
+   - The empty-run and invalid-spec rules, with no Action shim.
+   - `bin/runner-entrypoint.js`: map run status from exit codes (`:741-755`), and cover it in
+     `test/runner-entrypoint.test.js`. `0` and `1` finalize as `succeeded`, and `2` as `failed`. No
+     `exitOnFail` override is needed.
+   - `test/cli-contract.test.js`, which spawns the CLI and asserts each row of the contract.
 2. `docs:` the migration guide, plus `reference/cli.mdx`, `reference/schemas/config.mdx`, and every page
    in `docs/fern/pages/docs/ci/` that describes the exit default. Personas are Priya (P1) and Wren
    (W1). Docs land with the code, so they can't describe unreleased behavior.
@@ -446,7 +449,7 @@ gate on. Pin `doc-detective@4` if you can't move yet.
 
 **Branch rules:**
 
-- Rebase on main weekly. The branch stays small.
+- Rebase on main weekly. The branch will be large, so keep each PR into it reviewable on its own.
 - No `BREAKING CHANGE:` footer on main before GA, including in squash bodies. semantic-release would
   cut 5.0.0 immediately. The guard in 1.5 is the backstop.
 
@@ -517,8 +520,9 @@ also means it works in CI, where the update check doesn't run (`src/cli.ts:188`)
 ```text
 Doc Detective 5 is available. 4.x now gets security fixes only, through <end-of-support date>.
 
-What changes: a failed test now fails the run with exit code 1.
-To keep today's behavior while you triage, use --no-exit-on-fail, or exit_on_fail: false in the Action.
+What changes: a failed test now fails the run with exit code 1, logs move to stderr, and --output
+is now a results file. The guide lists every change.
+To keep today's exit codes while you triage, use --no-exit-on-fail, or exit_on_fail: false in the Action.
 
 Upgrade:
   npm            npm i doc-detective@5
@@ -544,7 +548,7 @@ The Action reads results from the file it passes to `--output`, so the extra std
 | Local dependency, outside CI | Next run, through the same check. The patch itself arrives with their next `npm update` |
 | CI with a lockfile or exact pin | Their next bump, including Dependabot and Renovate PRs. Until then, only the announcement |
 | Docker on an exact tag | Their next bump. There's no floating `4` tag. Until then, only the announcement |
-| Action v1.6.1 or earlier on default `latest` | Already on CLI 5, so the shim's `::notice` points them to `@v2` |
+| Action v1.6.1 or earlier, pinned exactly, on default `latest` | Already on CLI 5 with no notice. Only the announcement and the migration guide reach them |
 | Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them only if a test failed during the eight weeks |
 
 ### Phase 3 exit gate
@@ -588,17 +592,17 @@ Each one starts small and continues only if the first step earns it.
 
 ### Online
 
-Online assumes v5 compatibility, so it has no rollout work beyond a dependency bump.
+Online moves in lockstep with GA, because the `doc-detective-runner` bin becomes `doc-detective runner`.
 
-- **Runner:** `DEFAULT_RUNNER_IMAGE` stays `docdetective/docdetective:latest`
-  (`src/lib/server/platform-constants.ts:47`), so Online moves at promotion. `RUNNER_IMAGE` remains an
-  emergency override, not a planned step.
-- **Run status:** The Phase 2 entrypoint change ships in the image. A run with failing tests still
-  finalizes as `succeeded`, and a crash still finalizes as `failed`. An empty run also stays
-  `succeeded`, as it does today, because `exitOnFail: false` relaxes it too (see open decision 2).
-  Online's code doesn't read `exitOnFail`, so moving its default doesn't affect it.
-- **`doc-detective-common`:** Pinned exactly at `4.41.5`. Bump it to 5 as a normal dependency update after
-  GA. Schema names stay `_v3`, so no code change is expected.
+- **Before GA:** pin `RUNNER_IMAGE` (`src/lib/server/platform-constants.ts`) to the last exact 4.x image.
+  Otherwise, the moment Docker `latest` moves, Online's old entrypoint points to a removed bin.
+- **At GA:** deploy the new `RUNNER_ENTRYPOINT`, with `RUNNER_IMAGE` back on `latest`, together. Update
+  `runner-host-fly.ts`, `runner-host-docker.ts`, and `docs/local-dev.md`.
+- **Run status:** The entrypoint maps exit codes. A run with failing tests still finalizes as
+  `succeeded`, and shows as tests-failed on the run page. A crash, an invalid spec, and an empty run all
+  finalize as `failed`, so a mistyped `input` no longer looks like success.
+- **`doc-detective-common`:** Pinned exactly at `4.41.5`. Bump it to 5 after GA. Check
+  `RUNNER_OVERRIDDEN_KEYS` (`src/lib/config/config-v3-defaults.ts:32`) for `outputDir`.
 - **New work:** Build against the 5.x contract from now on.
 - **Product track, in its own plan in that repository's `plans/`:** Run history comes first, since it
   uses the fingerprint. Then come scheduled runs, PR checks through a GitHub App, organizations (RLS is
@@ -682,21 +686,21 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 | Risk | Effect | Mitigation |
 |---|---|---|
 | Users see a wall of red at the upgrade | They pin to 4 or remove the gate | Failure help first, an eight-week notice, and migration advice to triage before gating |
-| A pinned old Action meets CLI 5 | Lost issue and PR flow | Legacy shim, tested in the compatibility matrix |
+| A pinned old Action meets CLI 5 | Lost issue and PR flow | Accepted for exact pins. The moving `v1` tag gets v1.7, which refuses CLI 5 |
+| Every asset must move at GA | A missed asset breaks at promotion | Each downstream PR is ready and tested against `v5-rc` first, with a final sweep for removed flags and bins |
 | A stray `BREAKING CHANGE:` lands on main | 5.0.0 is cut early | The guard in 1.5 fails the release before it publishes, and reverting the commit recovers. The flip stays on the RC branch |
 | Masking misses a secret or over-masks | A false sense of safety, or noisy reports | Explicit `secrets` config, a documented built-in list, and stated limits for images |
 | Solo-maintainer capacity | Dates slip | Phases 0 and 1 are valuable alone. Only the flip is date-bound, and it can move |
 | Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes only after step 3 |
-| A 5.0 regression reaches Online at promotion | Hosted runs break with no soak | Accepted by decision 5. Entrypoint test, fix forward, and `RUNNER_IMAGE` as the emergency override |
+| A 5.0 regression reaches Online at promotion | Hosted runs break with no soak | Online deploys the new image deliberately at GA, after a real dispatch against `v5-rc`. `RUNNER_IMAGE` remains the override |
 | A fully passing suite gets no 1.3 notice | Its first failure after GA is a surprise | The change doesn't break it. The announcement and final 4.x update reach it, and the guide explains the new exit |
 | Pinned CI users miss the final 4.x update | They find out about v5 late | They aren't broken, since a pin holds. The announcement and dependency-bump PRs reach them |
 
 ## Open decisions
 
 1. **GA date.** Proposed January 12, 2027.
-2. **Empty runs.** Proposed: exit 2 unless `exitOnFail: false`. That leaves a mistyped `input` on Online
-   reporting `succeeded`, as it does today. Failing it there needs either an exit code that ignores
-   `exitOnFail` or an entrypoint that reads the results, since it only sees the exit code.
+2. **Empty runs.** Settled by ADR 01146: exit 2 unless `exitOnFail: false`. Online's runner no longer
+   sets that override, so a mistyped `input` reports `failed` there.
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
 5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
