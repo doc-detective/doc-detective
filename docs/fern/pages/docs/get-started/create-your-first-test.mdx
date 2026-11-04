@@ -123,9 +123,9 @@ By default, Doc Detective scans the current directory for valid tests, but you c
 
 ## Outcome
 
-After running the test, you should see the results in your terminal, which Doc Detective saves to a new file named `testResults-UNIQUE_ID.json`:
+After running the test, you should see the results in your terminal. Doc Detective also saves them to `.doc-detective/runs/<runId>/testResults.json`:
 
-```json title="testResults-UNIQUE_ID.json"
+```json title="testResults.json"
 {
   "summary": {
     "specs": {

@@ -54,8 +54,8 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these
   (`git checkout -- image.png` and so on) before committing. Subagents are especially prone to
   leaving them behind.
-- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective runTests` writes its
-  per-run reports to a `.doc-detective/` directory beside the input. Running a fixture from
+- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective` writes its
+  per-run reports to a `.doc-detective/` directory in the current directory. Running a fixture from
   `test/core-artifacts/` leaves `test/core-artifacts/.doc-detective/`. Then
   [select-fixture-bundles.test.js](select-fixture-bundles.test.js) fails with `bundle dirs
   must match on-disk group dirs exactly`, where actual gains `'.doc-detective'`. It enumerates the
@@ -67,7 +67,7 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   Remove-Item -Recurse -Force test/core-artifacts/.doc-detective              # PowerShell
   ```
 
-  Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
+  To avoid it, point `--output-dir` somewhere under `.tmp/`, or clean up before the full
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
 

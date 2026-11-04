@@ -58,7 +58,7 @@ To scope the behavior more tightly, set `autoScreenshot` on an individual spec o
 Auto screenshots land under the per-run artifact tree, on a stable path derived from each step's content:
 
 ```
-<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<hash>.png
+<outputDir>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<hash>.png
 ```
 
 Because the IDs come from file paths and content hashes rather than random values, the same step produces the same relative path in every run. You can diff two run folders and spot UI changes over time. Doc Detective skips a step that already defines an explicit `screenshot`, since that step already produces an image. It still captures a step that failed, because the failure frame is usually the most useful one for debugging.

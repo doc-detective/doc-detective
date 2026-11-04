@@ -1,0 +1,212 @@
+---
+title: Upgrade to Doc Detective 5
+sidebar-title: Upgrade to v5
+description: Every breaking change in Doc Detective 5, and what to do about each one in your scripts, pipelines, and GitHub Action workflows.
+---
+
+Doc Detective 5 makes a failed test fail the run. It also separates results from logs, and it tightens how the CLI reads flags and paths. A green run now means tests ran and passed. This guide lists every breaking change, then what to do about it.
+
+## Before you begin
+
+Decide how to take the exit code change, because it's the one most likely to turn a pipeline red.
+
+1. Run your suite once on version 5 with `--no-exit-on-fail`. The run behaves as it did on version 4, and the job stays green while you read the results:
+
+   ```bash
+   npx doc-detective@5 --input ./docs --no-exit-on-fail
+   ```
+
+2. Fix or triage the failures the run reports.
+3. Remove `--no-exit-on-fail` to turn the gate on.
+
+If you can't move yet, pin version 4. An unpinned `npx doc-detective` resolves to the latest release, so name the major version:
+
+```bash
+npx doc-detective@4
+```
+
+## Exit codes
+
+**What changed:** Failing tests, empty runs, and invalid specs no longer exit `0`.
+
+| Code | Meaning |
+|---|---|
+| `0` | All tests passed, warned, or were skipped. |
+| `1` | At least one test failed. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
+
+**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed and empty runs into `0`. Usage and config errors still exit `2`.
+
+## Invalid specs
+
+**What changed:** An invalid spec exits `2` before any test runs. Version 4 warned, skipped that spec, and ran the rest.
+
+**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail`.
+
+## Logs moved to stderr
+
+**What changed:** stdout carries results only. Logs, warnings, hints, and notices go to stderr. Logs also lose their level labels, such as `(INFO)`, unless you turn on debug output.
+
+**What to do:**
+
+- Update anything that reads logs from stdout, or that matches labels like `(ERROR)`. To collect everything in one stream, redirect with `2>&1`.
+- Use `--json` for one JSON document on stdout, or `--plain` for one tab-separated line per test.
+- Use `-d` to bring labels back and add timestamps.
+- Expect `-l silent` to silence the summary too. Use `-q` to keep errors and the one-line verdict.
+
+## Summary format
+
+**What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
+
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+
+## `--output` is a results file
+
+**What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.
+
+**What to do:** Replace folder values, including folders that a run used to create:
+
+```bash
+# Version 4
+doc-detective --input ./docs --output ./reports
+
+# Version 5
+doc-detective --input ./docs --output-dir ./reports
+```
+
+## No default results file in the current directory
+
+**What changed:** The default reporters are now `terminal` and `runFolder`. A run no longer leaves `testResults-<timestamp>.json` in the current directory. Results land in `.doc-detective/runs/<runId>/testResults.json` instead.
+
+**What to do:** Replace any `testResults-*.json` glob with a fixed path:
+
+```bash
+doc-detective --input ./docs --output results.json
+```
+
+The `json` reporter still exists, and it still writes a timestamped file in `outputDir`. Skip it when you pass `--output`, or you get both files.
+
+## `--concurrent-runners` needs a value
+
+**What changed:** A bare `--concurrent-runners` exits `2`.
+
+**What to do:** Pass a positive whole number or `auto`:
+
+```bash
+doc-detective --concurrent-runners auto
+```
+
+## Invalid flag values exit 2
+
+**What changed:** A flag value the CLI can't accept, such as `--browser-fallback nope` or `--concurrent-runners 0`, stops the run with exit code `2`.
+
+**What to do:** Correct the value the error names. Check the allowed values with `doc-detective --help`.
+
+## Flags apply only where they make sense
+
+**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`.
+
+**What to do:** Remove flags the error names. Run `doc-detective <command> --help` to see what a command accepts.
+
+## Removed commands and bins
+
+**What changed:** The `doc-detective-lsp` and `doc-detective-runner` bins and the `install-agents` alias are gone.
+
+**What to do:** Use the replacements:
+
+| Removed | Use |
+|---|---|
+| `doc-detective-lsp` | `doc-detective lsp` |
+| `doc-detective-runner` | `doc-detective runner` |
+| `doc-detective install-agents` | `doc-detective install agents` |
+
+## `install agents` short flags
+
+**What changed:** `install agents` no longer accepts `-a` or `-s`.
+
+**What to do:** Use `--agent` and `--scope`:
+
+```bash
+doc-detective install agents --agent claude --scope project --yes
+```
+
+## `--silent` on `install`
+
+**What changed:** `install` subcommands reject `--silent`.
+
+**What to do:** Use `-q` or `--quiet`, or `--log-level silent`.
+
+## Debug environment variables
+
+**What changed:** `DOC_DETECTIVE_DEBUG` no longer replaces the run with a diagnostic dump. It now runs your tests with debug output. `DEBUG` also turns on debug output when it's `1`, `true`, `*`, or a pattern matching `doc-detective`.
+
+**What to do:** Use `doc-detective debug` for the diagnostic dump. If a job sets `DEBUG` for another tool to `*` or `1`, expect Doc Detective's debug output on stderr too.
+
+## `.env` loads automatically
+
+**What changed:** Doc Detective loads a `.env` file from the current directory at startup. Variables already set in the shell win over `.env`.
+
+**What to do:** Check that your project's `.env` is safe to load on every run, or pass `--no-env-file`. If you relied on a `.env` overriding a shell variable, unset the shell variable.
+
+## Cache location
+
+**What changed:** New installs cache browsers and runtime packages in `$XDG_CACHE_HOME/doc-detective`, or `~/.cache/doc-detective` if that isn't set. On Windows, they use `%LOCALAPPDATA%\doc-detective`. An existing `~/.doc-detective` keeps being used, so you don't download everything again.
+
+**What to do:** Update any CI cache path that hard-codes `~/.doc-detective`. Setting `DOC_DETECTIVE_CACHE_DIR` makes the path explicit and overrides all of the defaults.
+
+## Telemetry notice
+
+**What changed:** The [telemetry notice](/legal/telemetry) prints once per machine on stderr, not on every run.
+
+**What to do:** Remove anything that matches the old notice text. The opt-outs are `--no-telemetry`, `DO_NOT_TRACK`, and `telemetry.send: false`.
+
+## Deprecated arguments
+
+These still work, and each prints a warning on stderr. Replace them when you can.
+
+| Deprecated | Replacement |
+|---|---|
+| `runTests`, `runtests` | `run`, or no command |
+| `--logLevel` | `--log-level` |
+| `-e`, `--exit-on-fail` | Nothing. Failing the run is now the default, so you can delete the flag. |
+
+## GitHub Action
+
+**What changed:** Action `@v2` runs CLI 5. Its `version` input defaults to `5`, `exit_on_fail` defaults to `true`, and it removes the `ios` input. Exit code `2` always fails the job, whatever `exit_on_fail` says. The moving `@v1` tag stays on CLI 4 and refuses `version` 5 or later.
+
+Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
+
+**What to do:**
+
+1. Change the action reference:
+
+   ```yaml
+   - uses: doc-detective/github-action@v2
+   ```
+
+2. For your first run, set `exit_on_fail: false` while you triage existing failures. Remove it to turn the gate on.
+3. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
+
+See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
+
+## Verify your upgrade
+
+1. Confirm the version:
+
+   ```bash
+   doc-detective --version
+   ```
+
+2. Run your suite and check the exit code:
+
+   ```bash
+   doc-detective --input ./docs --output results.json
+   echo $?
+   ```
+
+   A `1` means tests failed, and `results.json` holds the details. A `2` means nothing valid was tested, and stderr says why.
+
+3. Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder.
+
+For every flag, see the [CLI reference](/reference/reference/cli).

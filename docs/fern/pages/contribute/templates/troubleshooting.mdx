@@ -322,7 +322,7 @@ To avoid browser launch issues:
 
 If you've tried these solutions and still have issues:
 
-1. **Check detailed error logs**: Run with `--logLevel debug` `bash npx doc-detective runTests --logLevel debug `
+1. **Check detailed error logs**: Run with `--log-level debug` `bash npx doc-detective --log-level debug `
 
 2. **Try a minimal test**: Rule out test-specific issues `json { "tests": [{ "steps": [{ "goTo": "https://example.com" }] }] } `
 
@@ -331,7 +331,7 @@ If you've tried these solutions and still have issues:
    - Your operating system and version
    - Browser and version
    - Complete error message
-   - Output from `npx doc-detective runTests --logLevel debug`
+   - Output from `npx doc-detective --log-level debug`
 
 4. **Ask for help**: Join [Discord](https://discord.gg/2M7wXEThfF) and share your issue in #help
 

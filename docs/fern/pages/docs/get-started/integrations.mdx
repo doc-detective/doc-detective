@@ -33,14 +33,14 @@ name: doc-detective
 on: [pull_request]
 
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: doc-detective/github-action@v2
         with:
           create_issue_on_fail: true
           integrations: claude,copilot
@@ -53,7 +53,7 @@ Specify multiple integrations by separating them with commas.
 Use the `prompt` input to customize the instructions sent to integrations:
 
 ```yaml
-- uses: doc-detective/github-action@v1
+- uses: doc-detective/github-action@v2
   with:
     create_issue_on_fail: true
     integrations: claude

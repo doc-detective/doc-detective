@@ -10,29 +10,29 @@ For the full list of reporter and output options, see the [`config`](/reference/
 ## Before you begin
 
 - [Install Doc Detective](/docs/get-started/installation) and have a spec you can run.
-- Know your output directory. Reporters that write files use the `output` config option (or the `--output` flag); it defaults to the current working directory.
+- Know your output folder. Reporters that write files use the `outputDir` config option (or the `--output-dir` flag), which defaults to the current directory.
 
 ## Step 1: Choose your reporters
 
-Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
+Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal` and `runFolder`. To choose a different combination, set the `reporters` option.
 
 | Reporter | Output |
 |---|---|
 | `terminal` | A colored pass/fail/warning/skipped summary printed to stdout. Writes no files. |
-| `json` | A flat JSON results file with the full step-by-step outcome. |
+| `json` | A timestamped JSON results file with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser. |
 | `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views. |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. |
 
-The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
+The `junit` and `markdown` reporters write a fixed filename in `outputDir` and overwrite it on each run, so a CI artifact path stays stable.
 
 On GitLab, point the test summary at the `junit.xml` file:
 
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
   script:
-    - doc-detective --input ./docs --reporters terminal junit --output ./reports
+    - doc-detective --input ./docs --reporters terminal junit --output-dir ./reports
   artifacts:
     reports:
       junit: reports/junit.xml
@@ -41,7 +41,7 @@ doc-tests:
 On GitHub Actions, append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
-- run: doc-detective --input ./docs --reporters terminal markdown --output ./reports
+- run: doc-detective --input ./docs --reporters terminal markdown --output-dir ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
@@ -49,29 +49,43 @@ On GitHub Actions, append the Markdown summary to the job summary:
 Select reporters on the command line:
 
 ```bash
-doc-detective --input api.spec.json --reporters terminal json html
+doc-detective --input api.spec.json --reporters terminal html
 ```
 
 Or set them in your config file so every run uses the same combination:
 
 ```json title=".doc-detective.json"
 {
-  "reporters": ["terminal", "json", "html"]
+  "reporters": ["terminal", "runFolder", "html"]
 }
 ```
 
 ## Step 2: Read the terminal summary
 
-The `terminal` reporter prints a summary grouped by specs, tests, contexts, and steps, with counts for passed, failed, warnings, and skipped. When everything passes and at least one test ran, it prints a success banner. When no tests run, whether from an empty input or an active filter, it prints a warning instead. An empty run therefore never looks like a green run.
+The `terminal` reporter prints a summary on stdout, grouped by specs, tests, contexts, and steps. It lists any failures, then ends with a one-line verdict, such as `1 of 1 test passed`. When an empty input or a filter means no tests run, the verdict is `No tests ran`, and the CLI exits `2`. An empty run therefore never looks like a green run.
+
+Logs, warnings, and progress go to stderr, so you can pipe stdout without filtering. These flags change what you see:
+
+| Flag | Effect |
+|---|---|
+| `-q`, `--quiet` | Show only errors and the one-line verdict. |
+| `-l silent` | Print nothing, including the summary. |
+| `-d`, `--debug` | Show debugging output, with level labels and timestamps. |
+| `--json` | Print the results as one JSON document on stdout. |
+| `--plain` | Print one tab-separated line per test on stdout. |
 
 ## Step 3: Find the JSON results
 
-The `json` reporter writes the full results to a file:
+Every default run saves its results to `.doc-detective/runs/<runId>/testResults.json`. For a path that stays the same between runs, pass `--output`:
 
-- If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
-- Otherwise it writes `testResults-<timestamp>.json` in the output directory.
+```bash
+doc-detective --input ./docs --output results.json
+```
 
-The results file carries a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
+- `--output` (or the `output` config key) names the results file, and Doc Detective overwrites it on each run. `-` writes the results to stdout instead. A folder exits `2`, so use `--output-dir` for folders.
+- The `json` reporter writes `testResults-<timestamp>.json` in `outputDir`. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
+
+The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
 
 ### Find slow specs with `durationMs`
 
@@ -107,7 +121,7 @@ The consequence: when `concurrentRunners` is greater than 1, the run's `duration
 To find the specs slowing your CI down, sort the specs by `durationMs`:
 
 ```bash
-jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testResults-*.json
+jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' results.json
 ```
 
 Anything that runs more than once reports the **final attempt** in `durationMs`. That's the attempt the reported result describes. What that costs you depends on which kind of retry happened:
@@ -135,19 +149,16 @@ Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to 
 
 ## Step 4: Find the HTML report
 
-The `html` reporter writes a self-contained HTML report you can open in a browser:
+The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<timestamp>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
 
-- If `output` ends in `.html` or `.htm`, Doc Detective writes to that path, adding a numeric suffix (`-0.html`, `-1.html`, …) to avoid overwriting an existing file.
-- Otherwise it treats `output` as a directory and writes `testResults-<timestamp>.html` there (or `coverageResults-<timestamp>.html` for a coverage run).
-
-The report embeds the same results the `json` reporter produces. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
+The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
 
 ## Step 5: Collect the run folder and artifacts
 
 The `runFolder` reporter archives each run into its own folder so you can attach it to a CI job or diff one run against another:
 
 ```
-<output>/.doc-detective/runs/<runId>/
+<outputDir>/.doc-detective/runs/<runId>/
 ├── testResults.json
 ├── testResults.html
 └── specs/<specId>/
@@ -161,40 +172,42 @@ The file names inside the folder are constant, because the run ID lives in the f
 
 ## Step 6: Fail CI when tests fail
 
-This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
+The exit code from the CLI gates your build, so most pipelines need nothing extra:
 
-<Warning>
-By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code therefore reports success even when documentation tests failed. Opt in with `--exit-on-fail` to change that.
-</Warning>
+| Code | Meaning |
+|---|---|
+| `0` | All tests passed, warned, or were skipped. |
+| `1` | At least one test failed. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
-To gate your build, choose one of these approaches:
+`WARNING` and `SKIPPED` results never fail a run.
 
-- **Set `--exit-on-fail` (least setup, works on any CI).** Pass the flag, or set `exitOnFail: true` in your config. The CLI then exits with code `1` whenever a spec fails, so the job fails like a broken unit test. `WARNING` results are non-fatal and never trigger a non-zero exit. It works the same everywhere, including GitLab CI, Jenkins, CircleCI, and a bare shell.
+If you want different behavior, you have two options:
+
+- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed and empty runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
+- **Apply your own logic.** Read the `summary` object from the results file and decide for yourself. This example tolerates up to two failing specs:
 
 ```bash
-doc-detective --input ./docs --exit-on-fail
-```
-
-- **Use the GitHub Action.** Set its `exit_on_fail` input to `true` so the job fails when tests fail. See the [GitHub Action guide](/docs/ci/github-action).
-- **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. Useful when you want custom logic beyond a pass/fail gate.
-
-```bash
-doc-detective --input ./docs --reporters json --output results.json && \
-  node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
+doc-detective --input ./docs --no-exit-on-fail --output results.json && \
+  node -e "process.exit(require('./results.json').summary.specs.fail > 2 ? 1 : 0)"
 ```
 
 The `&&` runs the check only if Doc Detective itself exited cleanly. A crash or a broken config still fails the step, and the results parse never hides it.
+
+In a GitHub Actions workflow, the action applies these rules through its `exit_on_fail` input. See the [GitHub Action guide](/docs/ci/github-action#step-3-fail-the-build-when-tests-fail).
 
 ## Verify it works
 
 After a run, confirm that:
 
 - The terminal shows the summary you expect.
-- The `json` reporter wrote a results file at the path you configured.
-- If you enabled `runFolder`, a `.doc-detective/runs/<runId>/` folder exists with `testResults.json` and any captured screenshots or recordings.
+- The results file exists at the path you passed to `--output`.
+- The `.doc-detective/runs/<runId>/` folder exists with `testResults.json` and any screenshots or recordings from the run.
 
 ## What's next
 
 - [Run Doc Detective in CI with the GitHub Action](/docs/ci/github-action).
 - [Run in Docker and headless](/docs/ci/docker-and-headless) for containerized pipelines.
+- [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5) if your pipeline reads results the version 4 way.
 - [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview) when the results aren't green.

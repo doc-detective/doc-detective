@@ -129,7 +129,7 @@ doc-detective --auto-record
 
 Use `--no-auto-record` to override a config file that enables it.
 
-Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
+Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/

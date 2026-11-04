@@ -110,6 +110,28 @@ Example using environment variables with `loadVariables`:
 }
 ```
 
+### Read the token from a file
+
+If your CI system mounts secrets as files, you can keep the token out of your config file and the environment. Use `apiTokenFile` in place of `apiToken`:
+
+```json
+{
+  "input": "heretto:my-docs",
+  "integrations": {
+    "heretto": [
+      {
+        "name": "my-docs",
+        "organizationId": "$HERETTO_ORG_ID",
+        "username": "$HERETTO_USERNAME",
+        "apiTokenFile": "/run/secrets/heretto-token"
+      }
+    ]
+  }
+}
+```
+
+Relative paths resolve from the current directory. If Doc Detective can't read the file, the run exits `2` and names the file.
+
 ## Publishing scenario requirements
 
 Your Heretto publishing scenario must have:
@@ -152,7 +174,7 @@ Doc Detective looks for a scenario named `Doc Detective` by default. Use the `sc
 3. Run Doc Detective to load and test your Heretto content:
 
    ```bash
-   npx doc-detective runTests
+   npx doc-detective
    ```
 
 Doc Detective fetches your DITA content from Heretto and processes it using the standard DITA file type patterns. Any inline or detected tests in your DITA files run automatically.

@@ -200,8 +200,9 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | CI recipes: other platforms (new) | P1 | | Fills the GitHub-only gap. |
 | Reporters & artifacts (new) | P1 | ★ | terminal/json/html/runFolder + run-folder layout. |
 | Docker & headless (new) | P2 | ★ | |
+| Upgrade to Doc Detective 5 (new) | P1, W1 | | Every 5.0 breaking change: what changed and what to do. |
 | Concurrency & performance (new) | P2 | | `concurrentRunners`, recording serialization. |
-| Orchestrate distributed runs (new) | P3 | | `doc-detective-runner`, orchestration API. |
+| Orchestrate distributed runs (new) | P3 | | `doc-detective runner`, orchestration API. |
 
 ### Build with AI agents: Aria (pillar), in `ai/`
 

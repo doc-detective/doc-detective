@@ -34,14 +34,14 @@ name: doc-detective
 on: [pull_request]
 
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: doc-detective/github-action@v2
         with:
           input: ./docs
           create_issue_on_fail: true
@@ -195,7 +195,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: doc-detective/github-action@v1
+      - uses: doc-detective/github-action@v2
         with:
           input: ./docs
           create_issue_on_fail: true
