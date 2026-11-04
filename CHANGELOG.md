@@ -1,3 +1,73 @@
+# [5.0.0-v5-rc.1](https://github.com/doc-detective/doc-detective/compare/v4.41.5...v5.0.0-v5-rc.1) (2026-11-04)
+
+
+* feat(cli)!: add user config, .env loading, and XDG paths ([e9e2082](https://github.com/doc-detective/doc-detective/commit/e9e2082a9ad6b1e405fed17538b750d840f8c633))
+* feat(cli)!: exit on outcomes, and make --output a results file ([ff21590](https://github.com/doc-detective/doc-detective/commit/ff21590db4c270f6fdd24a487b787f55286cc37b))
+* feat(cli)!: lay out the v5 commands and deprecate old arguments ([9fa2ac2](https://github.com/doc-detective/doc-detective/commit/9fa2ac2b2e1ed338fbd5ae6b4b57e9047927a4f0))
+* feat(cli)!: rewrite help text and error messages ([176aa9a](https://github.com/doc-detective/doc-detective/commit/176aa9a1a2d655be3980a864b0d88180389203a2))
+* feat(cli)!: separate results from logs, and honor color and debug scopes ([91d1474](https://github.com/doc-detective/doc-detective/commit/91d14749c2a6d21b1f7cbcac7a770a64937b7f4f))
+* refactor(cli)!: replace yargs with commander ([ef831c8](https://github.com/doc-detective/doc-detective/commit/ef831c8c01ab0fc57d774f92f321f4e792a7d833))
+
+
+### Bug Fixes
+
+* **cli:** carry v2 config output into outputDir ([d4f0934](https://github.com/doc-detective/doc-detective/commit/d4f09344f8853531f1196a9c771cf1406822b754))
+* **cli:** explain a dry run that finds no tests ([ad2a46c](https://github.com/doc-detective/doc-detective/commit/ad2a46c027aaff77cec63343e134b1caabfa6491))
+* **cli:** explain invalid specs and bad settings without noise ([98d7d8c](https://github.com/doc-detective/doc-detective/commit/98d7d8c3839a9954e68982fd462e8a980728cd76))
+* **cli:** ignore a maintenance tag that holds another major ([c252597](https://github.com/doc-detective/doc-detective/commit/c25259782f49fe7d930bc50807ddda2493806334))
+* **cli:** keep terminal examples out of the generated reference ([e4244f3](https://github.com/doc-detective/doc-detective/commit/e4244f374b6c4f85db0c0001beb1acdd63bd2daf))
+* **cli:** keep the spinner out of interrupts and NO_COLOR ([0bbe5b8](https://github.com/doc-detective/doc-detective/commit/0bbe5b889f921c5d2ed80c6dd10bc8949e5b1b36))
+* **cli:** repair the reference generator, and pin the runner's results file ([40130bf](https://github.com/doc-detective/doc-detective/commit/40130bfc4d0c4bf4555a25f9241fc75daeab9994))
+* **hints:** link hints and README to live docs pages ([957e201](https://github.com/doc-detective/doc-detective/commit/957e201ac47fddf83c180f49ffb6dc18c290e9ac))
+
+
+### Features
+
+* **cli:** announce interrupts, and add --no-input ([c0ac524](https://github.com/doc-detective/doc-detective/commit/c0ac524b85b290af67ceb46232a3fbab069f838f))
+
+
+### BREAKING CHANGES
+
+* a `.env` no longer overrides variables set in the shell. New
+installs cache under XDG paths instead of ~/.doc-detective. The telemetry notice
+prints once per machine on stderr rather than on every run.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* help text and error wording changed throughout, including the
+`install` usage line that scripts could match.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* logs and warnings moved from stdout to stderr, and lose their
+(INFO)-style labels by default. The terminal summary format changed, and
+`See detailed results at` became `Results:` with a relative path. Use --json or
+-o for machine-readable results. DOC_DETECTIVE_DEBUG now adds debug output to a
+real run instead of replacing it with a dump: use `doc-detective debug` for
+that. DEBUG now also turns on debug output. -l silent now silences the reporter.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a failed test now fails the run with exit code 1, and an empty
+or invalid run exits 2. Use --no-exit-on-fail or exitOnFail: false to keep exit
+0. --output now names the JSON results file, and a folder there is an error.
+Use the new --output-dir and outputDir for folders. Runs no longer write
+testResults-<timestamp>.json to the current directory by default.
+--concurrent-runners needs a value: a number or `auto`. Invalid --shell,
+--browser-fallback, --verification, --log-level, and --reporters values now
+exit 2.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* the doc-detective-lsp and doc-detective-runner bins and the
+install-agents alias are removed. Use `doc-detective lsp`, `doc-detective
+runner`, and `doc-detective install agents`. `-a` and `-s` are removed from
+`install agents`, and --silent from `install`, in favor of `-l silent`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* flags that don't apply to a subcommand are now rejected
+there, such as `install browsers --reporters json`. Parse errors use
+commander's wording, and `--dryRun`-style spellings no longer parse, except
+`--logLevel`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 ## [4.41.5](https://github.com/doc-detective/doc-detective/compare/v4.41.4...v4.41.5) (2026-10-31)
 
 
