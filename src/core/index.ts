@@ -32,10 +32,12 @@ async function detectAndResolveTests({ config, detectApps = true }: any) {
 
 // detectTests -> resolveTests for a config setConfig already produced.
 async function detectAndResolveFromConfig(config: any, { strictSpecs = false } = {}) {
+  // Non-enumerable, so it stays out of serialized payloads.
+  Object.defineProperty(config, "_strictSpecs", { value: strictSpecs, enumerable: false, configurable: true });
   const detectedTests = await detectTests({ config });
   if (strictSpecs && config._invalidSpecs?.length) {
     throw new Error(
-      `Invalid test specifications, so nothing ran: ${config._invalidSpecs.join(", ")}. Fix them, or pass --no-exit-on-fail to skip them.`
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or pass --no-exit-on-fail to skip them.`
     );
   }
   if (!detectedTests || detectedTests.length === 0) {

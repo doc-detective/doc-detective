@@ -111,11 +111,11 @@ function isSpecFileName(source: string): boolean {
 }
 
 // Non-enumerable, so it stays out of serialized payloads (like _qualifiedFiles).
-function noteInvalidSpec(config: any, source: string) {
+function noteInvalidSpec(config: any, source: string, reason = "It isn't valid JSON or YAML.") {
   if (!config._invalidSpecs) {
     Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
   }
-  config._invalidSpecs.push(source);
+  config._invalidSpecs.push(`${source}\n${reason}`);
 }
 
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
@@ -168,13 +168,17 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       // A JSON or YAML file with no `tests` key and a plain name is just another
       // data file, such as package.json, so it isn't reported as a broken spec.
       const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
-      if (looksLikeSpec) noteInvalidSpec(config, source);
+      const summary = summarizeSpecErrors(validation.errors, content);
+      if (looksLikeSpec) noteInvalidSpec(config, source, summary);
       log(config, "debug", validation);
-      log(
-        config,
-        looksLikeSpec ? "warning" : "debug",
-        `${source} isn't a valid test specification. Skipping.\n${summarizeSpecErrors(validation.errors, content)}`
-      );
+      // In a strict run, the error that stops the run carries this instead.
+      if (!config._strictSpecs) {
+        log(
+          config,
+          looksLikeSpec ? "warning" : "debug",
+          `${source} isn't a valid test specification. Skipping.\n${summary}`
+        );
+      }
       return false;
     }
     for (const test of content.tests) {

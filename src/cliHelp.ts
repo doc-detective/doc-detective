@@ -7,7 +7,8 @@ const ISSUES = "https://github.com/doc-detective/doc-detective/issues";
 const RUN_EXIT_CODES = `Exit codes:
   0  All tests passed, warned, or were skipped
   1  At least one test failed
-  2  Nothing was tested: bad usage, bad config, no tests, or an internal error`;
+  2  Nothing was tested: bad usage, bad config, no tests, or an internal error
+  130, 143  Interrupted by SIGINT or SIGTERM`;
 
 // What each command's help says beyond its options: a description with examples
 // first, then exit codes and links. Keyed by the command's path.

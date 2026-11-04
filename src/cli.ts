@@ -26,7 +26,6 @@ import { createRequire } from "node:module";
 const cliRequire = createRequire(import.meta.url);
 
 // Run
-setMeta();
 main(processArgv).catch((err) => {
   // Catches anything main() rethrows, so the process exits non-zero.
   // c8 ignore: the `?? err` / `|| err` fallback branches (err nullish, or a
@@ -46,6 +45,7 @@ main(processArgv).catch((err) => {
 
 async function main(argv: string[]) {
   applyColorFlags(argv);
+  setMeta();
   try {
     await buildProgram({ runTests: runTestsHandler }).parseAsync(applyInputFlag(argv));
   } catch (err) {

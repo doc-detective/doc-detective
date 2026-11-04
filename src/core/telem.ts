@@ -42,7 +42,7 @@ function sendTelemetry(config: any, command: string, results: any) {
   // Assemble telemetry data
   const telemetryData: any =
     process.env["DOC_DETECTIVE_META"] !== undefined
-      ? JSON.parse(process.env["DOC_DETECTIVE_META"])
+      ? JSON.parse(process.env["DOC_DETECTIVE_META"] || "{}")
       : {};
   const pkg = require("../../package.json");
   telemetryData.distribution = telemetryData.distribution || "doc-detective";

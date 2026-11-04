@@ -188,6 +188,12 @@ describe("CLI contract", function () {
       expect(fs.readdirSync(cwd).filter((f) => /^results-\d/.test(f))).to.deep.equal([]);
     });
 
+    it("writes one results file with -r json -o", function () {
+      expect(run(["-i", "pass.spec.json", "-r", "json", "-o", "results.json"]).status).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("testResults"))).to.deep.equal([]);
+    });
+
     it("points a folder given to --output at --output-dir", function () {
       const r = run(["-o", ".", "-i", "pass.spec.json"]);
       expect(r.stderr).to.include("--output-dir");
@@ -493,6 +499,38 @@ describe("CLI contract", function () {
       expect(r.stderr).to.not.include("must have required property");
       expect(r.stderr).to.not.include('"object"');
       expect(r.stderr.length).to.be.lessThan(600);
+    });
+
+    it("says why a spec is invalid during a dry run", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      const r = run(["-n", "-i", "invalid.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("invalid.spec.json");
+      expect(r.stderr).to.include("unknown action 'goToo'");
+      expect(r.stdout).to.equal("");
+    });
+
+    it("names an invalid spec only once", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      const count = run(["-i", "invalid.spec.json"]).stderr.split("unknown action").length - 1;
+      expect(count).to.equal(1);
+    });
+
+    it("explains a malformed DOC_DETECTIVE_META, without a stack trace", function () {
+      const r = run(["--version"], { env: { DOC_DETECTIVE_META: "{nope" } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("DOC_DETECTIVE_META");
+      expect(r.stderr).to.not.match(/^\s+at /m);
+    });
+
+    it("treats an empty DOC_DETECTIVE_META as unset", function () {
+      expect(run(["--version"], { env: { DOC_DETECTIVE_META: "" } }).status).to.equal(0);
     });
 
     it("keeps the raw schema errors for -d", function () {

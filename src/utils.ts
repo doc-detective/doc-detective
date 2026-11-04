@@ -538,6 +538,10 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     if (args.plain) others.push("plainReporter");
     config.reporters = others;
   }
+  // --output is the JSON results file, so the json reporter would write a second copy.
+  if (config.output && Array.isArray(config.reporters)) {
+    config.reporters = config.reporters.filter((reporter: any) => reporter !== "json");
+  }
   if (Array.isArray(config.reporters)) {
     const unknown = config.reporters.filter(
       (reporter: any) => typeof reporter === "string" && !reporters[reporterKey(reporter)]
@@ -1318,6 +1322,15 @@ async function spawnCommand(cmd: string, args?: string[]) {
   return { stdout, stderr, exitCode };
 }
 
+function parseMeta(value: string | undefined): any {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch (error: any) {
+    throw new Error(`DOC_DETECTIVE_META isn't valid JSON: ${error.message}`);
+  }
+}
+
 function setMeta() {
   const platformMap: Record<string, string> = {
     win32: "windows",
@@ -1326,10 +1339,7 @@ function setMeta() {
   };
 
   // Set meta
-  const meta: any =
-    process.env["DOC_DETECTIVE_META"] !== undefined
-      ? JSON.parse(process.env["DOC_DETECTIVE_META"])
-      : {};
+  const meta: any = parseMeta(process.env["DOC_DETECTIVE_META"]);
   const pkg = require("../package.json");
   meta.distribution = "doc-detective";
   meta.dist_version = pkg.version;
