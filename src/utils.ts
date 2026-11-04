@@ -1,5 +1,6 @@
 import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
+import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
 import path from "node:path";
@@ -11,6 +12,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 export {
+  loadProjectEnv,
   readStdinInputs,
   writeResultsFile,
   setConfig,
@@ -74,15 +76,18 @@ function log(message: any, level: string = "info", config: any = {}) {
 
 // Get resolved tests from environment variable, if set
 async function getResolvedTestsFromEnv(config: any = {}) {
-  if (!process.env.DOC_DETECTIVE_API) {
+  const apiFile = process.env.DOC_DETECTIVE_API_FILE;
+  if (!process.env.DOC_DETECTIVE_API && !apiFile) {
     return null;
   }
 
   let resolvedTests: any = null;
   let apiConfig: any = null;
   try {
-    // Parse the environment variable as JSON
-    apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
+    // Parse the setting as JSON. A file keeps the token out of the environment.
+    apiConfig = JSON.parse(
+      apiFile ? fs.readFileSync(path.resolve(apiFile), "utf8") : (process.env.DOC_DETECTIVE_API as string)
+    );
 
     // Validate the structure: { accountId, url, token, contextIds }
     if (!apiConfig.accountId || !apiConfig.url || !apiConfig.token || !apiConfig.contextIds) {
@@ -248,6 +253,45 @@ function stdinFileExtension(text: string): string {
   return ".md";
 }
 
+// Per-user defaults for everything on this machine, such as telemetry or a proxy.
+async function readUserConfig() {
+  const file = path.join(userConfigDir(), "config.json");
+  if (!fs.existsSync(file)) return null;
+  const config = await readFile({ fileURLOrPath: file });
+  if (config === null || typeof config !== "object") {
+    throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
+  }
+  return config;
+}
+
+// Secrets can come from a file rather than the config or environment, where they
+// leak into logs and child processes. `apiKeyFile` becomes `apiKey`, and so on.
+function readCredentialFiles(config: any) {
+  const read = (owner: any, fileKey: string, valueKey: string) => {
+    if (!owner?.[fileKey]) return;
+    try {
+      owner[valueKey] = fs.readFileSync(path.resolve(owner[fileKey]), "utf8").trim();
+    } catch (error: any) {
+      throw new Error(`Could not read ${fileKey} at ${owner[fileKey]}: ${error.message}`);
+    }
+    delete owner[fileKey];
+  };
+  read(config.integrations?.docDetectiveApi, "apiKeyFile", "apiKey");
+  for (const heretto of config.integrations?.heretto ?? []) {
+    read(heretto, "apiTokenFile", "apiToken");
+  }
+}
+
+// Load `.env` from the current directory, for values that rarely change in a
+// project. Anything already set in the shell wins (ADR 01146).
+async function loadProjectEnv(args: any) {
+  if (args.envFile === false) return;
+  const file = path.resolve(".env");
+  if (!fs.existsSync(file)) return;
+  const { default: dotenv } = await import("dotenv");
+  dotenv.config({ path: file, override: false, quiet: true });
+}
+
 // Override config values based on args and validate the config
 async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
   if (args.config && !configPath) {
@@ -281,12 +325,18 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     }
   }
 
+  // Project config beats user config. Both lose to the environment and to flags.
+  const userConfig = await readUserConfig();
+  if (userConfig) config = { ...userConfig, ...config };
+
   // Check for DOC_DETECTIVE_CONFIG environment variable
   const envConfig = await getConfigFromEnv();
   if (envConfig) {
     // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
     config = { ...config, ...envConfig };
   }
+
+  readCredentialFiles(config);
 
   // Validate config
   const validation = validate({
@@ -306,7 +356,6 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     outputDir: config.outputDir || ".",
     recursive: config.recursive ?? true,
     relativePathBase: config.relativePathBase || "file",
-    loadVariables: config.loadVariables || ".env",
     detectSteps: config.detectSteps ?? true,
     logLevel: config.logLevel || "info",
     fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
@@ -352,6 +401,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (args.debug) config.logLevel = "debug";
   if (args.logLevel) {
     config.logLevel = args.logLevel;
+  }
+  if (args.telemetry === false || process.env.DO_NOT_TRACK) {
+    config.telemetry = { ...(config.telemetry || {}), send: false };
   }
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;

@@ -7291,6 +7291,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "apiKeyFile": {
+                  "type": "string"
+                },
                 "apiKey": {
                   "type": "string"
                 }
@@ -7304,10 +7307,24 @@
                 "required": [
                   "name",
                   "organizationId",
-                  "username",
-                  "apiToken"
+                  "username"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "apiToken"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "apiTokenFile"
+                    ]
+                  }
                 ],
                 "properties": {
+                  "apiTokenFile": {
+                    "type": "string"
+                  },
                   "name": {
                     "type": "string"
                   },
@@ -14523,6 +14540,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "apiKeyFile": {
+                  "type": "string"
+                },
                 "apiKey": {
                   "type": "string"
                 }
@@ -14536,10 +14556,24 @@
                 "required": [
                   "name",
                   "organizationId",
-                  "username",
-                  "apiToken"
+                  "username"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "apiToken"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "apiTokenFile"
+                    ]
+                  }
                 ],
                 "properties": {
+                  "apiTokenFile": {
+                    "type": "string"
+                  },
                   "name": {
                     "type": "string"
                   },

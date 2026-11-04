@@ -4,6 +4,7 @@ import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
+  telemetryAllowed,
   telemetryNotice,
   prewarmTelemetry,
   abortTelemetryWarmup,
@@ -117,9 +118,7 @@ async function runTestsAndReport(config: any, options: any) {
   // may never call awaitTelemetryFlush to cancel one left in flight.
   let telemetryOn = false;
   const startTelemetry = (effectiveConfig: any) => {
-    telemetryOn =
-      config?.telemetry?.send !== false &&
-      effectiveConfig?.telemetry?.send !== false;
+    telemetryOn = telemetryAllowed(config) && telemetryAllowed(effectiveConfig);
     if (!telemetryOn) return;
     if (!config.dryRun) prewarmTelemetry(effectiveConfig);
     loadTelemetry();

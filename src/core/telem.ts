@@ -1,7 +1,7 @@
 import os from "node:os";
 import { PostHog } from "posthog-node";
 import { createRequire } from "node:module";
-import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
+import { telemetryAllowed, telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
 
 const require = createRequire(import.meta.url);
 
@@ -37,7 +37,7 @@ let pendingTelemetryFlush: Promise<void> | null = null;
 // Send telemetry data to PostHog
 function sendTelemetry(config: any, command: string, results: any) {
   // Exit early if telemetry is disabled
-  if (config?.telemetry?.send === false) return;
+  if (!telemetryAllowed(config)) return;
 
   // Assemble telemetry data
   const telemetryData: any =

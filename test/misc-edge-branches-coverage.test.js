@@ -551,6 +551,7 @@ describe("runtime/cacheDir.ts — guard + fallback branches", function () {
     // temp dir so we don't create anything under the real home-dir cache.
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
     const fakeHome = mkTmp("dd-edge-homeroot-");
+    fs.mkdirSync(path.join(fakeHome, ".doc-detective"));
     sinon.stub(os, "homedir").returns(fakeHome);
     sinon.stub(fs, "statSync").throws(Object.assign(new Error("nope"), { code: "ENOENT" }));
     const out = getBrowsersDir({});

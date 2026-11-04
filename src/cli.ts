@@ -10,6 +10,7 @@ import {
   logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
+  loadProjectEnv,
   readStdinInputs,
   writeResultsFile,
 } from "./utils.js";
@@ -62,6 +63,7 @@ async function main(argv: string[]) {
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
+  await loadProjectEnv(args);
   await readStdinInputs(args);
 
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided

@@ -3047,12 +3047,12 @@ describe("hints CLI wiring", function () {
   // exercised by the unit tests above.
   this.timeout(20000);
 
-  it("--help advertises the --hints flag", function () {
+  it("--help advertises the --no-hints flag", function () {
     const r = spawnSync(process.execPath, [CLI, "--help"], {
       encoding: "utf8",
     });
     expect(r.status, `stderr: ${r.stderr}`).to.equal(0);
-    expect(r.stdout).to.include("--hints");
+    expect(r.stdout).to.include("--no-hints");
   });
 
   it("accepts --no-hints without erroring (parses through to runTests)", function () {

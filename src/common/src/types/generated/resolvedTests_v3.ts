@@ -6561,6 +6561,82 @@ export type OpenApi1 = {
   exampleKey?: string;
   headers?: OpenAPIRequestHeaders1;
 };
+export type HerettoCMSIntegration = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment.
+   */
+  apiTokenFile?: string;
+  /**
+   * Unique identifier for this Heretto integration. Used in logs and results.
+   */
+  name: string;
+  /**
+   * The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com).
+   */
+  organizationId: string;
+  /**
+   * Heretto CCMS username (email address) for API authentication.
+   */
+  username: string;
+  /**
+   * API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3
+   */
+  apiToken?: string;
+  /**
+   * Name of the scenario to build and test.
+   */
+  scenarioName?: string;
+  /**
+   * Local path where Heretto content was downloaded. Set automatically during processing.
+   */
+  outputPath?: string;
+  /**
+   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
+   */
+  fileMapping?: {
+    [k: string]: {
+      /**
+       * The UUID of the file in Heretto.
+       */
+      fileId?: string;
+      /**
+       * The path of the file in Heretto.
+       */
+      filePath?: string;
+      [k: string]: unknown;
+    };
+  };
+  /**
+   * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
+   */
+  uploadOnChange?: boolean;
+  /**
+   * Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies.
+   */
+  resourceDependencies?: {
+    [k: string]: {
+      /**
+       * The UUID of the file in Heretto.
+       */
+      uuid?: string;
+      /**
+       * The full xmldb path of the file in Heretto.
+       */
+      fullPath?: string;
+      /**
+       * The file name.
+       */
+      name?: string;
+      /**
+       * The UUID of the parent folder in Heretto.
+       */
+      parentFolderId?: string;
+      [k: string]: unknown;
+    };
+  };
+};
 /**
  * Configuration for Heretto CMS integrations. Each entry specifies a Heretto instance and a scenario to build and test.
  */
@@ -28572,79 +28648,13 @@ export interface OpenAPIDescriptionTest {
  */
 export interface DocDetectiveOrchestrationAPI {
   /**
+   * Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment.
+   */
+  apiKeyFile?: string;
+  /**
    * API key for authenticating with the Doc Detective Orchestration API.
    */
   apiKey?: string;
-}
-export interface HerettoCMSIntegration {
-  /**
-   * Unique identifier for this Heretto integration. Used in logs and results.
-   */
-  name: string;
-  /**
-   * The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com).
-   */
-  organizationId: string;
-  /**
-   * Heretto CCMS username (email address) for API authentication.
-   */
-  username: string;
-  /**
-   * API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3
-   */
-  apiToken: string;
-  /**
-   * Name of the scenario to build and test.
-   */
-  scenarioName?: string;
-  /**
-   * Local path where Heretto content was downloaded. Set automatically during processing.
-   */
-  outputPath?: string;
-  /**
-   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
-   */
-  fileMapping?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      fileId?: string;
-      /**
-       * The path of the file in Heretto.
-       */
-      filePath?: string;
-      [k: string]: unknown;
-    };
-  };
-  /**
-   * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
-   */
-  uploadOnChange?: boolean;
-  /**
-   * Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies.
-   */
-  resourceDependencies?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      uuid?: string;
-      /**
-       * The full xmldb path of the file in Heretto.
-       */
-      fullPath?: string;
-      /**
-       * The file name.
-       */
-      name?: string;
-      /**
-       * The UUID of the parent folder in Heretto.
-       */
-      parentFolderId?: string;
-      [k: string]: unknown;
-    };
-  };
 }
 /**
  * Options around sending telemetry for Doc Detective usage.

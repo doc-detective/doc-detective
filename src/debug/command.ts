@@ -37,7 +37,8 @@ export function buildDebugCommand(): Command {
 
 export const debugHandler = async (args: DebugArgv): Promise<void> => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
-    const { setConfig } = await import("../utils.js");
+    const { loadProjectEnv, setConfig } = await import("../utils.js");
+    await loadProjectEnv(args);
     const { printDebug, defaultDebugDir } = await import("./index.js");
     const outDir = defaultDebugDir();
 

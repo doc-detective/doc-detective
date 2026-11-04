@@ -7,6 +7,10 @@ import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
 import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
+import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
+import { checkForUpdate } from "../dist/runtime/selfUpdate.js";
+import { setConfig } from "../dist/utils.js";
 
 describe("nearestCommand", function () {
   const names = ["run", "install", "debug", "lsp", "help"];
@@ -198,5 +202,123 @@ describe("--no-input", function () {
     expect(isInteractive({ isTTY: true }, {})).to.equal(true);
     expect(isInteractive({ isTTY: true }, { DOC_DETECTIVE_NO_INPUT: "1" })).to.equal(false);
     expect(isInteractive({ isTTY: false }, {})).to.equal(false);
+  });
+});
+
+describe("defaultCacheRoot", function () {
+  const home = path.join("h");
+  const none = () => false;
+  it("keeps an existing legacy cache, so nobody re-downloads", function () {
+    expect(defaultCacheRoot({ env: { XDG_CACHE_HOME: "x" }, home, exists: () => true })).to.equal(path.join(home, ".doc-detective"));
+  });
+  it("uses XDG_CACHE_HOME", function () {
+    expect(defaultCacheRoot({ env: { XDG_CACHE_HOME: "x" }, home, exists: none })).to.equal(path.join("x", "doc-detective"));
+  });
+  it("uses LOCALAPPDATA on Windows", function () {
+    expect(defaultCacheRoot({ env: { LOCALAPPDATA: "l" }, home, platform: "win32", exists: none })).to.equal(path.join("l", "doc-detective"));
+  });
+  it("falls back to ~/.cache", function () {
+    expect(defaultCacheRoot({ env: {}, home, platform: "linux", exists: none })).to.equal(path.join(home, ".cache", "doc-detective"));
+  });
+});
+
+describe("userConfigDir", function () {
+  it("follows XDG, then APPDATA on Windows, then ~/.config", function () {
+    expect(userConfigDir({ env: { XDG_CONFIG_HOME: "x" }, home: "h" })).to.equal(path.join("x", "doc-detective"));
+    expect(userConfigDir({ env: { APPDATA: "a" }, home: "h", platform: "win32" })).to.equal(path.join("a", "doc-detective"));
+    expect(userConfigDir({ env: {}, home: "h", platform: "linux" })).to.equal(path.join("h", ".config", "doc-detective"));
+  });
+});
+
+describe("telemetry", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-telem-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  it("honors telemetry.send and DO_NOT_TRACK", function () {
+    expect(telemetryAllowed({}, {})).to.equal(true);
+    expect(telemetryAllowed({ telemetry: { send: false } }, {})).to.equal(false);
+    expect(telemetryAllowed({}, { DO_NOT_TRACK: "1" })).to.equal(false);
+  });
+  it("shows the notice once per machine, even when silent", function () {
+    const lines = [];
+    const print = (line) => lines.push(line);
+    telemetryNotice({ logLevel: "silent" }, { dir, print });
+    telemetryNotice({ logLevel: "silent" }, { dir, print });
+    expect(lines).to.have.lengthOf(1);
+    expect(lines[0]).to.include("--no-telemetry");
+  });
+  it("shows nothing when telemetry is off", function () {
+    const lines = [];
+    telemetryNotice({ telemetry: { send: false } }, { dir, print: (line) => lines.push(line) });
+    expect(lines).to.deep.equal([]);
+  });
+  it("still prints where the marker can't be written", function () {
+    const file = path.join(dir, "file");
+    fs.writeFileSync(file, "");
+    const lines = [];
+    telemetryNotice({}, { dir: path.join(file, "nested"), print: (line) => lines.push(line) });
+    expect(lines).to.have.lengthOf(1);
+  });
+});
+
+describe("checkForUpdate across majors", function () {
+  const registry = (tags) => ({ http: { get: async () => ({ data: { "dist-tags": tags } }) }, logger: () => {} });
+  it("updates within a major", async function () {
+    expect(await checkForUpdate("5.0.0", registry({ latest: "5.1.0" }))).to.deep.equal({ latest: "5.1.0", newer: true });
+  });
+  it("doesn't cross a major, and says so", async function () {
+    const lines = [];
+    const deps = { ...registry({ latest: "6.0.0" }), logger: (line) => lines.push(line) };
+    expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
+    expect(lines.join()).to.include("npm i doc-detective@6");
+  });
+  it("uses the maintenance tag when a newer major exists", async function () {
+    const deps = registry({ latest: "6.0.0", "release-5.x": "5.9.0" });
+    expect(await checkForUpdate("5.0.0", deps)).to.deep.equal({ latest: "5.9.0", newer: true });
+  });
+  it("ignores a maintenance tag that isn't newer", async function () {
+    const deps = registry({ latest: "6.0.0", "release-5.x": "5.0.0" });
+    expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
+  });
+});
+
+describe("credentials from files", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-creds-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const withConfig = async (integrations) => {
+    const file = path.join(dir, "config.json");
+    fs.writeFileSync(file, JSON.stringify({ integrations }));
+    return setConfig({ configPath: file, args: {} });
+  };
+  it("reads apiKeyFile into apiKey", async function () {
+    const key = path.join(dir, "key");
+    fs.writeFileSync(key, "secret\n");
+    const config = await withConfig({ docDetectiveApi: { apiKeyFile: key } });
+    expect(config.integrations.docDetectiveApi.apiKey).to.equal("secret");
+    expect(config.integrations.docDetectiveApi.apiKeyFile).to.equal(undefined);
+  });
+  it("reads apiTokenFile into a heretto apiToken", async function () {
+    const token = path.join(dir, "token");
+    fs.writeFileSync(token, "secret");
+    const config = await withConfig({
+      heretto: [{ name: "h", organizationId: "o", username: "u", apiTokenFile: token }],
+    });
+    expect(config.integrations.heretto[0].apiToken).to.equal("secret");
+  });
+  it("names the file it couldn't read", async function () {
+    let message = "";
+    await withConfig({ docDetectiveApi: { apiKeyFile: path.join(dir, "nope") } }).catch((error) => {
+      message = error.message;
+    });
+    expect(message).to.include("apiKeyFile");
   });
 });

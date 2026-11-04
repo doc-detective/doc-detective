@@ -55,6 +55,7 @@ These flags apply to the default run command. Each has a config-file equivalent;
 | `--logLevel` |  | string | `info` | Detail level of logging events. [deprecated: use --log-level] |
 | `--json` |  | boolean |  | Print one JSON document to stdout. |
 | `--no-color` |  | boolean |  | Turn off color. Also NO_COLOR. |
+| `--no-input` |  | boolean |  | Never prompt; fail and name the flag to pass |
 
 ### Negating boolean flags
 
@@ -105,6 +106,7 @@ This is distinct from `install agents`: the language server (`lsp`) exposes edit
 | `--logLevel` | string |  | Detail level of logging events. [deprecated: use --log-level] |
 | `--json` | boolean |  | Print one JSON document to stdout. |
 | `--no-color` | boolean |  | Turn off color. Also NO_COLOR. |
+| `--no-input` | boolean |  | Never prompt; fail and name the flag to pass |
 | `--stdio` | boolean | `true` | Use stdio, the only transport. Accepted because LSP clients add it |
 
 ```bash

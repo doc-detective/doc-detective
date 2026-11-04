@@ -58381,6 +58381,10 @@
           "description": "Configuration for Doc Detective Orchestration API integration.",
           "additionalProperties": false,
           "properties": {
+            "apiKeyFile": {
+              "type": "string",
+              "description": "Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment."
+            },
             "apiKey": {
               "type": "string",
               "description": "API key for authenticating with the Doc Detective Orchestration API."
@@ -58397,10 +58401,25 @@
             "required": [
               "name",
               "organizationId",
-              "username",
-              "apiToken"
+              "username"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "apiToken"
+                ]
+              },
+              {
+                "required": [
+                  "apiTokenFile"
+                ]
+              }
             ],
             "properties": {
+              "apiTokenFile": {
+                "type": "string",
+                "description": "Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment."
+              },
               "name": {
                 "type": "string",
                 "description": "Unique identifier for this Heretto integration. Used in logs and results."

@@ -543,6 +543,61 @@ describe("CLI contract", function () {
     });
   });
 
+  describe("configuration and environment", function () {
+    const checkEnv = 'node -e "process.exit(process.env.GREETING===\'hi\'?0:7)"';
+
+    it("loads .env from the current directory", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json"]).status).to.equal(0);
+    });
+
+    it("lets the shell beat .env", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json"], { env: { GREETING: "shell" } }).status).to.equal(1);
+    });
+
+    it("skips .env with --no-env-file", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json", "--no-env-file"]).status).to.equal(1);
+    });
+
+    it("runs fine with no .env", function () {
+      expect(run(["-i", "pass.spec.json"]).status).to.equal(0);
+    });
+
+    describe("precedence", function () {
+      let home;
+      const configDir = () => path.join(home, "doc-detective");
+      beforeEach(function () {
+        home = path.join(cwd, "xdg");
+        fs.mkdirSync(configDir(), { recursive: true });
+        fs.writeFileSync(path.join(configDir(), "config.json"), JSON.stringify({ logLevel: "error" }));
+      });
+      const noise = (args, env) =>
+        run(["-i", "pass.spec.json", ...args], {
+          env: { XDG_CONFIG_HOME: home, APPDATA: home, DOC_DETECTIVE_CONFIG: "", ...env },
+        }).stderr;
+
+      it("applies user config", function () {
+        expect(noise([])).to.not.match(/Running test specs/);
+      });
+      it("lets project config beat user config", function () {
+        fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevel: "info" }));
+        expect(noise([])).to.match(/Running test specs/);
+      });
+      it("lets the environment beat project config", function () {
+        fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevel: "info" }));
+        expect(noise([], { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevel: "error" }) })).to.not.match(/Running test specs/);
+      });
+      it("lets flags beat the environment", function () {
+        expect(noise(["-l", "info"], { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevel: "error" }) })).to.match(/Running test specs/);
+      });
+    });
+  });
+
   describe("deprecated arguments", function () {
     const deprecated = [
       { args: ["runTests", "-i", "pass.spec.json"], replacement: /use `?run/ },
