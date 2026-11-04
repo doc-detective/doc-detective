@@ -1,0 +1,39 @@
+---
+title: Prepare for Doc Detective 5.0
+sidebar-title: Prepare for 5.0
+description: What's changing in Doc Detective 5.0, and how to try the new behavior on 4.x today.
+---
+
+Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking release. It isn't out yet. If you landed here from a warning in your logs, your setup uses something that changes in 5.0, and nothing breaks until you upgrade. Auto-update won't move you to 5.0 on its own.
+
+## What's coming
+
+| Today on 4.x | On 5.0 |
+|---|---|
+| A failed spec exits `0` unless you pass `--exit-on-fail` | A failed spec exits `1` |
+| A run that tests nothing exits `0` | A run that tests nothing exits `2` |
+| `--output` and `output` accept a folder | They name the JSON results file, and a folder needs `--output-dir` |
+| `install-agents` | Removed. Use `install agents` |
+| `-a` and `-s` on `install agents` | Removed. Use `--agent` and `--scope` |
+| `install --silent` | Removed. Use `--quiet` |
+| `--concurrent-runners` with no value | Needs a value. Use `--concurrent-runners true` |
+| The `doc-detective-lsp` bin | Removed. Use `doc-detective lsp --stdio` |
+| The `doc-detective-runner` bin | Replaced by a `doc-detective runner` command |
+
+Logs also move to stderr, so stdout carries only results.
+
+## Try it now
+
+Add `--exit-on-fail` to your 4.x runs to get the new exit code for failed specs:
+
+```bash
+npx doc-detective --exit-on-fail
+```
+
+To keep exit code `0` after you upgrade, set `--no-exit-on-fail`, or `exitOnFail: false` in your config. Either one also works today, and it silences the warnings about exit codes.
+
+The other replacements in the table that say "use" already work on 4.x, except `--output-dir`, which arrives with 5.0.
+
+## What's next
+
+A full migration guide replaces this page when 5.0 ships. For how exit codes work today, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).

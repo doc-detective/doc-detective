@@ -202,6 +202,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Docker & headless (new) | P2 | ★ | |
 | Concurrency & performance (new) | P2 | | `concurrentRunners`, recording serialization. |
 | Orchestrate distributed runs (new) | P3 | | `doc-detective-runner`, orchestration API. |
+| Prepare for 5.0 (new) | P1 | | Preview at `docs/ci/upgrade-to-v5`, the link in 4.x upgrade warnings. The full migration guide replaces it at GA. |
 
 ### Build with AI agents: Aria (pillar), in `ai/`
 

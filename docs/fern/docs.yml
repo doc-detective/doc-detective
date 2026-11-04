@@ -281,6 +281,9 @@ navigation:
           - page: Docker & headless
             path: pages/docs/ci/docker-and-headless.mdx
             slug: docker-and-headless
+          - page: Prepare for 5.0
+            path: pages/docs/ci/upgrade-to-v5.mdx
+            slug: upgrade-to-v5
 
       - section: Troubleshoot
         slug: troubleshoot
