@@ -146,11 +146,13 @@ You can also set `cacheDir` in your `.doc-detective.json` config file or use the
 
 ## Auto-update
 
-By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available:
+By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available. In the commands below, `<version>` is that newer version:
 
-- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<latest>` and re-executes.
-- **npx invocations**: Re-executes with `npx -y doc-detective@latest`.
-- **Local project installs**: Prints an "update available" message instead of modifying your `package.json`.
+- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<version>` and re-executes.
+- **npx invocations**: Re-executes with `npx -y doc-detective@<version>`.
+- **Local project installs**: Prints an "update available" message with the `npm i doc-detective@<version>` command to run, instead of modifying your `package.json`.
+
+Auto-update never moves you to a new major version, because a major version has breaking changes. When a newer major version is out, Doc Detective prints the command to upgrade to it, such as `npm i doc-detective@5`. It keeps updating you to newer releases of your current major version. To prepare for the next major version, see [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
 
 To disable auto-update, use any of these methods:
 

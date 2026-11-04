@@ -819,7 +819,7 @@ By default, Doc Detective runs test contexts sequentially. For larger test suite
 
 ```bash
 # Use CPU core count (capped at 4)
-npx doc-detective --concurrent-runners
+npx doc-detective --concurrent-runners true
 
 # Specify an explicit number of runners
 npx doc-detective --concurrent-runners 4
@@ -830,7 +830,7 @@ npx doc-detective --concurrent-runners 4
 
 ```bash
 # Use CPU core count (capped at 4)
-docker run -v .:/app docdetective/docdetective --concurrent-runners
+docker run -v .:/app docdetective/docdetective --concurrent-runners true
 
 # Specify an explicit number of runners
 docker run -v .:/app docdetective/docdetective --concurrent-runners 4
@@ -848,6 +848,8 @@ You can also set this in your configuration file using the `concurrentRunners` p
 ```
 
 Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
+
+On the CLI, pass `true` rather than leaving the value off. `--concurrent-runners` with no value still works, but it prints a warning because [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes that form.
 
 <Warning>
 **Cross-context variables**: Some tests share variables between contexts through `loadVariables` or `variables` steps. Those won't work correctly with concurrent runners, because variables write to a `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
