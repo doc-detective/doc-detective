@@ -59,14 +59,15 @@ Each warning goes to stderr once per process, and links
 | `-a` or `-s` on the agents install command | Removed; use `--agent` and `--scope` |
 | `install --silent` | Removed; use `--quiet` |
 | `--concurrent-runners` with no value | Removed; use `--concurrent-runners true` |
-| The `doc-detective-lsp` bin | Removed. `doc-detective-runner` doesn't warn, as only hosted images call it |
+| The `doc-detective-lsp` bin | Removed. Only this bin warns, because hosted images are the only callers of `doc-detective-runner` |
 
 An output path names a folder when it ends in a slash, is an existing directory, or has no file
 extension. 4.x itself treats that last case as a folder. It's stricter than 5.0's check, so
 a first run to a new `--output results` warns too.
 
 Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_interface` is
-`github-actions`, because Action v1.7 has its own notice.
+`github-actions`, because Action v1.7 has its own notice. The runner sets neither, so the
+`doc-detective` run it starts can still print the other warnings to hosted run logs.
 
 ### Unset `exitOnFail`
 
