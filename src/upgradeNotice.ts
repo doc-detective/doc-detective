@@ -8,7 +8,6 @@ const UPGRADE_GUIDE_URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5"
 
 const REMOVED_BINS: Record<string, string> = {
   "doc-detective-lsp": "Use `doc-detective lsp --stdio`, which works today.",
-  "doc-detective-runner": "5.0 replaces it with a `doc-detective runner` command.",
 };
 
 const warned = new Set<string>();

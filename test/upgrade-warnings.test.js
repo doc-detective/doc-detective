@@ -195,12 +195,9 @@ describe("upgrade warnings", function () {
       expect(r.stdout).to.not.include(URL);
     });
 
-    it("warns on doc-detective-runner", function () {
-      // Exits right away on the missing DD_* environment.
-      const r = run("bin/runner-entrypoint.js", [], {
-        env: { DD_RUN_TOKEN: "", DD_API_BASE: "", DD_RUN_ID: "" },
-      });
-      expect(r.stderr).to.include("doc-detective-runner").and.include(URL);
+    it("doesn't warn on doc-detective-runner, which only hosted images call", function () {
+      const source = fs.readFileSync(path.resolve("bin/runner-entrypoint.js"), "utf8");
+      expect(source).to.not.include("upgradeNotice");
     });
 
     it("stays quiet in the Action", function () {

@@ -59,7 +59,7 @@ Each warning goes to stderr once per process, and links
 | `-a` or `-s` on the agents install command | Removed; use `--agent` and `--scope` |
 | `install --silent` | Removed; use `--quiet` |
 | `--concurrent-runners` with no value | Removed; use `--concurrent-runners true` |
-| The `doc-detective-lsp` or `doc-detective-runner` bin | Removed |
+| The `doc-detective-lsp` bin | Removed. `doc-detective-runner` doesn't warn, as only hosted images call it |
 
 An output path names a folder when it ends in a slash, is an existing directory, or has no file
 extension. 4.x itself treats that last case as a folder. It's stricter than 5.0's check, so
