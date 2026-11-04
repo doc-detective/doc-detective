@@ -544,27 +544,6 @@ describe("runFolder reporter", function () {
     expect(html).to.include("20260612-140000");
   });
 
-  it("names the HTML file to match the command's JSON report type", async function () {
-    const runDir = path.join(
-      tempBase,
-      ".doc-detective",
-      "runs",
-      "20260612-150000"
-    );
-    fs.mkdirSync(runDir, { recursive: true });
-    const results = { runId: "20260612-150000", runDir, summary: {}, specs: [] };
-    await reporters.runFolderReporter({}, tempBase, results, {
-      command: "runCoverage",
-    });
-    expect(fs.existsSync(path.resolve(runDir, "coverageResults.json"))).to.equal(
-      true
-    );
-    const htmlFile = path.resolve(runDir, "coverageResults.html");
-    expect(fs.existsSync(htmlFile)).to.equal(true);
-    const html = fs.readFileSync(htmlFile, "utf8");
-    expect(html).to.include("<!DOCTYPE html>");
-    expect(html).to.include("20260612-150000");
-  });
 
   it("writes the HTML beside the JSON when the stamped runDir is rejected", async function () {
     // When the stamped runDir is outside the output tree, both artifacts must

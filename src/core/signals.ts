@@ -1,4 +1,4 @@
-import { diag } from "../cliOutput.js";
+import { diag, stopSpinner } from "../cliOutput.js";
 
 const CLEANUP_DEADLINE_MS = 5000;
 
@@ -19,6 +19,7 @@ export function createInterruptHandler({
   let interrupted = false;
   return (signal: NodeJS.Signals) => {
     const code = signal === "SIGINT" ? 130 : 143;
+    stopSpinner();
     if (interrupted) {
       print("Stopping now. Browsers or other test processes may still be running.");
       exit(code);

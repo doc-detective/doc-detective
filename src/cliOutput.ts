@@ -60,10 +60,16 @@ export function displayPath(file: string): string {
 }
 
 // The spinner currently on screen, if any, so log lines can print above it.
-let activeSpinner: { clear: () => unknown } | null = null;
+let activeSpinner: { clear: () => unknown; stop: () => unknown } | null = null;
 
 export function clearSpinner() {
   activeSpinner?.clear();
+}
+
+// Take the spinner off the screen for good, such as when a run is interrupted.
+export function stopSpinner() {
+  (activeSpinner as { stop?: () => unknown } | null)?.stop?.();
+  activeSpinner = null;
 }
 
 // Write one diagnostic line to stderr. stdout is reserved for results.
@@ -77,7 +83,13 @@ export function diag(line: string) {
 export async function startSpinner(text: string, stream: NodeJS.WriteStream = process.stderr) {
   if (!stream.isTTY || process.env.TERM === "dumb") return { stop: () => {}, update: () => {} };
   const { default: ora } = await import("ora");
-  const spinner = ora({ text, stream, discardStdin: false }).start();
+  // ora's color support doesn't follow NO_COLOR, so decide for it.
+  const spinner = ora({
+    text,
+    stream,
+    discardStdin: false,
+    color: colorEnabled(stream) ? "cyan" : false,
+  }).start();
   activeSpinner = spinner;
   return {
     update: (next: string) => {

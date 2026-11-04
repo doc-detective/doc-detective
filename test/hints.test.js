@@ -2375,7 +2375,8 @@ describe("hints/hints (registry)", function () {
 
   it("sponsorProject: fires once any tests ran", function () {
     const h = findHint("sponsorProject");
-    expect(h.when(fakeCtx({ totalTests: 1 }))).to.equal(true);
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 0 }))).to.equal(true);
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 1 }))).to.equal(false);
     expect(h.when(fakeCtx({ totalTests: 0 }))).to.equal(false);
   });
 

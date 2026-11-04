@@ -493,7 +493,8 @@ export const HINTS: Hint[] = [
       "- [GitHub Sponsors](https://github.com/sponsors/doc-detective)",
       "- [Open Collective](https://opencollective.com/doc-detective)",
     ].join("\n"),
-    when: (ctx) => ctx.totalTests > 0,
+    // Not while someone is looking at a failure.
+    when: (ctx) => ctx.totalTests > 0 && ctx.failedCount === 0,
   },
 
   // ------------------------------------------------------------------

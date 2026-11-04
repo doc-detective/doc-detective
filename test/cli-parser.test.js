@@ -69,6 +69,49 @@ describe("CLI parser", function () {
     expect(r.stdout.trim()).to.match(/^\d+\.\d+\.\d+/);
   });
 
+  // Every command, including ones added later, gets the same treatment.
+  describe("every command", function () {
+    const commands = [];
+    const walk = (command, path = []) => {
+      for (const child of command.commands) {
+        commands.push({ path: [...path, child.name()], command: child });
+        walk(child, [...path, child.name()]);
+      }
+    };
+    walk(buildProgram({ runTests: () => {} }));
+
+    for (const { path: commandPath, command } of commands) {
+      const name = commandPath.join(" ");
+      it(`\`${name}\` has help, and exits 0 from it`, function () {
+        const r = runCli([...commandPath, "--help"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stdout).to.include("Usage: doc-detective");
+      });
+      it(`\`${name}\` rejects an unknown flag with exit 2`, function () {
+        const r = runCli([...commandPath, "--definitely-not-a-flag"]);
+        expect(r.status).to.equal(2);
+        expect(r.stderr).to.include("unknown option");
+      });
+      if (!["lsp", "runner", "help"].includes(name)) {
+        it(`\`${name}\` declares --json`, function () {
+          expect(command.options.some((option) => option.long === "--json")).to.equal(true);
+        });
+      }
+    }
+
+    it("leaves `coverage` free for the coverage command", function () {
+      expect(commands.map((c) => c.path[0])).to.not.include("coverage");
+      const program = buildProgram({ runTests: () => {} });
+      let ran = false;
+      program.command("coverage").action(() => {
+        ran = true;
+      });
+      return program.parseAsync(["coverage"], { from: "user" }).then(() => {
+        expect(ran).to.equal(true);
+      });
+    });
+  });
+
   it("accepts both spellings of the log level", function () {
     const parse = (args) => {
       let seen;

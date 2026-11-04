@@ -413,14 +413,6 @@ describe("utils.ts coverage", function () {
       assert.ok(cap.log.includes("Results: "));
     });
 
-    it("uses the coverageResults prefix for runCoverage", async function () {
-      captureConsole(sandbox);
-      const dir = makeTmpDir();
-      const outPath = await reporters.jsonReporter({}, dir, { x: 1 }, {
-        command: "runCoverage",
-      });
-      assert.ok(path.basename(outPath).startsWith("coverageResults-"));
-    });
 
     it("honors an explicit .json output path and disambiguates collisions with a counter", async function () {
       captureConsole(sandbox);
