@@ -1,5 +1,7 @@
 import { styleText } from "node:util";
+import fs from "node:fs";
 import path from "node:path";
+import { isSecretValue } from "./debug/redact.js";
 import type { EventEmitter } from "node:events";
 
 const CODES = {
@@ -109,6 +111,45 @@ export async function showRunProgress(
     if (heartbeat) clearInterval(heartbeat);
     spinner.stop();
   };
+}
+
+// Mask credentials in text bound for a file someone might attach to an issue.
+function scrubSecrets(text: string): string {
+  return text
+    .replace(/:\/\/[^/\s:@]+:[^@\s]+@/g, "://***:***@")
+    .replace(/\S+/g, (word) => (isSecretValue(word) ? "***redacted***" : word));
+}
+
+// For a bug, not a mistake in a command: write the details somewhere they can be
+// attached, and make reporting it easy.
+export function reportCrash(
+  error: any,
+  {
+    dir = process.cwd(),
+    print = (line: string) => console.error(line),
+    version = "unknown",
+  }: { dir?: string; print?: (line: string) => void; version?: string } = {}
+) {
+  const message = error?.message ?? String(error);
+  print(`Unexpected error: ${message}`);
+  try {
+    const file = path.join(dir, ".doc-detective", `crash-${Date.now()}.log`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(
+      file,
+      scrubSecrets(
+        `doc-detective ${version}\nnode ${process.version} on ${process.platform}\n\n${error?.stack ?? message}\n`
+      )
+    );
+    print(`Details: ${displayPath(file)}`);
+  } catch {
+    // The report below matters more than the log file.
+  }
+  const body = `Version: ${version}\nNode: ${process.version}\nPlatform: ${process.platform}\n\nPaste the crash log and the output of \`doc-detective debug\` here.`;
+  const issue = `https://github.com/doc-detective/doc-detective/issues/new?title=${encodeURIComponent(
+    `Crash: ${scrubSecrets(message).slice(0, 80)}`
+  )}&body=${encodeURIComponent(body)}`;
+  print(`This is a bug in Doc Detective. Report it: ${issue}`);
 }
 
 // The last line of a run: what happened, in one line.

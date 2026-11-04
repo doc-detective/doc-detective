@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSpecErrors } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -169,11 +169,11 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       // data file, such as package.json, so it isn't reported as a broken spec.
       const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
       if (looksLikeSpec) noteInvalidSpec(config, source);
-      log(config, looksLikeSpec ? "warning" : "debug", validation);
+      log(config, "debug", validation);
       log(
         config,
         looksLikeSpec ? "warning" : "debug",
-        `${source} isn't a valid test specification. Skipping.`
+        `${source} isn't a valid test specification. Skipping.\n${summarizeSpecErrors(validation.errors, content)}`
       );
       return false;
     }

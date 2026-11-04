@@ -393,6 +393,137 @@ describe("CLI contract", function () {
     });
   });
 
+  describe("help", function () {
+    const commands = [
+      [],
+      ["run"],
+      ["help"],
+      ["install"],
+      ["install", "all"],
+      ["install", "browsers"],
+      ["install", "runtime"],
+      ["install", "bash"],
+      ["install", "android"],
+      ["install", "ios"],
+      ["install", "agents"],
+      ["install", "status"],
+      ["debug"],
+      ["lsp"],
+    ];
+    for (const path of commands) {
+      const name = ["doc-detective", ...path].join(" ");
+      it(`${name} leads with examples, and links to docs`, function () {
+        const r = run([...path, "--help"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stdout).to.include(`Usage: ${name}`);
+        expect(r.stdout).to.include("Examples:");
+        expect(r.stdout.indexOf("Examples:")).to.be.lessThan(r.stdout.indexOf("Options:") === -1 ? Infinity : r.stdout.indexOf("Options:"));
+        expect(r.stdout).to.include("https://docs.doc-detective.com/reference/cli");
+        expect(r.stdout).to.include("Global options:");
+      });
+    }
+
+    it("keeps each subcommand's help focused", function () {
+      for (const path of [["debug"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
+        const help = run([...path, "--help"]).stdout;
+        expect(help, path.join(" ")).to.not.include("--reporters");
+        expect(help.length, path.join(" ")).to.be.lessThan(2500);
+      }
+    });
+
+    it("lists the support path in top-level help", function () {
+      expect(run(["--help"]).stdout).to.include("github.com/doc-detective/doc-detective/issues");
+    });
+
+    it("explains exit codes for runs", function () {
+      expect(run(["--help"]).stdout).to.include("Exit codes:");
+    });
+
+    it("lists every asset under install", function () {
+      const help = run(["install", "--help"]).stdout;
+      for (const asset of ["all", "browsers", "runtime", "bash", "android", "ios", "agents", "status"]) {
+        expect(help).to.match(new RegExp(`^\\s+${asset}\\b`, "m"));
+      }
+    });
+
+    it("wraps help at 80 columns, apart from the longest terms", function () {
+      for (const line of run(["--help"]).stdout.split("\n")) {
+        expect(line.length, line).to.be.at.most(90);
+      }
+    });
+  });
+
+  describe("errors", function () {
+    it("suggests the nearest command for a typo", function () {
+      const r = run(["instal"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown command 'instal'");
+      expect(r.stderr).to.include("Did you mean install?");
+    });
+
+    it("points a bare path at `run`", function () {
+      const r = run(["docs/guide.md"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("doc-detective run docs/guide.md");
+    });
+
+    it("suggests the nearest flag for a typo", function () {
+      expect(run(["--inptu", "x"]).stderr).to.include("Did you mean --input?");
+    });
+
+    it("ends usage errors with a pointer to --help", function () {
+      expect(run(["--nope"]).stderr).to.include("--help");
+    });
+
+    it("names the choices for `install` with no asset", function () {
+      const r = run(["install"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.match(/Specify an asset: .*browsers/);
+    });
+
+    it("summarizes an unknown action, without a wall of schema errors", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "https://example.com" }] }] })
+      );
+      const r = run(["-i", "invalid.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("goToo");
+      expect(r.stderr).to.include("Did you mean goTo?");
+      expect(r.stderr).to.not.include("must have required property");
+      expect(r.stderr).to.not.include('"object"');
+      expect(r.stderr.length).to.be.lessThan(600);
+    });
+
+    it("keeps the raw schema errors for -d", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      expect(run(["-d", "-i", "invalid.spec.json"]).stderr).to.include("must have required property");
+    });
+
+    it("explains a config file that won't parse, once", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), "{ not json");
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("bad.json");
+      expect(r.stderr).to.not.include("must be object");
+    });
+
+    it("points an empty bare run at --help", function () {
+      fs.rmSync(path.join(cwd, "pass.spec.json"));
+      fs.rmSync(path.join(cwd, "fail.spec.json"));
+      const r = run([]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.match(/--help/);
+    });
+
+    it("hasn't a stack trace for expected errors", function () {
+      expect(run(["-c", "nope.json"]).stderr).to.not.match(/^\s+at /m);
+    });
+  });
+
   describe("deprecated arguments", function () {
     const deprecated = [
       { args: ["runTests", "-i", "pass.spec.json"], replacement: /use `?run/ },

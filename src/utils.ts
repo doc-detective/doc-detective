@@ -276,6 +276,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
         `Could not read config file at ${configPath}. Check that the path exists and is readable.`
       );
     }
+    if (typeof config !== "object") {
+      throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
+    }
   }
 
   // Check for DOC_DETECTIVE_CONFIG environment variable

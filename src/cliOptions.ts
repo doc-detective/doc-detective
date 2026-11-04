@@ -1,5 +1,10 @@
 import { Command, InvalidArgumentError, Option } from "commander";
 
+export const GLOBAL_GROUP = "Global options:";
+const RUN_GROUP = "Run options:";
+const BEHAVIOR_GROUP = "Run behavior:";
+const DEPRECATED_GROUP = "Deprecated options:";
+
 // Old arguments kept for compatibility (ADR 01146). Each is labeled in help and
 // warns on stderr when used.
 const DEPRECATED_LABELS = {
@@ -41,50 +46,59 @@ function parseConcurrentRunners(value: string): string {
   throw new InvalidArgumentError("Expected a positive whole number, or auto.");
 }
 
-// A boolean flag plus its hidden `--no-` form. Declaring both leaves the option
-// undefined when neither is passed, which is what setConfig's
+function grouped(group: string, flags: string, description?: string) {
+  return new Option(flags, description).helpGroup(group);
+}
+
+// A boolean flag and its opposite, with one shown in help. Declaring both leaves
+// the option undefined when neither is passed, which is what setConfig's
 // `typeof args.x === "boolean"` override blocks rely on to tell "unset" from
 // "explicitly off".
-function addBooleanOption(command: Command, flags: string, description: string) {
-  command.option(flags, description);
-  const long = flags.split(/,\s*/).pop() as string;
-  command.addOption(new Option(`--no-${long.slice(2)}`).hideHelp());
+function addBooleanPair(
+  command: Command,
+  group: string,
+  shown: string,
+  description: string,
+  hidden: string
+) {
+  command.addOption(grouped(group, shown, description));
+  command.addOption(new Option(hidden).hideHelp());
 }
 
 // The flags every command takes, before or after its name.
 export function addGlobalOptions(command: Command): Command {
   return command
-    .option("-q, --quiet", "Show only errors and a one-line verdict.")
-    .option(
-      "-d, --debug",
-      "Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG."
+    .addOption(grouped(GLOBAL_GROUP, "-q, --quiet", "Show only errors and a one-line verdict"))
+    .addOption(
+      grouped(
+        GLOBAL_GROUP,
+        "-d, --debug",
+        "Show debugging output (alias: --verbose; also DEBUG and DOC_DETECTIVE_DEBUG)"
+      )
     )
     .addOption(new Option("--verbose").hideHelp().implies({ debug: true }))
     .addOption(
-      new Option(
-        "-l, --log-level <level>",
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
-      ).choices(LOG_LEVELS)
+      grouped(GLOBAL_GROUP, "-l, --log-level <level>", "Set log detail: silent, error, warning, info, debug").choices(
+        LOG_LEVELS
+      )
     )
     .addOption(
-      new Option(
+      grouped(
+        DEPRECATED_GROUP,
         "--logLevel <level>",
-        `Detail level of logging events. ${DEPRECATED_LABELS["--logLevel"]}`
+        `Set log detail ${DEPRECATED_LABELS["--logLevel"]}`
       ).choices(LOG_LEVELS)
     )
-    .option("--json", "Print one JSON document to stdout.")
-    .option("--no-color", "Turn off color. Also NO_COLOR.")
+    .addOption(grouped(GLOBAL_GROUP, "--json", "Print one JSON document to stdout"))
+    .addOption(grouped(GLOBAL_GROUP, "--no-color", "Turn off color (also NO_COLOR)"))
     .addOption(new Option("--color").hideHelp());
 }
 
 // The flags that choose what to read, shared by the run commands and `debug`.
-export function addInputOptions(command: Command): Command {
+export function addInputOptions(command: Command, group = RUN_GROUP): Command {
   return command
-    .option("-c, --config <path>", "Path to a `config.json` or `config.yaml` file.")
-    .option(
-      "-i, --input <path>",
-      "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files."
-    );
+    .addOption(grouped(group, "-c, --config <file>", "Use this config file"))
+    .addOption(grouped(group, "-i, --input <path>", 'Test these files or folders; "-" reads stdin'));
 }
 
 // The flags a test run takes. Runtime code never reads these directly: setConfig
@@ -92,80 +106,104 @@ export function addInputOptions(command: Command): Command {
 export function addRunOptions(command: Command): Command {
   addInputOptions(command);
   command
-    .option(
-      "-o, --output <file>",
-      "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout."
+    .addOption(grouped(RUN_GROUP, "-o, --output <file>", 'Write results JSON here; "-" writes to stdout'))
+    .addOption(grouped(RUN_GROUP, "--output-dir <dir>", "Write the run folder and reports here [.]"))
+    .addOption(
+      grouped(
+        RUN_GROUP,
+        "-r, --reporters <names...>",
+        "Use terminal, json, html, runFolder, junit, or markdown [terminal, runFolder]"
+      )
     )
-    .option("--plain", "Print one tab-separated line per test.")
-    .option(
-      "--output-dir <dir>",
-      "Path of the folder that holds the run folder and the html, junit, and markdown reports."
-    );
-  addBooleanOption(command, "--allow-unsafe", "Allow execution of potentially unsafe tests");
-  addBooleanOption(
+    .addOption(grouped(RUN_GROUP, "-t, --test <patterns>", "Run only tests with a matching ID"))
+    .addOption(grouped(RUN_GROUP, "-s, --spec <patterns>", "Run only specs with a matching ID"));
+  addBooleanPair(
     command,
+    RUN_GROUP,
     "-n, --dry-run",
-    "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps."
+    "Print the resolved test plan as JSON and stop",
+    "--no-dry-run"
+  );
+  command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test"));
+  command.addOption(grouped(RUN_GROUP, "--no-exit-on-fail", "Exit 0 even when tests fail"));
+
+  addBooleanPair(
+    command,
+    BEHAVIOR_GROUP,
+    "--allow-unsafe",
+    "Run steps marked unsafe, such as detected code",
+    "--no-allow-unsafe"
   );
   command
-    .option(
-      "-r, --reporters <names...>",
-      "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html)."
+    .addOption(
+      grouped(
+        BEHAVIOR_GROUP,
+        "--concurrent-runners <count>",
+        "Run contexts at once: a number or auto [1]"
+      ).argParser(parseConcurrentRunners)
     )
-    .option(
-      "-t, --test <patterns>",
-      "Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches."
+    .addOption(
+      grouped(
+        BEHAVIOR_GROUP,
+        "--browser-fallback <mode>",
+        "Replace a browser that won't start: auto, explicit, or off [auto]"
+      ).choices(["auto", "explicit", "off"])
     )
-    .option(
-      "-s, --spec <patterns>",
-      "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches."
+    .addOption(
+      grouped(
+        BEHAVIOR_GROUP,
+        "--shell <name>",
+        "Set the default runShell shell: bash, cmd, or powershell [bash]"
+      ).choices(["bash", "cmd", "powershell"])
     );
-  addBooleanOption(
+  addBooleanPair(
     command,
-    "--hints",
-    "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints."
-  );
-  command.addOption(new Option(
-    "--verification <mode>",
-    "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`."
-  ).choices(["existing", "true", "false"]));
-  addBooleanOption(
-    command,
+    BEHAVIOR_GROUP,
     "--auto-screenshot",
-    "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it."
+    "Capture a screenshot after each browser step",
+    "--no-auto-screenshot"
   );
-  addBooleanOption(
+  addBooleanPair(
     command,
+    BEHAVIOR_GROUP,
     "--auto-record",
-    "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it."
-  );
-  addBooleanOption(
-    command,
-    "--auto-update",
-    "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version."
+    "Record a video of each browser context",
+    "--no-auto-record"
   );
   command
-    .option(
-      "--cache-dir <path>",
-      "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR."
+    .addOption(
+      grouped(
+        BEHAVIOR_GROUP,
+        "--verification <mode>",
+        "Write results back to source files: existing, true, or false [existing]"
+      ).choices(["existing", "true", "false"])
     )
-    .option(
-      "--concurrent-runners <count>",
-      "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
-      parseConcurrentRunners
-    )
-    .addOption(new Option(
-      "--browser-fallback <mode>",
-      "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage."
-    ).choices(["auto", "explicit", "off"]))
-    .addOption(new Option(
-      "--shell <name>",
-      "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field."
-    ).choices(["bash", "cmd", "powershell"]));
-  addBooleanOption(
+    .addOption(grouped(BEHAVIOR_GROUP, "--cache-dir <dir>", "Keep browsers and runtimes here"))
+    .addOption(
+      grouped(BEHAVIOR_GROUP, "--no-env-file", "Don't load .env from the current directory")
+    );
+  addBooleanPair(
     command,
-    "-e, --exit-on-fail",
-    `Exit with a non-zero code (1) when any spec's result is FAIL. ${DEPRECATED_LABELS["--exit-on-fail"]}`
+    BEHAVIOR_GROUP,
+    "--no-hints",
+    "Don't show hints after a run",
+    "--hints"
+  );
+  addBooleanPair(
+    command,
+    BEHAVIOR_GROUP,
+    "--no-auto-update",
+    "Don't update to a newer 5.x before running",
+    "--auto-update"
+  );
+  command.addOption(grouped(BEHAVIOR_GROUP, "--no-telemetry", "Don't send anonymous usage data"));
+  // The positive form is deprecated, and listed in its own group.
+  command.addOption(
+    grouped(
+      DEPRECATED_GROUP,
+      "-e, --exit-on-fail",
+      `Exit 1 on test failure ${DEPRECATED_LABELS["--exit-on-fail"]}`
+    )
   );
   return command;
 }

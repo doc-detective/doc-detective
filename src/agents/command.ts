@@ -22,27 +22,30 @@ async function installAgentsHandler(argv: any): Promise<void> {
   if (argv.json) console.log(JSON.stringify(reports, null, 2));
 }
 
+const AGENT_GROUP = "Agent options:";
+
 // `handler` is replaceable for tests.
 export function buildInstallAgentsCommand(
   handler: (argv: any) => Promise<void> | void = installAgentsHandler
 ): Command {
   return addGlobalOptions(new Command("agents"))
-    .description(
-      "Install or update the doc-detective agent tools for detected AI coding agents (e.g., Claude Code)."
-    )
-    .option(
-      "--agent <id...>",
-      "Agent id to install into (repeatable). Skips the interactive picker. Example: --agent claude"
+    .addOption(
+      new Option(
+        "--agent <id...>",
+        "Install for this agent; repeatable. One of claude, copilot, gemini, codex, qwen, or opencode"
+      ).helpGroup(AGENT_GROUP)
     )
     .addOption(
       new Option(
         "--scope <scope>",
-        "Where to install: 'project' (current repo) or 'global' (user home). Each adapter resolves the exact path. Prompted if omitted."
-      ).choices(["project", "global"])
+        "Install for this project or for your user: project or global"
+      )
+        .choices(["project", "global"])
+        .helpGroup(AGENT_GROUP)
     )
-    .option("-f, --force", "Reinstall/overwrite even if already installed and up to date.")
-    .option("-y, --yes", "Skip all prompts. Requires --agent and --scope.")
-    .option("-n, --dry-run", "Print the actions that would be taken without executing them.")
+    .addOption(new Option("-y, --yes", "Don't prompt; needs --agent and --scope").helpGroup(AGENT_GROUP))
+    .addOption(new Option("-f, --force", "Reinstall even if up to date").helpGroup(AGENT_GROUP))
+    .addOption(new Option("-n, --dry-run", "Show what would happen without doing it").helpGroup(AGENT_GROUP))
     .action(async (_options, command: Command) => {
       await handler(cliArgv(command));
     });

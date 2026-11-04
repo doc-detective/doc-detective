@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { addGlobalOptions, addInputOptions, cliArgv } from "../cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -18,14 +18,17 @@ export interface DebugArgv {
 // by name AND by value shape). Without it, the dump only lists env
 // vars referenced via `$VAR` in config or input files.
 export function buildDebugCommand(): Command {
-  return addGlobalOptions(addInputOptions(new Command("debug")))
+  return addGlobalOptions(addInputOptions(new Command("debug"), "Debug options:"))
     .description(
       "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests."
     )
-    .option(
-      "--include-env",
-      "Also dump the full process.env (redacted by name and value shape). Off by default to avoid leaking PaaS-injected credentials (DATABASE_URL, Sentry DSN, webhooks).",
-      false
+    .addOption(
+      new Option("--include-env", "Also print every environment variable, redacted")
+        .default(false)
+        .helpGroup("Debug options:")
+    )
+    .addOption(
+      new Option("--no-env-file", "Don't load .env from the current directory").helpGroup("Debug options:")
     )
     .action(async (_options, command: Command) => {
       await debugHandler(cliArgv(command) as DebugArgv);

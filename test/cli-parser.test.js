@@ -48,7 +48,7 @@ describe("CLI parser", function () {
   it("keeps bare words free for subcommands", function () {
     const r = runCli(["docs"]);
     expect(r.status).to.equal(2);
-    expect(r.stderr).to.include("too many arguments");
+    expect(r.stderr).to.include("unknown command 'docs'");
   });
 
   it("suggests the nearest flag for a typo", function () {

@@ -1,4 +1,5 @@
 import { diag } from "../cliOutput.js";
+import { nearestCommand } from "../cliHelp.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -76,6 +77,7 @@ export {
   selectSpecsForRun,
   shouldFailRun,
   runExitCode,
+  summarizeSpecErrors,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -1169,6 +1171,43 @@ function selectSpecsForRun(specs: any[], config: any): any[] {
 function shouldFailRun(results: any): boolean {
   const failCount = results?.summary?.specs?.fail;
   return typeof failCount === "number" && failCount > 0;
+}
+
+// Turn AJV's error string into something a person can act on: one line per
+// problem, with `anyOf` branches collapsed, and the nearest action named when a
+// step has an unknown key. Raw errors stay available at debug level.
+function summarizeSpecErrors(errors: string, object: any): string {
+  const byPath = new Map<string, string[]>();
+  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(?:\([^)]*\))?(?:, |$)/g)) {
+    const [, instancePath = "", message] = match;
+    if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
+    byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), message]);
+  }
+  const lines: string[] = [];
+  for (const [instancePath, messages] of byPath) {
+    const parts = instancePath.split("/").filter(Boolean);
+    const place = parts.reduce((all, part) => (/^\d+$/.test(part) ? `${all}[${part}]` : all ? `${all}.${part}` : part), "");
+    const prefix = place ? `${place}: ` : "";
+    const actions = messages
+      .map((message) => /required property '([^']+)'/.exec(message)?.[1])
+      .filter(Boolean) as string[];
+    if (/steps\/\d+$/.test(instancePath) && actions.length === messages.length) {
+      const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
+      const metadata = new Set(["stepId", "description", "unsafe", "outputs", "variables", "breakpoint", "location", "contentPath", "if", "on"]);
+      const unknown = Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      if (unknown.length === 0) {
+        lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
+      } else {
+        const near = nearestCommand(unknown[0], actions);
+        lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
+      }
+      continue;
+    }
+    for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
+  }
+  const shown = lines.slice(0, 5);
+  if (lines.length > shown.length) shown.push(`and ${lines.length - shown.length} more`);
+  return shown.join("\n");
 }
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec

@@ -9,7 +9,6 @@ import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
 // options, and the handler that receives its parsed options.
 interface InstallSubcommand {
   command: string;
-  describe: string;
   /** Set when the subcommand only reads the cache, so it takes no install flags. */
   readOnly?: boolean;
   configure?: (command: Command) => void;
@@ -53,23 +52,15 @@ function makeLogger(level: LogLevel): Logger {
   };
 }
 
+const INSTALL_GROUP = "Install options:";
+
 const sharedInstallOptions = (command: Command) =>
   command
-    .option(
-      "-y, --yes",
-      "Skip interactive prompts (auto-install missing assets without confirming)."
-    )
-    .option(
-      "-f, --force",
-      "Reinstall even if the asset is already present and current. Prunes any older versions in the cache."
-    )
-    .option(
-      "-n, --dry-run",
-      "Report the actions that would be taken without executing them."
-    )
-    .option(
-      "--cache-dir <path>",
-      "Override the cache root for this invocation (also DOC_DETECTIVE_CACHE_DIR env var)."
+    .addOption(new Option("-y, --yes", "Don't ask for confirmation").helpGroup(INSTALL_GROUP))
+    .addOption(new Option("-f, --force", "Reinstall, and remove older cached versions").helpGroup(INSTALL_GROUP))
+    .addOption(new Option("-n, --dry-run", "Show what would happen without doing it").helpGroup(INSTALL_GROUP))
+    .addOption(
+      new Option("--cache-dir <dir>", "Install here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup(INSTALL_GROUP)
     );
 
 function ctxFromArgv(argv: InstallArgv) {
@@ -91,11 +82,10 @@ function printReports(reports: any[], logger: Logger) {
 
 const runtimeSubcommand: InstallSubcommand = {
   command: "runtime",
-  describe: `Install heavy npm packages into <cacheDir>/runtime. Supported: ${HEAVY_NPM_DEPS.join(", ")}.`,
   configure: (command) => {
     command.argument(
       "[packages...]",
-      "Package names to install (defaults to every heavy dep when omitted)."
+      `Any of ${HEAVY_NPM_DEPS.join(", ")} [all]`
     );
   },
   handler: async (argv: any) => {
@@ -133,13 +123,11 @@ const runtimeSubcommand: InstallSubcommand = {
 
 const browsersSubcommand: InstallSubcommand = {
   command: "browsers",
-  describe:
-    "Install browsers + drivers (chrome, firefox, chromedriver, geckodriver) into <cacheDir>/browsers.",
   configure: (command) => {
     command.addArgument(
       new Argument(
         "[names...]",
-        "Browser/driver names to install (defaults to all when omitted)."
+        "Any of chrome, firefox, chromedriver, geckodriver [all]"
       ).choices(["chrome", "firefox", "chromedriver", "geckodriver"])
     );
   },
@@ -159,23 +147,23 @@ const browsersSubcommand: InstallSubcommand = {
 
 const androidSubcommand: InstallSubcommand = {
   command: "android",
-  describe:
-    "Install the Android SDK toolchain (platform-tools, emulator, a system image) and create the default AVD. Augments an existing SDK (ANDROID_HOME/ANDROID_SDK_ROOT), or bootstraps commandline-tools into <cacheDir>/android-sdk. Downloads are multi-GB — requires --yes to proceed. Needs a Java runtime (JRE 17+).",
   configure: (command) => {
     command
-      .option(
-        "--os-version <version>",
-        "Android version for the system image / AVD (e.g. 14, or a raw API level like 34). Default: the newest available."
+      .addOption(
+        new Option("--os-version <version>", "Android version or API level [newest available]").helpGroup(
+          "Android options:"
+        )
+      )
+      .addOption(
+        new Option("--device-type <type>", "Hardware profile: phone or tablet [phone]")
+          .choices(["phone", "tablet"])
+          .helpGroup("Android options:")
       )
       .addOption(
         new Option(
-          "--device-type <type>",
-          "Abstract hardware profile for the default AVD. Default: phone."
-        ).choices(["phone", "tablet"])
-      )
-      .option(
-        "--reset-snapshot",
-        "Delete Doc Detective's clean boot snapshot from every AVD (nothing is installed). Each AVD's next managed boot cold-boots and retakes the snapshot from its current state."
+          "--reset-snapshot",
+          "Delete the clean boot snapshot from every virtual device, and install nothing"
+        ).helpGroup("Android options:")
       );
   },
   handler: async (argv: any) => {
@@ -236,8 +224,6 @@ async function runInstallBash(argv: any, logger: Logger): Promise<void> {
 
 const bashSubcommand: InstallSubcommand = {
   command: "bash",
-  describe:
-    "Install Git Bash on Windows hosts (backs runShell's default `bash` shell). Uses an existing Git for Windows install when present; otherwise downloads MinGit (~40 MB) into <cacheDir>/tools/git-bash. No-op on macOS/Linux, which resolve bash from PATH.",
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
     await runInstallBash(argv, logger);
@@ -246,8 +232,6 @@ const bashSubcommand: InstallSubcommand = {
 
 const iosSubcommand: InstallSubcommand = {
   command: "ios",
-  describe:
-    "Prepare iOS simulator prerequisites on macOS hosts (Xcode command-line tools, simctl visibility, and guidance for WebDriverAgent/XCUITest).",
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
     const { installIos } = await import("./iosInstaller.js");
@@ -264,8 +248,6 @@ const iosSubcommand: InstallSubcommand = {
 const statusSubcommand: InstallSubcommand = {
   command: "status",
   readOnly: true,
-  describe:
-    "Report what's installed in <cacheDir>/runtime and <cacheDir>/browsers vs. the shim's declared versions.",
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
     const { status } = await import("./installer.js");
@@ -285,8 +267,6 @@ const statusSubcommand: InstallSubcommand = {
 
 const allSubcommand: InstallSubcommand = {
   command: "all",
-  describe:
-    "Install all lazy-installed runtime assets: runtime npm packages, browser binaries, and (on Windows) Git Bash. Agent tools (`install agents`) and mobile toolchains (`install android`, `install ios`) are installed separately — agents need an interactive picker, Android pulls multi-GB downloads, and iOS preparation is macOS-only.",
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
     const { installRuntime, installBrowsers } = await import("./installer.js");
@@ -322,23 +302,20 @@ const allSubcommand: InstallSubcommand = {
 
 // Exported so tests can call a subcommand's handler with a synthetic argv.
 export const installSubcommands: Record<string, InstallSubcommand> = {
-  runtime: runtimeSubcommand,
+  all: allSubcommand,
   browsers: browsersSubcommand,
+  runtime: runtimeSubcommand,
   bash: bashSubcommand,
   android: androidSubcommand,
   ios: iosSubcommand,
   status: statusSubcommand,
-  all: allSubcommand,
 };
 
 function toCommand(subcommand: InstallSubcommand): Command {
-  const command = addGlobalOptions(new Command(subcommand.command)).description(
-    subcommand.describe
-  );
+  const command = addGlobalOptions(new Command(subcommand.command));
   if (subcommand.readOnly) {
-    command.option(
-      "--cache-dir <path>",
-      "Check this cache root (also DOC_DETECTIVE_CACHE_DIR env var)."
+    command.addOption(
+      new Option("--cache-dir <dir>", "Check here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup("Status options:")
     );
   } else {
     sharedInstallOptions(command);
@@ -369,18 +346,17 @@ function toCommand(subcommand: InstallSubcommand): Command {
  */
 export function buildInstallCommand(): Command {
   const install = addGlobalOptions(new Command("install"))
-    .description(
-      "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, bash, android, ios."
-    )
-    .argument("[subcommand]")
-    .action((_subcommand, _options, command: Command) => {
+    .helpCommand(false)
+    .commandsGroup("Assets:")
+    .allowExcessArguments(true)
+    .action((_options, command: Command) => {
       command.error(
-        "Specify a subcommand: agents | runtime | browsers | bash | android | ios | status | all."
+        "Specify an asset: all | browsers | runtime | bash | android | ios | agents | status."
       );
     });
-  install.addCommand(buildInstallAgentsCommand());
   for (const subcommand of Object.values(installSubcommands)) {
     install.addCommand(toCommand(subcommand));
   }
+  install.addCommand(buildInstallAgentsCommand());
   return install;
 }

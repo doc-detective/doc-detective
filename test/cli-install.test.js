@@ -112,7 +112,7 @@ describe("CLI install commands", function () {
   it("`install` with no subcommand prints a clear error and exits non-zero", function () {
     const r = runCli(["install"]);
     expect(r.status).to.not.equal(0);
-    expect(r.stderr + r.stdout).to.match(/Specify a subcommand/);
+    expect(r.stderr + r.stdout).to.match(/Specify an asset/);
   });
 
   it("`install agents` parses and runs", function () {

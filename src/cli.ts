@@ -15,7 +15,7 @@ import {
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
-import { applyColorFlags, showRunProgress, verdictLine } from "./cliOutput.js";
+import { applyColorFlags, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
 import { runProgress } from "./core/progress.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
@@ -33,7 +33,13 @@ main(processArgv).catch((err) => {
   // every current throw site — setConfig() always rejects with a real Error —
   // so `err` here is always a real Error with a non-empty `.message`. Defensive
   // fallback for future throw sites, not reachable today.
-  console.error(err?.message || err); /* c8 ignore line - defensive fallback for a non-Error/nullish rejection; unreachable under every current throw site (see comment above) */
+  // A mistake in a command gets its message. A bug gets a bug report. Reaching
+  // here with one of these types means a defect in Doc Detective, not bad input.
+  if (err instanceof TypeError || err instanceof ReferenceError || err instanceof RangeError) {
+    reportCrash(err, { version: cliRequire("../package.json").version });
+  } else {
+    console.error(`Error: ${err?.message || err}`);
+  }
   process.exit(2);
 });
 
@@ -212,6 +218,12 @@ async function runTestsHandler(args: any) {
   // machine-readable, and -l silent, leave it out.
   if (!args.json && !args.plain && args.output !== "-" && config.logLevel !== "silent") {
     console.log(verdictLine(results));
+  }
+
+  // A bare command in the wrong folder is the likeliest first-run mistake.
+  const nothingRan = !results || (results.summary?.tests?.pass ?? 0) + (results.summary?.tests?.fail ?? 0) + (results.summary?.tests?.warning ?? 0) + (results.summary?.tests?.skipped ?? 0) === 0;
+  if (nothingRan && !args.input && !args.inputs?.length && logLevelEnabled("info", config)) {
+    diag("No tests found here. Point at your docs with `doc-detective -i <path>`, or see `doc-detective --help`.");
   }
 
   // Results are written before the exit code is set (ADR 01146). The guard

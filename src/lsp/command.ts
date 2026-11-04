@@ -14,8 +14,10 @@ export function buildLspCommand(): Command {
     .addOption(
       new Option(
         "--stdio",
-        "Communicate over stdio (the only supported transport). Present for explicitness and editor configs."
-      ).default(true)
+        "Use stdio, the only transport. Accepted because LSP clients add it"
+      )
+        .default(true)
+        .helpGroup("LSP options:")
     )
     /* c8 ignore start - thin lazy-load + real stdio server start; the server's
        pure wiring is unit-tested via registerHandlers and end-to-end via the

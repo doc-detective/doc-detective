@@ -1,4 +1,5 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
+import { applyHelpText, rewriteRootError } from "./cliHelp.js";
 import { createRequire } from "node:module";
 import { buildInstallAgentsCommand } from "./agents/command.js";
 import {
@@ -6,6 +7,7 @@ import {
   addRunOptions,
   cliArgv,
   DEPRECATED_COMMAND_LABEL,
+  GLOBAL_GROUP,
   warnOnDeprecatedUse,
 } from "./cliOptions.js";
 import { buildDebugCommand } from "./debug/command.js";
@@ -19,7 +21,13 @@ type RunHandler = (args: Record<string, any>) => Promise<void> | void;
 // Settings commander copies into `.command()` children but not into commands
 // mounted with `addCommand`, so apply them across the finished tree.
 function applyShared(command: Command) {
-  command.exitOverride().helpOption("-h, --help", "Show help");
+  const { version } = require("../package.json");
+  command
+    .exitOverride()
+    .showHelpAfterError("(add --help for usage)")
+    .version(version, "--version", "Show the version number")
+    .addHelpOption(new Option("-h, --help", "Show help").helpGroup(GLOBAL_GROUP));
+  command.options.find((option) => option.long === "--version")?.helpGroup(GLOBAL_GROUP);
   command.commands.forEach(applyShared);
 }
 
@@ -28,8 +36,6 @@ function applyShared(command: Command) {
 export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   const program = new Command()
     .name("doc-detective")
-    .description("Run Doc Detective tests (default).")
-    .version(require("../package.json").version, "--version", "Show version number")
     // Without this, the root consumes flags written after a subcommand.
     .enablePositionalOptions()
     .helpCommand(false);
@@ -39,7 +45,8 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   });
 
   const addRunCommand = (name: string, description: string) =>
-    addGlobalOptions(addRunOptions(program.command(`${name} [inputs...]`)))
+    addGlobalOptions(addRunOptions(program.command(name)))
+      .argument("[inputs...]", 'Files or folders to test; "-" reads stdin. Combines with --input.')
       .description(description)
       .action(async (inputs: string[], _options, command) => {
         await runTests({ ...cliArgv(command), inputs });
@@ -69,7 +76,8 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   /* c8 ignore stop */
 
   program
-    .command("help [command...]")
+    .command("help")
+    .argument("[command...]", "The command to explain")
     .description("Show help for a command.")
     .action((names: string[]) => {
       let target: Command = program;
@@ -84,6 +92,11 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
     });
 
   applyShared(program);
+  applyHelpText(program);
+  program.configureOutput({
+    outputError: (message, write) =>
+      write(rewriteRootError(message, program.commands.map((command) => command.name()))),
+  });
   warnOnDeprecatedUse(program);
   return program;
 }
