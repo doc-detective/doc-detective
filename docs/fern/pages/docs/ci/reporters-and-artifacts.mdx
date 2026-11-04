@@ -165,6 +165,8 @@ This is the most common mistake when wiring Doc Detective into a pipeline, so re
 
 <Warning>
 By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code therefore reports success even when documentation tests failed. Opt in with `--exit-on-fail` to change that.
+
+Doc Detective 5.0 makes failing on test failures the default. Until then, a run with failed specs and no `exitOnFail` setting prints a warning about the change to stderr. To choose the behavior and silence the warning, set `exitOnFail` to `true` or `false`, or pass `--exit-on-fail` or `--no-exit-on-fail`. See [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
 </Warning>
 
 To gate your build, choose one of these approaches:
