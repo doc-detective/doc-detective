@@ -329,9 +329,9 @@ function buildPage(data) {
     parts.push(
       "### Negating boolean flags",
       "",
-      "Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: " +
+      "Boolean run flags can be negated with `--no-`, which overrides a config file. The ones you'll typically reach for are: " +
         serialJoin(negatable) +
-        ". (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)",
+        ".",
       ""
     );
   }
@@ -344,6 +344,8 @@ function buildPage(data) {
     "- `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).",
     "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
     "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
+    "- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr.",
+    "- `--no-input`: also available as `DOC_DETECTIVE_NO_INPUT=1`.",
     "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
     "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
     "",
@@ -377,8 +379,7 @@ function buildPage(data) {
   parts.push(
     "### lsp",
     "",
-    (lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.") +
-      " It also ships as a standalone command, `doc-detective-lsp`.",
+    lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.",
     "",
     "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).",
     ""
@@ -416,11 +417,14 @@ function buildPage(data) {
   parts.push(
     "## Exit codes",
     "",
-    "<Note>",
-    "The standalone `doc-detective` CLI does not exit with a non-zero code when tests fail—it exits non-zero only on a crash or invalid configuration. To gate CI on test failures, parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or use the [GitHub Action](/docs/ci/github-action)'s exit-on-fail behavior.",
-    "</Note>",
+    "| Code | Meaning |",
+    "|------|---------|",
+    "| `0` | All specs passed, warned, or were skipped |",
+    "| `1` | At least one spec failed |",
+    "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, an invalid spec, a declined install, or a crash |",
+    "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract, so gate CI on the parsed results, not on which non-zero code the process returns.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed and empty runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
     ""
   );
 
@@ -436,10 +440,13 @@ function buildPage(data) {
     "",
     "Doc Detective merges configuration in this order:",
     "",
-    "1. File config and the `DOC_DETECTIVE_CONFIG` environment variable (the environment value merges over the file).",
-    "2. Validation against the [`config_v3` schema](/reference/schemas/config).",
-    "3. CLI flag overrides.",
-    "4. Runtime: the runner and reporters read only the merged config.",
+    "1. CLI flags.",
+    "2. The shell's environment, including `DOC_DETECTIVE_CONFIG`.",
+    "3. A `.env` file in the current directory, unless you pass `--no-env-file`.",
+    "4. The project's `.doc-detective.*` file, or the file `--config` names.",
+    "5. Your user config, at `$XDG_CONFIG_HOME/doc-detective/config.json` (`%APPDATA%\\\\doc-detective\\\\config.json` on Windows).",
+    "",
+    "Config files and `DOC_DETECTIVE_CONFIG` are validated against the [`config_v3` schema](/reference/schemas/config).",
     "",
     "CLI flags override the validated config; they don't bypass it, and every flag maps to a camelCase config key.",
     ""

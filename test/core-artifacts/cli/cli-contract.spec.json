@@ -1,0 +1,173 @@
+{
+  "specId": "cli-contract",
+  "description": "The 5.0 CLI contract (ADR 01146), through the real CLI: each exit code, each command form, and the deprecated arguments. Inner runs work in .tmp, from the repository root.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-cli';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const spec=(n,step)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({specId:n,tests:[{testId:n+'-t',steps:[step]}]}));spec('pass',{runShell:'echo hi'});spec('fail',{runShell:'exit 3'});spec('invalid',{nope:'x'});fs.writeFileSync(d+'/empty.md','# Nothing to test\\n')\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "exit-codes",
+      "description": "0 passed, 1 failed, 2 nothing valid was tested, and --no-exit-on-fail relaxes the run outcomes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/fail.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/empty.md --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/invalid.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js --no-exit-on-fail -i .tmp/fixture-cli/fail.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js --nope",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "command-forms",
+      "description": "The bare command and every form of run reach the same run. Deprecated forms warn on stderr.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js run .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/deprecated/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runtests -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/deprecated/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "output-modes",
+      "description": "--json and --plain print machine-readable results, and -o writes the exact file.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out --json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/\"summary\"/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out --plain",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/PASS\\tpass\\tpass-t/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cli/pass.spec.json --output-dir .tmp/fixture-cli/out -o .tmp/fixture-cli/results.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"process.exit(require('./.tmp/fixture-cli/results.json').summary.specs.pass===1?0:1)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "help",
+      "description": "Help leads with examples, and help for nested commands works.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js help install browsers",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/doc-detective install browsers chrome/"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -656,9 +656,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     let outputDir = "";
     let reportType = "doc-detective-results";
     if (options.command) {
-      if (options.command === "runCoverage") {
-        reportType = "coverageResults";
-      } else if (options.command === "runTests") {
+      if (options.command === "runTests") {
         reportType = "testResults";
       }
     }
@@ -703,9 +701,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   // over time. Runs by default in addition to the flat json reporter.
   runFolderReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     let reportType = "doc-detective-results";
-    if (options.command === "runCoverage") {
-      reportType = "coverageResults";
-    } else if (options.command === "runTests") {
+    if (options.command === "runTests") {
       reportType = "testResults";
     }
 
