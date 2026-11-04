@@ -1355,7 +1355,7 @@ describe("terminalReporter zero-tests-ran warning", function () {
     };
   }
 
-  it("prints a "No tests were run" warning when totalTests === 0", async function () {
+  it("prints a 'No tests were run' warning when totalTests === 0", async function () {
     const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
     const captured = await runReporter({}, results);
     const joined = captured.join("\n");
