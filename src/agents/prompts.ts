@@ -1,3 +1,4 @@
+import { isInteractive } from "../cliOutput.js";
 import { checkbox, select, confirm } from "@inquirer/prompts";
 import type { AgentAdapter, Scope } from "./types.js";
 
@@ -60,7 +61,7 @@ export function createPrompts() {
 }
 
 function assertTTY(): void {
-  if (!process.stdin.isTTY) {
+  if (!isInteractive()) {
     throw new Error(
       "No TTY detected; run interactively or pass --agent and --scope with --yes."
     );

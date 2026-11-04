@@ -38,6 +38,22 @@ export function applyColorFlags(argv: string[], env: NodeJS.ProcessEnv = process
   }
 }
 
+// Commander would read --no-input as negating --input, so it's taken out of argv
+// before parsing and kept in the environment, where child processes see it too.
+export function applyInputFlag(argv: string[], env: NodeJS.ProcessEnv = process.env): string[] {
+  if (!argv.includes("--no-input")) return argv;
+  env.DOC_DETECTIVE_NO_INPUT = "1";
+  return argv.filter((arg) => arg !== "--no-input");
+}
+
+// Whether it's OK to prompt.
+export function isInteractive(
+  stdin: { isTTY?: boolean } = process.stdin,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return Boolean(stdin.isTTY) && !env.DOC_DETECTIVE_NO_INPUT;
+}
+
 // A path as a person wants to read it: relative to where they ran the command.
 export function displayPath(file: string): string {
   return path.relative(process.cwd(), file) || ".";

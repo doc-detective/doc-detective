@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
-import { reportCrash, verdictLine } from "../dist/cliOutput.js";
+import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
+import { createInterruptHandler } from "../dist/core/signals.js";
 import { summarizeSpecErrors } from "../dist/core/utils.js";
 
 describe("nearestCommand", function () {
@@ -114,5 +115,88 @@ describe("reportCrash", function () {
     const lines = [];
     reportCrash(new Error("boom"), { dir: path.join(dir, "nope\0"), print: (l) => lines.push(l), version: "5.0.0" });
     expect(lines.join("\n")).to.include("boom");
+  });
+});
+
+describe("createInterruptHandler", function () {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+  it("announces, cleans up, then exits with the signal's code", async function () {
+    const events = [];
+    const handler = createInterruptHandler({
+      cleanup: async () => events.push("cleanup"),
+      exit: (code) => events.push(`exit ${code}`),
+      print: (line) => events.push(line),
+    });
+    handler("SIGINT");
+    await flush();
+    expect(events[0]).to.match(/^Stopping/);
+    expect(events.slice(1)).to.deep.equal(["cleanup", "exit 130"]);
+  });
+
+  it("uses 143 for SIGTERM", async function () {
+    let exited;
+    createInterruptHandler({ cleanup: async () => {}, exit: (code) => (exited = code), print: () => {} })("SIGTERM");
+    await flush();
+    expect(exited).to.equal(143);
+  });
+
+  it("stops immediately on a second signal, and warns", function () {
+    const exits = [];
+    const lines = [];
+    const handler = createInterruptHandler({
+      cleanup: () => new Promise(() => {}),
+      exit: (code) => exits.push(code),
+      print: (line) => lines.push(line),
+    });
+    handler("SIGINT");
+    handler("SIGINT");
+    expect(exits).to.deep.equal([130]);
+    expect(lines[1]).to.match(/may still be running/);
+  });
+
+  it("gives up on cleanup at the deadline", async function () {
+    const exits = [];
+    const lines = [];
+    createInterruptHandler({
+      cleanup: () => new Promise(() => {}),
+      exit: (code) => exits.push(code),
+      print: (line) => lines.push(line),
+      deadlineMs: 5,
+    })("SIGINT");
+    await flush();
+    expect(exits).to.deep.equal([130]);
+    expect(lines[1]).to.match(/didn't finish in time/);
+  });
+
+  it("still exits when cleanup fails", async function () {
+    let exited;
+    createInterruptHandler({
+      cleanup: async () => {
+        throw new Error("nope");
+      },
+      exit: (code) => (exited = code),
+      print: () => {},
+    })("SIGINT");
+    await flush();
+    expect(exited).to.equal(130);
+  });
+});
+
+describe("--no-input", function () {
+  it("is taken out of argv, and recorded", function () {
+    const env = {};
+    expect(applyInputFlag(["node", "x", "--no-input", "-i", "a"], env)).to.deep.equal(["node", "x", "-i", "a"]);
+    expect(env.DOC_DETECTIVE_NO_INPUT).to.equal("1");
+  });
+  it("leaves other argv alone", function () {
+    const env = {};
+    expect(applyInputFlag(["node", "x"], env)).to.deep.equal(["node", "x"]);
+    expect(env).to.deep.equal({});
+  });
+  it("turns off prompting, even on a TTY", function () {
+    expect(isInteractive({ isTTY: true }, {})).to.equal(true);
+    expect(isInteractive({ isTTY: true }, { DOC_DETECTIVE_NO_INPUT: "1" })).to.equal(false);
+    expect(isInteractive({ isTTY: false }, {})).to.equal(false);
   });
 });

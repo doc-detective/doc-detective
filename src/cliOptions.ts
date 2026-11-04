@@ -91,7 +91,9 @@ export function addGlobalOptions(command: Command): Command {
     )
     .addOption(grouped(GLOBAL_GROUP, "--json", "Print one JSON document to stdout"))
     .addOption(grouped(GLOBAL_GROUP, "--no-color", "Turn off color (also NO_COLOR)"))
-    .addOption(new Option("--color").hideHelp());
+    .addOption(new Option("--color").hideHelp())
+    // Taken out of argv before parsing (see applyInputFlag). Declared for help.
+    .addOption(grouped(GLOBAL_GROUP, "--no-input", "Never prompt; fail and name the flag to pass"));
 }
 
 // The flags that choose what to read, shared by the run commands and `debug`.

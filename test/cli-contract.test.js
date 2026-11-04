@@ -524,6 +524,25 @@ describe("CLI contract", function () {
     });
   });
 
+  describe("interactivity", function () {
+    it("accepts --no-input, without treating it as a missing --input", function () {
+      const r = run(["--no-input", "-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("never prompts with --no-input, and names the flag to pass", function () {
+      const r = run(["install", "agents", "--no-input"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("--agent");
+    });
+
+    it("fails quickly when it can't prompt for agents", function () {
+      const started = Date.now();
+      run(["install", "agents"]);
+      expect(Date.now() - started).to.be.lessThan(2500);
+    });
+  });
+
   describe("deprecated arguments", function () {
     const deprecated = [
       { args: ["runTests", "-i", "pass.spec.json"], replacement: /use `?run/ },

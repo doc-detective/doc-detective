@@ -15,7 +15,7 @@ import {
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
-import { applyColorFlags, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
+import { applyColorFlags, applyInputFlag, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
 import { runProgress } from "./core/progress.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
@@ -46,7 +46,7 @@ main(processArgv).catch((err) => {
 async function main(argv: string[]) {
   applyColorFlags(argv);
   try {
-    await buildProgram({ runTests: runTestsHandler }).parseAsync(argv);
+    await buildProgram({ runTests: runTestsHandler }).parseAsync(applyInputFlag(argv));
   } catch (err) {
     // exitOverride makes commander throw on every terminating condition,
     // including --help and --version. Commander has already written any message.
