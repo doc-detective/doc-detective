@@ -3,6 +3,7 @@ import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
+import { concurrentRunnersWarnings, outputWarnings, warnUpgrade } from "./upgradeNotice.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -157,7 +158,7 @@ function buildYargs(args: any): any {
     })
     .option("concurrent-runners", {
       description:
-        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass true to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
       type: "string",
     })
     .option("browser-fallback", {
@@ -343,6 +344,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config = { ...config, ...envConfig };
   }
 
+  // Read before validation fills in the default, which the user didn't choose.
+  const outputSetting = args.output || config.output;
+
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -524,6 +528,14 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     nested: false,
     objectType: "config",
   });
+
+  warnUpgrade(
+    [
+      ...outputWarnings(outputSetting, String(config.output)),
+      ...concurrentRunnersWarnings(args.concurrentRunners),
+    ],
+    config.logLevel
+  );
 
   return config;
 }

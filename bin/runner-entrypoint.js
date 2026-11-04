@@ -793,7 +793,11 @@ const isEntry = (() => {
 	}
 })();
 if (isEntry) {
-	main()
+	// A notice must never stop a run, so a missing dist/ isn't fatal here.
+	import('../dist/upgradeNotice.js')
+		.then(({ warnRemovedBin }) => warnRemovedBin('doc-detective-runner'))
+		.catch(() => {})
+		.then(main)
 		.then((code) => process.exit(code))
 		.catch((err) => {
 			localLog('fatal', 'entrypoint crashed', { err: String(err?.stack ?? err) });

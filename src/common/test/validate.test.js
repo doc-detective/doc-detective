@@ -868,14 +868,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.exitOnFail).to.equal(true);
       });
 
-      it("should default exitOnFail to false when omitted", function () {
+      it("should leave exitOnFail unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.exitOnFail).to.equal(false);
+        expect(result.object.exitOnFail).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {

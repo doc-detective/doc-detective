@@ -36,7 +36,7 @@ It detects every supported agent on your machine, prompts you to choose which to
 
 <Note>
 
-The older `doc-detective install-agents` form still works as a hidden alias, so existing scripts and CI jobs don't need to change.
+The older `doc-detective install-agents` form still works as a hidden alias on 4.x and warns when used. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes it.
 
 </Note>
 To target a specific agent non-interactively:
@@ -58,7 +58,7 @@ Detected coding agents that may be missing doc-detective tools: Claude Code, Gem
 Install doc-detective agent tools now? (y/N)
 ```
 
-Press `y` to launch `install-agents` with those agents pre-selected. You still choose whether to install project-wide or globally. Press `n` or Enter to skip. You can always run `npx doc-detective install-agents` later.
+Press `y` to launch `install agents` with those agents pre-selected. You still choose whether to install project-wide or globally. Press `n` or Enter to skip. You can always run `npx doc-detective install agents` later.
 
 The prompt only appears when:
 

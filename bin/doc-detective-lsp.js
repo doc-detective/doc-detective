@@ -3,4 +3,6 @@
 // single command instead of `doc-detective lsp --stdio`. Starts the same stdio
 // language server the `doc-detective lsp` subcommand does.
 import { startServer } from "../dist/lsp/server.js";
+import { warnRemovedBin } from "../dist/upgradeNotice.js";
+warnRemovedBin("doc-detective-lsp");
 startServer();

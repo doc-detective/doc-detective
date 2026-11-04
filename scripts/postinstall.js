@@ -503,7 +503,7 @@ async function maybePromptInstallAgents() {
 
   // Pre-fill --agent so the CLI doesn't re-prompt for the picker. Scope stays
   // interactive on purpose — project vs global is a per-user decision.
-  const cliArgs = ["install-agents"];
+  const cliArgs = ["install", "agents"];
   for (const a of adaptersNeedingInstall) {
     cliArgs.push("--agent", a.id);
   }

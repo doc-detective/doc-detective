@@ -233,7 +233,7 @@ export class QwenCodeAdapter implements AgentAdapter {
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
         if (code === "ENOENT") {
           throw new Error(
-            "Qwen Code is not installed or not on PATH. Run `npm install -g @qwen-code/qwen-code` and re-run install-agents."
+            "Qwen Code is not installed or not on PATH. Run `npm install -g @qwen-code/qwen-code` and re-run `install agents`."
           );
         }
         throw err;

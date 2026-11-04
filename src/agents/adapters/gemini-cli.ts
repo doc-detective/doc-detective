@@ -210,7 +210,7 @@ export class GeminiCliAdapter implements AgentAdapter {
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
         if (code === "ENOENT") {
           throw new Error(
-            "Gemini CLI is not installed or not on PATH. Run `npm install -g @google/gemini-cli` and re-run install-agents."
+            "Gemini CLI is not installed or not on PATH. Run `npm install -g @google/gemini-cli` and re-run `install agents`."
           );
         }
         throw err;
