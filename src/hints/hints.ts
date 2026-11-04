@@ -35,7 +35,7 @@ export const HINTS: Hint[] = [
       "{",
       "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json\",",
       "  \"input\": \"docs\",",
-      "  \"output\": \"doc-detective-output\",",
+      "  \"outputDir\": \"doc-detective-output\",",
       "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
       "}",
       "```",
@@ -224,7 +224,7 @@ export const HINTS: Hint[] = [
       "```",
     ].join("\n"),
     when: (ctx) => {
-      const output = ctx.config?.output;
+      const output = ctx.config?.outputDir;
       return (
         !ctx.outputDirGitignored &&
         typeof output === "string" &&
@@ -244,7 +244,7 @@ export const HINTS: Hint[] = [
       "Install the Doc Detective agent tools so your AI assistant can author and debug Doc Detective tests:",
       "",
       "```bash",
-      "doc-detective install-agents",
+      "doc-detective install agents",
       "```",
       "",
       "More: [AI and agent tools](https://docs.doc-detective.com/ai/ai-agents/overview)",
@@ -442,14 +442,14 @@ export const HINTS: Hint[] = [
     id: "setOutputDir",
     priority: 20,
     markdown: [
-      "Result artifacts are landing next to your source files. Set `output` in `.doc-detective.json` so they go somewhere predictable:",
+      "Result artifacts are landing next to your source files. Set `outputDir` in `.doc-detective.json` so they go somewhere predictable:",
       "",
       "```json",
-      "{ \"output\": \"doc-detective-output\" }",
+      "{ \"outputDir\": \"doc-detective-output\" }",
       "```",
     ].join("\n"),
     when: (ctx) => {
-      const output = ctx.config?.output;
+      const output = ctx.config?.outputDir;
       return (
         (!output || output === "." || output === "./") &&
         ctx.totalSpecs > 0
@@ -479,6 +479,22 @@ export const HINTS: Hint[] = [
       // of cmd/powershell means the failed command already ran in the shell
       // this hint would suggest.
       (ctx.config?.shell ?? "bash") === "bash",
+  },
+
+  // ------------------------------------------------------------------
+  // sponsorProject (community)
+  // ------------------------------------------------------------------
+  {
+    id: "sponsorProject",
+    priority: 50,
+    markdown: [
+      "Is Doc Detective helping? Star the repo on GitHub, or sponsor the project:",
+      "",
+      "- [GitHub Sponsors](https://github.com/sponsors/doc-detective)",
+      "- [Open Collective](https://opencollective.com/doc-detective)",
+    ].join("\n"),
+    // Not while someone is looking at a failure.
+    when: (ctx) => ctx.totalTests > 0 && ctx.failedCount === 0,
   },
 
   // ------------------------------------------------------------------

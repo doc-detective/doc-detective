@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 // A DOC_DETECTIVE_API run never writes to `-o`/config.output — cli.ts routes
 // its results through reportResults() (a POST back to the orchestration
 // API's /contexts endpoint) instead of outputResults(). The results object is
-// logged to stdout as a "(DEBUG) RESULTS:" marker followed by pretty JSON, so
+// logged to stderr as a "(DEBUG) RESULTS:" marker followed by pretty JSON, so
 // tests recover it from there rather than waiting on a file that this run mode
 // never produces. The dump is debug-level (ADR 01064 demoted it from info so it
 // no longer floods the default-level terminal), so these tests run the CLI at
@@ -64,7 +64,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
 
     // Set environment variables. logLevel "debug" surfaces the "(DEBUG)
     // RESULTS:" dump that extractResultsJson parses (ADR 01064 demoted it from
-    // info); the API path writes no results file, so stdout is the only source.
+    // info); the API path writes no results file, so the log is the only source.
     const originalEnv = process.env.DOC_DETECTIVE_API;
     const originalConfigEnv = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_API = JSON.stringify(apiConfig);
@@ -78,7 +78,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
         0,
         `Expected a successful run. exitCode=${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
       );
-      const testResult = extractResultsJson(result.stdout);
+      const testResult = extractResultsJson(result.stderr);
       console.log(
         "API Result summary:",
         JSON.stringify(testResult.summary, null, 2)
@@ -177,7 +177,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
         0,
         `Expected a successful run. exitCode=${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
       );
-      const testResult = extractResultsJson(result.stdout);
+      const testResult = extractResultsJson(result.stderr);
 
       // Check that tests were run
       assert.ok(testResult.summary);
@@ -186,7 +186,7 @@ describe("DOC_DETECTIVE_API environment variable", function () {
       // DOC_DETECTIVE_CONFIG override raises it to "debug", which is the only
       // thing that would make the runner emit "(DEBUG)"-prefixed log lines.
       assert.match(
-        result.stdout,
+        result.stderr,
         /\(DEBUG\)/,
         `Expected debug-level log output, indicating the DOC_DETECTIVE_CONFIG logLevel override was applied. Full stdout:\n${result.stdout}`
       );

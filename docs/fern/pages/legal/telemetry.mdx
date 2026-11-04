@@ -3,27 +3,21 @@ title: Telemetry and data collection
 description: What anonymous telemetry Doc Detective collects, why, and how to turn it off.
 ---
 
-Doc Detective collects basic anonymous telemetry to help the team understand product issues and usage. Telemetry is on by default, never sends personal or documentation content, and you can turn it off with a single config setting.
+Doc Detective collects basic anonymous telemetry to help the team understand product issues and usage. Telemetry is on by default and never sends personal or documentation content. You can turn it off with a flag, an environment variable, or a config setting.
 
 ## The notice you see
 
-Each time you run Doc Detective, it prints a telemetry notice at the `info` log level.
-
-When telemetry is on (the default):
+The first time Doc Detective runs on a machine with telemetry on, it prints this notice on stderr, whatever the log level:
 
 ```text
-Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file.
+Doc Detective collects basic anonymous telemetry to understand product issues and usage. Turn it off with --no-telemetry, DO_NOT_TRACK=1, or `telemetry.send: false` in your config. Details: https://docs.doc-detective.com/legal/telemetry
 ```
 
-When you turn telemetry off:
-
-```text
-Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file.
-```
+Doc Detective records that it showed the notice in your user config directory. Where nothing persists between runs, such as many CI jobs, the notice prints on every run. It doesn't print when telemetry is off.
 
 ## What Doc Detective collects
 
-Each telemetry event records the command you ran (for example, `runTests`) and a set of anonymous environment properties:
+Each telemetry event records what ran (`runTests` for a test run, or `runTests:dryRun` for a dry run) and a set of anonymous environment properties:
 
 Property | Description
 :-- | :--
@@ -36,7 +30,7 @@ Property | Description
 `core_deployment`, `dist_deployment` | The runtime, such as `node`.
 `core_deployment_version`, `dist_deployment_version` | The runtime version, such as the Node.js version.
 
-For `runTests` commands, Doc Detective also sends a flattened summary of the run: pass and fail counts for specs, tests, and contexts. It sends result counts only, never the contents of your documentation, tests, URLs, or screenshots.
+For test runs, Doc Detective also sends a flattened summary of the run: pass and fail counts for specs, tests, and contexts. It sends result counts only, never the contents of your documentation, tests, URLs, or screenshots.
 
 Doc Detective attributes each event to the identifier `anonymous` unless you set a `userId` (see [Identify your runs](#identify-your-runs)), and sends telemetry to [PostHog](https://posthog.com).
 
@@ -44,7 +38,11 @@ To keep the end of each run fast, Doc Detective connects to PostHog (`app.postho
 
 ## Turn telemetry off
 
-To disable telemetry, set `telemetry.send` to `false` in your `.doc-detective.json` config file:
+Use any of these:
+
+- Pass `--no-telemetry` for a single run.
+- Set the `DO_NOT_TRACK` environment variable to any value, such as `1`.
+- Set `telemetry.send` to `false` in your config file:
 
 ```json
 {
@@ -54,7 +52,7 @@ To disable telemetry, set `telemetry.send` to `false` in your `.doc-detective.js
 }
 ```
 
-When `telemetry.send` is `false`, Doc Detective returns before it assembles or sends any telemetry data, and it doesn't contact PostHog at all. For the full field reference, see [Telemetry options](/reference/schemas/telemetry-options).
+With telemetry off, Doc Detective returns before it assembles or sends any telemetry data, and it doesn't contact PostHog at all. For the full field reference, see [Telemetry options](/reference/schemas/telemetry-options).
 
 ## Identify your runs
 

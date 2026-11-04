@@ -6561,6 +6561,82 @@ export type OpenApi1 = {
   exampleKey?: string;
   headers?: OpenAPIRequestHeaders1;
 };
+export type HerettoCMSIntegration = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment.
+   */
+  apiTokenFile?: string;
+  /**
+   * Unique identifier for this Heretto integration. Used in logs and results.
+   */
+  name: string;
+  /**
+   * The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com).
+   */
+  organizationId: string;
+  /**
+   * Heretto CCMS username (email address) for API authentication.
+   */
+  username: string;
+  /**
+   * API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3
+   */
+  apiToken?: string;
+  /**
+   * Name of the scenario to build and test.
+   */
+  scenarioName?: string;
+  /**
+   * Local path where Heretto content was downloaded. Set automatically during processing.
+   */
+  outputPath?: string;
+  /**
+   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
+   */
+  fileMapping?: {
+    [k: string]: {
+      /**
+       * The UUID of the file in Heretto.
+       */
+      fileId?: string;
+      /**
+       * The path of the file in Heretto.
+       */
+      filePath?: string;
+      [k: string]: unknown;
+    };
+  };
+  /**
+   * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
+   */
+  uploadOnChange?: boolean;
+  /**
+   * Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies.
+   */
+  resourceDependencies?: {
+    [k: string]: {
+      /**
+       * The UUID of the file in Heretto.
+       */
+      uuid?: string;
+      /**
+       * The full xmldb path of the file in Heretto.
+       */
+      fullPath?: string;
+      /**
+       * The file name.
+       */
+      name?: string;
+      /**
+       * The UUID of the parent folder in Heretto.
+       */
+      parentFolderId?: string;
+      [k: string]: unknown;
+    };
+  };
+};
 /**
  * Configuration for Heretto CMS integrations. Each entry specifies a Heretto instance and a scenario to build and test.
  */
@@ -19978,9 +20054,13 @@ export interface Config {
    */
   input?: string | [string, ...string[]];
   /**
-   * Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters.
+   * Path of the JSON results file. It's overwritten on each run. A folder isn't valid here: use `outputDir`.
    */
   output?: string;
+  /**
+   * Path of the folder that holds the run folder and the html, junit, and markdown reports.
+   */
+  outputDir?: string;
   /**
    * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.
    */
@@ -20083,7 +20163,7 @@ export interface Config {
    */
   autoUpdate?: boolean;
   /**
-   * If `true`, the CLI exits with a non-zero code (`1`) when any spec's result is `FAIL`, so a documentation-testing job fails the build the way a broken unit test would. Defaults to `false`, which preserves the CLI's historical behavior of exiting `0` on test failures (it exits non-zero only on a crash or invalid config) — the exit-on-fail decision has historically lived in CI wrappers like the Doc Detective GitHub Action. `WARNING` results are non-fatal and never trigger a non-zero exit. Equivalent to `--exit-on-fail` on the CLI.
+   * If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.
    */
   exitOnFail?: boolean;
   /**
@@ -28568,79 +28648,13 @@ export interface OpenAPIDescriptionTest {
  */
 export interface DocDetectiveOrchestrationAPI {
   /**
+   * Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment.
+   */
+  apiKeyFile?: string;
+  /**
    * API key for authenticating with the Doc Detective Orchestration API.
    */
   apiKey?: string;
-}
-export interface HerettoCMSIntegration {
-  /**
-   * Unique identifier for this Heretto integration. Used in logs and results.
-   */
-  name: string;
-  /**
-   * The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com).
-   */
-  organizationId: string;
-  /**
-   * Heretto CCMS username (email address) for API authentication.
-   */
-  username: string;
-  /**
-   * API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3
-   */
-  apiToken: string;
-  /**
-   * Name of the scenario to build and test.
-   */
-  scenarioName?: string;
-  /**
-   * Local path where Heretto content was downloaded. Set automatically during processing.
-   */
-  outputPath?: string;
-  /**
-   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
-   */
-  fileMapping?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      fileId?: string;
-      /**
-       * The path of the file in Heretto.
-       */
-      filePath?: string;
-      [k: string]: unknown;
-    };
-  };
-  /**
-   * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
-   */
-  uploadOnChange?: boolean;
-  /**
-   * Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies.
-   */
-  resourceDependencies?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      uuid?: string;
-      /**
-       * The full xmldb path of the file in Heretto.
-       */
-      fullPath?: string;
-      /**
-       * The file name.
-       */
-      name?: string;
-      /**
-       * The UUID of the parent folder in Heretto.
-       */
-      parentFolderId?: string;
-      [k: string]: unknown;
-    };
-  };
 }
 /**
  * Options around sending telemetry for Doc Detective usage.

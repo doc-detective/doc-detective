@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 import { applyVerifiedMarkers, verifiedDate } from "../dist/core/utils.js";
 import { runTests, detectAndResolveTests } from "../dist/core/index.js";
 import crypto from "node:crypto";
@@ -80,11 +81,12 @@ describe("Verification metadata — write-back", function () {
       const f = write("a.md", page("does-not-exist"));
       const logs = [];
       const realLog = console.log;
-      console.log = (...a) => logs.push(a.join(" "));
+      console.error = console.log = (...a) => logs.push(a.join(" "));
       try {
         applyVerifiedMarkers({ config: { logLevel: "warning" }, results: report(f) });
       } finally {
         console.log = realLog;
+        console.error = originalConsoleError;
       }
       expect(read(f)).to.equal(page("does-not-exist"));
       expect(logs.join("\n")).to.match(/verified-by check 'does-not-exist'.*matches no test or spec/);

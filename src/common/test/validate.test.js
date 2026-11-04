@@ -857,6 +857,23 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoUpdate");
       });
 
+      it("should validate a config_v3 object with outputDir set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: "artifacts" },
+        });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.outputDir).to.equal("artifacts");
+      });
+
+      it("should reject a config_v3 object whose outputDir is not a string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: {} },
+        });
+        expect(result.valid).to.equal(false);
+      });
+
       it("should validate a config_v3 object with exitOnFail set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -868,14 +885,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.exitOnFail).to.equal(true);
       });
 
-      it("should default exitOnFail to false when omitted", function () {
+      it("should default exitOnFail to true when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.exitOnFail).to.equal(false);
+        expect(result.object.exitOnFail).to.equal(true);
       });
 
       it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {
@@ -2657,6 +2674,27 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
     });
 
     describe("config_v3 transformations", function () {
+      it("should keep a v2 .json output as the results file", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", output: "./results.json", logLevel: "info" },
+        });
+        expect(result.output).to.equal("./results.json");
+        // The schema's default.
+        expect(result.outputDir).to.equal(".");
+      });
+
+      it("should leave output unset without a v2 output", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", logLevel: "info" },
+        });
+        expect(result.output).to.equal(undefined);
+        expect(result.outputDir).to.equal(".");
+      });
+
       it("should transform config_v2 to config_v3", function () {
         const result = transformToSchemaKey({
           currentSchema: "config_v2",
@@ -2677,7 +2715,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.loadVariables).to.equal("./env.json");
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
         expect(result.detectSteps).to.equal(true);
         expect(result.beforeAny).to.equal("./setup.js");
@@ -2696,7 +2734,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
 
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
       });
 

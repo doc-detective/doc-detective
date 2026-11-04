@@ -37,7 +37,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 ### Lazy-installed runtime
 
-`npm i doc-detective` installs the CLI, then pre-installs the heavy runtime assets at postinstall. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them. That last group includes webdriverio, appium, and sharp. They land in `~/.doc-detective/`, or `DOC_DETECTIVE_CACHE_DIR`. This keeps a fresh install ready to run without a separate step, as it does any Docker image built `FROM` it. The pre-install runs in a child process whose output is captured. npm's deprecation warnings from the heavy transitive trees therefore never reach your terminal.
+`npm i doc-detective` installs the CLI, then pre-installs the heavy runtime assets at postinstall. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them. That last group includes webdriverio, appium, and sharp. They land in a per-user cache: `$XDG_CACHE_HOME/doc-detective` or `~/.cache/doc-detective`, `%LOCALAPPDATA%\doc-detective` on Windows, an existing `~/.doc-detective`, or `DOC_DETECTIVE_CACHE_DIR`. This keeps a fresh install ready to run without a separate step, as it does any Docker image built `FROM` it. The pre-install runs in a child process whose output is captured. npm's deprecation warnings from the heavy transitive trees therefore never reach your terminal.
 
 **Opt out of the heavy pre-install** by setting `DOC_DETECTIVE_AUTOINSTALL=0`, which also accepts `false`, `no`, and `off`. The CLI install then stays small, with no browser download and no heavy npm packages. The heavy assets install lazily the first time a test needs them, or up front through `doc-detective install all`.
 
@@ -71,7 +71,7 @@ Either way, the *published* package declares the heavy packages in neither `depe
 
 ### Auto-update
 
-By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available. Global installs run `npm install -g`, and `npx` invocations re-exec through `npx -y doc-detective@latest`. Local project installs print an "update available" hint instead of mutating your `package.json`. To opt out:
+By default, `doc-detective` checks the npm registry on startup and self-updates if a newer release is available. Global installs run `npm install -g`, and `npx` invocations re-exec through `npx -y doc-detective@latest`. Local project installs print an "update available" hint instead of mutating your `package.json`. Self-update never crosses a major version. To opt out:
 
 - `--no-auto-update` on the CLI
 - `autoUpdate: false` in `.doc-detective.json`

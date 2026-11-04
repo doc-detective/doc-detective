@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // #769 / ADR 01144: when a capture and its reference differ in size because the
 // environment rendered the browser differently, saveScreenshot resizes the
 // window to the reference's viewport, captures again, and restores the window.
@@ -72,11 +73,12 @@ function browserDriver({
 async function captureLog(level, fn) {
   const original = console.log;
   const lines = [];
-  console.log = (...args) => lines.push(args.join(" "));
+  console.error = console.log = (...args) => lines.push(args.join(" "));
   try {
-    return { value: await fn(), lines: lines.filter((l) => l.startsWith(`(${level})`)) };
+    return { value: await fn(), lines: lines.filter((l) => l.startsWith(`${level[0]}${level.slice(1).toLowerCase()}: `)) };
   } finally {
     console.log = original;
+    console.error = originalConsoleError;
   }
 }
 

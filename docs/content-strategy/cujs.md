@@ -84,7 +84,7 @@ cache. It also means `allowUnsafeSteps` behavior in containers, and tuning `conc
 
 ### P3 · Orchestrate distributed runs
 
-Priya needs to scale beyond one machine. She runs through `doc-detective-runner` and points at the
+Priya needs to scale beyond one machine. She runs through `doc-detective runner` and points at the
 orchestration API (`integrations.docDetectiveApi`) for remote, distributed execution.
 
 ---

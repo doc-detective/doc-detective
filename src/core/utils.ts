@@ -1,3 +1,5 @@
+import { diag } from "../cliOutput.js";
+import { nearestCommand } from "../cliHelp.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -74,6 +76,8 @@ export {
   matchesFilter,
   selectSpecsForRun,
   shouldFailRun,
+  runExitCode,
+  summarizeSpecErrors,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -1169,6 +1173,55 @@ function shouldFailRun(results: any): boolean {
   return typeof failCount === "number" && failCount > 0;
 }
 
+// Turn AJV's error string into something a person can act on: one line per
+// problem, with `anyOf` branches collapsed, and the nearest action named when a
+// step has an unknown key. Raw errors stay available at debug level.
+function summarizeSpecErrors(errors: string, object: any): string {
+  const byPath = new Map<string, string[]>();
+  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(?:\([^)]*\))?(?:, |$)/g)) {
+    const [, instancePath = "", message] = match;
+    if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
+    byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), message]);
+  }
+  const lines: string[] = [];
+  for (const [instancePath, messages] of byPath) {
+    const parts = instancePath.split("/").filter(Boolean);
+    const place = parts.reduce((all, part) => (/^\d+$/.test(part) ? `${all}[${part}]` : all ? `${all}.${part}` : part), "");
+    const prefix = place ? `${place}: ` : "";
+    const actions = messages
+      .map((message) => /required property '([^']+)'/.exec(message)?.[1])
+      .filter(Boolean) as string[];
+    if (/steps\/\d+$/.test(instancePath) && actions.length === messages.length) {
+      const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
+      const metadata = new Set(["stepId", "description", "unsafe", "outputs", "variables", "breakpoint", "location", "contentPath", "if", "on"]);
+      const unknown = Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      if (unknown.length === 0) {
+        lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
+      } else {
+        const near = nearestCommand(unknown[0], actions);
+        lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
+      }
+      continue;
+    }
+    for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
+  }
+  const shown = lines.slice(0, 5);
+  if (lines.length > shown.length) shown.push(`and ${lines.length - shown.length} more`);
+  return shown.join("\n");
+}
+
+// The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
+// failed, `2` nothing was tested. exitOnFail: false relaxes the last two.
+function runExitCode(results: any, config: any = {}): number {
+  if (config.exitOnFail === false) return 0;
+  const specs = results?.summary?.specs;
+  const total = specs
+    ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) + (specs.skipped || 0)
+    : 0;
+  if (total === 0) return 2;
+  return shouldFailRun(results) ? 1 : 0;
+}
+
 function isRelativeUrl(url: string) {
   try {
     new URL(url);
@@ -1883,6 +1936,15 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
+function logLabel(config: any, level: string): string {
+  if (config?.logLevel === "debug") {
+    return `${new Date().toISOString()} (${level.toUpperCase()}) `;
+  }
+  if (level === "warning") return "Warning: ";
+  if (level === "error") return "Error: ";
+  return "";
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
@@ -1892,13 +1954,13 @@ async function log(config: any, level: string, message?: any) {
   const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
+    // stdout is for results. Labels and timestamps appear only at debug level.
+    const label = logLabel(config, level);
     if (typeof message === "string") {
-      let logMessage = `(${level.toUpperCase()}) ${message}`;
-      console.log(logMessage);
+      diag(`${label}${message}`);
     } else if (typeof message === "object") {
-      let logMessage = `(${level.toUpperCase()})`;
-      console.log(logMessage);
-      console.log(JSON.stringify(message, null, 2));
+      if (label) diag(label.trimEnd());
+      diag(JSON.stringify(message, null, 2));
     }
   }
 }
@@ -2531,7 +2593,7 @@ function getRunOutputDir(
   // Coerce defensively: a programmatic caller could hand us a non-string
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
-  let base = String(config?.output || ".");
+  let base = String(config?.outputDir ?? config?.output ?? ".");
   // Must match the lists in runFolderBaseDir (src/utils.ts) and
   // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
   // the run folder inside a path another reporter writes as a file.

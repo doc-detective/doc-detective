@@ -14,10 +14,11 @@ description: "Reference for the `Heretto CMS integration` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+apiTokenFile | string | Optional. Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment. | —
 name | string | Required. Unique identifier for this Heretto integration. Used in logs and results. | —
 organizationId | string | Required. The organization subdomain used to access Heretto CCMS (e.g., 'thunderbird' for thunderbird.heretto.com). | —
 username | string | Required. Heretto CCMS username (email address) for API authentication. | —
-apiToken | string | Required. API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3<br/><br/>Minimum length: 1 | —
+apiToken | string | Optional. API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3<br/><br/>Minimum length: 1 | —
 scenarioName | string | Optional. Name of the scenario to build and test. | `Doc Detective`
 outputPath | string | ReadOnly. Local path where Heretto content was downloaded. Set automatically during processing. | —
 fileMapping | object | ReadOnly. Mapping of local file paths to Heretto file metadata. Set automatically during content loading. | —
@@ -28,6 +29,7 @@ resourceDependencies | object | ReadOnly. Mapping of Heretto file paths to their
 
 ```json
 {
+  "apiTokenFile": "example",
   "name": "example",
   "organizationId": "example",
   "username": "example",

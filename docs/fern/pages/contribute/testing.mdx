@@ -134,7 +134,7 @@ Let's say you documented this tutorial:
           "runShell": "echo '{\"tests\":[{\"steps\":[{\"goTo\":\"https://doc-detective.com\"}]}]}' > test.spec.json"
         },
         {
-          "runShell": "npx doc-detective runTests --input test.spec.json"
+          "runShell": "npx doc-detective --input test.spec.json"
         },
         {
           "runShell": "rm test.spec.json"
@@ -168,18 +168,18 @@ This runs all `.spec.json` files in the repository.
 ### Run specific tests
 
 ```bash
-npx doc-detective runTests --input docs/your-feature/your-feature.spec.json
+npx doc-detective --input docs/your-feature/your-feature.spec.json
 ```
 
 ### Run tests for a directory
 
 ```bash
-npx doc-detective runTests --input docs/tutorials/
+npx doc-detective --input docs/tutorials/
 ```
 
 ### View test results
 
-Test results are output to `testResults-<timestamp>.json` in the repository root:
+Test results are saved to `.doc-detective/runs/<runId>/testResults.json`, or to the path you pass to `--output`:
 
 ```json
 {
@@ -385,7 +385,7 @@ BASE_URL=https://doc-detective.com
 Get detailed test output:
 
 ```bash
-npx doc-detective runTests --input your-test.spec.json --logLevel debug
+npx doc-detective --input your-test.spec.json --log-level debug
 ```
 
 ## Test best practices

@@ -7065,6 +7065,9 @@
           ]
         },
         "output": {
+          "type": "string"
+        },
+        "outputDir": {
           "type": "string",
           "default": "."
         },
@@ -7076,7 +7079,6 @@
           },
           "default": [
             "terminal",
-            "json",
             "runFolder"
           ]
         },
@@ -7289,6 +7291,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "apiKeyFile": {
+                  "type": "string"
+                },
                 "apiKey": {
                   "type": "string"
                 }
@@ -7302,10 +7307,24 @@
                 "required": [
                   "name",
                   "organizationId",
-                  "username",
-                  "apiToken"
+                  "username"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "apiToken"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "apiTokenFile"
+                    ]
+                  }
                 ],
                 "properties": {
+                  "apiTokenFile": {
+                    "type": "string"
+                  },
                   "name": {
                     "type": "string"
                   },
@@ -7480,7 +7499,7 @@
         },
         "exitOnFail": {
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "shell": {
           "type": "string",
@@ -14315,6 +14334,9 @@
         "output": {
           "type": "string"
         },
+        "outputDir": {
+          "type": "string"
+        },
         "reporters": {
           "type": "array",
           "items": {
@@ -14518,6 +14540,9 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "apiKeyFile": {
+                  "type": "string"
+                },
                 "apiKey": {
                   "type": "string"
                 }
@@ -14531,10 +14556,24 @@
                 "required": [
                   "name",
                   "organizationId",
-                  "username",
-                  "apiToken"
+                  "username"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "apiToken"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "apiTokenFile"
+                    ]
+                  }
                 ],
                 "properties": {
+                  "apiTokenFile": {
+                    "type": "string"
+                  },
                   "name": {
                     "type": "string"
                   },

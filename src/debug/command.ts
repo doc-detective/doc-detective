@@ -1,4 +1,5 @@
-import type { CommandModule } from "yargs";
+import { Command, Option } from "commander";
+import { addGlobalOptions, addInputOptions, cliArgv } from "../cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -16,20 +17,28 @@ export interface DebugArgv {
 // `--include-env` opts into the full `process.env` dump (still redacted
 // by name AND by value shape). Without it, the dump only lists env
 // vars referenced via `$VAR` in config or input files.
-export const debugCommand: CommandModule<{}, DebugArgv> = {
-  command: "debug",
-  describe:
-    "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests.",
-  builder: (yargs) =>
-    yargs.option("include-env", {
-      type: "boolean",
-      default: false,
-      describe:
-        "Also dump the full process.env (redacted by name and value shape). Off by default to avoid leaking PaaS-injected credentials (DATABASE_URL, Sentry DSN, webhooks).",
-    }) as unknown as import("yargs").Argv<DebugArgv>,
-  handler: async (args) => {
+export function buildDebugCommand(): Command {
+  return addGlobalOptions(addInputOptions(new Command("debug"), "Debug options:"))
+    .description(
+      "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests."
+    )
+    .addOption(
+      new Option("--include-env", "Also print every environment variable, redacted")
+        .default(false)
+        .helpGroup("Debug options:")
+    )
+    .addOption(
+      new Option("--no-env-file", "Don't load .env from the current directory").helpGroup("Debug options:")
+    )
+    .action(async (_options, command: Command) => {
+      await debugHandler(cliArgv(command) as DebugArgv);
+    });
+}
+
+export const debugHandler = async (args: DebugArgv): Promise<void> => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
-    const { setConfig } = await import("../utils.js");
+    const { loadProjectEnv, setConfig } = await import("../utils.js");
+    await loadProjectEnv(args);
     const { printDebug, defaultDebugDir } = await import("./index.js");
     const outDir = defaultDebugDir();
 
@@ -54,6 +63,7 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
     // `--include-env` lands on argv as both kebab and camel; tolerate either.
     const includeEnv = Boolean(args["include-env"] ?? args.includeEnv);
 
+    const json = Boolean((args as any).json);
     let config: any;
     try {
       config = await setConfig({ configPath, args });
@@ -80,11 +90,12 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
         includeEnv,
         outDir,
         args,
+        json,
       });
       // Config is broken — exit non-zero so scripts/CI that gate on the
       // exit code don't treat a CONFIG INVALID dump as success. Mirrors
       // the DOC_DETECTIVE_DEBUG env-var path in cli.ts.
-      process.exitCode = 1;
+      process.exitCode = 2;
       return;
     }
     await printDebug({
@@ -94,6 +105,6 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
       includeEnv,
       outDir,
       args,
+      json,
     });
-  },
 };

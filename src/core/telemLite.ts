@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { userConfigDir } from "../runtime/cacheDir.js";
 import { log } from "./utils.js";
 
 // The telemetry pieces a run needs before posthog-node is loaded. telem.ts
@@ -17,7 +20,7 @@ let warmupSettled: Promise<void> = Promise.resolve();
 // outlasts that pays the cold handshake as before; a custom dispatcher with a
 // longer keep-alive would lift that limit.
 export function prewarmTelemetry(config: any) {
-  if (config?.telemetry?.send === false) return;
+  if (!telemetryAllowed(config)) return;
   // One warm-up at a time: a back-to-back or concurrent runTests call cancels
   // the previous one, so no send can wait behind an orphaned request.
   warmup?.abort();
@@ -63,21 +66,30 @@ export function abortTelemetryWarmup() {
 }
 
 // The notice text is documented verbatim in docs/fern/pages/legal/telemetry.mdx
-// (/legal/telemetry); keep the two in sync. It isn't linked from the message
-// itself, since that would change the CLI's printed output.
-export function telemetryNotice(config: any) {
-  if (config?.telemetry?.send === false) {
-    log(
-      config,
-      "info",
-      "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
-    );
-  } else {
-    log(
-      config,
-      "info",
-      "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
-    );
+// (/legal/telemetry); keep the two in sync.
+const TELEMETRY_NOTICE =
+  "Doc Detective collects basic anonymous telemetry to understand product issues and usage. Turn it off with --no-telemetry, DO_NOT_TRACK=1, or `telemetry.send: false` in your config. Details: https://docs.doc-detective.com/legal/telemetry";
+
+// Whether this run may send telemetry.
+export function telemetryAllowed(config: any, env: NodeJS.ProcessEnv = process.env): boolean {
+  return config?.telemetry?.send !== false && !env.DO_NOT_TRACK;
+}
+
+// Say once per machine that telemetry is on, whatever the log level, since it
+// sends regardless. Where nothing persists, such as CI, that means every run.
+export function telemetryNotice(
+  config: any,
+  { dir = userConfigDir(), print = (line: string) => console.error(line) }: { dir?: string; print?: (line: string) => void } = {}
+) {
+  if (!telemetryAllowed(config)) return;
+  const marker = path.join(dir, "telemetry-notice-shown");
+  if (fs.existsSync(marker)) return;
+  print(TELEMETRY_NOTICE);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(marker, new Date().toISOString());
+  } catch {
+    // Read-only home: the notice just prints again next time.
   }
 }
 
@@ -103,7 +115,7 @@ export function loadTelemetry() {
 }
 
 export async function sendRunTelemetry(config: any, command: string, results: any) {
-  if (config?.telemetry?.send === false) return;
+  if (!telemetryAllowed(config)) return;
   (await loadTelemetry())?.sendTelemetry(config, command, results);
 }
 

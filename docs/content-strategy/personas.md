@@ -68,7 +68,7 @@ into existing tooling without custom glue per repo.
 - She needs stable, documented reporters and exit behavior, plus artifacts (screenshots, video, JSON)
   that flow into PR review and dashboards.
 
-**How she uses Doc Detective:** runs the GitHub Action or `doc-detective-runner` in Docker. She sets
+**How she uses Doc Detective:** runs the GitHub Action or `doc-detective runner` in Docker. She sets
 `--reporters json/html`, tunes `concurrentRunners`, and warms the cache with `install`. She can also
 point at the orchestration API for distributed runs. She returns when adding a CI platform, or when
 output formats change.

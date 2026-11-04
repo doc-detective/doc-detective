@@ -1,4 +1,5 @@
-import type { CommandModule } from "yargs";
+import { Command, Option } from "commander";
+import { addGlobalOptions, cliArgv } from "../cliOptions.js";
 
 export interface InstallAgentsArgv {
   agent?: string[];
@@ -9,47 +10,43 @@ export interface InstallAgentsArgv {
   dryRun?: boolean;
 }
 
-export const installAgentsCommand: CommandModule<{}, InstallAgentsArgv> = {
-  command: "install-agents",
-  describe:
-    "Install or update the doc-detective agent tools for detected AI coding agents (e.g., Claude Code).",
-  builder: (yargs) =>
-    yargs
-      .option("agent", {
-        alias: "a",
-        type: "string",
-        array: true,
-        describe:
-          "Agent id to install into (repeatable). Skips the interactive picker. Example: --agent claude",
-      })
-      .option("scope", {
-        alias: "s",
-        type: "string",
-        choices: ["project", "global"] as const,
-        describe:
-          "Where to install: 'project' (current repo) or 'global' (user home). Each adapter resolves the exact path. Prompted if omitted.",
-      })
-      .option("force", {
-        alias: "f",
-        type: "boolean",
-        default: false,
-        describe: "Reinstall/overwrite even if already installed and up to date.",
-      })
-      .option("yes", {
-        alias: "y",
-        type: "boolean",
-        default: false,
-        describe: "Skip all prompts. Requires --agent and --scope.",
-      })
-      .option("dry-run", {
-        type: "boolean",
-        default: false,
-        describe: "Print the actions that would be taken without executing them.",
-      }) as unknown as import("yargs").Argv<InstallAgentsArgv>,
-  handler: async (argv) => {
-    // Lazy-load so unrelated subcommands don't pay the import cost.
-    const { runInstallAgents } = await import("./runner.js");
-    const { createPrompts } = await import("./prompts.js");
-    await runInstallAgents(argv, { prompts: createPrompts() });
-  },
-};
+async function installAgentsHandler(argv: any): Promise<void> {
+  // Lazy-load so unrelated subcommands don't pay the import cost.
+  const { runInstallAgents } = await import("./runner.js");
+  const { createPrompts } = await import("./prompts.js");
+  const reports = await runInstallAgents(argv, {
+    prompts: createPrompts(),
+    // With --json, stdout holds the JSON document and nothing else.
+    ...(argv.json ? { logger: (message: string) => console.error(message) } : {}),
+  });
+  if (argv.json) console.log(JSON.stringify(reports, null, 2));
+}
+
+const AGENT_GROUP = "Agent options:";
+
+// `handler` is replaceable for tests.
+export function buildInstallAgentsCommand(
+  handler: (argv: any) => Promise<void> | void = installAgentsHandler
+): Command {
+  return addGlobalOptions(new Command("agents"))
+    .addOption(
+      new Option(
+        "--agent <id...>",
+        "Install for this agent; repeatable. One of claude, copilot, gemini, codex, qwen, or opencode"
+      ).helpGroup(AGENT_GROUP)
+    )
+    .addOption(
+      new Option(
+        "--scope <scope>",
+        "Install for this project or for your user: project or global"
+      )
+        .choices(["project", "global"])
+        .helpGroup(AGENT_GROUP)
+    )
+    .addOption(new Option("-y, --yes", "Don't prompt; needs --agent and --scope").helpGroup(AGENT_GROUP))
+    .addOption(new Option("-f, --force", "Reinstall even if up to date").helpGroup(AGENT_GROUP))
+    .addOption(new Option("-n, --dry-run", "Show what would happen without doing it").helpGroup(AGENT_GROUP))
+    .action(async (_options, command: Command) => {
+      await handler(cliArgv(command));
+    });
+}

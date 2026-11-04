@@ -72,7 +72,7 @@ describe("select-fixture-bundles", function () {
       // fixtures run in 2-4 min, so splitting them spent more on setup than on
       // tests and filled the 5-slot macOS pool ahead of the iOS critical path.
       const fast = ["navigation", "capture", "interactions", "routing", "http",
-        "guards", "reporters", "process", "sessions"];
+        "guards", "reporters", "cli", "process", "sessions"];
       const owners = new Set(
         fast.map((dir) => BUNDLES.find((b) => b.dirs.includes(dir))?.name)
       );

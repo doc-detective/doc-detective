@@ -298,6 +298,11 @@ export function validate({
  * @returns The transformed object conforming to the target schema.
  * @throws {Error} If transformation between the specified schemas is not supported or if the transformed object fails validation.
  */
+function legacyOutputKey(output: any) {
+  if (typeof output !== "string") return {};
+  return /.json$/i.test(output) ? { output } : { outputDir: output };
+}
+
 export function transformToSchemaKey({
   currentSchema = "",
   targetSchema = "",
@@ -476,7 +481,8 @@ export function transformToSchemaKey({
     const transformedObject: any = {
       loadVariables: object.envVariables,
       input: object?.runTests?.input || object.input,
-      output: object?.runTests?.output || object.output,
+      // v2 output was usually a folder, which v3 keeps in outputDir.
+      ...(legacyOutputKey(object?.runTests?.output || object.output)),
       recursive: object?.runTests?.recursive || object.recursive,
       relativePathBase: object.relativePathBase,
       detectSteps: object?.runTests?.detectSteps,

@@ -16,12 +16,14 @@ Configuration for Doc Detective Orchestration API integration.
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+apiKeyFile | string | Optional. Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment. | —
 apiKey | string | Optional. API key for authenticating with the Doc Detective Orchestration API. | —
 
 ## Examples
 
 ```json
 {
+  "apiKeyFile": "example",
   "apiKey": "example"
 }
 ```

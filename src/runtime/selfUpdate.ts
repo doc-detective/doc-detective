@@ -96,6 +96,10 @@ function comparePrereleaseId(a: string, b: string): number {
   return 0;
 }
 
+function majorOf(version: string): number {
+  return parseInt(version.split(".")[0], 10) || 0;
+}
+
 export interface CheckResult {
   latest: string | null;
   newer: boolean;
@@ -117,10 +121,28 @@ export async function checkForUpdate(
   };
   try {
     const res = await http.get(REGISTRY_URL, { timeout: REGISTRY_TIMEOUT_MS });
-    const latest: string | undefined = res?.data?.["dist-tags"]?.latest;
+    const tags = res?.data?.["dist-tags"];
+    const latest: string | undefined = tags?.latest;
     if (typeof latest !== "string" || latest.length === 0) {
       logger("registry response missing dist-tags.latest; skipping self-update", "debug");
       return { latest: null, newer: false };
+    }
+    if (majorOf(latest) > majorOf(currentVersion)) {
+      // A new major has breaking changes, so moving to it is the user's call. Stay
+      // current within this major through its maintenance tag, if it has one.
+      logger(
+        `Doc Detective ${majorOf(latest)} is available. Upgrade when you're ready: npm i doc-detective@${majorOf(latest)}`,
+        "info"
+      );
+      const maintenance: string | undefined = tags[`release-${majorOf(currentVersion)}.x`];
+      if (
+        typeof maintenance === "string" &&
+        majorOf(maintenance) === majorOf(currentVersion) &&
+        compareVersions(maintenance, currentVersion) > 0
+      ) {
+        return { latest: maintenance, newer: true };
+      }
+      return { latest, newer: false };
     }
     return { latest, newer: compareVersions(latest, currentVersion) > 0 };
   } catch (err) {
@@ -180,7 +202,7 @@ export async function selfUpdate(
 
   if (mode === "local" || mode === "unknown") {
     logger(
-      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@latest\` in this project to upgrade.`,
+      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@${latestVersion}\` in this project to upgrade.`,
       "info"
     );
     return { updated: false, reexec: false };
@@ -208,7 +230,7 @@ export async function selfUpdate(
   const npxExe = process.platform === "win32" ? "npx.cmd" : "npx";
 
   if (mode === "global") {
-    logger(`Self-updating doc-detective to ${latestVersion} (global)`, "info");
+    logger(`Updating doc-detective to ${latestVersion}. Turn this off with --no-auto-update.`, "info");
     const installExit = await runChild(
       spawner,
       npmExe,

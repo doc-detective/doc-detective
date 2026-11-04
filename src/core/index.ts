@@ -4,6 +4,7 @@ import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
+  telemetryAllowed,
   telemetryNotice,
   prewarmTelemetry,
   abortTelemetryWarmup,
@@ -15,13 +16,6 @@ import { readFile, resolvePaths } from "./files.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
-const supportMessage = `
-##########################################################################
-# Thanks for using Doc Detective! If this project was helpful to you,    #
-# please consider starring the repo on GitHub or sponsoring the project: #
-# - GitHub Sponsors: https://github.com/sponsors/doc-detective           #
-# - Open Collective: https://opencollective.com/doc-detective            #
-##########################################################################`;
 
 /**
  * Detects and resolves tests based on the provided configuration.
@@ -37,8 +31,15 @@ async function detectAndResolveTests({ config, detectApps = true }: any) {
 }
 
 // detectTests -> resolveTests for a config setConfig already produced.
-async function detectAndResolveFromConfig(config: any) {
+async function detectAndResolveFromConfig(config: any, { strictSpecs = false } = {}) {
+  // Non-enumerable, so it stays out of serialized payloads.
+  Object.defineProperty(config, "_strictSpecs", { value: strictSpecs, enumerable: false, configurable: true });
   const detectedTests = await detectTests({ config });
+  if (strictSpecs && config._invalidSpecs?.length) {
+    throw new Error(
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or pass --no-exit-on-fail to skip them.`
+    );
+  }
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
     return null;
@@ -119,9 +120,7 @@ async function runTestsAndReport(config: any, options: any) {
   // may never call awaitTelemetryFlush to cancel one left in flight.
   let telemetryOn = false;
   const startTelemetry = (effectiveConfig: any) => {
-    telemetryOn =
-      config?.telemetry?.send !== false &&
-      effectiveConfig?.telemetry?.send !== false;
+    telemetryOn = telemetryAllowed(config) && telemetryAllowed(effectiveConfig);
     if (!telemetryOn) return;
     if (!config.dryRun) prewarmTelemetry(effectiveConfig);
     loadTelemetry();
@@ -145,7 +144,9 @@ async function runTestsAndReport(config: any, options: any) {
     effectiveConfig = await setConfig({ config, detectApps: false });
     startTelemetry(effectiveConfig);
     willRunViaApi = runsViaApi(effectiveConfig);
-    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig, {
+      strictSpecs: options.strictSpecs === true,
+    });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
@@ -428,7 +429,6 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);
-  log(config, "info", supportMessage);
 
   return results;
 }

@@ -15,9 +15,7 @@ export async function htmlReporter(
   let outputDir = "";
   let reportType = "doc-detective-results";
   if (options.command) {
-    if (options.command === "runCoverage") {
-      reportType = "coverageResults";
-    } else if (options.command === "runTests") {
+    if (options.command === "runTests") {
       reportType = "testResults";
     }
   }

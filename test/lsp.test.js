@@ -38,7 +38,7 @@ import {
   yamlSyntaxErrors,
 } from "../dist/lsp/yaml/positions.js";
 import { registerHandlers } from "../dist/lsp/server.js";
-import { lspCommand } from "../dist/lsp/command.js";
+import { buildLspCommand } from "../dist/lsp/command.js";
 import {
   buildRegistry,
   getRegistry,
@@ -81,7 +81,6 @@ function markerPos(text, marker = "§") {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.resolve(__dirname, "..", "bin", "doc-detective.js");
-const LSP_BIN = path.resolve(__dirname, "..", "bin", "doc-detective-lsp.js");
 
 function doc(uri, text) {
   return TextDocument.create(uri, "doc-detective-spec", 1, text);
@@ -905,22 +904,16 @@ describe("lsp — server wiring", function () {
 
 describe("lsp — command module", function () {
   it("registers as the `lsp` subcommand", function () {
-    expect(lspCommand.command).to.equal("lsp");
-    expect(lspCommand.describe).to.be.a("string").with.length.greaterThan(0);
+    const command = buildLspCommand();
+    expect(command.name()).to.equal("lsp");
+    expect(command.description()).to.be.a("string").with.length.greaterThan(0);
   });
 
   it("declares a --stdio option defaulting to true", function () {
-    const recorded = {};
-    const fakeYargs = {
-      option(name, cfg) {
-        recorded[name] = cfg;
-        return fakeYargs;
-      },
-    };
-    lspCommand.builder(fakeYargs);
-    expect(recorded.stdio).to.be.an("object");
-    expect(recorded.stdio.default).to.equal(true);
-    expect(recorded.stdio.type).to.equal("boolean");
+    const stdio = buildLspCommand().options.find((o) => o.long === "--stdio");
+    expect(stdio).to.be.an("object");
+    expect(stdio.defaultValue).to.equal(true);
+    expect(stdio.isBoolean()).to.equal(true);
   });
 });
 
@@ -1036,7 +1029,7 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
     drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp", "--stdio"], done);
   });
 
-  it("starts the same server via the bare `doc-detective-lsp` bin", function (done) {
-    drivesFlagshipDiagnostic(process.execPath, [LSP_BIN], done);
+  it("starts the same server without --stdio", function (done) {
+    drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp"], done);
   });
 });

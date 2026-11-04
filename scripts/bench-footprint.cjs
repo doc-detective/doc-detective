@@ -109,8 +109,8 @@ const result = {
     cjsRequire: time("CJS require", ["-e", "require('./dist/index.cjs')"]),
     runTestsTrivial: time(
       "runTests",
-      ["bin/doc-detective.js", "runTests", "--input", specPath, "--config", configPath],
-      (r) => /Passed: 1/.test(r.stdout) && !/Failed: [1-9]/.test(r.stdout)
+      ["bin/doc-detective.js", "run", "--input", specPath, "--config", configPath],
+      (r) => /1 of 1 test passed/.test(r.stdout)
     ),
   },
 };

@@ -14,7 +14,7 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/pass/inner.spec.json --output .tmp/fixture-reporters/pass/out --reporters junit markdown",
+            "command": "node ./bin/doc-detective.js run --input .tmp/fixture-reporters/pass/inner.spec.json --output-dir .tmp/fixture-reporters/pass/out --reporters junit markdown",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
@@ -34,7 +34,7 @@
     },
     {
       "testId": "reporters-file-valued-output",
-      "description": "When `--output` names a file (the natural `--reporters json junit markdown` invocation), both reporters write their fixed filename beside it rather than treating the path as a directory.",
+      "description": "`--output` names the results file, and `--output-dir` holds the reports, so both reporters write their fixed filename in that folder.",
       "steps": [
         {
           "runShell": {
@@ -44,7 +44,7 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/file-output/inner.spec.json --output .tmp/fixture-reporters/file-output/out/results.json --reporters json junit markdown",
+            "command": "node ./bin/doc-detective.js run --input .tmp/fixture-reporters/file-output/inner.spec.json --output .tmp/fixture-reporters/file-output/out/results.json --output-dir .tmp/fixture-reporters/file-output/out --reporters json junit markdown",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
@@ -74,10 +74,10 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-reporters/fail/inner.spec.json --output .tmp/fixture-reporters/fail/out --reporters junit markdown",
+            "command": "node ./bin/doc-detective.js run --input .tmp/fixture-reporters/fail/inner.spec.json --output-dir .tmp/fixture-reporters/fail/out --reporters junit markdown",
             "workingDirectory": "../../..",
             "exitCodes": [
-              0
+              1
             ]
           }
         },

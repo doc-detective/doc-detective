@@ -38,7 +38,7 @@ import { ChildProcess } from "node:child_process";
 import sinon from "sinon";
 
 import { printDebug } from "../dist/debug/index.js";
-import { debugCommand } from "../dist/debug/command.js";
+import { debugHandler } from "../dist/debug/command.js";
 import { collectAppiumDiagnostics } from "../dist/debug/appium.js";
 import { collectCacheStatus } from "../dist/debug/cache.js";
 import { collectInstallStatus } from "../dist/debug/install.js";
@@ -1290,12 +1290,12 @@ describe("debug/* remaining coverage", function () {
   // -------------------------------------------------------------------
   //
   // debug.test.js's "debug CLI smoke test" suite already exercises
-  // `debugCommand.handler` end-to-end, but only via `spawnSync` on a
+  // `debugHandler` end-to-end, but only via `spawnSync` on a
   // separate `bin/doc-detective.js` child process — c8/V8 coverage isn't
   // propagated across that process boundary (no NODE_V8_COVERAGE wiring
   // in this repo's test setup), so the handler's own statements/branches
   // show as uncovered despite being exercised by a real, working smoke
-  // test. Calling `debugCommand.handler(...)` directly, in-process,
+  // test. Calling `debugHandler(...)` directly, in-process,
   // exercises the identical code with full coverage visibility.
   describe("command.ts", function () {
     async function runHandler(cwd, args) {
@@ -1310,7 +1310,7 @@ describe("debug/* remaining coverage", function () {
         lines.push(String(line));
       };
       try {
-        await debugCommand.handler(args);
+        await debugHandler(args);
         return { text: lines.join("\n"), exitCode: process.exitCode };
       } finally {
         console.log = originalLog;
@@ -1332,7 +1332,7 @@ describe("debug/* remaining coverage", function () {
           $0: "doc-detective",
         });
         assert.match(text, /configPath:\s+\S*my-config\.json/);
-        assert.notEqual(exitCode, 1);
+        assert.notEqual(exitCode, 2);
       } finally {
         cleanupTmp(tmp);
       }
@@ -1428,7 +1428,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /Doc Detective diagnostic dump/);
         assert.match(text, /-- System /);
         assert.doesNotMatch(text, /CONFIG INVALID/);
-        assert.notEqual(exitCode, 1);
+        assert.notEqual(exitCode, 2);
         const savedDir = path.join(tmp, ".doc-detective");
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
@@ -1438,7 +1438,7 @@ describe("debug/* remaining coverage", function () {
       }
     });
 
-    it("a malformed config file surfaces the CONFIG INVALID banner and sets exitCode=1 (lines 60-79 error path)", async function () {
+    it("a malformed config file surfaces the CONFIG INVALID banner and sets exitCode=2 (lines 60-79 error path)", async function () {
       this.timeout(60000);
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cmd-badconfig-"));
       const badConfigPath = path.join(tmp, "bad-config.json");
@@ -1456,7 +1456,7 @@ describe("debug/* remaining coverage", function () {
         // The best-effort raw config uses args.logLevel / args.input verbatim.
         assert.match(text, /"logLevel":\s*"debug"/);
         assert.match(text, /"input":\s*"custom-input"/);
-        assert.equal(exitCode, 1);
+        assert.equal(exitCode, 2);
         const savedDir = path.join(tmp, ".doc-detective");
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
@@ -1481,7 +1481,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /=== CONFIG INVALID ===/);
         assert.match(text, /"logLevel":\s*"info"/);
         assert.match(text, /"input":\s*"\."/);
-        assert.equal(exitCode, 1);
+        assert.equal(exitCode, 2);
       } finally {
         cleanupTmp(tmp);
       }

@@ -1,7 +1,7 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
-import { shouldFailRun } from "./core/utils.js";
+import { runExitCode } from "./core/utils.js";
+import { CommanderError } from "commander";
 import {
-  buildYargs,
   setConfig,
   outputResults,
   setMeta,
@@ -10,14 +10,14 @@ import {
   logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
-  isDebugRequested,
+  loadProjectEnv,
+  readStdinInputs,
+  writeResultsFile,
 } from "./utils.js";
-import { installAgentsCommand } from "./agents/command.js";
+import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
-import { installCommand } from "./runtime/installCommand.js";
-import { lspCommand } from "./lsp/command.js";
-import { printDebug, defaultDebugDir } from "./debug/index.js";
-import { debugCommand } from "./debug/command.js";
+import { applyColorFlags, applyInputFlag, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
+import { runProgress } from "./core/progress.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -26,54 +26,46 @@ import { createRequire } from "node:module";
 const cliRequire = createRequire(import.meta.url);
 
 // Run
-setMeta();
 main(processArgv).catch((err) => {
-  // yargs' .fail handler prints usage + message; this catches anything that
-  // escapes (including our rethrown errors) so the process exits non-zero.
+  // Catches anything main() rethrows, so the process exits non-zero.
   // c8 ignore: the `?? err` / `|| err` fallback branches (err nullish, or a
   // non-Error thrown value without a `.message`) are structurally dead under
-  // every current throw site — setConfig() always rejects with a real Error,
-  // and the yargs `.fail` handler in main() always does `throw new
-  // Error(msg)` — so `err` here is always a real Error with a non-empty
-  // `.message`. Defensive fallback for future throw sites, not reachable today.
-  console.error(err?.message || err); /* c8 ignore line - defensive fallback for a non-Error/nullish rejection; unreachable under every current throw site (see comment above) */
-  process.exit(1);
+  // every current throw site — setConfig() always rejects with a real Error —
+  // so `err` here is always a real Error with a non-empty `.message`. Defensive
+  // fallback for future throw sites, not reachable today.
+  // A mistake in a command gets its message. A bug gets a bug report. Reaching
+  // here with one of these types means a defect in Doc Detective, not bad input.
+  if (err instanceof TypeError || err instanceof ReferenceError || err instanceof RangeError) {
+    reportCrash(err, { version: cliRequire("../package.json").version });
+  } else {
+    console.error(`Error: ${err?.message || err}`);
+  }
+  process.exit(2);
 });
 
 async function main(argv: string[]) {
-  await buildYargs(argv)
-    .command({
-      command: "$0",
-      describe: "Run Doc Detective tests (default).",
-      handler: runTestsHandler,
-    })
-    .command({
-      // Preserved for back-compat with the `runTests` npm script and any
-      // existing CI invocations. Runs the same handler as the default.
-      command: "runTests",
-      describe: false,
-      handler: runTestsHandler,
-    })
-    // Hidden alias kept for back-compat with existing scripts and docs:
-    // `doc-detective install-agents` still works, undocumented, and delegates
-    // to the same implementation as `doc-detective install agents`.
-    .command({ ...installAgentsCommand, describe: false } as any)
-    .command(installCommand as any)
-    .command(lspCommand as any)
-    .command(debugCommand)
-    .strict()
-    .demandCommand(0)
-    // Suppress yargs' default help-dump on failure; surface the concrete error
-    // message instead. The top-level .catch() prints it and sets exit code.
-    .fail((msg: string, err: Error | undefined) => {
-      if (err) throw err;
-      throw new Error(msg);
-    })
-    .parseAsync();
+  applyColorFlags(argv);
+  setMeta();
+  try {
+    await buildProgram({ runTests: runTestsHandler }).parseAsync(applyInputFlag(argv));
+  } catch (err) {
+    // exitOverride makes commander throw on every terminating condition,
+    // including --help and --version. Commander has already written any message.
+    // process.exitCode, not process.exit(), so queued stderr writes still flush.
+    if (err instanceof CommanderError) {
+      // Commander exits 1 on usage errors. The contract's usage code is 2.
+      process.exitCode = err.exitCode === 0 ? 0 : 2;
+      return;
+    }
+    throw err;
+  }
 }
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
+  await loadProjectEnv(args);
+  await readStdinInputs(args);
+
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
@@ -93,58 +85,8 @@ async function runTestsHandler(args: any) {
     ? configPathYML
     : null;
 
-  // Detect env-var debug intent before setConfig so we can still emit
-  // the diagnostic dump when validation fails. `isDebugRequested`
-  // reads `process.env.DOC_DETECTIVE_DEBUG`. Users who want diagnostic
-  // output on the CLI should prefer the dedicated `doc-detective
-  // debug` subcommand (which also supports `--include-env`); this
-  // env-var path stays as the CI-friendly trigger.
-  const debugRequested = isDebugRequested();
-
   // Set config
-  let config: any;
-  try {
-    config = await setConfig({ configPath: configPath, args: args });
-  } catch (err: any) {
-    if (debugRequested) {
-      // Build a minimal stub config so the dump can still render.
-      // `printDebug` tolerates undefined fields; the configError banner
-      // surfaces the underlying validation message.
-      const stubConfig: any = {
-        logLevel: typeof args.logLevel === "string" ? args.logLevel : "info",
-        input: typeof args.input === "string" ? args.input : ".",
-      };
-      await printDebug({
-        config: stubConfig,
-        configPath: configPath,
-        configError: err instanceof Error ? err : new Error(String(err)),
-        outDir: defaultDebugDir(),
-        args,
-      });
-      // The env-var dump replaced a real test run; a broken config must
-      // still fail the process so CI doesn't go green on an unran suite.
-      process.exitCode = 1;
-      return;
-    }
-    throw err;
-  }
-
-  // Diagnostic dump — fires when DOC_DETECTIVE_DEBUG is truthy. The
-  // env-var path intentionally does NOT enable --include-env; users
-  // who want the full process.env must run `doc-detective debug
-  // --include-env` explicitly. (There is no config-file equivalent —
-  // the `debug` config field is deprecated and ignored; diagnostics live
-  // behind this env var and the `debug` subcommand.)
-  if (debugRequested) {
-    await printDebug({
-      config,
-      configPath,
-      configError: null,
-      outDir: defaultDebugDir(),
-      args,
-    });
-    return;
-  }
+  const config: any = await setConfig({ configPath: configPath, args: args });
 
   // Guard the pretty-print dumps behind a cheap level check so the (large)
   // JSON.stringify only runs when the debug message would actually print.
@@ -231,15 +173,25 @@ async function runTestsHandler(args: any) {
   const apiConfig = api?.apiConfig || null;
 
   // Run tests
-  const output = config.output;
-  const results = resolvedTests
-    ? await runTests(config, { resolvedTests, updateJoin })
-    : await runTests(config, { updateJoin });
+  // Progress is for people, so it follows the same switch as other info output.
+  const stopProgress = logLevelEnabled("info", config)
+    ? await showRunProgress(runProgress)
+    : () => {};
+  const strictSpecs = config.exitOnFail !== false;
+  const results = await (resolvedTests
+    ? runTests(config, { resolvedTests, updateJoin, strictSpecs })
+    : runTests(config, { updateJoin, strictSpecs })
+  ).finally(stopProgress);
 
   // Dry-run already emitted the resolved-tests JSON inside runTests().
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
+    if (!results && config.exitOnFail !== false) {
+      // Dry runs silence logs to keep stdout clean, so say why there's no plan.
+      console.error("No tests found, so there's no test plan to print.");
+      process.exitCode = 2;
+    }
     return;
   }
 
@@ -261,19 +213,30 @@ async function runTestsHandler(args: any) {
   } else {
     // Output results — config.reporters (populated from args.reporters by
     // setConfig) is the source of truth for which reporters run.
-    await outputResults(config, output, results, { command: "runTests" });
+    await outputResults(config, config.outputDir, results, { command: "runTests" });
+    writeResultsFile(config.output, results);
     // Optionally print one contextual hint after the reporters finish.
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
 
-  // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
-  // exits 0 even on FAIL (the fail-the-build call has historically lived in CI
-  // wrappers like the GitHub Action), so this flag is what lets any CI gate on
-  // the exit code. The `!process.exitCode` guard preserves any non-zero code an
-  // earlier stage already set instead of overwriting it with 1.
-  if (config.exitOnFail && !process.exitCode && shouldFailRun(results)) {
-    process.exitCode = 1;
+  // Last on stdout, so it's what a person reads first. Modes that make stdout
+  // machine-readable, and -l silent, leave it out.
+  if (!args.json && !args.plain && args.output !== "-" && config.logLevel !== "silent") {
+    console.log(verdictLine(results));
+  }
+
+  // A bare command in the wrong folder is the likeliest first-run mistake.
+  const testCounts: number[] = Object.values(results?.summary?.tests ?? {});
+  const nothingRan = testCounts.every((count) => count === 0);
+  if (nothingRan && !args.input && !args.inputs?.length && logLevelEnabled("info", config)) {
+    diag("No tests found here. Point at your docs with `doc-detective -i <path>`, or see `doc-detective --help`.");
+  }
+
+  // Results are written before the exit code is set (ADR 01146). The guard
+  // preserves any non-zero code an earlier stage already set.
+  if (!process.exitCode) {
+    process.exitCode = runExitCode(results, config);
   }
 
   // Join the telemetry flush started inside runTests. Awaited only NOW — after
