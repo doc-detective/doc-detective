@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { addRunOptions, cliArgv } from "../cliOptions.js";
+import { addGlobalOptions, addInputOptions, cliArgv } from "../cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -18,8 +18,7 @@ export interface DebugArgv {
 // by name AND by value shape). Without it, the dump only lists env
 // vars referenced via `$VAR` in config or input files.
 export function buildDebugCommand(): Command {
-  // `debug` accepts the run flags so its config provenance can report them.
-  return addRunOptions(new Command("debug"))
+  return addGlobalOptions(addInputOptions(new Command("debug")))
     .description(
       "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests."
     )

@@ -759,7 +759,7 @@ describe("runtime helpers extra coverage", function () {
       try {
         await subs.runtime.handler({
           packages: ["nope-not-real"],
-          silent: true,
+          quiet: true,
           "cache-dir": tmpRoot,
           cacheDir: tmpRoot,
         });

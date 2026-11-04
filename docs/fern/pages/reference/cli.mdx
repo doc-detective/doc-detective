@@ -29,7 +29,6 @@ These flags apply to the default run command. Each has a config-file equivalent;
 | `--config` | `-c` | string |  | Path to a `config.json` or `config.yaml` file. |
 | `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. |
 | `--output` | `-o` | string | `.` | Path of the directory in which to store the output of Doc Detective commands. |
-| `--logLevel` | `-l` | string | `info` | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
 | `--reporters` | `-r` | string (array) | ``["terminal","json","runFolder"]`` | Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in &lt;output&gt;/.doc-detective/runs/&lt;runId&gt;/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside &lt;output&gt; when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside &lt;output&gt; when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html). |
@@ -44,11 +43,17 @@ These flags apply to the default run command. Each has a config-file equivalent;
 | `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported. |
 | `--browser-fallback` |  | string | `auto` | How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage. |
 | `--shell` |  | string | `bash` | Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field. |
-| `--exit-on-fail` | `-e` | boolean | `false` | Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it. |
+| `--exit-on-fail` | `-e` | boolean | `false` | Exit with a non-zero code (1) when any spec's result is FAIL. [deprecated: now the default] |
+| `--quiet` | `-q` | boolean |  | Show only errors and a one-line verdict. |
+| `--debug` | `-d` | boolean |  | Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG. |
+| `--log-level` | `-l` | string | `info` | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
+| `--logLevel` |  | string | `info` | Detail level of logging events. [deprecated: use --log-level] |
+| `--json` |  | boolean |  | Print one JSON document to stdout. |
+| `--no-color` |  | string |  | Turn off color. Also NO_COLOR. |
 
 ### Negating boolean flags
 
-Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: `--no-hints`, `--no-auto-screenshot`, `--no-auto-record`, `--no-auto-update`, and `--no-exit-on-fail`. (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)
+Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: `--no-hints`, `--no-auto-screenshot`, `--no-auto-record`, and `--no-auto-update`. (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)
 
 Notes on individual flags:
 
@@ -85,6 +90,12 @@ This is distinct from `install agents`: the language server (`lsp`) exposes edit
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `--quiet` | boolean |  | Show only errors and a one-line verdict. |
+| `--debug` | boolean |  | Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG. |
+| `--log-level` | string |  | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
+| `--logLevel` | string |  | Detail level of logging events. [deprecated: use --log-level] |
+| `--json` | boolean |  | Print one JSON document to stdout. |
+| `--no-color` | string |  | Turn off color. Also NO_COLOR. |
 | `--stdio` | boolean | `true` | Communicate over stdio (the only supported transport). Present for explicitness and editor configs. |
 
 ```bash

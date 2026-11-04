@@ -244,7 +244,7 @@ export const HINTS: Hint[] = [
       "Install the Doc Detective agent tools so your AI assistant can author and debug Doc Detective tests:",
       "",
       "```bash",
-      "doc-detective install-agents",
+      "doc-detective install agents",
       "```",
       "",
       "More: [AI and agent tools](https://docs.doc-detective.com/ai/ai-agents/overview)",

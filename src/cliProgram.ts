@@ -1,7 +1,13 @@
 import { Command } from "commander";
 import { createRequire } from "node:module";
 import { buildInstallAgentsCommand } from "./agents/command.js";
-import { addRunOptions, cliArgv } from "./cliOptions.js";
+import {
+  addGlobalOptions,
+  addRunOptions,
+  cliArgv,
+  DEPRECATED_COMMAND_LABEL,
+  warnOnDeprecatedUse,
+} from "./cliOptions.js";
 import { buildDebugCommand } from "./debug/command.js";
 import { buildLspCommand } from "./lsp/command.js";
 import { buildInstallCommand } from "./runtime/installCommand.js";
@@ -24,26 +30,43 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
     .name("doc-detective")
     .description("Run Doc Detective tests (default).")
     .version(require("../package.json").version, "--version", "Show version number")
-    // Without this, the root consumes flags written after a subcommand, so
-    // `-s` under `install agents` would be read as the root's `--spec`.
+    // Without this, the root consumes flags written after a subcommand.
     .enablePositionalOptions()
     .helpCommand(false);
 
-  addRunOptions(program).action(async (_options, command) => {
+  addGlobalOptions(addRunOptions(program)).action(async (_options, command) => {
     await runTests(cliArgv(command));
   });
 
-  // Preserved for the `runTests` npm script and existing CI invocations.
-  addRunOptions(program.command("runTests", { hidden: true }))
-    .description("Run Doc Detective tests.")
-    .action(async (_options, command) => {
-      await runTests(cliArgv(command));
-    });
+  const addRunCommand = (name: string, description: string) =>
+    addGlobalOptions(addRunOptions(program.command(`${name} [inputs...]`)))
+      .description(description)
+      .action(async (inputs: string[], _options, command) => {
+        await runTests({ ...cliArgv(command), inputs });
+      });
+  addRunCommand("run", "Run tests on specific files or folders.");
+  // Kept for older usage. The bare command stays flags-only, so any word can
+  // still become a subcommand.
+  addRunCommand("runTests", `Run tests. ${DEPRECATED_COMMAND_LABEL}`);
+  addRunCommand("runtests", `Run tests. ${DEPRECATED_COMMAND_LABEL}`);
 
-  program.addCommand(buildInstallAgentsCommand("install-agents"), { hidden: true });
   program.addCommand(buildInstallCommand());
   program.addCommand(buildLspCommand());
   program.addCommand(buildDebugCommand());
+
+  addGlobalOptions(program.command("runner", { hidden: true }))
+    .description(
+      "Run a hosted test job: fetch its config, run the tests, and report back. Used by Doc Detective's hosted runner images. It reads its settings from the DD_RUN_ID, DD_RUN_TOKEN, DD_API_BASE, and DD_TIMEOUT_SECONDS environment variables."
+    )
+    /* c8 ignore start - thin lazy-load + real hosted run; the runner's own
+       logic is covered in test/runner-entrypoint.test.js. */
+    .action(async () => {
+      const { main } = await import(
+        new URL("../bin/runner-entrypoint.js", import.meta.url).href
+      );
+      process.exit(await main());
+    });
+  /* c8 ignore stop */
 
   program
     .command("help [command...]")
@@ -61,5 +84,6 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
     });
 
   applyShared(program);
+  warnOnDeprecatedUse(program);
   return program;
 }

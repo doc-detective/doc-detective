@@ -1,5 +1,39 @@
 import { Command, Option } from "commander";
 
+// Old arguments kept for compatibility (ADR 01146). Each is labeled in help and
+// warns on stderr when used.
+const DEPRECATED_LABELS = {
+  "--logLevel": "[deprecated: use --log-level]",
+  "--exit-on-fail": "[deprecated: now the default]",
+};
+
+export const DEPRECATED_COMMAND_LABEL = "[deprecated: use run]";
+
+// Print a one-line warning for each deprecated argument a command received,
+// unless --quiet asked for less. Commander fires `option:<name>` per spelling,
+// which is how --logLevel is told apart from --log-level.
+export function warnOnDeprecatedUse(program: Command) {
+  const used = new Set<string>();
+  const watch = (command: Command) => {
+    command.on("option:logLevel", () => used.add("--logLevel"));
+    command.on("option:exit-on-fail", () => used.add("--exit-on-fail"));
+    command.commands.forEach(watch);
+  };
+  watch(program);
+  program.hook("preAction", (_thisCommand, actionCommand) => {
+    const name = actionCommand.name();
+    if (name === "runTests" || name === "runtests") {
+      used.add(name);
+    }
+    if (actionCommand.optsWithGlobals().quiet) return;
+    for (const argument of used) {
+      const label =
+        DEPRECATED_LABELS[argument as keyof typeof DEPRECATED_LABELS] ?? DEPRECATED_COMMAND_LABEL;
+      console.error(`Warning: ${argument} is ${label.slice(1, -1).replace(":", ";")}.`);
+    }
+  });
+}
+
 // A boolean flag plus its hidden `--no-` form. Declaring both leaves the option
 // undefined when neither is passed, which is what setConfig's
 // `typeof args.x === "boolean"` override blocks rely on to tell "unset" from
@@ -10,25 +44,47 @@ function addBooleanOption(command: Command, flags: string, description: string) 
   command.addOption(new Option(`--no-${long.slice(2)}`).hideHelp());
 }
 
-// The flags a test run takes. Runtime code never reads these directly: setConfig
-// overlays them onto the validated config.
-export function addRunOptions(command: Command): Command {
-  command
+// The flags every command takes, before or after its name.
+export function addGlobalOptions(command: Command): Command {
+  return command
+    .option("-q, --quiet", "Show only errors and a one-line verdict.")
+    .option(
+      "-d, --debug",
+      "Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG."
+    )
+    .addOption(new Option("--verbose").hideHelp().implies({ debug: true }))
+    .option(
+      "-l, --log-level <level>",
+      "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
+    )
+    .option(
+      "--logLevel <level>",
+      `Detail level of logging events. ${DEPRECATED_LABELS["--logLevel"]}`
+    )
+    .option("--json", "Print one JSON document to stdout.")
+    .option("--no-color", "Turn off color. Also NO_COLOR.")
+    .addOption(new Option("--color").hideHelp());
+}
+
+// The flags that choose what to read, shared by the run commands and `debug`.
+export function addInputOptions(command: Command): Command {
+  return command
     .option("-c, --config <path>", "Path to a `config.json` or `config.yaml` file.")
     .option(
       "-i, --input <path>",
       "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files."
-    )
+    );
+}
+
+// The flags a test run takes. Runtime code never reads these directly: setConfig
+// overlays them onto the validated config.
+export function addRunOptions(command: Command): Command {
+  addInputOptions(command);
+  command
     .option(
       "-o, --output <path>",
       "Path of the directory in which to store the output of Doc Detective commands."
-    )
-    .option(
-      "-l, --logLevel <level>",
-      "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
-    )
-    // Both spellings land on `logLevel`, as they did under the previous parser.
-    .addOption(new Option("--log-level <level>").hideHelp());
+    );
   addBooleanOption(command, "--allow-unsafe", "Allow execution of potentially unsafe tests");
   addBooleanOption(
     command,
@@ -92,7 +148,7 @@ export function addRunOptions(command: Command): Command {
   addBooleanOption(
     command,
     "-e, --exit-on-fail",
-    "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it."
+    `Exit with a non-zero code (1) when any spec's result is FAIL. ${DEPRECATED_LABELS["--exit-on-fail"]}`
   );
   return command;
 }
@@ -113,7 +169,7 @@ export function cliArgv(command: Command): Record<string, any> {
 // Throws on anything the real CLI would reject.
 export function setArgs(args?: string[]): Record<string, any> {
   if (!args) return {};
-  const command = addRunOptions(new Command())
+  const command = addGlobalOptions(addRunOptions(new Command()))
     .exitOverride()
     .configureOutput({ writeErr: () => {}, writeOut: () => {} });
   command.parse(args);

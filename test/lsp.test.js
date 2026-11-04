@@ -81,7 +81,6 @@ function markerPos(text, marker = "§") {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.resolve(__dirname, "..", "bin", "doc-detective.js");
-const LSP_BIN = path.resolve(__dirname, "..", "bin", "doc-detective-lsp.js");
 
 function doc(uri, text) {
   return TextDocument.create(uri, "doc-detective-spec", 1, text);
@@ -1030,7 +1029,7 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
     drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp", "--stdio"], done);
   });
 
-  it("starts the same server via the bare `doc-detective-lsp` bin", function (done) {
-    drivesFlagshipDiagnostic(process.execPath, [LSP_BIN], done);
+  it("starts the same server without --stdio", function (done) {
+    drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp"], done);
   });
 });

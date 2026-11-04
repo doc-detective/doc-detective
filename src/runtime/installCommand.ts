@@ -1,6 +1,6 @@
 import { Argument, Command, Option } from "commander";
 import { buildInstallAgentsCommand } from "../agents/command.js";
-import { cliArgv } from "../cliOptions.js";
+import { addGlobalOptions, cliArgv } from "../cliOptions.js";
 import type { Logger, LogLevel } from "./loader.js";
 import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
 
@@ -9,6 +9,8 @@ import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
 interface InstallSubcommand {
   command: string;
   describe: string;
+  /** Set when the subcommand only reads the cache, so it takes no install flags. */
+  readOnly?: boolean;
   configure?: (command: Command) => void;
   handler: (argv: any) => Promise<void>;
 }
@@ -18,17 +20,18 @@ export interface InstallArgv {
   force: boolean;
   "dry-run": boolean;
   dryRun?: boolean;
-  silent?: boolean;
   quiet?: boolean;
-  verbose?: boolean;
+  debug?: boolean;
+  logLevel?: string;
   "cache-dir"?: string;
   cacheDir?: string;
   all?: boolean;
 }
 
 function pickLogLevel(argv: InstallArgv): LogLevel {
-  if (argv.silent || argv.quiet) return "error";
-  if (argv.verbose) return "debug";
+  if (argv.debug || argv.logLevel === "debug") return "debug";
+  if (argv.quiet || argv.logLevel === "silent" || argv.logLevel === "error") return "error";
+  if (argv.logLevel === "warning") return "warn";
   return "info";
 }
 
@@ -60,12 +63,6 @@ const sharedInstallOptions = (command: Command) =>
     .option(
       "-n, --dry-run",
       "Report the actions that would be taken without executing them."
-    )
-    .option("--silent", "Suppress all output except errors. Alias: --quiet.")
-    .option("--quiet", "Same as --silent.")
-    .option(
-      "--verbose",
-      "Emit debug-level output, including child-process (npm) stdout/stderr."
     )
     .option(
       "--cache-dir <path>",
@@ -255,6 +252,7 @@ const iosSubcommand: InstallSubcommand = {
 
 const statusSubcommand: InstallSubcommand = {
   command: "status",
+  readOnly: true,
   describe:
     "Report what's installed in <cacheDir>/runtime and <cacheDir>/browsers vs. the shim's declared versions.",
   handler: async (argv: any) => {
@@ -322,8 +320,17 @@ export const installSubcommands: Record<string, InstallSubcommand> = {
 };
 
 function toCommand(subcommand: InstallSubcommand): Command {
-  const command = new Command(subcommand.command).description(subcommand.describe);
-  sharedInstallOptions(command);
+  const command = addGlobalOptions(new Command(subcommand.command)).description(
+    subcommand.describe
+  );
+  if (subcommand.readOnly) {
+    command.option(
+      "--cache-dir <path>",
+      "Check this cache root (also DOC_DETECTIVE_CACHE_DIR env var)."
+    );
+  } else {
+    sharedInstallOptions(command);
+  }
   subcommand.configure?.(command);
   return command.action(async (...actionArgs: any[]) => {
     const argv = cliArgv(command);
@@ -337,11 +344,9 @@ function toCommand(subcommand: InstallSubcommand): Command {
 /**
  * The `doc-detective install` command group. A bare or unrecognized
  * `install <word>` reaches the action, which names the valid subcommands.
- * `install-agents` keeps its top-level registration as a hidden alias
- * (configured in cliProgram.ts).
  */
 export function buildInstallCommand(): Command {
-  const install = new Command("install")
+  const install = addGlobalOptions(new Command("install"))
     .description(
       "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, bash, android, ios."
     )
@@ -351,7 +356,7 @@ export function buildInstallCommand(): Command {
         "Specify a subcommand: agents | runtime | browsers | bash | android | ios | status | all."
       );
     });
-  install.addCommand(buildInstallAgentsCommand("agents"));
+  install.addCommand(buildInstallAgentsCommand());
   for (const subcommand of Object.values(installSubcommands)) {
     install.addCommand(toCommand(subcommand));
   }

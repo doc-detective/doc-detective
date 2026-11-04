@@ -1,4 +1,5 @@
 import { Command, Option } from "commander";
+import { addGlobalOptions } from "../cliOptions.js";
 
 /**
  * `doc-detective lsp` — start the Doc Detective language server. The action
@@ -6,7 +7,7 @@ import { Command, Option } from "commander";
  * when this subcommand runs, so ordinary test runs never pay that import cost.
  */
 export function buildLspCommand(): Command {
-  return new Command("lsp")
+  return addGlobalOptions(new Command("lsp"))
     .description(
       "Start the Doc Detective language server (LSP) over stdio for editors and AI agents."
     )

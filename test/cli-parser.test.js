@@ -27,9 +27,8 @@ describe("CLI parser", function () {
     expect(r.stderr).to.include("unknown option '--reporters'");
   });
 
-  it("gives a short flag to the subcommand it follows, not to the root", function () {
-    // At the root, -s is --spec. Under `install agents`, it's --scope.
-    const r = runCli(["install", "agents", "-s", "global", "--agent", "claude", "--yes", "--dry-run"]);
+  it("gives a flag to the subcommand it follows, not to the root", function () {
+    const r = runCli(["install", "agents", "--scope", "global", "--agent", "claude", "--yes", "--dry-run"]);
     expect(r.status, r.stderr).to.equal(0);
     expect(r.stdout).to.include("scope: global");
   });

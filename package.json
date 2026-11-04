@@ -6,9 +6,7 @@
     "src/common"
   ],
   "bin": {
-    "doc-detective": "bin/doc-detective.js",
-    "doc-detective-runner": "bin/runner-entrypoint.js",
-    "doc-detective-lsp": "bin/doc-detective-lsp.js"
+    "doc-detective": "bin/doc-detective.js"
   },
   "type": "module",
   "engines": {
@@ -54,7 +52,7 @@
     "test:coverage": "c8 mocha --exit test/*.test.js",
     "test:coverage:ratchet": "node scripts/check-coverage-ratchet.cjs",
     "runTests": "node ./bin/doc-detective.js runTests",
-    "installAgents": "node ./bin/doc-detective.js install-agents",
+    "installAgents": "node ./bin/doc-detective.js install agents",
     "start": "node ./bin/doc-detective.js",
     "dev": "node ./dev",
     "container:build": "node src/container/scripts/build.cjs",

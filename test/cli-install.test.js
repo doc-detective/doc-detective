@@ -115,10 +115,10 @@ describe("CLI install commands", function () {
     expect(r.stderr + r.stdout).to.match(/Specify a subcommand/);
   });
 
-  it("`install-agents` (hidden alias) still parses and runs", function () {
+  it("`install agents` parses and runs", function () {
     // We don't actually run agent install — invoke with --dry-run and use
     // --agent claude --scope project to bypass interactive picker / detect.
-    const r = runCli(["install-agents", "--dry-run", "--agent", "claude", "--scope", "project"]);
+    const r = runCli(["install", "agents", "--dry-run", "--agent", "claude", "--scope", "project"]);
     // We don't assert success/exit code — adapters may or may not detect a
     // real Claude binary on this machine. Just assert the command isn't an
     // unknown-subcommand error.

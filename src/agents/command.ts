@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import { cliArgv } from "../cliOptions.js";
+import { addGlobalOptions, cliArgv } from "../cliOptions.js";
 
 export interface InstallAgentsArgv {
   agent?: string[];
@@ -17,23 +17,21 @@ async function installAgentsHandler(argv: any): Promise<void> {
   await runInstallAgents(argv, { prompts: createPrompts() });
 }
 
-// `name` differs by mount point: `agents` under `install`, and the hidden
-// top-level `install-agents`. `handler` is replaceable for tests.
+// `handler` is replaceable for tests.
 export function buildInstallAgentsCommand(
-  name: string,
   handler: (argv: any) => Promise<void> | void = installAgentsHandler
 ): Command {
-  return new Command(name)
+  return addGlobalOptions(new Command("agents"))
     .description(
       "Install or update the doc-detective agent tools for detected AI coding agents (e.g., Claude Code)."
     )
     .option(
-      "-a, --agent <id...>",
+      "--agent <id...>",
       "Agent id to install into (repeatable). Skips the interactive picker. Example: --agent claude"
     )
     .addOption(
       new Option(
-        "-s, --scope <scope>",
+        "--scope <scope>",
         "Where to install: 'project' (current repo) or 'global' (user home). Each adapter resolves the exact path. Prompted if omitted."
       ).choices(["project", "global"])
     )

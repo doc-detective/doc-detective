@@ -248,9 +248,13 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (configPath) {
     config.configPath = configPath;
   }
-  if (args.input) {
-    // If input includes commas, split it into an array
-    args.input = args.input.split(",").map((item: any) => item.trim());
+  if (args.input || args.inputs?.length) {
+    // Split --input on commas, then add `run`'s positional inputs. Those aren't
+    // split: they're single paths, usually from a shell glob.
+    args.input = [
+      ...(args.input ? args.input.split(",").map((item: any) => item.trim()) : []),
+      ...(args.inputs ?? []),
+    ];
     // Resolve paths
     args.input = args.input.map((item: any) => {
       if (item.startsWith("https://") || item.startsWith("http://")) {

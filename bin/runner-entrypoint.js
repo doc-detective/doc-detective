@@ -771,11 +771,9 @@ async function main() {
 // Module-import guard so the test file can `import` from this module
 // without triggering main().
 //
-// Both halves of this comparison matter. npm installs `bin` entries as
-// symlinks, so when the container runs `doc-detective-runner`,
-// process.argv[1] is /usr/local/bin/doc-detective-runner while
-// import.meta.url is the realpath under node_modules — hence realpathSync
-// before comparing. And a hand-built `file://${...}` template mangles
+// Hosted images run this through `doc-detective runner`, which calls main()
+// itself. This guard covers running the file directly. Both halves of the
+// comparison matter: argv[1] can be a symlink, so realpathSync before comparing. And a hand-built `file://${...}` template mangles
 // Windows paths and anything containing a space or `#`, so the conversion
 // goes through pathToFileURL. Getting either wrong makes this silently
 // false: main() never runs, nothing is logged, and the process exits 0
