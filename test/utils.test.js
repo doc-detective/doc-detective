@@ -58,7 +58,7 @@ describe("Util tests", function () {
           "runTests.js",
           "--input",
           "input.spec.json",
-          "--output",
+          "--output-dir",
           ".",
           "--logLevel",
           "debug",
@@ -67,7 +67,7 @@ describe("Util tests", function () {
         ],
         expected: {
           input: "input.spec.json",
-          output: ".",
+          outputDir: ".",
           logLevel: "debug",
           config: "config.json",
         },

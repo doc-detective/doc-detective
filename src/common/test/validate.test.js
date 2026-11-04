@@ -869,7 +869,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       it("should reject a config_v3 object whose outputDir is not a string", function () {
         const result = validate({
           schemaKey: "config_v3",
-          object: { outputDir: 1 },
+          object: { outputDir: {} },
         });
         expect(result.valid).to.equal(false);
       });
@@ -2694,7 +2694,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.loadVariables).to.equal("./env.json");
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
         expect(result.detectSteps).to.equal(true);
         expect(result.beforeAny).to.equal("./setup.js");
@@ -2713,7 +2713,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
 
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
       });
 
