@@ -1,6 +1,7 @@
 {
   "branches": [
     "main",
+    { "name": "4.x", "range": "4.x", "channel": "release-4.x" },
     { "name": "next", "channel": "next", "prerelease": "next" },
     {
       "name": "feat/**",
@@ -25,6 +26,7 @@
     [
       "@semantic-release/exec",
       {
+        "verifyReleaseCmd": "node scripts/verify-major-release.js ${nextRelease.type} ${branch.prerelease ? 'prerelease' : 'release'}",
         "prepareCmd": "node scripts/sync-common-version.js ${nextRelease.version}"
       }
     ],
