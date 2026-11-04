@@ -1,5 +1,3 @@
-import yargs from "yargs/yargs";
-import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
@@ -12,8 +10,6 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 export {
-  buildYargs,
-  setArgs,
   setConfig,
   outputResults,
   spawnCommand,
@@ -65,126 +61,6 @@ function log(message: any, level: string = "info", config: any = {}) {
       console.log(message);
     }
   }
-}
-
-// Build a yargs instance with the global options shared across all subcommands.
-// Kept as its own export so src/cli.ts can attach .command(...) registrations
-// and route into subcommands, while setArgs() below preserves the legacy
-// no-subcommand parse signature used by test/utils.test.js.
-function buildYargs(args: any): any {
-  return yargs(hideBin(args))
-    .option("config", {
-      alias: "c",
-      description: "Path to a `config.json` or `config.yaml` file.",
-      type: "string",
-    })
-    .option("input", {
-      alias: "i",
-      description:
-        "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-      type: "string",
-    })
-    .option("output", {
-      alias: "o",
-      description:
-        "Path of the directory in which to store the output of Doc Detective commands.",
-      type: "string",
-    })
-    .option("logLevel", {
-      alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
-      type: "string",
-    })
-    .option("allow-unsafe", {
-      description: "Allow execution of potentially unsafe tests",
-      type: "boolean",
-    })
-    .option("dry-run", {
-      alias: "n",
-      description:
-        "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
-      type: "boolean",
-    })
-    .option("reporters", {
-      alias: "r",
-      description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
-      type: "string",
-      array: true,
-    })
-    .option("test", {
-      alias: "t",
-      description:
-        "Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches.",
-      type: "string",
-    })
-    .option("spec", {
-      alias: "s",
-      description:
-        "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
-      type: "string",
-    })
-    .option("hints", {
-      description:
-        "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
-      type: "boolean",
-    })
-    .option("verification", {
-      description:
-        "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
-      type: "string",
-    })
-    .option("auto-screenshot", {
-      description:
-        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
-      type: "boolean",
-    })
-    .option("auto-record", {
-      description:
-        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
-      type: "boolean",
-    })
-    .option("auto-update", {
-      description:
-        "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
-      type: "boolean",
-    })
-    .option("cache-dir", {
-      description:
-        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
-      type: "string",
-    })
-    .option("concurrent-runners", {
-      description:
-        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
-      type: "string",
-    })
-    .option("browser-fallback", {
-      description:
-        "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
-      type: "string",
-    })
-    .option("shell", {
-      description:
-        "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
-      type: "string",
-    })
-    .option("exit-on-fail", {
-      alias: "e",
-      description:
-        "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
-      type: "boolean",
-    })
-    .version(require("../package.json").version)
-    .help()
-    .alias("help", "h");
-}
-
-// Define args
-function setArgs(args: any): any {
-  if (!args) return {};
-  return buildYargs(args).argv;
 }
 
 // Get resolved tests from environment variable, if set
@@ -491,13 +367,16 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       );
     }
   }
-  if (typeof args.concurrentRunners === "string") {
-    // The bare flag ("" after yargs string parsing) and an explicit "true"
-    // select CPU-count mode; anything else must parse as a positive integer.
-    // CLI overrides land after the config_v3 validation above, and the
-    // pre-resolved-tests API path never re-validates, so a garbage value
-    // would otherwise reach the runner as NaN and silently degrade to
-    // sequential execution — warn and keep the validated value instead.
+  if (args.concurrentRunners === true) {
+    // The bare flag selects CPU-count mode.
+    config.concurrentRunners = true;
+  } else if (typeof args.concurrentRunners === "string") {
+    // An empty value and an explicit "true" also select CPU-count mode;
+    // anything else must parse as a positive integer. CLI overrides land after
+    // the config_v3 validation above, and the pre-resolved-tests API path never
+    // re-validates, so a garbage value would otherwise reach the runner as NaN
+    // and silently degrade to sequential execution — warn and keep the validated
+    // value instead.
     if (
       args.concurrentRunners === "" ||
       args.concurrentRunners.toLowerCase() === "true"

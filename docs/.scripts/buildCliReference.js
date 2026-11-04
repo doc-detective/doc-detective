@@ -1,41 +1,21 @@
 // Generates the CLI reference page at fern/pages/reference/cli.mdx from the
 // doc-detective CLI definitions. This page is GENERATED — do not edit it by
-// hand. To change it, update the CLI source (buildYargs() in src/utils.ts, the
-// command modules in src/lsp, src/debug, and src/runtime, and the command
-// registrations in src/cli.ts) or the config_v3 schema, then re-run
+// hand. To change it, update the CLI source (src/cliOptions.ts, the command
+// builders in src/cliProgram.ts, src/lsp, src/debug, and src/runtime) or the
+// config_v3 schema, then re-run `npm run compile` and
 // `npm run docs:build-cli-ref`.
 //
 // Sibling of docs/.scripts/buildSchemaReferencesV4.js (which generates the
-// reference/schemas/*.mdx pages). Like that script it is build-free: it reads
-// the TypeScript sources statically with the compiler API rather than
-// executing the compiled CLI, so it needs no `npm run build` and no heavy
-// runtime import graph. Flag/command metadata comes from the yargs `.option()`
-// and `.command()` descriptors; run-flag defaults come from the committed
-// config_v3 schema bundle (the same source of truth the schema generator uses),
-// because buildYargs() itself declares no `default:` values — the CLI overlays
-// flags onto the schema-validated config, so the schema is where the defaults
-// live.
+// reference/schemas/*.mdx pages). It reads the compiled commander tree from
+// dist/cliProgram.js, so the page can't drift from what the CLI accepts.
+// Run-flag defaults come from the committed config_v3 schema bundle (the same
+// source of truth the schema generator uses), because the CLI declares no flag
+// defaults: it overlays flags onto the schema-validated config.
 
 const fs = require("fs");
 const path = require("path");
-// Pinned TypeScript 6 alias, NOT the `typescript` the repo builds with.
-//
-// TypeScript 7 is the native port: `require("typescript")` resolves to
-// lib/version.cjs and exports only { version, versionMajorMinor }. The
-// syntactic compiler API this script relies on — createSourceFile,
-// forEachChild, the isX type guards — is gone from that entry point. What TS 7
-// offers instead lives under `typescript/unstable/*`: an ESM, project-oriented
-// API that spawns the native binary and has no drop-in for parsing one file
-// into a walkable AST.
-//
-// Rewriting this generator against an explicitly unstable API would risk
-// changing its output, and docs-cli-ref.yml compares the generated page
-// byte-for-byte. Pinning the parser instead keeps the output identical and
-// leaves the repo's own TypeScript free to move.
-const ts = require("typescript-compiler-api");
-
+const { pathToFileURL } = require("url");
 const repoRoot = path.resolve(__dirname, "../..");
-const srcDir = path.join(repoRoot, "src");
 const outputFile = path.resolve(
   __dirname,
   "../fern/pages/reference/cli.mdx"
@@ -99,177 +79,35 @@ function configKeyForFlag(flagName) {
 }
 
 // ---------------------------------------------------------------------------
-// Static AST extraction of yargs `.option()` and `.command()` descriptors.
+// Reading the commander tree.
 // ---------------------------------------------------------------------------
 
-function sourceFile(relPath) {
-  const abs = path.join(srcDir, relPath);
-  const text = fs.readFileSync(abs, "utf8");
-  return ts.createSourceFile(abs, text, ts.ScriptTarget.Latest, true);
+// A commander Option in the shape the tables below render. Hidden options (the
+// `--no-` forms and alternate spellings) aren't documented as rows.
+function readOption(option) {
+  return {
+    name: option.long.replace(/^--/, ""),
+    alias: option.short ? option.short.replace(/^-/, "") : undefined,
+    type: option.isBoolean() ? "boolean" : "string",
+    array: option.variadic,
+    description: option.description,
+    default: option.defaultValue,
+  };
 }
 
-// Evaluate a node as a static literal. Returns undefined for anything that
-// isn't a plain literal (e.g. `require("../package.json").version`), which is
-// how we detect and skip non-static option fields.
-function literalValue(node, sf) {
-  if (!node) return undefined;
-  if (ts.isStringLiteralLike(node)) return node.text;
-  if (ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (ts.isNumericLiteral(node)) return Number(node.text);
-  if (ts.isArrayLiteralExpression(node)) {
-    return node.elements.map((el) => literalValue(el, sf));
-  }
-  return undefined;
+function readOptions(command, { except = new Set() } = {}) {
+  return command.options
+    .filter(
+      (option) =>
+        !option.hidden && option.long !== "--version" && !except.has(option.long)
+    )
+    .map(readOption);
 }
 
-function readObjectLiteral(objNode, sf) {
-  const obj = {};
-  for (const prop of objNode.properties) {
-    if (!ts.isPropertyAssignment(prop)) continue;
-    const key = prop.name.getText(sf).replace(/['"]/g, "");
-    obj[key] = literalValue(prop.initializer, sf);
-  }
-  return obj;
-}
-
-// Collect every `.option(name, {...})` call within a node subtree, preserving
-// declaration order. yargs chains (`.option(a).option(b)`) parse so that the
-// outermost call — the last `.option()` written — is visited first, so we
-// reverse to recover source order.
-function collectOptions(rootNode, sf) {
-  const options = [];
-  function visit(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.getText(sf) === "option" &&
-      node.arguments.length >= 2 &&
-      ts.isObjectLiteralExpression(node.arguments[1])
-    ) {
-      const name = literalValue(node.arguments[0], sf);
-      if (typeof name === "string") {
-        options.push({ name, ...readObjectLiteral(node.arguments[1], sf) });
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(rootNode);
-  return options.reverse();
-}
-
-// Find a top-level function declaration by name.
-function findFunction(sf, name) {
-  let found = null;
-  function visit(node) {
-    if (
-      ts.isFunctionDeclaration(node) &&
-      node.name &&
-      node.name.getText(sf) === name
-    ) {
-      found = node;
-    }
-    if (!found) ts.forEachChild(node, visit);
-  }
-  visit(sf);
+function subcommand(command, name) {
+  const found = command.commands.find((c) => c.name() === name);
+  if (!found) throw new Error(`${name} command not found in the CLI`);
   return found;
-}
-
-// Extract the value of a top-level `command`/`describe` property from an
-// exported CommandModule object literal (e.g. `export const lspCommand = {...}`).
-function extractCommandModule(sf, exportName) {
-  let result = null;
-  function visit(node) {
-    if (ts.isVariableDeclaration(node) && node.name.getText(sf) === exportName) {
-      let init = node.initializer;
-      // Unwrap `{...} as SomeType` if present.
-      while (init && ts.isAsExpression(init)) init = init.expression;
-      if (init && ts.isObjectLiteralExpression(init)) {
-        const obj = readObjectLiteral(init, sf);
-        result = {
-          command: obj.command,
-          describe: obj.describe,
-          options: collectOptions(init, sf),
-        };
-      }
-    }
-    if (!result) ts.forEachChild(node, visit);
-  }
-  visit(sf);
-  return result;
-}
-
-// Extract the run/global flags from buildYargs() in src/utils.ts.
-function extractRunFlags() {
-  const sf = sourceFile("utils.ts");
-  const fn = findFunction(sf, "buildYargs");
-  if (!fn) throw new Error("buildYargs() not found in src/utils.ts");
-  return collectOptions(fn, sf);
-}
-
-// Extract the `install` subcommand names in the order they are registered on
-// the group's builder (`.command(agentsSubcommand).command(runtimeSubcommand)…`
-// in installCommand's builder) — that registration order is the user-facing
-// order in `install --help`, which is what the summary should mirror. Names are
-// resolved from each `const <x>Subcommand = { command: "…" }` declaration. Used
-// only to summarize the group; the full option detail lives on the /install
-// page.
-function extractInstallSubcommands() {
-  const sf = sourceFile("runtime/installCommand.ts");
-
-  function commandWord(commandStr) {
-    // "runtime [packages..]" -> "runtime".
-    return String(commandStr).split(/\s+/)[0];
-  }
-
-  // 1. Map each `<x>Subcommand` declaration to its command word.
-  const declByVar = new Map();
-  function collectDecls(node) {
-    if (
-      ts.isVariableDeclaration(node) &&
-      node.name.getText(sf).endsWith("Subcommand") &&
-      node.initializer
-    ) {
-      let init = node.initializer;
-      while (init && ts.isAsExpression(init)) init = init.expression;
-      if (init && ts.isObjectLiteralExpression(init)) {
-        const obj = readObjectLiteral(init, sf);
-        if (obj.command) {
-          declByVar.set(node.name.getText(sf), commandWord(obj.command));
-        }
-      }
-    }
-    ts.forEachChild(node, collectDecls);
-  }
-  collectDecls(sf);
-
-  // 2. Walk the installCommand builder's `.command(<x>Subcommand)` chain in
-  //    registration (source) order. yargs chains parse outermost-first, so
-  //    reverse to recover the written order.
-  const registered = [];
-  function collectRegistrations(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.getText(sf) === "command" &&
-      node.arguments.length >= 1
-    ) {
-      let arg = node.arguments[0];
-      while (arg && ts.isAsExpression(arg)) arg = arg.expression;
-      if (arg && ts.isIdentifier(arg)) {
-        const word = declByVar.get(arg.getText(sf));
-        if (word) registered.push(word);
-      }
-    }
-    ts.forEachChild(node, collectRegistrations);
-  }
-  collectRegistrations(sf);
-  registered.reverse();
-
-  // 3. Fall back to declaration order if the builder chain couldn't be read.
-  const names = registered.length > 0 ? registered : [...declByVar.values()];
-  return names.map((name) => ({ name }));
 }
 
 // ---------------------------------------------------------------------------
@@ -306,8 +144,8 @@ function descriptionCell(desc) {
     .trim();
 }
 
-// Render a flag's type for the Type column. yargs booleans/strings map
-// directly; an `array: true` string option renders as "string (array)".
+// Render a flag's type for the Type column. A variadic string option renders
+// as "string (array)".
 function typeCell(opt) {
   const base = opt.type || "string";
   return opt.array ? `${base} (array)` : base;
@@ -461,7 +299,7 @@ function buildPage(data) {
     );
   }
 
-  // Editorial cross-links and caveats (not derivable from yargs metadata).
+  // Editorial cross-links and caveats (not derivable from CLI metadata).
   parts.push(
     "Notes on individual flags:",
     "",
@@ -616,26 +454,31 @@ function buildPage(data) {
 // Main.
 // ---------------------------------------------------------------------------
 
-function main() {
+async function main() {
   const configSchema = loadConfigSchema();
 
-  const runFlags = extractRunFlags();
-
-  const lspSf = sourceFile("lsp/command.ts");
-  const lsp = extractCommandModule(lspSf, "lspCommand") || {
-    describe: null,
-    options: [],
-  };
-
-  const debugSf = sourceFile("debug/command.ts");
-  const debug = extractCommandModule(debugSf, "debugCommand") || {
-    describe: null,
-    options: [],
-  };
-
-  const installSubcommands = extractInstallSubcommands().filter(
-    (s) => s.name && s.name !== "install"
+  const { buildProgram } = await import(
+    pathToFileURL(path.join(repoRoot, "dist", "cliProgram.js")).href
   );
+  const program = buildProgram({ runTests: () => {} });
+  const runFlags = readOptions(program);
+  const runFlagNames = new Set(program.options.map((option) => option.long));
+
+  const lspCommand = subcommand(program, "lsp");
+  const lsp = {
+    describe: lspCommand.description(),
+    options: readOptions(lspCommand),
+  };
+
+  // `debug` also accepts the run flags, which are documented once, above.
+  const debugCommand = subcommand(program, "debug");
+  const debug = {
+    describe: debugCommand.description(),
+    options: readOptions(debugCommand, { except: runFlagNames }),
+  };
+
+  const installSubcommands = subcommand(program, "install")
+    .commands.map((command) => ({ name: command.name() }));
 
   const content =
     buildPage({
@@ -655,4 +498,7 @@ function main() {
   );
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

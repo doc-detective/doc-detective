@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import yargs from "yargs/yargs";
+import { Command } from "commander";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -61,12 +61,12 @@ describe("agents registry", function () {
 });
 
 describe("install-agents subcommand arg parsing", function () {
-  let installAgentsCommand;
+  let buildInstallAgentsCommand;
   let capturedArgv;
   let handlerCalled;
 
   before(async function () {
-    ({ installAgentsCommand } = await import("../dist/agents/command.js"));
+    ({ buildInstallAgentsCommand } = await import("../dist/agents/command.js"));
   });
 
   beforeEach(function () {
@@ -76,27 +76,21 @@ describe("install-agents subcommand arg parsing", function () {
 
   function parse(args) {
     // Replace handler with a capturing spy so we never actually run install logic.
-    const spyCommand = {
-      ...installAgentsCommand,
-      handler: (argv) => {
-        handlerCalled = true;
-        capturedArgv = argv;
-      },
-    };
-    return yargs([])
-      .command(spyCommand)
-      .strict()
-      .fail((msg, err) => {
-        // Surface yargs failures as thrown errors for assertion.
-        throw err || new Error(msg);
-      })
-      .parseAsync(args);
+    const silent = { writeErr: () => {}, writeOut: () => {} };
+    const spyCommand = buildInstallAgentsCommand("install-agents", (argv) => {
+      handlerCalled = true;
+      capturedArgv = argv;
+    })
+      .exitOverride()
+      .configureOutput(silent);
+    const program = new Command().exitOverride().configureOutput(silent);
+    program.addCommand(spyCommand);
+    return program.parseAsync(args, { from: "user" });
   }
 
-  it("exposes a yargs CommandModule with the 'install-agents' command", function () {
-    assert.equal(installAgentsCommand.command, "install-agents");
-    assert.equal(typeof installAgentsCommand.handler, "function");
-    assert.equal(typeof installAgentsCommand.builder, "function");
+  it("builds a command named for its mount point", function () {
+    assert.equal(buildInstallAgentsCommand("install-agents").name(), "install-agents");
+    assert.equal(buildInstallAgentsCommand("agents").name(), "agents");
   });
 
   it("parses --agent, --scope, --yes correctly", async function () {

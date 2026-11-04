@@ -1,7 +1,7 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
 import { shouldFailRun } from "./core/utils.js";
+import { CommanderError } from "commander";
 import {
-  buildYargs,
   setConfig,
   outputResults,
   setMeta,
@@ -12,12 +12,9 @@ import {
   reportResults,
   isDebugRequested,
 } from "./utils.js";
-import { installAgentsCommand } from "./agents/command.js";
+import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
-import { installCommand } from "./runtime/installCommand.js";
-import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
-import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -28,48 +25,29 @@ const cliRequire = createRequire(import.meta.url);
 // Run
 setMeta();
 main(processArgv).catch((err) => {
-  // yargs' .fail handler prints usage + message; this catches anything that
-  // escapes (including our rethrown errors) so the process exits non-zero.
+  // Catches anything main() rethrows, so the process exits non-zero.
   // c8 ignore: the `?? err` / `|| err` fallback branches (err nullish, or a
   // non-Error thrown value without a `.message`) are structurally dead under
-  // every current throw site — setConfig() always rejects with a real Error,
-  // and the yargs `.fail` handler in main() always does `throw new
-  // Error(msg)` — so `err` here is always a real Error with a non-empty
-  // `.message`. Defensive fallback for future throw sites, not reachable today.
+  // every current throw site — setConfig() always rejects with a real Error —
+  // so `err` here is always a real Error with a non-empty `.message`. Defensive
+  // fallback for future throw sites, not reachable today.
   console.error(err?.message || err); /* c8 ignore line - defensive fallback for a non-Error/nullish rejection; unreachable under every current throw site (see comment above) */
   process.exit(1);
 });
 
 async function main(argv: string[]) {
-  await buildYargs(argv)
-    .command({
-      command: "$0",
-      describe: "Run Doc Detective tests (default).",
-      handler: runTestsHandler,
-    })
-    .command({
-      // Preserved for back-compat with the `runTests` npm script and any
-      // existing CI invocations. Runs the same handler as the default.
-      command: "runTests",
-      describe: false,
-      handler: runTestsHandler,
-    })
-    // Hidden alias kept for back-compat with existing scripts and docs:
-    // `doc-detective install-agents` still works, undocumented, and delegates
-    // to the same implementation as `doc-detective install agents`.
-    .command({ ...installAgentsCommand, describe: false } as any)
-    .command(installCommand as any)
-    .command(lspCommand as any)
-    .command(debugCommand)
-    .strict()
-    .demandCommand(0)
-    // Suppress yargs' default help-dump on failure; surface the concrete error
-    // message instead. The top-level .catch() prints it and sets exit code.
-    .fail((msg: string, err: Error | undefined) => {
-      if (err) throw err;
-      throw new Error(msg);
-    })
-    .parseAsync();
+  try {
+    await buildProgram({ runTests: runTestsHandler }).parseAsync(argv);
+  } catch (err) {
+    // exitOverride makes commander throw on every terminating condition,
+    // including --help and --version. Commander has already written any message.
+    // process.exitCode, not process.exit(), so queued stderr writes still flush.
+    if (err instanceof CommanderError) {
+      process.exitCode = err.exitCode;
+      return;
+    }
+    throw err;
+  }
 }
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.

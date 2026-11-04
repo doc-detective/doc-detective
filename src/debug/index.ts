@@ -71,7 +71,7 @@ export interface PrintDebugOptions {
    */
   outDir?: string;
   /**
-   * The raw parsed CLI args (yargs argv). Used only by the Config provenance
+   * The raw parsed CLI args. Used only by the Config provenance
    * section to report which flags overrode the validated config. Optional so
    * unit tests can call `printDebug` without synthesizing argv.
    */

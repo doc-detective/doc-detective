@@ -3021,9 +3021,9 @@ describe("hints CLI wiring", function () {
   //      resolves through the compiled dist/ tree (no broken type or
   //      ESM-extension issue).
   //   2. The --hints / --no-hints flag is actually registered on the
-  //      yargs builder used by the bin entry point (not just on a stale
+  //      command tree used by the bin entry point (not just on a stale
   //      copy in dist/).
-  //   3. yargs accepts --no-hints without erroring out.
+  //   3. the parser accepts --no-hints without erroring out.
   //
   // We don't run an actual test spec — that would slow this suite down a
   // lot for a marginal extra signal. The maybeShowHint logic is fully
@@ -3039,7 +3039,7 @@ describe("hints CLI wiring", function () {
   });
 
   it("accepts --no-hints without erroring (parses through to runTests)", function () {
-    // We just want to confirm yargs accepts the flag. Pass --version too so
+    // We just want to confirm the parser accepts the flag. Pass --version too so
     // we exit before doing any actual work.
     const r = spawnSync(process.execPath, [CLI, "--no-hints", "--version"], {
       encoding: "utf8",

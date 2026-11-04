@@ -46,8 +46,8 @@ RUN apt-get update \
 # predates the auto-install.
 #
 # Detect whether the installed CLI has the new `install <subcommand>`
-# surface by grepping for it in the root `--help` output. yargs always
-# exits 0 from `--help` regardless of whether a subcommand exists, so
+# surface by grepping for it in the root `--help` output. Older versions
+# exit 0 from `--help` regardless of whether a subcommand exists, so
 # `install --help` isn't a useful availability probe; matching the
 # command line in root help text IS reliable. Real `install all`
 # failures (transient npm errors, partial cache writes) then propagate
@@ -69,7 +69,7 @@ RUN if ls /tmp/local-package/*.tgz >/dev/null 2>&1; then \
     else \
       npm install -g doc-detective@$PACKAGE_VERSION; \
     fi \
-    && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
+    && if doc-detective --help 2>&1 | grep -qE "^[[:space:]]*(doc-detective(\.js)? )?install "; then \
          doc-detective install all --yes; \
        else \
          echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \

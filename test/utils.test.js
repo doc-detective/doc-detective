@@ -1,4 +1,5 @@
-import { setArgs, setConfig, outputResults, reporters } from "../dist/utils.js";
+import { setConfig, outputResults, reporters } from "../dist/utils.js";
+import { setArgs } from "../dist/cliOptions.js";
 import {
   appendQueryParams,
   compileFilter,
@@ -20,11 +21,11 @@ before(async function () {
 
 describe("Util tests", function () {
   // Test that arguments are parsed correctly
-  it("Yargs parses arguments correctly", function () {
+  it("CLI parses arguments correctly", function () {
     const argSets = [
       {
         args: ["node", "runTests.js", "--input", "input.spec.json"],
-        expected: { i: "input.spec.json" },
+        expected: { input: "input.spec.json" },
       },
       {
         args: [
@@ -35,7 +36,7 @@ describe("Util tests", function () {
           "--logLevel",
           "debug",
         ],
-        expected: { i: "input.spec.json", l: "debug" },
+        expected: { input: "input.spec.json", logLevel: "debug" },
       },
       {
         args: [
@@ -49,7 +50,7 @@ describe("Util tests", function () {
           "config.json",
         ],
 
-        expected: { i: "input.spec.json", l: "debug", c: "config.json" },
+        expected: { input: "input.spec.json", logLevel: "debug", config: "config.json" },
       },
       {
         args: [
@@ -65,10 +66,10 @@ describe("Util tests", function () {
           "config.json",
         ],
         expected: {
-          i: "input.spec.json",
-          o: ".",
-          l: "debug",
-          c: "config.json",
+          input: "input.spec.json",
+          output: ".",
+          logLevel: "debug",
+          config: "config.json",
         },
       },
       {
@@ -80,7 +81,7 @@ describe("Util tests", function () {
           "--allow-unsafe",
         ],
         expected: {
-          i: "input.spec.json",
+          input: "input.spec.json",
           allowUnsafe: true,
         },
       },
@@ -90,14 +91,12 @@ describe("Util tests", function () {
     });
   });
 
-  it("Yargs parses --test and --spec arguments correctly", function () {
+  it("CLI parses --test and --spec arguments correctly", function () {
     const test = setArgs(["node", "runTests.js", "--test", "foo,bar"]);
     expect(test.test).to.equal("foo,bar");
-    expect(test.t).to.equal("foo,bar");
 
     const spec = setArgs(["node", "runTests.js", "--spec", "baz"]);
     expect(spec.spec).to.equal("baz");
-    expect(spec.s).to.equal("baz");
 
     const aliasedTest = setArgs(["node", "runTests.js", "-t", "abc"]);
     expect(aliasedTest.test).to.equal("abc");
@@ -106,7 +105,7 @@ describe("Util tests", function () {
     expect(aliasedSpec.spec).to.equal("xyz");
   });
 
-  it("Yargs parses --dry-run as a boolean", function () {
+  it("CLI parses --dry-run as a boolean", function () {
     const on = setArgs(["node", "runTests.js", "--dry-run"]);
     expect(on.dryRun).to.equal(true);
 
@@ -119,15 +118,13 @@ describe("Util tests", function () {
     // -n alias
     const aliased = setArgs(["node", "runTests.js", "-n"]);
     expect(aliased.dryRun).to.equal(true);
-    expect(aliased.n).to.equal(true);
   });
 
-  it("Yargs parses --reporters argument correctly", function () {
+  it("CLI parses --reporters argument correctly", function () {
     const single = setArgs([
       "node", "runTests.js", "--reporters", "html",
     ]);
     expect(single.reporters).to.deep.equal(["html"]);
-    expect(single.r).to.deep.equal(["html"]);
 
     const multiple = setArgs([
       "node", "runTests.js", "--reporters", "terminal", "json", "html",
@@ -342,7 +339,7 @@ describe("Util tests", function () {
     expect(configAbsent.verification).to.deep.equal({ write: "existing" });
   });
 
-  it("Yargs parses --auto-update / --no-auto-update as boolean", function () {
+  it("CLI parses --auto-update / --no-auto-update as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-update"]);
     expect(on.autoUpdate).to.equal(true);
 
@@ -370,7 +367,7 @@ describe("Util tests", function () {
     expect(configAbsent.autoUpdate).to.equal(true);
   });
 
-  it("Yargs parses --exit-on-fail / --no-exit-on-fail as boolean", function () {
+  it("CLI parses --exit-on-fail / --no-exit-on-fail as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--exit-on-fail"]);
     expect(on.exitOnFail).to.equal(true);
 
@@ -420,7 +417,7 @@ describe("Util tests", function () {
     }
   });
 
-  it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
+  it("CLI parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     expect(on.autoScreenshot).to.equal(true);
 
@@ -448,7 +445,7 @@ describe("Util tests", function () {
     expect(configAbsent.autoScreenshot).to.equal(false);
   });
 
-  it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
+  it("CLI parses --auto-record / --no-auto-record as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-record"]);
     expect(on.autoRecord).to.equal(true);
 
@@ -476,7 +473,7 @@ describe("Util tests", function () {
     expect(configAbsent.autoRecord).to.equal(false);
   });
 
-  it("Yargs parses --cache-dir as a string", function () {
+  it("CLI parses --cache-dir as a string", function () {
     const set = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
     expect(set.cacheDir).to.equal("/tmp/ddc");
 
@@ -496,7 +493,7 @@ describe("Util tests", function () {
     expect(configAbsent.cacheDir).to.equal(undefined);
   });
 
-  it("Yargs parses --browser-fallback as a string", function () {
+  it("CLI parses --browser-fallback as a string", function () {
     const set = setArgs(["node", "runTests.js", "--browser-fallback", "off"]);
     expect(set.browserFallback).to.equal("off");
 
@@ -526,14 +523,13 @@ describe("Util tests", function () {
     expect(config.browserFallback).to.equal("auto");
   });
 
-  it("Yargs parses --concurrent-runners as a string (bare flag yields empty string)", function () {
+  it("CLI parses --concurrent-runners as a string (bare flag yields true)", function () {
     const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
     expect(numeric.concurrentRunners).to.equal("4");
 
-    // Bare flag — string-typed options yield "" so the CPU-count mode is
-    // distinguishable from an absent flag.
+    // Bare flag — distinguishable from an absent flag, for CPU-count mode.
     const bare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
-    expect(bare.concurrentRunners).to.equal("");
+    expect(bare.concurrentRunners).to.equal(true);
 
     const absent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(absent.concurrentRunners).to.equal(undefined);

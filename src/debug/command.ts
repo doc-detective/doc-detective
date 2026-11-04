@@ -1,4 +1,5 @@
-import type { CommandModule } from "yargs";
+import { Command } from "commander";
+import { addRunOptions, cliArgv } from "../cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -16,18 +17,23 @@ export interface DebugArgv {
 // `--include-env` opts into the full `process.env` dump (still redacted
 // by name AND by value shape). Without it, the dump only lists env
 // vars referenced via `$VAR` in config or input files.
-export const debugCommand: CommandModule<{}, DebugArgv> = {
-  command: "debug",
-  describe:
-    "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests.",
-  builder: (yargs) =>
-    yargs.option("include-env", {
-      type: "boolean",
-      default: false,
-      describe:
-        "Also dump the full process.env (redacted by name and value shape). Off by default to avoid leaking PaaS-injected credentials (DATABASE_URL, Sentry DSN, webhooks).",
-    }) as unknown as import("yargs").Argv<DebugArgv>,
-  handler: async (args) => {
+export function buildDebugCommand(): Command {
+  // `debug` accepts the run flags so its config provenance can report them.
+  return addRunOptions(new Command("debug"))
+    .description(
+      "Print diagnostic information about the runtime environment (OS, Doc Detective version, tool versions, browsers, referenced env vars) and exit without running tests."
+    )
+    .option(
+      "--include-env",
+      "Also dump the full process.env (redacted by name and value shape). Off by default to avoid leaking PaaS-injected credentials (DATABASE_URL, Sentry DSN, webhooks).",
+      false
+    )
+    .action(async (_options, command: Command) => {
+      await debugHandler(cliArgv(command) as DebugArgv);
+    });
+}
+
+export const debugHandler = async (args: DebugArgv): Promise<void> => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
     const { setConfig } = await import("../utils.js");
     const { printDebug, defaultDebugDir } = await import("./index.js");
@@ -95,5 +101,4 @@ export const debugCommand: CommandModule<{}, DebugArgv> = {
       outDir,
       args,
     });
-  },
 };

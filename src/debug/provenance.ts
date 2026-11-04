@@ -10,7 +10,7 @@
 
 export interface CliOverride {
   // The CLI flag spelling (without leading dashes) as declared in
-  // buildYargs — e.g. "dry-run", "cache-dir", "logLevel".
+  // addRunOptions — e.g. "dry-run", "cache-dir", "logLevel".
   flag: string;
   // The config key it overrides after validation.
   configKey: string;
@@ -61,9 +61,9 @@ function concurrentRunnersPresent(value: unknown): boolean {
   return Number.isInteger(count) && count >= 1;
 }
 
-// The CLI overrides setConfig() applies. `flag` is the declared yargs option
-// name (what the user types); `argKey` is the camelCased property yargs
-// exposes on argv; `configKey` is where it lands after validation. The
+// The CLI overrides setConfig() applies. `flag` is the declared option
+// name (what the user types); `argKey` is the camelCased property the
+// parser exposes; `configKey` is where it lands after validation. The
 // `present` guard mirrors the exact check in the corresponding setConfig
 // override block so this report can't claim an override setConfig skipped.
 //

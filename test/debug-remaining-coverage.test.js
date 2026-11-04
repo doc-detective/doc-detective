@@ -38,7 +38,7 @@ import { ChildProcess } from "node:child_process";
 import sinon from "sinon";
 
 import { printDebug } from "../dist/debug/index.js";
-import { debugCommand } from "../dist/debug/command.js";
+import { debugHandler } from "../dist/debug/command.js";
 import { collectAppiumDiagnostics } from "../dist/debug/appium.js";
 import { collectCacheStatus } from "../dist/debug/cache.js";
 import { collectInstallStatus } from "../dist/debug/install.js";
@@ -1290,12 +1290,12 @@ describe("debug/* remaining coverage", function () {
   // -------------------------------------------------------------------
   //
   // debug.test.js's "debug CLI smoke test" suite already exercises
-  // `debugCommand.handler` end-to-end, but only via `spawnSync` on a
+  // `debugHandler` end-to-end, but only via `spawnSync` on a
   // separate `bin/doc-detective.js` child process — c8/V8 coverage isn't
   // propagated across that process boundary (no NODE_V8_COVERAGE wiring
   // in this repo's test setup), so the handler's own statements/branches
   // show as uncovered despite being exercised by a real, working smoke
-  // test. Calling `debugCommand.handler(...)` directly, in-process,
+  // test. Calling `debugHandler(...)` directly, in-process,
   // exercises the identical code with full coverage visibility.
   describe("command.ts", function () {
     async function runHandler(cwd, args) {
@@ -1310,7 +1310,7 @@ describe("debug/* remaining coverage", function () {
         lines.push(String(line));
       };
       try {
-        await debugCommand.handler(args);
+        await debugHandler(args);
         return { text: lines.join("\n"), exitCode: process.exitCode };
       } finally {
         console.log = originalLog;

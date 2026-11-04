@@ -263,10 +263,10 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("an unknown flag triggers the yargs .fail handler and exits non-zero", function () {
+  it("an unknown flag is rejected and exits non-zero", function () {
     const r = runCli(["--definitelyNotAFlag", "x"]);
     assert.notEqual(r.status, 0);
-    assert.match(r.stderr + r.stdout, /Unknown argument|definitelyNotAFlag/i);
+    assert.match(r.stderr + r.stdout, /unknown option|definitelyNotAFlag/i);
   });
 
   it("discovers a .doc-detective.json config from the cwd when no --config is given", function () {
@@ -281,8 +281,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       );
       const r = runCli(["--logLevel", "silent"], { cwd: dir });
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -302,8 +302,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       // Either resolves nothing (exit 0) — the point is the yaml branch ran
       // without an "Unknown"/parse crash.
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -320,8 +320,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       );
       const r = runCli(["--logLevel", "silent"], { cwd: dir });
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });

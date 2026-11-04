@@ -35,7 +35,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 # `install all` subcommand — see linux.Dockerfile for the rationale.
 #
 # Detect the new CLI surface by grepping root `--help` for the
-# `install <subcommand>` line. yargs always exits 0 from `--help`
+# `install` line. Older versions exit 0 from `--help`
 # regardless of which subcommand was named, so an exit-code probe
 # (`install --help` then `$LASTEXITCODE`) doesn't actually distinguish
 # old from new — content-based detection does. PowerShell's
@@ -60,7 +60,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
     }; \
     if ($LASTEXITCODE -ne 0) { throw "npm install -g doc-detective failed with exit code $LASTEXITCODE" }; \
     $help = (doc-detective --help 2>&1 | Out-String); \
-    if ($help -match 'install <subcommand>') { \
+    if ($help -match '(?m)^\s*(doc-detective(\.js)?\s+)?install\s') { \
       doc-detective install all --yes; \
       if ($LASTEXITCODE -ne 0) { throw "doc-detective install all failed with exit code $LASTEXITCODE" } \
     } else { \
