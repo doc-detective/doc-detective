@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A rule-by-rule review of the `doc-detective` 4.41.5 CLI against the
-[Command Line Interface Guidelines](https://clig.dev/) found 43 rules met, 52 partly met, 32 missed,
-and 8 not applicable. The most harmful gaps:
+We reviewed the `doc-detective` 4.41.5 CLI rule by rule against the
+[Command Line Interface Guidelines](https://clig.dev/). It met 43 rules, partly met 52, and missed 32,
+and 8 didn't apply. The most harmful gaps:
 
 - A run that tests nothing exits `0`, even with `--exit-on-fail`.
 - Failing tests exit `0` by default, by the choice recorded in
@@ -127,13 +127,13 @@ runtime, so the CLI reference generator no longer parses source code.
 - Good: new subcommands inherit the same flags and exit codes.
 - Bad: every asset we control must move in lockstep at GA, which raises coordination risk.
 - Bad: workflows pinned exactly to Action v1.6.1 or earlier on the default `latest` get CLI 5 with no
-  shim, so a failing test goes red and skips their results, issue, and PR steps.
+  shim. A failing test then goes red and skips their results, issue, and PR steps.
 - Bad: a long-lived RC branch has to be rebased while main keeps shipping 4.x.
 
 ### Confirmation
 
 - `test/cli-contract.test.js` spawns the real CLI and asserts exit code, stdout, stderr, and escape
-  sequences for each row of this contract, plus golden help text and the book commands.
+  sequences for each row of this contract. It also checks golden help text and the book commands.
 - Every registered command must pass `--help`, reject foreign flags, and honor `--json`.
 - Rerunning the clig review leaves only the departures above and the items deferred to 5.x.
 

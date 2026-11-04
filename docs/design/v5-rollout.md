@@ -85,7 +85,7 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 
 **No legacy Action shim.** The moving `v1` tag gets v1.7, which defaults to CLI 4 and refuses `version`
 5 or later with a pointer to `@v2`. Workflows pinned exactly to v1.6.1 or earlier on the default
-`latest` get CLI 5 with no protection (see the [compatibility table](#compatibility)), and the migration
+`latest` get CLI 5 with no protection (see the [compatibility table](#compatibility)). The migration
 guide covers them.
 
 **Implementation note.** The Phase 1 notice needs to know whether the user set `exitOnFail`. AJV fills
@@ -421,9 +421,9 @@ The same applies to `release-4.x`.
 **Contents:**
 
 1. The ADR 01146 contract, in steps, each as a PR into `feat/v5-rc` merged with `gh pr merge --merge`.
-   The parser swap from yargs to commander lands first, with no behavior change. Every breaking commit
-   carries its own footer, so the 5.0.0 notes list each one, and the footers have to stay in history at
-   merge (see the [GA runbook](#phase-3-ga-runbook)):
+   The parser swap from yargs to commander lands first. Every breaking commit carries its own footer,
+   so the 5.0.0 notes list each one. The footers have to stay in history at merge (see the
+   [GA runbook](#phase-3-ga-runbook)):
 
    ```text
    feat(cli)!: fail the run when tests fail

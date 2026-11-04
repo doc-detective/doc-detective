@@ -1,7 +1,7 @@
 # First-class GitLab CI support
 
 **Status:** accepted as a component-first design, with the key decisions settled in §9. **Phase 1, `exitOnFail` and `--exit-on-fail`, is implemented** and disabled by default. Phases 2–4 are pending. Per-primitive ADRs follow at implementation
-**Superseded in part:** [ADR 01146](../../adrs/01146-cli-v5-contract.md) changes three things for 5.0: failing tests exit `1` by default, crashes and setup errors exit `2`, and the parser moves to commander. The default and exit-code decisions in §4.1 describe 4.x. Build the component on the 5.0 contract, with no need to pass `--exit-on-fail`.
+**Superseded in part:** [ADR 01146](../../adrs/01146-cli-v5-contract.md) changes three things for 5.0. Failing tests exit `1` by default, and crashes and setup errors exit `2`. The parser also moves to commander. The default and exit-code decisions in §4.1 describe 4.x. Build the component on the 5.0 contract, with no need to pass `--exit-on-fail`.
 **Date:** 2026-07-15
 **Owners:** doc-detective maintainers
 **Related:** [GitHub Action](https://github.com/doc-detective/github-action), `docs/fern/pages/docs/ci/github-action.mdx`, `docs/fern/pages/docs/ci/reporters-and-artifacts.mdx`, `docs/content-strategy/information-architecture.md` (Priya track, CUJ P1)
