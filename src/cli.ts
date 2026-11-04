@@ -189,10 +189,12 @@ async function runTestsHandler(args: any) {
   ) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
-    // helper so config.logLevel is respected. Map "warn" → "warning".
+    // level check so config.logLevel is respected. Map "warn" → "warning". These
+    // lines go to stderr because a major-version notice would otherwise corrupt
+    // --dry-run JSON on stdout.
     const cliLogger = (msg: string, level: string = "info") => {
       const mapped = level === "warn" ? "warning" : level;
-      log(msg, mapped, config);
+      if (logLevelEnabled(mapped, config)) console.error(msg);
     };
     const currentVersion: string = cliRequire("../package.json").version;
     // Kick off the registry check now, concurrently with the detection /

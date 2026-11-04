@@ -96,14 +96,18 @@ function comparePrereleaseId(a: string, b: string): number {
   return 0;
 }
 
+function majorOf(version: string): number {
+  return parseInt(version.split(".")[0], 10) || 0;
+}
+
 export interface CheckResult {
   latest: string | null;
   newer: boolean;
 }
 
 /**
- * Hit the npm registry for the dist-tag.latest of `doc-detective`. Bounded
- * by a 3 s timeout. Any failure — network, parse, semver, anything —
+ * Hit the npm registry for the dist-tag.latest of `doc-detective`, never
+ * crossing a major version (ADR 01147). Bounded by a 3 s timeout. Any failure — network, parse, semver, anything —
  * yields { newer: false } and a debug-level log; we never let a registry
  * hiccup block the run.
  */
@@ -117,10 +121,29 @@ export async function checkForUpdate(
   };
   try {
     const res = await http.get(REGISTRY_URL, { timeout: REGISTRY_TIMEOUT_MS });
-    const latest: string | undefined = res?.data?.["dist-tags"]?.latest;
+    const tags = res?.data?.["dist-tags"];
+    const latest: string | undefined = tags?.latest;
     if (typeof latest !== "string" || latest.length === 0) {
       logger("registry response missing dist-tags.latest; skipping self-update", "debug");
       return { latest: null, newer: false };
+    }
+    const currentMajor = majorOf(currentVersion);
+    if (majorOf(latest) > currentMajor) {
+      // A new major has breaking changes, so moving to it is the user's call. Stay
+      // current within this major through its maintenance tag, if it has one.
+      logger(
+        `Doc Detective ${majorOf(latest)} is available. Upgrade when you're ready: npm i doc-detective@${majorOf(latest)}`,
+        "info"
+      );
+      const maintenance: unknown = tags[`release-${currentMajor}.x`];
+      if (
+        typeof maintenance === "string" &&
+        majorOf(maintenance) === currentMajor &&
+        compareVersions(maintenance, currentVersion) > 0
+      ) {
+        return { latest: maintenance, newer: true };
+      }
+      return { latest, newer: false };
     }
     return { latest, newer: compareVersions(latest, currentVersion) > 0 };
   } catch (err) {
@@ -180,7 +203,7 @@ export async function selfUpdate(
 
   if (mode === "local" || mode === "unknown") {
     logger(
-      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@latest\` in this project to upgrade.`,
+      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@${latestVersion}\` in this project to upgrade.`,
       "info"
     );
     return { updated: false, reexec: false };

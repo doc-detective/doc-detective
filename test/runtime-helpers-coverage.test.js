@@ -526,6 +526,75 @@ describe("runtime helpers extra coverage", function () {
       }
     });
 
+    describe("checkForUpdate major-version guard", function () {
+      async function check(current, distTags) {
+        const logs = [];
+        const res = await checkForUpdate(current, {
+          logger: (msg) => logs.push(msg),
+          http: { get: async () => ({ data: { "dist-tags": distTags } }) },
+        });
+        return { res, logs: logs.join("\n") };
+      }
+
+      it("updates to a newer latest within the same major", async function () {
+        const { res, logs } = await check("4.41.5", { latest: "4.42.0" });
+        expect(res).to.deep.equal({ latest: "4.42.0", newer: true });
+        expect(logs).to.equal("");
+      });
+
+      it("doesn't update when latest isn't newer", async function () {
+        const { res } = await check("4.41.5", { latest: "4.41.5" });
+        expect(res).to.deep.equal({ latest: "4.41.5", newer: false });
+      });
+
+      it("newer major without a maintenance tag: stays put and names the upgrade command", async function () {
+        const { res, logs } = await check("4.41.5", { latest: "5.0.0" });
+        expect(res.newer).to.equal(false);
+        expect(logs).to.include("npm i doc-detective@5");
+      });
+
+      it("newer major with a newer maintenance tag: updates through the tag", async function () {
+        const { res, logs } = await check("4.41.5", { latest: "5.0.0", "release-4.x": "4.41.6" });
+        expect(res).to.deep.equal({ latest: "4.41.6", newer: true });
+        expect(logs).to.include("npm i doc-detective@5");
+      });
+
+      it("newer major with a maintenance tag that isn't newer: stays put", async function () {
+        const { res } = await check("4.41.6", { latest: "5.0.0", "release-4.x": "4.41.6" });
+        expect(res.newer).to.equal(false);
+      });
+
+      it("never crosses a major through a maintenance tag that holds another major", async function () {
+        const { res } = await check("4.41.5", { latest: "5.0.0", "release-4.x": "5.0.1" });
+        expect(res.newer).to.equal(false);
+      });
+
+      it("a prerelease of a newer major counts as crossing", async function () {
+        const { res, logs } = await check("4.41.5", { latest: "5.0.0-rc.1" });
+        expect(res.newer).to.equal(false);
+        expect(logs).to.include("npm i doc-detective@5");
+      });
+
+      it("a 4.x prerelease doesn't cross to 5.0.0, but takes a newer stable 4.x tag", async function () {
+        const { res } = await check("4.42.0-next.1", { latest: "5.0.0", "release-4.x": "4.42.0" });
+        expect(res).to.deep.equal({ latest: "4.42.0", newer: true });
+      });
+
+      it("a 5.x prerelease doesn't move back to a 4.x latest", async function () {
+        const { res, logs } = await check("5.0.0-rc.1", { latest: "4.41.6" });
+        expect(res.newer).to.equal(false);
+        expect(logs).to.equal("");
+      });
+    });
+
+    it("selfUpdate local mode names the exact version, never @latest", async function () {
+      const logs = [];
+      const res = await selfUpdate("4.41.6", "local", { logger: (msg) => logs.push(msg) });
+      expect(res.updated).to.equal(false);
+      expect(logs.join("\n")).to.include("npm i doc-detective@4.41.6");
+      expect(logs.join("\n")).to.not.include("@latest");
+    });
+
     it("checkForUpdate uses the default axios http client (no injected http) and degrades gracefully offline", async function () {
       // No http injected → the module falls back to axios.get(REGISTRY_URL).
       // We stub axios so nothing hits the network: force a rejection and assert
