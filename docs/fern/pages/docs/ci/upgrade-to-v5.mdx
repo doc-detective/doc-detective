@@ -175,6 +175,8 @@ These still work, and each prints a warning on stderr. Replace them when you can
 
 **What changed:** Action `@v2` runs CLI 5. Its `version` input defaults to `5`, `exit_on_fail` defaults to `true`, and it removes the `ios` input. Exit code `2` always fails the job, whatever `exit_on_fail` says. The moving `@v1` tag stays on CLI 4 and refuses `version` 5 or later.
 
+Action `@v2` also writes the results file, the run folder, and reporter files to the runner's temporary directory, overriding any `outputDir` in your config. It drops the undocumented `issueUrl` output, so read `issue_url` instead.
+
 Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
 
 **What to do:**
@@ -187,6 +189,7 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
 
 2. For your first run, set `exit_on_fail: false` while you triage existing failures. Remove it to turn the gate on.
 3. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
+4. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 
