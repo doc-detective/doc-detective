@@ -408,6 +408,9 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	// it through both functions so the CLI's view of the filesystem
 	// can't drift from where the runner actually wrote specs/output.
 	effective.outputDir = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	// Also the results file, so a repository's own config can't write outside the
+	// workspace: this config overlays it.
+	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR, 'testResults.json');
 	if (source.type === 'inline') {
 		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}

@@ -92,11 +92,7 @@ The `install` command group manages Doc Detective's lazy-installed runtime asset
 
 ### lsp
 
-Start the language server over stdio, for editors and AI agents. You normally
-don't run this yourself: your editor or agent starts it. Press Ctrl-C to stop.
-
-Examples:
-  doc-detective lsp
+Start the language server over stdio, for editors and AI agents. You normally don't run this yourself: your editor or agent starts it. Press Ctrl-C to stop.
 
 This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).
 
@@ -117,14 +113,7 @@ npx doc-detective lsp
 
 ### debug
 
-Print diagnostics about your system, install, and config, without running
-tests. Secrets are redacted on a best-effort basis, so review the output before
-sharing it.
-
-Examples:
-  doc-detective debug                   Print diagnostics
-  doc-detective debug --json            Print diagnostics as JSON
-  doc-detective debug -c ci.config.json Check a specific config
+Print diagnostics about your system, install, and config, without running tests. Secrets are redacted on a best-effort basis, so review the output before sharing it.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

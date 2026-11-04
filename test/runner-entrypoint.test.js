@@ -219,6 +219,7 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { type: "github", repo: "x/y", ref: "main" }
     );
     assert.equal(cfg.outputDir, "/workspace/output");
+    assert.equal(cfg.output, "/workspace/output/testResults.json");
     assert.equal(cfg.input, "docs/"); // user's input preserved for github sources
     assert.deepEqual(cfg.reporters, ["json"]);
   });

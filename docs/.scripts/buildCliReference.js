@@ -144,9 +144,7 @@ function readOptions(command, { except = new Set() } = {}) {
 // A command's help description, without the examples and line breaks that are
 // laid out for a terminal.
 function prose(description) {
-  return description.split(/
-s*Examples:/)[0].replace(/s*
-s*/g, " ").trim();
+  return description.split(/\n\s*Examples:/)[0].replace(/\s*\n\s*/g, " ").trim();
 }
 
 function subcommand(command, name) {
