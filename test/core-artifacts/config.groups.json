@@ -1,6 +1,6 @@
 {
   "input": ".",
-  "output": ".",
+  "outputDir": ".",
   "recursive": true,
   "logLevel": "debug",
   "relativePathBase": "file",

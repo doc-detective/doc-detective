@@ -728,16 +728,16 @@ describe("utils.ts coverage", function () {
       assert.equal(out, null);
     });
 
-    it("exits(1) when the API config is missing required fields", async function () {
+    it("exits(2) when the API config is missing required fields", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({ url: "http://x" });
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
-      assert.equal(exitStub.firstCall.args[0], 1);
+      assert.equal(exitStub.firstCall.args[0], 2);
     });
 
-    it("exits(1) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
+    it("exits(2) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = "{not json";
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
@@ -745,7 +745,7 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
     });
 
-    it("exits(1) when the fetched resolvedTests fail schema validation", async function () {
+    it("exits(2) when the fetched resolvedTests fail schema validation", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
@@ -762,7 +762,7 @@ describe("utils.ts coverage", function () {
       assert.ok(axios.get.firstCall.args[0].endsWith("/resolved-tests"));
     });
 
-    it("exits(1) when axios rejects (network error)", async function () {
+    it("exits(2) when axios rejects (network error)", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",

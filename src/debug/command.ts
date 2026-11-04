@@ -89,7 +89,7 @@ export const debugHandler = async (args: DebugArgv): Promise<void> => {
       // Config is broken — exit non-zero so scripts/CI that gate on the
       // exit code don't treat a CONFIG INVALID dump as success. Mirrors
       // the DOC_DETECTIVE_DEBUG env-var path in cli.ts.
-      process.exitCode = 1;
+      process.exitCode = 2;
       return;
     }
     await printDebug({

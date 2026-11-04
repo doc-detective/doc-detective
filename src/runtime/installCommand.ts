@@ -107,7 +107,7 @@ const runtimeSubcommand: InstallSubcommand = {
           `Unknown runtime package(s): ${unknown.join(", ")}. Supported names: ${HEAVY_NPM_DEPS.join(", ")}.`,
           "error"
         );
-        process.exitCode = 1;
+        process.exitCode = 2;
         return;
       }
     }
@@ -193,7 +193,7 @@ const androidSubcommand: InstallSubcommand = {
       if (!reset.length && !failed.length) {
         logger("No clean boot snapshots to reset.", "info");
       }
-      if (failed.length) process.exitCode = 1;
+      if (failed.length) process.exitCode = 2;
       return;
     }
     const { installAndroid } = await import("./androidInstaller.js");
@@ -207,6 +207,9 @@ const androidSubcommand: InstallSubcommand = {
       deps: { logger },
     });
     printReports(reports, logger);
+    if (reports.some((report: any) => report.action === "declined")) {
+      process.exitCode = 2;
+    }
   },
 };
 

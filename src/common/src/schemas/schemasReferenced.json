@@ -7065,6 +7065,9 @@
           ]
         },
         "output": {
+          "type": "string"
+        },
+        "outputDir": {
           "type": "string",
           "default": "."
         },
@@ -7076,7 +7079,6 @@
           },
           "default": [
             "terminal",
-            "json",
             "runFolder"
           ]
         },
@@ -7480,7 +7482,7 @@
         },
         "exitOnFail": {
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "shell": {
           "type": "string",
@@ -14313,6 +14315,9 @@
           ]
         },
         "output": {
+          "type": "string"
+        },
+        "outputDir": {
           "type": "string"
         },
         "reporters": {

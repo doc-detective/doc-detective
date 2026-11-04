@@ -109,6 +109,7 @@ async function resolvePaths({
   const configPaths = [
     "input",
     "output",
+    "outputDir",
     "loadVariables",
     "setup",
     "cleanup",

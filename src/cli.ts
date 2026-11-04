@@ -1,5 +1,5 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
-import { shouldFailRun } from "./core/utils.js";
+import { runExitCode } from "./core/utils.js";
 import { CommanderError } from "commander";
 import {
   setConfig,
@@ -11,6 +11,8 @@ import {
   getResolvedTestsFromEnv,
   reportResults,
   isDebugRequested,
+  readStdinInputs,
+  writeResultsFile,
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
@@ -32,7 +34,7 @@ main(processArgv).catch((err) => {
   // so `err` here is always a real Error with a non-empty `.message`. Defensive
   // fallback for future throw sites, not reachable today.
   console.error(err?.message || err); /* c8 ignore line - defensive fallback for a non-Error/nullish rejection; unreachable under every current throw site (see comment above) */
-  process.exit(1);
+  process.exit(2);
 });
 
 async function main(argv: string[]) {
@@ -43,7 +45,8 @@ async function main(argv: string[]) {
     // including --help and --version. Commander has already written any message.
     // process.exitCode, not process.exit(), so queued stderr writes still flush.
     if (err instanceof CommanderError) {
-      process.exitCode = err.exitCode;
+      // Commander exits 1 on usage errors. The contract's usage code is 2.
+      process.exitCode = err.exitCode === 0 ? 0 : 2;
       return;
     }
     throw err;
@@ -52,6 +55,8 @@ async function main(argv: string[]) {
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
+  await readStdinInputs(args);
+
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
@@ -101,7 +106,7 @@ async function runTestsHandler(args: any) {
       });
       // The env-var dump replaced a real test run; a broken config must
       // still fail the process so CI doesn't go green on an unran suite.
-      process.exitCode = 1;
+      process.exitCode = 2;
       return;
     }
     throw err;
@@ -209,15 +214,16 @@ async function runTestsHandler(args: any) {
   const apiConfig = api?.apiConfig || null;
 
   // Run tests
-  const output = config.output;
+  const strictSpecs = config.exitOnFail !== false;
   const results = resolvedTests
-    ? await runTests(config, { resolvedTests, updateJoin })
-    : await runTests(config, { updateJoin });
+    ? await runTests(config, { resolvedTests, updateJoin, strictSpecs })
+    : await runTests(config, { updateJoin, strictSpecs });
 
   // Dry-run already emitted the resolved-tests JSON inside runTests().
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
+    if (!results && config.exitOnFail !== false) process.exitCode = 2;
     return;
   }
 
@@ -239,19 +245,17 @@ async function runTestsHandler(args: any) {
   } else {
     // Output results — config.reporters (populated from args.reporters by
     // setConfig) is the source of truth for which reporters run.
-    await outputResults(config, output, results, { command: "runTests" });
+    await outputResults(config, config.outputDir, results, { command: "runTests" });
+    writeResultsFile(config.output, results);
     // Optionally print one contextual hint after the reporters finish.
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
 
-  // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
-  // exits 0 even on FAIL (the fail-the-build call has historically lived in CI
-  // wrappers like the GitHub Action), so this flag is what lets any CI gate on
-  // the exit code. The `!process.exitCode` guard preserves any non-zero code an
-  // earlier stage already set instead of overwriting it with 1.
-  if (config.exitOnFail && !process.exitCode && shouldFailRun(results)) {
-    process.exitCode = 1;
+  // Results are written before the exit code is set (ADR 01146). The guard
+  // preserves any non-zero code an earlier stage already set.
+  if (!process.exitCode) {
+    process.exitCode = runExitCode(results, config);
   }
 
   // Join the telemetry flush started inside runTests. Awaited only NOW — after

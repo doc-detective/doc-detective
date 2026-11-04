@@ -10,6 +10,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 export {
+  readStdinInputs,
+  writeResultsFile,
   setConfig,
   outputResults,
   spawnCommand,
@@ -82,7 +84,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
         "error",
         config
       );
-      process.exit(1);
+      process.exit(2);
     }
 
     log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
@@ -109,7 +111,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
         "error",
         config
       );
-      process.exit(1);
+      process.exit(2);
     }
 
     // Get config from environment variable for merging
@@ -134,7 +136,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
       "error",
       config
     );
-    process.exit(1);
+    process.exit(2);
   }
   return { apiConfig, resolvedTests };
 }
@@ -180,6 +182,63 @@ async function getConfigFromEnv() {
     throw error;
   }
   return envConfig;
+}
+
+// `--output` and config `output` name the results file (ADR 01146). Fail on a
+// folder rather than guessing, so nobody loses results to a misread path.
+function resolveResultsFile(output: string): string {
+  const resolved = path.resolve(output);
+  let isFolder = /[\\/]$/.test(output);
+  try {
+    isFolder = isFolder || fs.statSync(resolved).isDirectory();
+  } catch {
+    // Doesn't exist yet, which is normal for a results file.
+  }
+  if (isFolder) {
+    throw new Error(
+      `--output is a results file, but '${output}' is a folder. Use --output-dir for a folder.`
+    );
+  }
+  return resolved;
+}
+
+// Write the run's results to the file `--output` names, replacing any file there.
+// An empty run has no results to write.
+function writeResultsFile(outputFile: string | undefined, results: any) {
+  if (!outputFile || !results) return;
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
+}
+
+// `-` as an input reads stdin. Input is a path everywhere downstream, so it lands
+// in a temporary file in the current directory, where its relative paths still
+// resolve, and is removed when the process exits.
+async function readStdinInputs(args: any) {
+  const inputs = [
+    ...(typeof args.input === "string" ? args.input.split(",").map((i: string) => i.trim()) : []),
+    ...(args.inputs ?? []),
+  ];
+  if (!inputs.includes("-")) return;
+  let text = "";
+  for await (const chunk of process.stdin) text += chunk;
+  const extension = stdinFileExtension(text);
+  const file = path.resolve(`stdin-${process.pid}${extension}`);
+  fs.writeFileSync(file, text);
+  process.on("exit", () => fs.rmSync(file, { force: true }));
+  const swap = (input: string) => (input === "-" ? file : input);
+  if (typeof args.input === "string") {
+    args.input = args.input.split(",").map((i: string) => swap(i.trim())).join(",");
+  }
+  if (args.inputs) args.inputs = args.inputs.map(swap);
+}
+
+// Stdin has no filename, so detect a spec by its content. Anything else is treated
+// as Markdown, the most common documentation format.
+function stdinFileExtension(text: string): string {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{")) return ".spec.json";
+  if (/^(tests|specId|contexts)\s*:/m.test(trimmed)) return ".spec.yaml";
+  return ".md";
 }
 
 // Override config values based on args and validate the config
@@ -234,7 +293,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   config = {
     ...config,
     input: config.input || ".",
-    output: config.output || ".",
+    outputDir: config.outputDir || ".",
     recursive: config.recursive ?? true,
     relativePathBase: config.relativePathBase || "file",
     loadVariables: config.loadVariables || ".env",
@@ -266,7 +325,13 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config.input = args.input;
   }
   if (args.output) {
-    config.output = path.resolve(args.output);
+    config.output = args.output;
+  }
+  if (typeof config.output === "string") {
+    config.output = resolveResultsFile(config.output);
+  }
+  if (args.outputDir) {
+    config.outputDir = path.resolve(args.outputDir);
   }
   if (args.logLevel) {
     config.logLevel = args.logLevel;
@@ -371,17 +436,15 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       );
     }
   }
-  if (args.concurrentRunners === true) {
-    // The bare flag selects CPU-count mode.
-    config.concurrentRunners = true;
-  } else if (typeof args.concurrentRunners === "string") {
-    // An empty value and an explicit "true" also select CPU-count mode;
-    // anything else must parse as a positive integer. CLI overrides land after
+  if (typeof args.concurrentRunners === "string") {
+    // "auto" selects CPU-count mode, as do an empty value and "true" from
+    // programmatic callers; anything else must parse as a positive integer. CLI overrides land after
     // the config_v3 validation above, and the pre-resolved-tests API path never
     // re-validates, so a garbage value would otherwise reach the runner as NaN
     // and silently degrade to sequential execution — warn and keep the validated
     // value instead.
     if (
+      args.concurrentRunners === "auto" ||
       args.concurrentRunners === "" ||
       args.concurrentRunners.toLowerCase() === "true"
     ) {
@@ -397,6 +460,16 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
           config
         );
       }
+    }
+  }
+  if (Array.isArray(config.reporters)) {
+    const unknown = config.reporters.filter(
+      (reporter: any) => typeof reporter === "string" && !reporters[reporterKey(reporter)]
+    );
+    if (unknown.length > 0) {
+      throw new Error(
+        `Unknown reporter: ${unknown.join(", ")}. Available reporters: terminal, json, html, runFolder, junit, markdown.`
+      );
     }
   }
   // Resolve paths
@@ -1140,10 +1213,23 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
   }
 }
 
+// Convert a reporter's shorthand name to its key in `reporters`.
+function reporterKey(reporter: string): string {
+  const shorthand: Record<string, string> = {
+    json: "jsonReporter",
+    html: "htmlReporter",
+    runfolder: "runFolderReporter",
+    terminal: "terminalReporter",
+    junit: "junitReporter",
+    markdown: "markdownReporter",
+  };
+  return shorthand[reporter.toLowerCase()] ?? reporter;
+}
+
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
   // Config is the source of truth. Fall back to options.reporters for
   // programmatic callers that pass them directly, then to defaults.
-  const defaultReporters = ["terminal", "json", "runFolder"];
+  const defaultReporters = ["terminal", "runFolder"];
 
   let activeReporters =
     (config && Array.isArray(config.reporters) && config.reporters.length > 0
@@ -1155,28 +1241,9 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {
     // Convert any shorthand names to full reporter names
-    activeReporters = activeReporters.map((reporter: any) => {
-      if (typeof reporter === "string") {
-        // Convert shorthand names to actual reporter keys
-        switch (reporter.toLowerCase()) {
-          case "json":
-            return "jsonReporter";
-          case "html":
-            return "htmlReporter";
-          case "runfolder":
-            return "runFolderReporter";
-          case "terminal":
-            return "terminalReporter";
-          case "junit":
-            return "junitReporter";
-          case "markdown":
-            return "markdownReporter";
-          default:
-            return reporter;
-        }
-      }
-      return reporter;
-    });
+    activeReporters = activeReporters.map((reporter: any) =>
+      typeof reporter === "string" ? reporterKey(reporter) : reporter
+    );
   }
 
   // Serialize the canonical results tree ONCE and share the string with the

@@ -37,8 +37,13 @@ async function detectAndResolveTests({ config, detectApps = true }: any) {
 }
 
 // detectTests -> resolveTests for a config setConfig already produced.
-async function detectAndResolveFromConfig(config: any) {
+async function detectAndResolveFromConfig(config: any, { strictSpecs = false } = {}) {
   const detectedTests = await detectTests({ config });
+  if (strictSpecs && config._invalidSpecs?.length) {
+    throw new Error(
+      `Invalid test specifications, so nothing ran: ${config._invalidSpecs.join(", ")}. Fix them, or pass --no-exit-on-fail to skip them.`
+    );
+  }
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
     return null;
@@ -145,7 +150,9 @@ async function runTestsAndReport(config: any, options: any) {
     effectiveConfig = await setConfig({ config, detectApps: false });
     startTelemetry(effectiveConfig);
     willRunViaApi = runsViaApi(effectiveConfig);
-    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig, {
+      strictSpecs: options.strictSpecs === true,
+    });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.

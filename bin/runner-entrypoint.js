@@ -407,7 +407,7 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	// to. main() resolves it once from DD_WORKSPACE_DIR and threads
 	// it through both functions so the CLI's view of the filesystem
 	// can't drift from where the runner actually wrote specs/output.
-	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	effective.outputDir = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
 	if (source.type === 'inline') {
 		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}
@@ -746,6 +746,10 @@ async function main() {
 		};
 	} else if (exitCode === 0) {
 		finalizeBody = { status: 'succeeded', exit_code: 0, summary: {} };
+	} else if (exitCode === 1) {
+		// The run worked and a test failed (ADR 01146). The platform reads this
+		// from the exit code and shows it as a tests-failed outcome.
+		finalizeBody = { status: 'succeeded', exit_code: 1, summary: { reason: 'tests_failed' } };
 	} else {
 		finalizeBody = {
 			status: 'failed',

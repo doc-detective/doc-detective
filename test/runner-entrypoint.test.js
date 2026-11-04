@@ -218,7 +218,7 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { input: "docs/", output: "user-output", reporters: ["json"] },
       { type: "github", repo: "x/y", ref: "main" }
     );
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
     assert.equal(cfg.input, "docs/"); // user's input preserved for github sources
     assert.deepEqual(cfg.reporters, ["json"]);
   });
@@ -229,13 +229,13 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { type: "inline", specs: [] }
     );
     assert.equal(cfg.input, "/workspace/specs");
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
   });
 
   it("returns a usable config when configSnapshot is missing/empty", () => {
     const cfg = buildEffectiveConfig(undefined, { type: "inline", specs: [] });
     assert.equal(cfg.input, "/workspace/specs");
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
   });
 
   it("threads a custom workspaceDir through input/output so it stays in sync with provisionWorkspace", () => {
@@ -250,7 +250,7 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { type: "inline", specs: [] },
       "/var/dd/ws"
     );
-    assert.equal(cfg.output, "/var/dd/ws/output");
+    assert.equal(cfg.outputDir, "/var/dd/ws/output");
     assert.equal(cfg.input, "/var/dd/ws/specs");
   });
 });

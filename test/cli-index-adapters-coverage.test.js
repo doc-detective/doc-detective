@@ -69,7 +69,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
         spec,
         JSON.stringify({ tests: [{ steps: [{ goTo: "https://example.com" }] }] })
       );
-      const r = runCli(["--input", spec, "--dry-run", "--output", dir]);
+      const r = runCli(["--input", spec, "--dry-run", "--output-dir", dir]);
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);
       // Dry-run dumps resolved-tests JSON to stdout.
       const parsed = JSON.parse(r.stdout);
@@ -142,7 +142,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("without --exit-on-fail a FAILing run still exits 0 (historical default preserved)", function () {
+  it("without any flag, a FAILing run exits 1", function () {
     const dir = mkTmp("dd-cli-eof-default-");
     try {
       const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
@@ -151,7 +151,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
         "--output", path.join(dir, "out.json"),
         "--logLevel", "silent",
       ]);
-      assert.equal(r.status, 0, `expected exit 0 by default; stderr: ${r.stderr}`);
+      assert.equal(r.status, 1, `expected exit 1 by default; stderr: ${r.stderr}`);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -173,19 +173,17 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("--exit-on-fail exits 0 for a zero-spec run (a filtered/empty run is not a failure)", function () {
+  it("a zero-spec run exits 2, because nothing was tested", function () {
     const dir = mkTmp("dd-cli-eof-zero-");
     try {
       // An input directory that exists but contains no specs → 0 specs run.
-      // summary.specs.fail is 0, so the gate must not fail the build; failing
-      // here would break legitimately-filtered runs that match nothing.
       const r = runCli([
         "--input", dir,
         "--output", path.join(dir, "out.json"),
         "--exit-on-fail",
         "--logLevel", "silent",
       ]);
-      assert.equal(r.status, 0, `expected exit 0 for a zero-spec run; stderr: ${r.stderr}`);
+      assert.equal(r.status, 2, `expected exit 2 for a zero-spec run; stderr: ${r.stderr}`);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -342,7 +340,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       const spec = path.join(dir, "w.spec.json");
       fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
       const r = runCli(
-        ["--input", spec, "--output", dir, "--logLevel", "silent"],
+        ["--input", spec, "--output-dir", dir, "--logLevel", "silent"],
         { env: { DOC_DETECTIVE_SKIP_AUTO_UPDATE: "" } }
       );
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);

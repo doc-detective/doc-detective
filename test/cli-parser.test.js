@@ -23,7 +23,7 @@ describe("CLI parser", function () {
 
   it("rejects a run flag on a subcommand that doesn't take it", function () {
     const r = runCli(["install", "browsers", "--reporters", "json", "--dry-run"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("unknown option '--reporters'");
   });
 
@@ -41,25 +41,25 @@ describe("CLI parser", function () {
 
   it("rejects `help` for a command that doesn't exist", function () {
     const r = runCli(["help", "nope"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("unknown command 'nope'");
   });
 
   it("keeps bare words free for subcommands", function () {
     const r = runCli(["docs"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("too many arguments");
   });
 
   it("suggests the nearest flag for a typo", function () {
     const r = runCli(["--inptu", "x"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("Did you mean --input?");
   });
 
   it("requires a value for a valued flag", function () {
     const r = runCli(["--input"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("argument missing");
   });
 

@@ -2207,13 +2207,13 @@ describe("hints/hints (registry)", function () {
   it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
     const h = findHint("gitignoreOutputDir");
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: false }))
     ).to.equal(true);
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: true }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: true }))
     ).to.equal(false);
     expect(
-      h.when(fakeCtx({ config: { output: "." }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: false }))
     ).to.equal(false);
   });
 
@@ -2365,8 +2365,8 @@ describe("hints/hints (registry)", function () {
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
     const h = findHint("setOutputDir");
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "out" }, totalSpecs: 1 }))).to.equal(false);
+    expect(h.when(fakeCtx({ config: { outputDir: "." }, totalSpecs: 1 }))).to.equal(true);
+    expect(h.when(fakeCtx({ config: { outputDir: "out" }, totalSpecs: 1 }))).to.equal(false);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 0 }))).to.equal(false);
   });
 

@@ -35,7 +35,7 @@ export const HINTS: Hint[] = [
       "{",
       "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json\",",
       "  \"input\": \"docs\",",
-      "  \"output\": \"doc-detective-output\",",
+      "  \"outputDir\": \"doc-detective-output\",",
       "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
       "}",
       "```",
@@ -224,7 +224,7 @@ export const HINTS: Hint[] = [
       "```",
     ].join("\n"),
     when: (ctx) => {
-      const output = ctx.config?.output;
+      const output = ctx.config?.outputDir;
       return (
         !ctx.outputDirGitignored &&
         typeof output === "string" &&
@@ -442,14 +442,14 @@ export const HINTS: Hint[] = [
     id: "setOutputDir",
     priority: 20,
     markdown: [
-      "Result artifacts are landing next to your source files. Set `output` in `.doc-detective.json` so they go somewhere predictable:",
+      "Result artifacts are landing next to your source files. Set `outputDir` in `.doc-detective.json` so they go somewhere predictable:",
       "",
       "```json",
-      "{ \"output\": \"doc-detective-output\" }",
+      "{ \"outputDir\": \"doc-detective-output\" }",
       "```",
     ].join("\n"),
     when: (ctx) => {
-      const output = ctx.config?.output;
+      const output = ctx.config?.outputDir;
       return (
         (!output || output === "." || output === "./") &&
         ctx.totalSpecs > 0

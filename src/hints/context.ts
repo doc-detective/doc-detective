@@ -117,7 +117,7 @@ export async function buildHintContext(
   const hasPackageJson = packageJsonPath !== null;
   const hasDocDetectiveNpmScript =
     hasPackageJson && hasDocDetectiveScriptInPackageJson(packageJsonPath);
-  const outputDirGitignored = detectOutputDirGitignored(cwd, config.output);
+  const outputDirGitignored = detectOutputDirGitignored(cwd, config.outputDir);
   const nodeMajor = parseNodeMajor(process.versions.node);
   const hasRstFiles = detectRstFiles(cwd);
 

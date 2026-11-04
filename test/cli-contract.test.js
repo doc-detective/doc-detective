@@ -84,7 +84,7 @@ describe("CLI contract", function () {
     });
 
     it("hides the runner subcommand from help, but keeps it callable", function () {
-      expect(run(["--help"]).stdout).to.not.match(/^\s*runner\b/m);
+      expect(run(["--help"]).stdout).to.not.match(/^\s+runner\s{2,}/m);
       expect(run(["runner", "--help"]).status).to.equal(0);
     });
 
@@ -101,6 +101,136 @@ describe("CLI contract", function () {
 
     it("gives `install status` only the options it uses", function () {
       expect(run(["install", "status", "--yes"]).status).to.not.equal(0);
+    });
+  });
+
+  describe("exit codes", function () {
+    const noFail = { exitOnFail: false, telemetry: { send: false }, autoUpdate: false };
+    const rows = [
+      { name: "all specs pass", args: ["-i", "pass.spec.json"], code: 0 },
+      { name: "a spec fails", args: ["-i", "fail.spec.json"], code: 1 },
+      { name: "a failing spec with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "fail.spec.json"], code: 0 },
+      { name: "an empty run", args: ["-i", "empty.md"], code: 2 },
+      { name: "an empty run with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "empty.md"], code: 0 },
+      { name: "a missing input path", args: ["-i", "does-not-exist.md"], code: 2 },
+      { name: "a filter matching nothing", args: ["-i", "pass.spec.json", "-t", "zzz"], code: 2 },
+      { name: "an invalid spec", args: ["-i", "invalid.spec.json"], code: 2 },
+      { name: "an invalid spec beside a valid one", args: ["run", "invalid.spec.json", "pass.spec.json"], code: 2 },
+      { name: "an invalid spec with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "invalid.spec.json"], code: 0 },
+      { name: "an unknown flag", args: ["--nope"], code: 2 },
+      { name: "a bare word", args: ["nope"], code: 2 },
+      { name: "a missing flag value", args: ["-i"], code: 2 },
+      { name: "a missing config file", args: ["-c", "nope.json"], code: 2 },
+      { name: "an invalid --shell", args: ["--shell", "zsh", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --verification", args: ["--verification", "always", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --browser-fallback", args: ["--browser-fallback", "nope", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --log-level", args: ["-l", "loud", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --concurrent-runners", args: ["--concurrent-runners", "abc", "-i", "pass.spec.json"], code: 2 },
+      { name: "--concurrent-runners with no value", args: ["-i", "pass.spec.json", "--concurrent-runners"], code: 2 },
+      { name: "an unknown reporter", args: ["-r", "bogus", "-i", "pass.spec.json"], code: 2 },
+      { name: "a folder as --output", args: ["-o", ".", "-i", "pass.spec.json"], code: 2 },
+      { name: "an unknown install asset", args: ["install", "nope"], code: 2 },
+      { name: "an unknown runtime package", args: ["install", "runtime", "nope", "--dry-run", "--cache-dir", "cc"], code: 2 },
+      { name: "a refused android install", args: ["install", "android", "--cache-dir", "cc"], code: 2 },
+      { name: "help", args: ["--help"], code: 0 },
+      { name: "version", args: ["--version"], code: 0 },
+    ];
+    for (const { name, args, code } of rows) {
+      it(`${code} for ${name}`, function () {
+        fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+        fs.writeFileSync(
+          path.join(cwd, "invalid.spec.json"),
+          JSON.stringify({ tests: [{ steps: [{ nope: "x" }] }] })
+        );
+        const r = run(args);
+        expect(r.status, r.stdout + r.stderr).to.equal(code);
+      });
+    }
+
+    it("runs nothing when any spec is invalid", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ nope: "x" }] }] })
+      );
+      const marker = path.join(cwd, "ran.txt");
+      writeSpec("marks.spec.json", { runShell: "echo ran > ran.txt" });
+      const r = run(["run", "invalid.spec.json", "marks.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("invalid.spec.json");
+      expect(fs.existsSync(marker)).to.equal(false);
+    });
+
+    it("doesn't count a JSON file without tests as an invalid spec", function () {
+      fs.writeFileSync(path.join(cwd, "package.json"), JSON.stringify({ name: "x" }));
+      const r = run(["run", "package.json", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("exits 2 from an invalid config with --no-exit-on-fail too", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevel: "loud" }));
+      const r = run(["--no-exit-on-fail", "-c", "bad.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify(noFail) } });
+      expect(r.status).to.equal(2);
+    });
+
+    it("still writes results when a spec fails", function () {
+      const r = run(["-i", "fail.spec.json", "-o", "results.json"]);
+      expect(r.status).to.equal(1);
+      const results = JSON.parse(fs.readFileSync(path.join(cwd, "results.json"), "utf8"));
+      expect(results.summary.specs.fail).to.equal(1);
+    });
+  });
+
+  describe("output paths", function () {
+    it("writes --output as the exact results file, overwriting it", function () {
+      fs.writeFileSync(path.join(cwd, "results.json"), "old");
+      expect(run(["-i", "pass.spec.json", "-o", "results.json"]).status).to.equal(0);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "results.json"), "utf8")).summary.specs.pass).to.equal(1);
+      expect(fs.readdirSync(cwd).filter((f) => /^results-\d/.test(f))).to.deep.equal([]);
+    });
+
+    it("points a folder given to --output at --output-dir", function () {
+      const r = run(["-o", ".", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.include("--output-dir");
+    });
+
+    it("writes run folders under --output-dir", function () {
+      expect(run(["-i", "pass.spec.json", "--output-dir", "artifacts"]).status).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "artifacts", ".doc-detective", "runs"))).to.equal(true);
+    });
+
+    it("leaves no results file in the current directory by default", function () {
+      expect(run(["-i", "pass.spec.json"]).status).to.equal(0);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("testResults"))).to.deep.equal([]);
+      expect(fs.existsSync(path.join(cwd, ".doc-detective", "runs"))).to.equal(true);
+    });
+
+    it("isn't broken by a stale null results file from 4.x", function () {
+      fs.writeFileSync(path.join(cwd, "testResults-1.json"), "null");
+      const r = run(["run", "."]);
+      expect(r.stderr).to.not.include("Object is required");
+    });
+  });
+
+  describe("stdin", function () {
+    it("reads a spec from `-i -`", function () {
+      const r = run(["-i", "-"], {
+        input: JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }),
+      });
+      expect(r.status, r.stdout + r.stderr).to.equal(0);
+      expect(r.stdout).to.match(/passed/i);
+    });
+
+    it("reads a spec from `run -`", function () {
+      const r = run(["run", "-"], {
+        input: "tests:\n  - steps:\n      - runShell: echo hi\n",
+      });
+      expect(r.status, r.stdout + r.stderr).to.equal(0);
+    });
+
+    it("cleans up after reading stdin", function () {
+      run(["-i", "-"], { input: JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }) });
+      const leftovers = fs.readdirSync(cwd).filter((f) => f.startsWith("stdin"));
+      expect(leftovers).to.deep.equal([]);
     });
   });
 

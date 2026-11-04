@@ -1,0 +1,3 @@
+# Netscape HTTP Cookie File
+# This is a cookie file saved by Doc Detective
+example.com	FALSE	/	FALSE	0	sid	v

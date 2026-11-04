@@ -1,4 +1,4 @@
-import { Command, Option } from "commander";
+import { Command, InvalidArgumentError, Option } from "commander";
 
 // Old arguments kept for compatibility (ADR 01146). Each is labeled in help and
 // warns on stderr when used.
@@ -34,6 +34,13 @@ export function warnOnDeprecatedUse(program: Command) {
   });
 }
 
+const LOG_LEVELS = ["silent", "error", "warning", "info", "debug"];
+
+function parseConcurrentRunners(value: string): string {
+  if (value === "auto" || /^[1-9]\d*$/.test(value)) return value;
+  throw new InvalidArgumentError("Expected a positive whole number, or auto.");
+}
+
 // A boolean flag plus its hidden `--no-` form. Declaring both leaves the option
 // undefined when neither is passed, which is what setConfig's
 // `typeof args.x === "boolean"` override blocks rely on to tell "unset" from
@@ -53,13 +60,17 @@ export function addGlobalOptions(command: Command): Command {
       "Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG."
     )
     .addOption(new Option("--verbose").hideHelp().implies({ debug: true }))
-    .option(
-      "-l, --log-level <level>",
-      "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
+    .addOption(
+      new Option(
+        "-l, --log-level <level>",
+        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug"
+      ).choices(LOG_LEVELS)
     )
-    .option(
-      "--logLevel <level>",
-      `Detail level of logging events. ${DEPRECATED_LABELS["--logLevel"]}`
+    .addOption(
+      new Option(
+        "--logLevel <level>",
+        `Detail level of logging events. ${DEPRECATED_LABELS["--logLevel"]}`
+      ).choices(LOG_LEVELS)
     )
     .option("--json", "Print one JSON document to stdout.")
     .option("--no-color", "Turn off color. Also NO_COLOR.")
@@ -81,9 +92,10 @@ export function addInputOptions(command: Command): Command {
 export function addRunOptions(command: Command): Command {
   addInputOptions(command);
   command
+    .option("-o, --output <file>", "Path of the JSON results file. It's overwritten on each run.")
     .option(
-      "-o, --output <path>",
-      "Path of the directory in which to store the output of Doc Detective commands."
+      "--output-dir <dir>",
+      "Path of the folder that holds the run folder and the html, junit, and markdown reports."
     );
   addBooleanOption(command, "--allow-unsafe", "Allow execution of potentially unsafe tests");
   addBooleanOption(
@@ -109,10 +121,10 @@ export function addRunOptions(command: Command): Command {
     "--hints",
     "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints."
   );
-  command.option(
+  command.addOption(new Option(
     "--verification <mode>",
     "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`."
-  );
+  ).choices(["existing", "true", "false"]));
   addBooleanOption(
     command,
     "--auto-screenshot",
@@ -134,17 +146,18 @@ export function addRunOptions(command: Command): Command {
       "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR."
     )
     .option(
-      "--concurrent-runners [count]",
-      "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported."
+      "--concurrent-runners <count>",
+      "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+      parseConcurrentRunners
     )
-    .option(
+    .addOption(new Option(
       "--browser-fallback <mode>",
       "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage."
-    )
-    .option(
+    ).choices(["auto", "explicit", "off"]))
+    .addOption(new Option(
       "--shell <name>",
       "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field."
-    );
+    ).choices(["bash", "cmd", "powershell"]));
   addBooleanOption(
     command,
     "-e, --exit-on-fail",

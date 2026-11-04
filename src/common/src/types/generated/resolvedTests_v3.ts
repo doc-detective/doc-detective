@@ -19978,9 +19978,13 @@ export interface Config {
    */
   input?: string | [string, ...string[]];
   /**
-   * Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters.
+   * Path of the JSON results file. It's overwritten on each run. A folder isn't valid here: use `outputDir`.
    */
   output?: string;
+  /**
+   * Path of the folder that holds the run folder and the html, junit, and markdown reports.
+   */
+  outputDir?: string;
   /**
    * Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.
    */
@@ -20083,7 +20087,7 @@ export interface Config {
    */
   autoUpdate?: boolean;
   /**
-   * If `true`, the CLI exits with a non-zero code (`1`) when any spec's result is `FAIL`, so a documentation-testing job fails the build the way a broken unit test would. Defaults to `false`, which preserves the CLI's historical behavior of exiting `0` on test failures (it exits non-zero only on a crash or invalid config) — the exit-on-fail decision has historically lived in CI wrappers like the Doc Detective GitHub Action. `WARNING` results are non-fatal and never trigger a non-zero exit. Equivalent to `--exit-on-fail` on the CLI.
+   * If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.
    */
   exitOnFail?: boolean;
   /**

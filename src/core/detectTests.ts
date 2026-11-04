@@ -106,6 +106,18 @@ function buildAllowedExtensions(config: any): Set<string> {
   return allowed;
 }
 
+function isSpecFileName(source: string): boolean {
+  return /\.spec\.(json|ya?ml)$/i.test(source);
+}
+
+// Non-enumerable, so it stays out of serialized payloads (like _qualifiedFiles).
+function noteInvalidSpec(config: any, source: string) {
+  if (!config._invalidSpecs) {
+    Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
+  }
+  config._invalidSpecs.push(source);
+}
+
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
   log(config, "debug", `validation: ${source}`);
   const allowed = allowedExtensions;
@@ -137,7 +149,9 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       // which the object guard below then rejects.
       content = rawContent;
     }
-    if (typeof content !== "object") {
+    // Null is what an empty 4.x run left behind as its results file.
+    if (typeof content !== "object" || content === null) {
+      if (isSpecFileName(source)) noteInvalidSpec(config, source);
       log(
         config,
         "debug",
@@ -151,10 +165,14 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       addDefaults: false,
     });
     if (!validation.valid) {
-      log(config, "warning", validation);
+      // A JSON or YAML file with no `tests` key and a plain name is just another
+      // data file, such as package.json, so it isn't reported as a broken spec.
+      const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
+      if (looksLikeSpec) noteInvalidSpec(config, source);
+      log(config, looksLikeSpec ? "warning" : "debug", validation);
       log(
         config,
-        "warning",
+        looksLikeSpec ? "warning" : "debug",
         `${source} isn't a valid test specification. Skipping.`
       );
       return false;

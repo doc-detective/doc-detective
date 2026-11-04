@@ -74,6 +74,7 @@ export {
   matchesFilter,
   selectSpecsForRun,
   shouldFailRun,
+  runExitCode,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -1167,6 +1168,18 @@ function selectSpecsForRun(specs: any[], config: any): any[] {
 function shouldFailRun(results: any): boolean {
   const failCount = results?.summary?.specs?.fail;
   return typeof failCount === "number" && failCount > 0;
+}
+
+// The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
+// failed, `2` nothing was tested. exitOnFail: false relaxes the last two.
+function runExitCode(results: any, config: any = {}): number {
+  if (config.exitOnFail === false) return 0;
+  const specs = results?.summary?.specs;
+  const total = specs
+    ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) + (specs.skipped || 0)
+    : 0;
+  if (total === 0) return 2;
+  return shouldFailRun(results) ? 1 : 0;
 }
 
 function isRelativeUrl(url: string) {
@@ -2531,7 +2544,7 @@ function getRunOutputDir(
   // Coerce defensively: a programmatic caller could hand us a non-string
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
-  let base = String(config?.output || ".");
+  let base = String(config?.outputDir ?? config?.output ?? ".");
   // Must match the lists in runFolderBaseDir (src/utils.ts) and
   // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
   // the run folder inside a path another reporter writes as a file.

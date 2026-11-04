@@ -101,7 +101,7 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
 
     if (filePath) {
       // Resolve file path
-      const outputDirectory = directory || config.output || process.cwd();
+      const outputDirectory = directory || config.outputDir || process.cwd();
       const fullPath = path.resolve(outputDirectory, filePath);
 
       // Check if file exists and handle overwrite

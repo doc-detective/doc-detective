@@ -857,6 +857,23 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoUpdate");
       });
 
+      it("should validate a config_v3 object with outputDir set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: "artifacts" },
+        });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.outputDir).to.equal("artifacts");
+      });
+
+      it("should reject a config_v3 object whose outputDir is not a string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: 1 },
+        });
+        expect(result.valid).to.equal(false);
+      });
+
       it("should validate a config_v3 object with exitOnFail set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -868,14 +885,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.exitOnFail).to.equal(true);
       });
 
-      it("should default exitOnFail to false when omitted", function () {
+      it("should default exitOnFail to true when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.exitOnFail).to.equal(false);
+        expect(result.object.exitOnFail).to.equal(true);
       });
 
       it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {
