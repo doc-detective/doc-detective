@@ -317,7 +317,7 @@ function buildPage(data) {
     "npx doc-detective [command] [options]",
     "```",
     "",
-    "A bare invocation with no command runs tests; the available commands are `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
+    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
     ""
   );
 
@@ -325,7 +325,9 @@ function buildPage(data) {
   parts.push(
     "## Run flags",
     "",
-    "These flags apply to the default run command, and `debug` accepts them too. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence). The `install` and `lsp` commands take only their own flags and reject a run flag with an `unknown option` error.",
+    "These flags apply when you run tests, with no command or with `run`. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
+    "",
+    "The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error.",
     "",
     runFlagsTable(runFlags, configSchema),
     ""
@@ -370,10 +372,23 @@ function buildPage(data) {
   parts.push(
     "### Default (run tests)",
     "",
-    "With no command, `doc-detective` runs tests and takes no positional arguments; control its behavior with the flags in the [Run flags](#run-flags) section.",
+    "With no command, `doc-detective` runs tests and takes no positional arguments; control its behavior with the flags in the [Run flags](#run-flags) section. To pass file and folder paths as arguments, use [`run`](#run).",
     "",
     "```bash",
     "npx doc-detective --input ./docs",
+    "```",
+    ""
+  );
+
+  // run.
+  parts.push(
+    "### run",
+    "",
+    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr. Replace them with `run`.",
+    "",
+    "```bash",
+    "npx doc-detective run ./docs a.spec.json",
+    "cat a.spec.json | npx doc-detective run -",
     "```",
     ""
   );
@@ -407,6 +422,8 @@ function buildPage(data) {
     debug.describe
       ? escapeMdxBraces(debug.describe)
       : "Print diagnostic information about the runtime environment and exit without running tests.",
+    "",
+    "`debug` also accepts `--config`, `--input`, `--no-env-file`, and the global flags.",
     ""
   );
   if (debug.options.length > 0) {
@@ -520,7 +537,8 @@ async function main() {
     options: readOptions(lspCommand),
   };
 
-  // `debug` also accepts the run flags, which are documented once, above.
+  // `debug` shares --config, --input, and the global flags with the run
+  // commands, which are documented once, above.
   const debugCommand = subcommand(program, "debug");
   const debug = {
     describe: prose(debugCommand.description()),
