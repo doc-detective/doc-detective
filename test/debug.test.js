@@ -971,7 +971,7 @@ describe("debug CLI smoke test", function () {
     }
   });
 
-  it("DOC_DETECTIVE_DEBUG=true on the default command also dumps (without --include-env)", function () {
+  it("DOC_DETECTIVE_DEBUG=true on the default command adds debug output, with no dump", function () {
     this.timeout(120000);
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-debug-envvar-"));
     try {
@@ -981,10 +981,10 @@ describe("debug CLI smoke test", function () {
         encoding: "utf8",
         env: { ...process.env, DOC_DETECTIVE_DEBUG: "true" },
       });
-      expect(result.status).to.equal(0);
-      expect(result.stdout).to.include("Doc Detective diagnostic dump");
-      // Env-var path never opts into full env dump.
-      expect(result.stdout).to.not.include("-- Environment variables (full) ");
+      // An empty directory exits 2, since nothing ran.
+      expect(result.status).to.equal(2);
+      expect(result.stderr).to.match(/(DEBUG)/);
+      expect(result.stdout).to.not.include("Doc Detective diagnostic dump");
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

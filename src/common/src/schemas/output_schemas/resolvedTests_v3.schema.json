@@ -58,7 +58,11 @@
           ]
         },
         "output": {
-          "description": "Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters.",
+          "description": "Path of the JSON results file. It's overwritten on each run. A folder isn't valid here: use `outputDir`.",
+          "type": "string"
+        },
+        "outputDir": {
+          "description": "Path of the folder that holds the run folder and the html, junit, and markdown reports.",
           "type": "string",
           "default": "."
         },
@@ -71,7 +75,6 @@
           },
           "default": [
             "terminal",
-            "json",
             "runFolder"
           ]
         },
@@ -58391,6 +58394,10 @@
               "description": "Configuration for Doc Detective Orchestration API integration.",
               "additionalProperties": false,
               "properties": {
+                "apiKeyFile": {
+                  "type": "string",
+                  "description": "Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment."
+                },
                 "apiKey": {
                   "type": "string",
                   "description": "API key for authenticating with the Doc Detective Orchestration API."
@@ -58407,10 +58414,25 @@
                 "required": [
                   "name",
                   "organizationId",
-                  "username",
-                  "apiToken"
+                  "username"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "apiToken"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "apiTokenFile"
+                    ]
+                  }
                 ],
                 "properties": {
+                  "apiTokenFile": {
+                    "type": "string",
+                    "description": "Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment."
+                  },
                   "name": {
                     "type": "string",
                     "description": "Unique identifier for this Heretto integration. Used in logs and results."
@@ -59192,9 +59214,9 @@
           "default": true
         },
         "exitOnFail": {
-          "description": "If `true`, the CLI exits with a non-zero code (`1`) when any spec's result is `FAIL`, so a documentation-testing job fails the build the way a broken unit test would. Defaults to `false`, which preserves the CLI's historical behavior of exiting `0` on test failures (it exits non-zero only on a crash or invalid config) — the exit-on-fail decision has historically lived in CI wrappers like the Doc Detective GitHub Action. `WARNING` results are non-fatal and never trigger a non-zero exit. Equivalent to `--exit-on-fail` on the CLI.",
+          "description": "If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "shell": {
           "description": "Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
@@ -116171,7 +116193,7 @@
         },
         {
           "input": ".",
-          "output": ".",
+          "outputDir": ".",
           "recursive": true,
           "loadVariables": ".env",
           "fileTypes": [

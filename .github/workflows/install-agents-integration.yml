@@ -1,14 +1,14 @@
-# Real-agent integration tests for `npx doc-detective install-agents`.
+# Real-agent integration tests for `npx doc-detective install agents`.
 #
 # This workflow complements the unit suite (test/agents*.test.js) which uses
 # dependency-injected stubs. Here we install each agent's real CLI binary and
-# run `install-agents` against it end-to-end, so we catch:
+# run `install agents` against it end-to-end, so we catch:
 #   * upstream CLI contract changes (new flags, renamed subcommands);
 #   * packaging regressions in the compiled bin/doc-detective.js;
 #   * network-fetch failures (codeload URLs, manifest paths);
 #   * platform-path quirks.
 #
-# Each matrix cell: installs one agent, runs `install-agents` for that agent,
+# Each matrix cell: installs one agent, runs `install agents` for that agent,
 # asserts expected paths and versions land on disk, re-runs to verify
 # idempotency, then force-reinstalls.
 
@@ -121,7 +121,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
-          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install agents \
             --agent ${{ matrix.agent }} \
             --scope ${{ matrix.scope }} \
             --yes 2>&1 | tee fresh.log
@@ -163,7 +163,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
-          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install agents \
             --agent ${{ matrix.agent }} \
             --scope ${{ matrix.scope }} \
             --yes 2>&1 | tee idem.log
@@ -175,7 +175,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
-          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install-agents \
+          node "$GITHUB_WORKSPACE/bin/doc-detective.js" install agents \
             --agent ${{ matrix.agent }} \
             --scope ${{ matrix.scope }} \
             --yes --force 2>&1 | tee force.log

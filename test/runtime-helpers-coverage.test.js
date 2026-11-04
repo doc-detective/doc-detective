@@ -643,7 +643,7 @@ describe("runtime helpers extra coverage", function () {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     });
 
-    it("runtime subcommand rejects an unknown package name with a helpful error and sets exitCode=1", async function () {
+    it("runtime subcommand rejects an unknown package name with a helpful error and sets exitCode=2", async function () {
       const subs = installSubcommands;
       const errors = [];
       const origExitCode = process.exitCode;
@@ -658,7 +658,7 @@ describe("runtime helpers extra coverage", function () {
           cacheDir: tmpRoot,
         });
         expect(errors.some((m) => /Unknown runtime package/.test(m))).to.equal(true);
-        expect(process.exitCode).to.equal(1);
+        expect(process.exitCode).to.equal(2);
       } finally {
         errStub.restore();
         process.exitCode = origExitCode;
@@ -759,7 +759,7 @@ describe("runtime helpers extra coverage", function () {
       try {
         await subs.runtime.handler({
           packages: ["nope-not-real"],
-          silent: true,
+          quiet: true,
           "cache-dir": tmpRoot,
           cacheDir: tmpRoot,
         });

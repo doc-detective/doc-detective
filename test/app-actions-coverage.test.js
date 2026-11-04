@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // Hermetic coverage for the APP-SURFACE BRANCHES inside the step handlers
 // (findElement, typeKeys, saveScreenshot, closeSurface). The appSurface module
 // itself is unit-tested in app-surface.test.js; these tests drive the branches
@@ -853,7 +854,7 @@ describe("closeSurface app-surface branch", function () {
     // Capture console output so we can assert the documented debug log fires.
     const logged = [];
     const realLog = console.log;
-    console.log = (...args) => logged.push(args.join(" "));
+    console.error = console.log = (...args) => logged.push(args.join(" "));
     let result;
     try {
       result = await closeSurface({
@@ -865,6 +866,7 @@ describe("closeSurface app-surface branch", function () {
       });
     } finally {
       console.log = realLog;
+      console.error = originalConsoleError;
     }
     assert.equal(result.status, "PASS");
     assert.deepEqual(result.outputs.closed, ["shared"]);

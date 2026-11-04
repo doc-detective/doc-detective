@@ -819,7 +819,7 @@ By default, Doc Detective runs test contexts sequentially. For larger test suite
 
 ```bash
 # Use CPU core count (capped at 4)
-npx doc-detective --concurrent-runners
+npx doc-detective --concurrent-runners auto
 
 # Specify an explicit number of runners
 npx doc-detective --concurrent-runners 4
@@ -830,7 +830,7 @@ npx doc-detective --concurrent-runners 4
 
 ```bash
 # Use CPU core count (capped at 4)
-docker run -v .:/app docdetective/docdetective --concurrent-runners
+docker run -v .:/app docdetective/docdetective --concurrent-runners auto
 
 # Specify an explicit number of runners
 docker run -v .:/app docdetective/docdetective --concurrent-runners 4
@@ -859,10 +859,11 @@ Recordings are safe to run concurrently, so you no longer need to keep `concurre
 
 ## Read the results
 
-Doc Detective supports multiple output reporters. By default, it uses `terminal` and `json`. Customize reporters with the `--reporters` (or `-r`) flag:
+Doc Detective supports multiple output reporters. By default, it uses `terminal` and `runFolder`. Customize reporters with the `--reporters` (or `-r`) flag:
 
 - **terminal**: Displays a colored summary of test results in your terminal.
-- **json**: Saves results to a `testResults-<timestamp>.json` file for CI/CD integration.
+- **runFolder**: Saves results, reports, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
+- **json**: Saves results to a `testResults-<timestamp>.json` file.
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
 
 <Tabs>
@@ -884,20 +885,20 @@ docker run -v .:/app docdetective/docdetective --reporters terminal html
 
 ### Output directory
 
-Specify your output directory with the `--output` flag:
+Specify your output directory with the `--output-dir` flag. To write the JSON results to a specific file, use `--output <file>`.
 
 <Tabs>
   <Tab title="NPX" language="npx">
 
 ```bash
-npx doc-detective --input ./samples/doc-content.md --output ./samples/
+npx doc-detective --input ./samples/doc-content.md --output-dir ./samples/
 ```
 
   </Tab>
   <Tab title="Docker" language="docker">
 
 ```bash
-docker run -v .:/app docdetective/docdetective --input /app/samples/doc-content.md --output /app/samples/
+docker run -v .:/app docdetective/docdetective --input /app/samples/doc-content.md --output-dir /app/samples/
 ```
 
   </Tab>

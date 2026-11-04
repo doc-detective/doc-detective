@@ -77,9 +77,9 @@ export async function maybeShowHint(
     // skip rule lives in the contextOverride-driven test below.
     //
     // Falsy check (not strict `=== false`) because Node leaves
-    // `process.stdout.isTTY` as `undefined` when stdout is piped or
+    // `process.stderr.isTTY` as `undefined` when stderr is piped or
     // redirected — the most common non-TTY case in CI.
-    if (!options.contextOverride && !process.stdout.isTTY) return;
+    if (!options.contextOverride && !process.stderr.isTTY) return;
 
     const ctx =
       options.contextOverride ??
@@ -123,7 +123,7 @@ export async function maybeShowHint(
       newlineIdx === -1 ? rendered : rendered.slice(0, newlineIdx);
     const restLines = newlineIdx === -1 ? "" : rendered.slice(newlineIdx + 1);
 
-    const print = options.print ?? ((line: string) => console.log(line));
+    const print = options.print ?? ((line: string) => console.error(line));
     print("");
     print(`${colors.dim}💡 Hint:${colors.reset} ${firstLine}`);
     if (restLines.length > 0) print(restLines);

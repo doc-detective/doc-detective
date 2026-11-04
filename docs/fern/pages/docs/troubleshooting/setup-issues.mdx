@@ -23,17 +23,11 @@ Run the `debug` subcommand to collect diagnostic information about your environm
 doc-detective debug
 ```
 
-Or use the environment variable (useful in CI):
+To see debug logs from a real test run instead, pass `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI. Both run your tests with debug output on stderr. `DEBUG` also turns it on when it's `1`, `true`, `*`, or a pattern matching `doc-detective`.
 
 ```bash
 DOC_DETECTIVE_DEBUG=true doc-detective
 ```
-
-<Note>
-
-Setting `DOC_DETECTIVE_DEBUG=true` causes Doc Detective to print the diagnostic dump and exit. Tests do not run. Unset it before a normal run.
-
-</Note>
 
 The diagnostic dump reports:
 
@@ -191,7 +185,7 @@ Set the missing variable before running tests:
 export API_KEY=your-key-here
 ```
 
-Or add it to your `.env` file and reference it with `loadVariables` in your config.
+Or add it to a `.env` file in the current directory, which Doc Detective loads automatically. A variable already set in your shell wins over `.env`. For a file elsewhere, reference it with `loadVariables` in your config.
 
 ### Cache directory isn't writable
 

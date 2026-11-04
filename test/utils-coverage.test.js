@@ -40,7 +40,10 @@ function captureConsole(sandbox) {
     out.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
   });
   sandbox.stub(console, "error").callsFake((...args) => {
-    errOut.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
+    const line = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+    errOut.push(line);
+    // Logs go to stderr now, and most of these tests read them through `log`.
+    out.push(line);
   });
   return {
     get log() {
@@ -132,14 +135,13 @@ describe("utils.ts coverage", function () {
     it("prints info messages at default level via console.log", function () {
       const cap = captureConsole(sandbox);
       log("hello");
-      assert.ok(cap.log.includes("hello"));
-      assert.equal(cap.error, "");
+      assert.ok(cap.error.includes("hello"));
+      assert.ok(!cap.logLines.includes("hello") || cap.errLines.includes("hello"));
     });
     it("routes error level to console.error", function () {
       const cap = captureConsole(sandbox);
       log("boom", "error");
       assert.ok(cap.error.includes("boom"));
-      assert.equal(cap.log, "");
     });
     it("suppresses messages below the configured logLevel", function () {
       const cap = captureConsole(sandbox);
@@ -223,10 +225,9 @@ describe("utils.ts coverage", function () {
         specs: [{ specId: "s1", result: "PASS", tests: [] }],
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("Results Summary"));
-      assert.ok(cap.log.includes("All items passed"));
-      assert.ok(cap.log.includes("Total: 2")); // tests total
-      assert.ok(cap.log.includes("Passed: 5")); // steps passed
+      assert.ok(cap.log.includes("Specs:"));
+      assert.ok(cap.log.includes("2 total")); // tests total
+      assert.ok(cap.log.includes("5 passed")); // steps passed
     });
 
     it("prints the empty-run warning when totalTests === 0 even with a summary", async function () {
@@ -267,8 +268,8 @@ describe("utils.ts coverage", function () {
         specs: [{ specId: "s1", result: "PASS", tests: [] }],
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("Warnings: 1"));
-      assert.ok(cap.log.includes("Skipped: 1"));
+      assert.ok(cap.log.includes("1 warnings"));
+      assert.ok(cap.log.includes("1 skipped"));
     });
 
     it("collects and prints failed + skipped specs/tests/contexts/steps", async function () {
@@ -409,17 +410,9 @@ describe("utils.ts coverage", function () {
       assert.ok(path.basename(outPath).startsWith("testResults-"));
       const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
       assert.deepEqual(written, results);
-      assert.ok(cap.log.includes("See detailed results at"));
+      assert.ok(cap.log.includes("Results: "));
     });
 
-    it("uses the coverageResults prefix for runCoverage", async function () {
-      captureConsole(sandbox);
-      const dir = makeTmpDir();
-      const outPath = await reporters.jsonReporter({}, dir, { x: 1 }, {
-        command: "runCoverage",
-      });
-      assert.ok(path.basename(outPath).startsWith("coverageResults-"));
-    });
 
     it("honors an explicit .json output path and disambiguates collisions with a counter", async function () {
       captureConsole(sandbox);
@@ -524,8 +517,8 @@ describe("utils.ts coverage", function () {
       // HTML companion archived beside the JSON.
       const htmlFile = outPath.replace(/\.json$/, ".html");
       assert.ok(fs.existsSync(htmlFile));
-      assert.ok(cap.log.includes("See per-run results at"));
-      assert.ok(cap.log.includes("See per-run HTML report at"));
+      assert.ok(cap.log.includes("Run results: "));
+      assert.ok(cap.log.includes("Run report: "));
     });
 
     it("uses the default doc-detective-results prefix when no command is given", async function () {
@@ -598,7 +591,7 @@ describe("utils.ts coverage", function () {
       assert.ok(typeof out === "string");
       assert.ok(fs.existsSync(out));
       assert.ok(cap.error.includes("Error writing per-run HTML report"));
-      assert.ok(cap.log.includes("See per-run results at"));
+      assert.ok(cap.log.includes("Run results: "));
     });
 
     it("reuses a stamped runDir confined under the output's runs root", async function () {
@@ -618,7 +611,7 @@ describe("utils.ts coverage", function () {
       // Stamped path is honored, so runId/runDir are NOT rewritten.
       const written = JSON.parse(fs.readFileSync(out, "utf8"));
       assert.equal(written.runDir, stampedRunDir);
-      assert.ok(cap.log.includes("See per-run results at"));
+      assert.ok(cap.log.includes("Run results: "));
     });
   });
 
@@ -728,16 +721,16 @@ describe("utils.ts coverage", function () {
       assert.equal(out, null);
     });
 
-    it("exits(1) when the API config is missing required fields", async function () {
+    it("exits(2) when the API config is missing required fields", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({ url: "http://x" });
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
-      assert.equal(exitStub.firstCall.args[0], 1);
+      assert.equal(exitStub.firstCall.args[0], 2);
     });
 
-    it("exits(1) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
+    it("exits(2) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = "{not json";
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
@@ -745,7 +738,7 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
     });
 
-    it("exits(1) when the fetched resolvedTests fail schema validation", async function () {
+    it("exits(2) when the fetched resolvedTests fail schema validation", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
@@ -762,7 +755,7 @@ describe("utils.ts coverage", function () {
       assert.ok(axios.get.firstCall.args[0].endsWith("/resolved-tests"));
     });
 
-    it("exits(1) when axios rejects (network error)", async function () {
+    it("exits(2) when axios rejects (network error)", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",

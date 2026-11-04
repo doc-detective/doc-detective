@@ -1332,7 +1332,7 @@ describe("debug/* remaining coverage", function () {
           $0: "doc-detective",
         });
         assert.match(text, /configPath:\s+\S*my-config\.json/);
-        assert.notEqual(exitCode, 1);
+        assert.notEqual(exitCode, 2);
       } finally {
         cleanupTmp(tmp);
       }
@@ -1428,7 +1428,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /Doc Detective diagnostic dump/);
         assert.match(text, /-- System /);
         assert.doesNotMatch(text, /CONFIG INVALID/);
-        assert.notEqual(exitCode, 1);
+        assert.notEqual(exitCode, 2);
         const savedDir = path.join(tmp, ".doc-detective");
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
@@ -1438,7 +1438,7 @@ describe("debug/* remaining coverage", function () {
       }
     });
 
-    it("a malformed config file surfaces the CONFIG INVALID banner and sets exitCode=1 (lines 60-79 error path)", async function () {
+    it("a malformed config file surfaces the CONFIG INVALID banner and sets exitCode=2 (lines 60-79 error path)", async function () {
       this.timeout(60000);
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cmd-badconfig-"));
       const badConfigPath = path.join(tmp, "bad-config.json");
@@ -1456,7 +1456,7 @@ describe("debug/* remaining coverage", function () {
         // The best-effort raw config uses args.logLevel / args.input verbatim.
         assert.match(text, /"logLevel":\s*"debug"/);
         assert.match(text, /"input":\s*"custom-input"/);
-        assert.equal(exitCode, 1);
+        assert.equal(exitCode, 2);
         const savedDir = path.join(tmp, ".doc-detective");
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
@@ -1481,7 +1481,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /=== CONFIG INVALID ===/);
         assert.match(text, /"logLevel":\s*"info"/);
         assert.match(text, /"input":\s*"\."/);
-        assert.equal(exitCode, 1);
+        assert.equal(exitCode, 2);
       } finally {
         cleanupTmp(tmp);
       }

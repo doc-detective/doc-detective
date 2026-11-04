@@ -1,6 +1,7 @@
 {
   "input": ".",
-  "output": ".",
+  "outputDir": ".",
+  "exitOnFail": false,
   "recursive": true,
   "logLevel": "debug",
   "relativePathBase": "file",

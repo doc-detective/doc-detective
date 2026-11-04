@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 import fs from "node:fs";
 import { runTests } from "../dist/core/index.js";
 import assert from "node:assert/strict";
@@ -853,7 +854,7 @@ describe("Run tests successfully", function () {
     const config = { input: tempFilePath, logLevel: "warning" };
     const logged = [];
     const origLog = console.log;
-    console.log = (...args) => {
+    console.error = console.log = (...args) => {
       logged.push(args.join(" "));
     };
     let result;
@@ -861,6 +862,7 @@ describe("Run tests successfully", function () {
       result = await runTests(config);
     } finally {
       console.log = origLog;
+      console.error = originalConsoleError;
       fs.unlinkSync(tempFilePath);
     }
     // Fails closed: the $$steps.* reference is unresolvable, so the custom
@@ -871,7 +873,7 @@ describe("Run tests successfully", function () {
       (l) =>
         l.includes("$$steps.*") &&
         l.includes("uses-steps-ref") &&
-        l.toUpperCase().includes("(WARNING)")
+        l.toUpperCase().includes("WARNING:")
     );
     assert.ok(
       warning,

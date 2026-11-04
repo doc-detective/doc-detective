@@ -1,4 +1,5 @@
 import { Command, Option } from "commander";
+import { addGlobalOptions } from "../cliOptions.js";
 
 /**
  * `doc-detective lsp` — start the Doc Detective language server. The action
@@ -6,15 +7,17 @@ import { Command, Option } from "commander";
  * when this subcommand runs, so ordinary test runs never pay that import cost.
  */
 export function buildLspCommand(): Command {
-  return new Command("lsp")
+  return addGlobalOptions(new Command("lsp"))
     .description(
       "Start the Doc Detective language server (LSP) over stdio for editors and AI agents."
     )
     .addOption(
       new Option(
         "--stdio",
-        "Communicate over stdio (the only supported transport). Present for explicitness and editor configs."
-      ).default(true)
+        "Use stdio, the only transport. Accepted because LSP clients add it"
+      )
+        .default(true)
+        .helpGroup("LSP options:")
     )
     /* c8 ignore start - thin lazy-load + real stdio server start; the server's
        pure wiring is unit-tested via registerHandlers and end-to-end via the

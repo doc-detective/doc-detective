@@ -82,15 +82,52 @@ function configKeyForFlag(flagName) {
 // Reading the commander tree.
 // ---------------------------------------------------------------------------
 
+// Help text is short and points here, so the reference carries the detail.
+// A flag not listed uses its help text.
+const REFERENCE_DESCRIPTIONS = {
+  "config": "Path to a `config.json` or `config.yaml` file.",
+  "input": "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Comma-separate multiple values.",
+  "output": "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. A folder isn't valid here: use `--output-dir`.",
+  "plain": "Print one tab-separated line per test.",
+  "output-dir": "Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports.",
+  "allow-unsafe": "Allow execution of potentially unsafe tests",
+  "dry-run": "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
+  "reporters": "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+  "test": "Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches.",
+  "spec": "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
+  "hints": "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
+  "verification": "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
+  "auto-screenshot": "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
+  "auto-record": "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+  "auto-update": "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
+  "cache-dir": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+  "concurrent-runners": "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+  "browser-fallback": "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
+  "shell": "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
+  "exit-on-fail": "Exit `1` when any spec's result is `FAIL`. [deprecated: now the default]",
+  "quiet": "Show only errors and a one-line verdict.",
+  "debug": "Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG.",
+  "log-level": "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
+  "logLevel": "Detail level of logging events. [deprecated: use --log-level]",
+  "json": "Print one JSON document to stdout.",
+  "no-color": "Turn off color. Also NO_COLOR.",
+  "no-env-file": "Don't load a `.env` file from the current directory. Variables already set in the shell always win over `.env`.",
+  "no-telemetry": "Don't send anonymous usage data for this run. `DO_NOT_TRACK` and `telemetry.send: false` do the same.",
+  "no-hints": "Don't show a post-run hint. Hints are on by default, and show one applicable tip with code samples and links after a run in an interactive shell.",
+  "no-auto-update": "Don't check the npm registry on startup for a newer 5.x and self-update before running. Self-update never crosses a major version, and never runs in CI.",
+  "no-exit-on-fail": "Exit `0` even when tests fail or nothing was tested, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run."
+};
+
 // A commander Option in the shape the tables below render. Hidden options (the
 // `--no-` forms and alternate spellings) aren't documented as rows.
 function readOption(option) {
+  const name = option.long.replace(/^--/, "");
   return {
-    name: option.long.replace(/^--/, ""),
+    name,
     alias: option.short ? option.short.replace(/^-/, "") : undefined,
-    type: option.isBoolean() ? "boolean" : "string",
+    type: option.required || option.optional ? "string" : "boolean",
     array: option.variadic,
-    description: option.description,
+    description: REFERENCE_DESCRIPTIONS[name] ?? option.description,
     default: option.defaultValue,
   };
 }
@@ -102,6 +139,12 @@ function readOptions(command, { except = new Set() } = {}) {
         !option.hidden && option.long !== "--version" && !except.has(option.long)
     )
     .map(readOption);
+}
+
+// A command's help description, without the examples and line breaks that are
+// laid out for a terminal.
+function prose(description) {
+  return description.split(/\n\s*Examples:/)[0].replace(/\s*\n\s*/g, " ").trim();
 }
 
 function subcommand(command, name) {
@@ -292,9 +335,9 @@ function buildPage(data) {
     parts.push(
       "### Negating boolean flags",
       "",
-      "Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: " +
+      "Boolean run flags can be negated with `--no-`, which overrides a config file. The ones you'll typically reach for are: " +
         serialJoin(negatable) +
-        ". (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)",
+        ".",
       ""
     );
   }
@@ -307,6 +350,8 @@ function buildPage(data) {
     "- `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).",
     "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
     "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
+    "- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr.",
+    "- `--no-input`: also available as `DOC_DETECTIVE_NO_INPUT=1`.",
     "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
     "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
     "",
@@ -340,8 +385,7 @@ function buildPage(data) {
   parts.push(
     "### lsp",
     "",
-    (lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.") +
-      " It also ships as a standalone command, `doc-detective-lsp`.",
+    lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.",
     "",
     "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).",
     ""
@@ -379,11 +423,14 @@ function buildPage(data) {
   parts.push(
     "## Exit codes",
     "",
-    "<Note>",
-    "The standalone `doc-detective` CLI does not exit with a non-zero code when tests fail—it exits non-zero only on a crash or invalid configuration. To gate CI on test failures, parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or use the [GitHub Action](/docs/ci/github-action)'s exit-on-fail behavior.",
-    "</Note>",
+    "| Code | Meaning |",
+    "|------|---------|",
+    "| `0` | All specs passed, warned, or were skipped |",
+    "| `1` | At least one spec failed |",
+    "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, an invalid spec, a declined install, or a crash |",
+    "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract, so gate CI on the parsed results, not on which non-zero code the process returns.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed and empty runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
     ""
   );
 
@@ -399,10 +446,13 @@ function buildPage(data) {
     "",
     "Doc Detective merges configuration in this order:",
     "",
-    "1. File config and the `DOC_DETECTIVE_CONFIG` environment variable (the environment value merges over the file).",
-    "2. Validation against the [`config_v3` schema](/reference/schemas/config).",
-    "3. CLI flag overrides.",
-    "4. Runtime: the runner and reporters read only the merged config.",
+    "1. CLI flags.",
+    "2. The shell's environment, including `DOC_DETECTIVE_CONFIG`.",
+    "3. A `.env` file in the current directory, unless you pass `--no-env-file`.",
+    "4. The project's `.doc-detective.*` file, or the file `--config` names.",
+    "5. Your user config, at `$XDG_CONFIG_HOME/doc-detective/config.json` (`%APPDATA%\\\\doc-detective\\\\config.json` on Windows).",
+    "",
+    "Config files and `DOC_DETECTIVE_CONFIG` are validated against the [`config_v3` schema](/reference/schemas/config).",
     "",
     "CLI flags override the validated config; they don't bypass it, and every flag maps to a camelCase config key.",
     ""
@@ -466,14 +516,14 @@ async function main() {
 
   const lspCommand = subcommand(program, "lsp");
   const lsp = {
-    describe: lspCommand.description(),
+    describe: prose(lspCommand.description()),
     options: readOptions(lspCommand),
   };
 
   // `debug` also accepts the run flags, which are documented once, above.
   const debugCommand = subcommand(program, "debug");
   const debug = {
-    describe: debugCommand.description(),
+    describe: prose(debugCommand.description()),
     options: readOptions(debugCommand, { except: runFlagNames }),
   };
 

@@ -87,7 +87,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
       }
     } else if (filePath) {
       // Load cookie from file
-      const inputDirectory = directory || config.output || process.cwd();
+      const inputDirectory = directory || config.outputDir || process.cwd();
       const fullPath = path.resolve(inputDirectory, filePath);
 
       if (!fs.existsSync(fullPath)) {

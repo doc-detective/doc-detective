@@ -1,4 +1,4 @@
-import { setConfig, outputResults, reporters } from "../dist/utils.js";
+import { setConfig, outputResults, reporters, spawnCommand } from "../dist/utils.js";
 import { setArgs } from "../dist/cliOptions.js";
 import {
   appendQueryParams,
@@ -21,6 +21,17 @@ before(async function () {
 
 describe("Util tests", function () {
   // Test that arguments are parsed correctly
+  it("spawnCommand doesn't deadlock on a child that fills stderr", async function () {
+    this.timeout(20000);
+    const result = await spawnCommand("node", [
+      "-e",
+      "process.stderr.write(\"x\".repeat(1024 * 1024)); process.stdout.write(\"done\")",
+    ]);
+    expect(result.stdout).to.equal("done");
+    expect(result.stderr).to.have.lengthOf(1024 * 1024);
+    expect(result.exitCode).to.equal(0);
+  });
+
   it("CLI parses arguments correctly", function () {
     const argSets = [
       {
@@ -58,7 +69,7 @@ describe("Util tests", function () {
           "runTests.js",
           "--input",
           "input.spec.json",
-          "--output",
+          "--output-dir",
           ".",
           "--logLevel",
           "debug",
@@ -67,7 +78,7 @@ describe("Util tests", function () {
         ],
         expected: {
           input: "input.spec.json",
-          output: ".",
+          outputDir: ".",
           logLevel: "debug",
           config: "config.json",
         },
@@ -321,15 +332,16 @@ describe("Util tests", function () {
   it("setConfig stores --verification on config.verification.write", async function () {
     this.timeout(5000);
     for (const [flag, write] of [["true", true], ["false", false], ["existing", "existing"], [" TRUE ", true]]) {
-      const args = setArgs(["node", "runTests.js", "--verification", flag]);
+      const args = { verification: flag };
       expect(args.verification).to.equal(flag);
       const config = await setConfig({ configPath: null, args });
       expect(config.verification, flag).to.deep.equal({ write });
     }
 
-    // An unknown value is ignored, leaving the validated default.
-    const argsBad = setArgs(["node", "runTests.js", "--verification", "always"]);
-    const configBad = await setConfig({ configPath: null, args: argsBad });
+    // An unknown value is rejected by the parser.
+    expect(() => setArgs(["node", "runTests.js", "--verification", "always"])).to.throw();
+    // From a programmatic caller, it's ignored, leaving the validated default.
+    const configBad = await setConfig({ configPath: null, args: { verification: "always" } });
     expect(configBad.verification).to.deep.equal({ write: "existing" });
 
     // Absent flag: the schema default.
@@ -388,11 +400,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.exitOnFail).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // Schema default is true; absent flag yields true via AJV useDefaults.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.exitOnFail).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.exitOnFail).to.equal(false);
+    expect(configAbsent.exitOnFail).to.equal(true);
   });
 
   it("--no-exit-on-fail overrides exitOnFail:true from a config file (CLI wins)", async function () {
@@ -438,7 +450,7 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoScreenshot).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // Schema default is true; absent flag yields true via AJV useDefaults.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoScreenshot).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
@@ -466,7 +478,7 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoRecord).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // Schema default is true; absent flag yields true via AJV useDefaults.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoRecord).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
@@ -516,20 +528,21 @@ describe("Util tests", function () {
 
   it("setConfig ignores an invalid --browser-fallback value, keeping the validated config value", async function () {
     this.timeout(5000);
-    const args = setArgs(["node", "runTests.js", "--browser-fallback", "sometimes"]);
-    const config = await setConfig({ configPath: null, args });
+    expect(() => setArgs(["node", "runTests.js", "--browser-fallback", "sometimes"])).to.throw();
+    const config = await setConfig({ configPath: null, args: { browserFallback: "sometimes" } });
     // Invalid CLI overrides are dropped (the schema-side enum is the contract);
     // the validated default survives.
     expect(config.browserFallback).to.equal("auto");
   });
 
-  it("CLI parses --concurrent-runners as a string (bare flag yields true)", function () {
+  it("CLI parses --concurrent-runners as a number or auto, and requires a value", function () {
     const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
     expect(numeric.concurrentRunners).to.equal("4");
 
-    // Bare flag — distinguishable from an absent flag, for CPU-count mode.
-    const bare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
-    expect(bare.concurrentRunners).to.equal(true);
+    const auto = setArgs(["node", "runTests.js", "--concurrent-runners", "auto"]);
+    expect(auto.concurrentRunners).to.equal("auto");
+    expect(() => setArgs(["node", "runTests.js", "--concurrent-runners"])).to.throw();
+    expect(() => setArgs(["node", "runTests.js", "--concurrent-runners", "abc"])).to.throw();
 
     const absent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(absent.concurrentRunners).to.equal(undefined);
@@ -549,28 +562,18 @@ describe("Util tests", function () {
     });
     expect(configNumeric.concurrentRunners).to.equal(4);
 
-    // Bare flag and explicit `true` opt into CPU-count mode (resolved to a
-    // concrete integer by the core runner, not here).
-    const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners"]);
+    // `auto`, and `true` from programmatic callers, opt into CPU-count mode
+    // (resolved to a concrete integer by the core runner, not here).
+    const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners", "auto"]);
     const configBare = await setConfig({ configPath: null, args: argsBare });
     expect(configBare.concurrentRunners).to.equal(true);
 
-    const argsTrue = setArgs([
-      "node",
-      "runTests.js",
-      "--concurrent-runners",
-      "true",
-    ]);
+    const argsTrue = { concurrentRunners: "true" };
     const configTrue = await setConfig({ configPath: null, args: argsTrue });
     expect(configTrue.concurrentRunners).to.equal(true);
 
     // Case-insensitive — "True" should not fall through to Number() (NaN).
-    const argsTrueCap = setArgs([
-      "node",
-      "runTests.js",
-      "--concurrent-runners",
-      "True",
-    ]);
+    const argsTrueCap = { concurrentRunners: "True" };
     const configTrueCap = await setConfig({
       configPath: null,
       args: argsTrueCap,
@@ -591,7 +594,7 @@ describe("Util tests", function () {
     // degrade to sequential execution). Invalid values are warned about and
     // dropped — the validated default stays.
     for (const bad of ["abc", "1.5", "0"]) {
-      const args = setArgs(["node", "runTests.js", "--concurrent-runners", bad]);
+      const args = { concurrentRunners: bad };
       const config = await setConfig({ configPath: null, args });
       expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
     }
@@ -637,9 +640,9 @@ describe("Util tests", function () {
     const args = setArgs(["node", "runTests.js", "--input", "."]);
     expect(args.reporters).to.be.undefined;
     const config = await setConfig({ configPath: null, args });
-    // Schema default is ["terminal", "json", "runFolder"] — AJV useDefaults
+    // Schema default is ["terminal", "runFolder"] — AJV useDefaults
     // applies it during validation when the --reporters arg is not provided.
-    expect(config.reporters).to.deep.equal(["terminal", "json", "runFolder"]);
+    expect(config.reporters).to.deep.equal(["terminal", "runFolder"]);
   });
 
   it("outputResults uses config.reporters as source of truth", async function () {
@@ -779,7 +782,7 @@ describe("Util tests", function () {
             path.resolve(process.cwd(), "input.spec.json"),
             path.resolve(process.cwd(), "anotherInput.spec.json"),
           ],
-          output: process.cwd(),
+          outputDir: process.cwd(),
           recursive: true,
         },
       },
@@ -829,7 +832,7 @@ describe("Util tests", function () {
     // Check that input file exists
     expect(fs.existsSync(inputResultsPath)).to.equal(true);
     // Output results
-    await outputResults(null, outputResultsPath, inputResultsJSON);
+    await outputResults({ reporters: ["json"] }, outputResultsPath, inputResultsJSON);
     // Check that output file exists
     expect(fs.existsSync(outputResultsPath)).to.equal(true);
     // Clean up
@@ -1352,14 +1355,11 @@ describe("terminalReporter zero-tests-ran warning", function () {
     };
   }
 
-  it("prints a yellow 'No tests were run' warning when totalTests === 0", async function () {
+  it("prints a 'No tests were run' warning when totalTests === 0", async function () {
     const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
     const captured = await runReporter({}, results);
     const joined = captured.join("\n");
     expect(joined).to.include("No tests were run");
-    // The warning line carries the yellow ANSI escape.
-    const warningLine = captured.find((l) => l.includes("No tests were run"));
-    expect(warningLine).to.match(/\x1b\[33m/);
   });
 
   it("includes a filter hint when config has filters and totalTests === 0", async function () {

@@ -62,6 +62,8 @@ export interface PrintDebugOptions {
    * implicit full env dump unless they explicitly ask for it.
    */
   includeEnv?: boolean;
+  /** Print the data as JSON on stdout, instead of the text document. */
+  json?: boolean;
   /**
    * When set, the dump is written into this directory as two timestamped
    * files — `debug-<timestamp>.txt` and `debug-<timestamp>.json` — using
@@ -479,18 +481,24 @@ export async function printDebug(opts: PrintDebugOptions): Promise<void> {
   const data = await collectDebugData(opts);
 
   const document = renderText(data, opts);
-  print(document);
+  if (opts.json) {
+    // The JSON document is the output, so the saved-file notes below go to stderr.
+    console.log(JSON.stringify(data, null, 2));
+  } else {
+    print(document);
+  }
 
   // Persist copies for easy attachment to bug reports, named with the same
   // timestamp printed at the top of the dump so each run is distinct and
   // the file matches its contents. Best-effort: a write failure (read-only
   // fs, permissions) must never crash the dump.
   if (opts.outDir) {
+    const note = opts.json ? (line: string) => console.error(line) : print;
     const stamp = timestampForFilename(data.generatedAt);
     writeFileSafe(
       path.join(opts.outDir, `debug-${stamp}.txt`),
       document + "\n",
-      print,
+      note,
       "Diagnostic dump saved to"
     );
     let json: string;
@@ -504,7 +512,7 @@ export async function printDebug(opts: PrintDebugOptions): Promise<void> {
     writeFileSafe(
       path.join(opts.outDir, `debug-${stamp}.json`),
       json + "\n",
-      print,
+      note,
       "Diagnostic JSON saved to"
     );
   }

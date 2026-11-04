@@ -146,12 +146,6 @@ describe("reporters/htmlReporter — direct coverage", function () {
       assert.match(path.basename(result), /^testResults-\d+\.html$/);
     });
 
-    it("uses coverageResults-* naming for the runCoverage command (line 19 branch)", async function () {
-      const result = await htmlReporter({}, tmpDir, makeResults(), {
-        command: "runCoverage",
-      });
-      assert.match(path.basename(result), /^coverageResults-\d+\.html$/);
-    });
 
     it("falls back to the default report type for an unknown command", async function () {
       const result = await htmlReporter({}, tmpDir, makeResults(), {

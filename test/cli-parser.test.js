@@ -23,13 +23,12 @@ describe("CLI parser", function () {
 
   it("rejects a run flag on a subcommand that doesn't take it", function () {
     const r = runCli(["install", "browsers", "--reporters", "json", "--dry-run"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("unknown option '--reporters'");
   });
 
-  it("gives a short flag to the subcommand it follows, not to the root", function () {
-    // At the root, -s is --spec. Under `install agents`, it's --scope.
-    const r = runCli(["install", "agents", "-s", "global", "--agent", "claude", "--yes", "--dry-run"]);
+  it("gives a flag to the subcommand it follows, not to the root", function () {
+    const r = runCli(["install", "agents", "--scope", "global", "--agent", "claude", "--yes", "--dry-run"]);
     expect(r.status, r.stderr).to.equal(0);
     expect(r.stdout).to.include("scope: global");
   });
@@ -42,25 +41,25 @@ describe("CLI parser", function () {
 
   it("rejects `help` for a command that doesn't exist", function () {
     const r = runCli(["help", "nope"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("unknown command 'nope'");
   });
 
   it("keeps bare words free for subcommands", function () {
     const r = runCli(["docs"]);
-    expect(r.status).to.equal(1);
-    expect(r.stderr).to.include("too many arguments");
+    expect(r.status).to.equal(2);
+    expect(r.stderr).to.include("unknown command 'docs'");
   });
 
   it("suggests the nearest flag for a typo", function () {
     const r = runCli(["--inptu", "x"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("Did you mean --input?");
   });
 
   it("requires a value for a valued flag", function () {
     const r = runCli(["--input"]);
-    expect(r.status).to.equal(1);
+    expect(r.status).to.equal(2);
     expect(r.stderr).to.include("argument missing");
   });
 
@@ -68,6 +67,49 @@ describe("CLI parser", function () {
     const r = runCli(["--version"]);
     expect(r.status).to.equal(0);
     expect(r.stdout.trim()).to.match(/^\d+\.\d+\.\d+/);
+  });
+
+  // Every command, including ones added later, gets the same treatment.
+  describe("every command", function () {
+    const commands = [];
+    const walk = (command, path = []) => {
+      for (const child of command.commands) {
+        commands.push({ path: [...path, child.name()], command: child });
+        walk(child, [...path, child.name()]);
+      }
+    };
+    walk(buildProgram({ runTests: () => {} }));
+
+    for (const { path: commandPath, command } of commands) {
+      const name = commandPath.join(" ");
+      it(`\`${name}\` has help, and exits 0 from it`, function () {
+        const r = runCli([...commandPath, "--help"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stdout).to.include("Usage: doc-detective");
+      });
+      it(`\`${name}\` rejects an unknown flag with exit 2`, function () {
+        const r = runCli([...commandPath, "--definitely-not-a-flag"]);
+        expect(r.status).to.equal(2);
+        expect(r.stderr).to.include("unknown option");
+      });
+      if (!["lsp", "runner", "help"].includes(name)) {
+        it(`\`${name}\` declares --json`, function () {
+          expect(command.options.some((option) => option.long === "--json")).to.equal(true);
+        });
+      }
+    }
+
+    it("leaves `coverage` free for the coverage command", function () {
+      expect(commands.map((c) => c.path[0])).to.not.include("coverage");
+      const program = buildProgram({ runTests: () => {} });
+      let ran = false;
+      program.command("coverage").action(() => {
+        ran = true;
+      });
+      return program.parseAsync(["coverage"], { from: "user" }).then(() => {
+        expect(ran).to.equal(true);
+      });
+    });
   });
 
   it("accepts both spellings of the log level", function () {

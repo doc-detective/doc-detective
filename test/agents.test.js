@@ -77,7 +77,7 @@ describe("install-agents subcommand arg parsing", function () {
   function parse(args) {
     // Replace handler with a capturing spy so we never actually run install logic.
     const silent = { writeErr: () => {}, writeOut: () => {} };
-    const spyCommand = buildInstallAgentsCommand("install-agents", (argv) => {
+    const spyCommand = buildInstallAgentsCommand((argv) => {
       handlerCalled = true;
       capturedArgv = argv;
     })
@@ -88,13 +88,8 @@ describe("install-agents subcommand arg parsing", function () {
     return program.parseAsync(args, { from: "user" });
   }
 
-  it("builds a command named for its mount point", function () {
-    assert.equal(buildInstallAgentsCommand("install-agents").name(), "install-agents");
-    assert.equal(buildInstallAgentsCommand("agents").name(), "agents");
-  });
-
   it("parses --agent, --scope, --yes correctly", async function () {
-    await parse(["install-agents", "--agent", "claude", "--scope", "project", "--yes"]);
+    await parse(["agents", "--agent", "claude", "--scope", "project", "--yes"]);
     assert.equal(handlerCalled, true);
     assert.deepEqual(capturedArgv.agent, ["claude"]);
     assert.equal(capturedArgv.scope, "project");
@@ -103,7 +98,7 @@ describe("install-agents subcommand arg parsing", function () {
 
   it("allows repeated --agent flags", async function () {
     await parse([
-      "install-agents",
+      "agents",
       "--agent", "claude",
       "--agent", "opencode",
       "--scope", "global",
@@ -114,14 +109,14 @@ describe("install-agents subcommand arg parsing", function () {
   });
 
   it("accepts --force and --dry-run as booleans", async function () {
-    await parse(["install-agents", "--force", "--dry-run"]);
+    await parse(["agents", "--force", "--dry-run"]);
     assert.equal(capturedArgv.force, true);
     assert.equal(capturedArgv["dry-run"], true);
   });
 
   it("rejects invalid --scope values", async function () {
     await assert.rejects(
-      async () => parse(["install-agents", "--scope", "bogus", "--yes", "--agent", "claude"]),
+      async () => parse(["agents", "--scope", "bogus", "--yes", "--agent", "claude"]),
       /scope/i
     );
   });
@@ -1204,7 +1199,7 @@ describe("install-agents end-to-end (compiled CLI, settings-file fallback)", fun
         USERPROFILE: workDir,
       };
 
-      const child = childSpawn(process.execPath, [cliPath, "install-agents", ...extraArgs], {
+      const child = childSpawn(process.execPath, [cliPath, "install", "agents", ...extraArgs], {
         cwd: workDir,
         env,
         stdio: ["ignore", "pipe", "pipe"],

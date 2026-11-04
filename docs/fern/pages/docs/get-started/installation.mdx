@@ -90,11 +90,11 @@ Choose *NPX* if you have Node.js installed and want Doc Detective on your machin
 
 You've run your first test with Doc Detective. :tada:
 
-You should see output in the terminal indicating the progress and results of the test. Results are also saved in a `testResults-<timestamp>.json` file in the current directory (configurable with the `--output` option), and this test saves a screenshot to *example.png*.
+You should see output in the terminal indicating the progress and results of the test. Results are also saved in the `.doc-detective/runs/<runId>/` folder in the current directory, and this test saves a screenshot to *example.png*. To write the results somewhere else, pass `--output <file>` for the JSON results file or `--output-dir <dir>` for the run folder.
 
 ## Runtime installation
 
-Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them, such as webdriverio, appium, and sharp. They land in `~/.doc-detective/`, or `DOC_DETECTIVE_CACHE_DIR`. This keeps your install ready to run tests without a separate step.
+Running `npm i doc-detective` installs the CLI and pre-installs heavy runtime assets. Those are browsers (Chrome, Firefox), drivers (ChromeDriver, Geckodriver), ffmpeg, and the npm packages that drive them, such as webdriverio, appium, and sharp. They land in your [cache directory](#override-the-cache-location). This keeps your install ready to run tests without a separate step.
 
 The pre-install runs in a child process and captures its output, so npm's deprecation warnings from transitive dependencies won't clutter your terminal.
 
@@ -136,7 +136,7 @@ doc-detective install status
 
 ### Override the cache location
 
-The default cache location is `~/.doc-detective/`, which persists across reboots. For containers, shared CI caches, or any environment where the cache belongs somewhere else, set a custom location:
+The default cache location is `$XDG_CACHE_HOME/doc-detective`, or `~/.cache/doc-detective` if `XDG_CACHE_HOME` isn't set. On Windows, it's `%LOCALAPPDATA%\doc-detective`. An existing `~/.doc-detective` keeps being used. All of these persist across reboots. For containers, shared CI caches, or any environment where the cache belongs somewhere else, set a custom location:
 
 ```bash
 DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
@@ -152,6 +152,8 @@ By default, Doc Detective checks the npm registry on startup and updates itself 
 - **npx invocations**: Re-executes with `npx -y doc-detective@latest`.
 - **Local project installs**: Prints an "update available" message instead of modifying your `package.json`.
 
+Auto-update never crosses a major version. When a new major version is out, Doc Detective tells you and leaves the upgrade to you. See [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5) for what changes in version 5.
+
 To disable auto-update, use any of these methods:
 
 - Pass `--no-auto-update` on the CLI
@@ -159,6 +161,31 @@ To disable auto-update, use any of these methods:
 - Set the `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1` environment variable
 
 CI environments skip the update check automatically whenever the `CI` environment variable has a value.
+
+## Uninstall
+
+To remove Doc Detective from a machine:
+
+1. Uninstall the package:
+
+   ```bash
+   npm uninstall -g doc-detective
+   ```
+
+   For a project install, run `npm uninstall doc-detective` in the project instead.
+
+2. Delete the cache directory, which holds browsers, drivers, and runtime packages. It's the first of these that applies:
+
+   - The path in `DOC_DETECTIVE_CACHE_DIR`, if you set it
+   - `~/.doc-detective`, if it exists
+   - `$XDG_CACHE_HOME/doc-detective` or `~/.cache/doc-detective` on macOS and Linux
+   - `%LOCALAPPDATA%\doc-detective` on Windows
+
+   If you set `cacheDir` in a config file or passed `--cache-dir`, delete that folder too.
+
+3. Delete your user config directory, which holds `config.json` and the record that you saw the telemetry notice. It's `$XDG_CONFIG_HOME/doc-detective` or `~/.config/doc-detective` on macOS and Linux, and `%APPDATA%\doc-detective` on Windows.
+
+Your projects keep their `.doc-detective.json` files and `.doc-detective/runs/` folders. Delete those by hand if you no longer want them.
 
 ## Next steps
 

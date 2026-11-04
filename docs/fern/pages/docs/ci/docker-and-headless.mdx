@@ -56,20 +56,39 @@ For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-actio
 
 ## Step 4: Run headless in CI
 
-Put the pieces together in a generic, platform-agnostic pipeline step. By default, the CLI exits `0` even when tests fail, so pass `--exit-on-fail` to make a failing spec fail the step:
+Put the pieces together in a generic, platform-agnostic pipeline step. The CLI exits non-zero when a test fails, so a failing spec fails the step:
 
 ```bash
 docker run -v .:/app \
   -e DOC_DETECTIVE_AUTOINSTALL=0 \
   docdetective/docdetective:linux \
-  --input /app/docs --reporters json --output /app/results.json --exit-on-fail
+  --input /app/docs --output /app/results.json
 ```
 
-`docker run` returns the container's exit code, so the step fails whenever any spec's result is `FAIL`. For details on which results count as failures and other ways to gate the build, such as parsing the JSON `summary`, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail).
+`docker run` returns the container's exit code, so the step fails whenever any spec's result is `FAIL`, or whenever nothing valid was tested. For the full list of exit codes and other ways to gate the build, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail).
+
+## Provide credentials from files
+
+Containers and CI systems often mount secrets as files. Doc Detective can read credentials from a file, so they stay out of your config file and the environment:
+
+| Setting | Holds |
+|---|---|
+| `DOC_DETECTIVE_API_FILE` environment variable | Path to a JSON file with the same contents as `DOC_DETECTIVE_API`. When both are set, the file wins. |
+| `integrations.docDetectiveApi.apiKeyFile` config key | Path to a file holding the Orchestration API key. Use it in place of `apiKey`. |
+| `integrations.heretto[].apiTokenFile` config key | Path to a file holding a Heretto API token. Use it in place of `apiToken`. See [Heretto](/docs/test-docs/heretto). |
+
+Relative paths resolve from the current directory, and Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
+
+```bash
+docker run -v .:/app \
+  -v /run/secrets/doc-detective-api.json:/secrets/api.json:ro \
+  -e DOC_DETECTIVE_API_FILE=/secrets/api.json \
+  docdetective/docdetective:linux
+```
 
 ## Verify it works
 
-- The container run prints a terminal summary and writes results to the mounted output path.
+- The container run prints a terminal summary and writes results to the path you passed to `--output`.
 - Browser tests complete without a display error.
 - If you pre-warmed assets, the run starts without downloading browsers or drivers.
 

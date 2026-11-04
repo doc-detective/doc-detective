@@ -407,7 +407,10 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	// to. main() resolves it once from DD_WORKSPACE_DIR and threads
 	// it through both functions so the CLI's view of the filesystem
 	// can't drift from where the runner actually wrote specs/output.
-	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	effective.outputDir = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	// Also the results file, so a repository's own config can't write outside the
+	// workspace: this config overlays it.
+	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR, 'testResults.json');
 	if (source.type === 'inline') {
 		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}
@@ -746,6 +749,10 @@ async function main() {
 		};
 	} else if (exitCode === 0) {
 		finalizeBody = { status: 'succeeded', exit_code: 0, summary: {} };
+	} else if (exitCode === 1) {
+		// The run worked and a test failed (ADR 01146). The platform reads this
+		// from the exit code and shows it as a tests-failed outcome.
+		finalizeBody = { status: 'succeeded', exit_code: 1, summary: { reason: 'tests_failed' } };
 	} else {
 		finalizeBody = {
 			status: 'failed',
@@ -771,11 +778,9 @@ async function main() {
 // Module-import guard so the test file can `import` from this module
 // without triggering main().
 //
-// Both halves of this comparison matter. npm installs `bin` entries as
-// symlinks, so when the container runs `doc-detective-runner`,
-// process.argv[1] is /usr/local/bin/doc-detective-runner while
-// import.meta.url is the realpath under node_modules — hence realpathSync
-// before comparing. And a hand-built `file://${...}` template mangles
+// Hosted images run this through `doc-detective runner`, which calls main()
+// itself. This guard covers running the file directly. Both halves of the
+// comparison matter: argv[1] can be a symlink, so realpathSync before comparing. And a hand-built `file://${...}` template mangles
 // Windows paths and anything containing a space or `#`, so the conversion
 // goes through pathToFileURL. Getting either wrong makes this silently
 // false: main() never runs, nothing is logged, and the process exits 0

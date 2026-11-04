@@ -657,7 +657,7 @@ describe("loadCookie action (coverage)", function () {
   it("file not found → FAIL", async () => {
     const driver = makeDriver();
     const result = await loadCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { loadCookie: { name: "sid", path: "missing.txt" } },
       driver,
     });
@@ -702,7 +702,7 @@ describe("loadCookie action (coverage)", function () {
     const setCookies = sinon.spy(async () => {});
     const driver = makeDriver({ setCookiesImpl: setCookies });
     const result = await loadCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { loadCookie: "sid.txt" },
       driver,
     });
@@ -1150,7 +1150,7 @@ describe("saveCookie action (coverage)", function () {
       cookies: [{ name: "sid", value: "v", domain: "example.com" }],
     });
     const result = await saveCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { saveCookie: "sid.txt" },
       driver,
     });

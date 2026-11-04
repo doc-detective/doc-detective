@@ -82,6 +82,7 @@ const OVERRIDE_SPECS: Array<{
 }> = [
   { flag: "input", argKey: "input", configKey: "input", present: (a) => Boolean(a.input) },
   { flag: "output", argKey: "output", configKey: "output", present: (a) => Boolean(a.output) },
+  { flag: "output-dir", argKey: "outputDir", configKey: "outputDir", present: (a) => Boolean(a.outputDir) },
   { flag: "logLevel", argKey: "logLevel", configKey: "logLevel", present: (a) => Boolean(a.logLevel) },
   {
     flag: "allow-unsafe",

@@ -43,7 +43,7 @@ doc-detective --auto-record
 Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree. The same context therefore lands on the same relative path in every run:
 
 ```
-<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
+<outputDir>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
 ```
 
 An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap. Doc Detective warns when a run records concurrently on those platforms.

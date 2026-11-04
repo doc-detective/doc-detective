@@ -57,6 +57,17 @@ function rmTmpDir(dir) {
 }
 
 describe("hints/render", function () {
+  // These assert escape codes, which only print where color is on.
+  let savedForceColor;
+  before(function () {
+    savedForceColor = process.env.FORCE_COLOR;
+    process.env.FORCE_COLOR = "1";
+  });
+  after(function () {
+    if (savedForceColor === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = savedForceColor;
+  });
+
   describe("renderMarkdown", function () {
     it("renders **bold** with the SGR bold code and a reset", function () {
       const out = renderMarkdown("hello **world** end", { osc8: false });
@@ -2207,13 +2218,13 @@ describe("hints/hints (registry)", function () {
   it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
     const h = findHint("gitignoreOutputDir");
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: false }))
     ).to.equal(true);
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: true }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: true }))
     ).to.equal(false);
     expect(
-      h.when(fakeCtx({ config: { output: "." }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: false }))
     ).to.equal(false);
   });
 
@@ -2362,11 +2373,18 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("sponsorProject: fires once any tests ran", function () {
+    const h = findHint("sponsorProject");
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 0 }))).to.equal(true);
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 1 }))).to.equal(false);
+    expect(h.when(fakeCtx({ totalTests: 0 }))).to.equal(false);
+  });
+
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
     const h = findHint("setOutputDir");
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "out" }, totalSpecs: 1 }))).to.equal(false);
+    expect(h.when(fakeCtx({ config: { outputDir: "." }, totalSpecs: 1 }))).to.equal(true);
+    expect(h.when(fakeCtx({ config: { outputDir: "out" }, totalSpecs: 1 }))).to.equal(false);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 0 }))).to.equal(false);
   });
 
@@ -3030,12 +3048,12 @@ describe("hints CLI wiring", function () {
   // exercised by the unit tests above.
   this.timeout(20000);
 
-  it("--help advertises the --hints flag", function () {
+  it("--help advertises the --no-hints flag", function () {
     const r = spawnSync(process.execPath, [CLI, "--help"], {
       encoding: "utf8",
     });
     expect(r.status, `stderr: ${r.stderr}`).to.equal(0);
-    expect(r.stdout).to.include("--hints");
+    expect(r.stdout).to.include("--no-hints");
   });
 
   it("accepts --no-hints without erroring (parses through to runTests)", function () {

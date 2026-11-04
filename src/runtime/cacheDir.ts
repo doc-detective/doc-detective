@@ -66,13 +66,42 @@ function emptyRecord(): InstalledRecord {
 // A persistent per-user dir, NOT the OS temp dir (ADR 01105): temp is cleared
 // on reboot, and its `doc-detective/` root is also where cleanTemp sweeps run
 // scratch — a cache there lost its Android SDK/JRE/WDA builds after each run.
-function defaultCacheRoot(): string {
-  return path.join(os.homedir(), ".doc-detective");
+//
+// New installs follow XDG (`%LOCALAPPDATA%` on Windows). An existing
+// `~/.doc-detective` keeps being used, so nobody re-downloads gigabytes.
+export function defaultCacheRoot({
+  env = process.env,
+  home = os.homedir(),
+  platform = process.platform,
+  exists = fs.existsSync,
+}: {
+  env?: NodeJS.ProcessEnv;
+  home?: string;
+  platform?: string;
+  exists?: (candidate: string) => boolean;
+} = {}): string {
+  const legacy = path.join(home, ".doc-detective");
+  if (exists(legacy)) return legacy;
+  if (env.XDG_CACHE_HOME) return path.join(env.XDG_CACHE_HOME, "doc-detective");
+  if (platform === "win32" && env.LOCALAPPDATA) return path.join(env.LOCALAPPDATA, "doc-detective");
+  return path.join(home, ".cache", "doc-detective");
+}
+
+// Where per-user configuration lives: `$XDG_CONFIG_HOME/doc-detective`, or
+// `%APPDATA%\\doc-detective` on Windows.
+export function userConfigDir({
+  env = process.env,
+  home = os.homedir(),
+  platform = process.platform,
+}: { env?: NodeJS.ProcessEnv; home?: string; platform?: string } = {}): string {
+  if (env.XDG_CONFIG_HOME) return path.join(env.XDG_CONFIG_HOME, "doc-detective");
+  if (platform === "win32" && env.APPDATA) return path.join(env.APPDATA, "doc-detective");
+  return path.join(home, ".config", "doc-detective");
 }
 
 /**
  * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > <os.homedir()>/.doc-detective. The directory is created if missing — every
+ * > defaultCacheRoot(). The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.

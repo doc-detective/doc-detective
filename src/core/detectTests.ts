@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSpecErrors } from "./utils.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -106,6 +106,18 @@ function buildAllowedExtensions(config: any): Set<string> {
   return allowed;
 }
 
+function isSpecFileName(source: string): boolean {
+  return /\.spec\.(json|ya?ml)$/i.test(source);
+}
+
+// Non-enumerable, so it stays out of serialized payloads (like _qualifiedFiles).
+function noteInvalidSpec(config: any, source: string, reason = "It isn't valid JSON or YAML.") {
+  if (!config._invalidSpecs) {
+    Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
+  }
+  config._invalidSpecs.push(`${source}\n${reason}`);
+}
+
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
   log(config, "debug", `validation: ${source}`);
   const allowed = allowedExtensions;
@@ -137,7 +149,9 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       // which the object guard below then rejects.
       content = rawContent;
     }
-    if (typeof content !== "object") {
+    // Null is what an empty 4.x run left behind as its results file.
+    if (typeof content !== "object" || content === null) {
+      if (isSpecFileName(source)) noteInvalidSpec(config, source);
       log(
         config,
         "debug",
@@ -151,12 +165,20 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       addDefaults: false,
     });
     if (!validation.valid) {
-      log(config, "warning", validation);
-      log(
-        config,
-        "warning",
-        `${source} isn't a valid test specification. Skipping.`
-      );
+      // A JSON or YAML file with no `tests` key and a plain name is just another
+      // data file, such as package.json, so it isn't reported as a broken spec.
+      const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
+      const summary = summarizeSpecErrors(validation.errors, content);
+      if (looksLikeSpec) noteInvalidSpec(config, source, summary);
+      log(config, "debug", validation);
+      // In a strict run, the error that stops the run carries this instead.
+      if (!config._strictSpecs) {
+        log(
+          config,
+          looksLikeSpec ? "warning" : "debug",
+          `${source} isn't a valid test specification. Skipping.\n${summary}`
+        );
+      }
       return false;
     }
     for (const test of content.tests) {
