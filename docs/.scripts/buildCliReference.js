@@ -88,7 +88,7 @@ function readOption(option) {
   return {
     name: option.long.replace(/^--/, ""),
     alias: option.short ? option.short.replace(/^-/, "") : undefined,
-    type: option.isBoolean() ? "boolean" : "string",
+    type: option.required || option.optional ? "string" : "boolean",
     array: option.variadic,
     description: option.description,
     default: option.defaultValue,

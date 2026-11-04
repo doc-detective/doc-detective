@@ -1,4 +1,5 @@
 import { validate } from "./common/src/validate.js";
+import { diag, displayPath, palette } from "./cliOutput.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
 import path from "node:path";
@@ -26,18 +27,19 @@ export {
   isDebugRequested,
 };
 
-// True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
-// Used by `runTestsHandler` in cli.ts to decide whether to catch
-// setConfig failures and still emit a diagnostic dump.
-//
-// The `--debug` CLI flag was retired in favor of the dedicated
-// `doc-detective debug` subcommand; the subcommand handler does its
-// own setConfig-error handling, so this helper is now env-var-only.
-function isDebugRequested(): boolean {
-  const envVal = process.env.DOC_DETECTIVE_DEBUG;
+// Whether the environment asks for debug output. DOC_DETECTIVE_DEBUG is the narrow
+// switch, for Doc Detective alone. DEBUG is the broad one that many packages read:
+// 1, true, *, or a comma-separated pattern matching doc-detective turns this on,
+// while a value like `express:*` is someone else's and leaves it off.
+function isDebugRequested(env: NodeJS.ProcessEnv = process.env): boolean {
+  const narrow = env.DOC_DETECTIVE_DEBUG;
   // Trim so a templated/copy-pasted value with stray whitespace (e.g.
   // `"true "`) still activates debug mode.
-  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal.trim());
+  if (typeof narrow === "string" && /^(1|true|yes)$/i.test(narrow.trim())) return true;
+  return String(env.DEBUG ?? "")
+    .split(",")
+    .map((pattern) => pattern.trim())
+    .some((pattern) => /^(1|true|\*|doc-detective(:?\*)?)$/i.test(pattern));
 }
 
 // Log function that respects logLevel
@@ -57,10 +59,15 @@ function logLevelEnabled(level: string, config: any = {}): boolean {
 function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
   if (logLevelEnabled(level, config)) {
-    if (level === "error") {
-      console.error(message);
+    // stdout is for results. Labels and timestamps appear only at debug level.
+    if (config?.logLevel === "debug") {
+      diag(`${new Date().toISOString()} (${level.toUpperCase()}) ${message}`);
+    } else if (level === "warning") {
+      diag(`Warning: ${message}`);
+    } else if (level === "error") {
+      diag(`Error: ${message}`);
     } else {
-      console.log(message);
+      diag(message);
     }
   }
 }
@@ -324,7 +331,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // Add to config
     config.input = args.input;
   }
-  if (args.output) {
+  // `--output -` means stdout, the same as --json.
+  const jsonOnStdout = args.json === true || args.output === "-";
+  if (args.output && args.output !== "-") {
     config.output = args.output;
   }
   if (typeof config.output === "string") {
@@ -333,6 +342,11 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (args.outputDir) {
     config.outputDir = path.resolve(args.outputDir);
   }
+  // Least specific first: the environment, then --quiet and --debug, then an
+  // explicit level.
+  if (isDebugRequested()) config.logLevel = "debug";
+  if (args.quiet) config.logLevel = "error";
+  if (args.debug) config.logLevel = "debug";
   if (args.logLevel) {
     config.logLevel = args.logLevel;
   }
@@ -462,6 +476,13 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
       }
     }
   }
+  // Modes that replace the terminal summary on stdout.
+  if (jsonOnStdout || args.plain || args.quiet || config.logLevel === "silent") {
+    const others = (config.reporters ?? []).filter((reporter: any) => reporter !== "terminal");
+    if (jsonOnStdout) others.push("jsonStdoutReporter");
+    if (args.plain) others.push("plainReporter");
+    config.reporters = others;
+  }
   if (Array.isArray(config.reporters)) {
     const unknown = config.reporters.filter(
       (reporter: any) => typeof reporter === "string" && !reporters[reporterKey(reporter)]
@@ -542,6 +563,26 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   },
 
   // JSON reporter: outputs results to a JSON file
+  // `--json`: the results, and nothing else, on stdout.
+  jsonStdoutReporter: async (_config: any, _outputPath: any, results: any) => {
+    console.log(JSON.stringify(results, null, 2));
+  },
+
+  // `--plain`: one tab-separated line per test context, for grep and cut.
+  plainReporter: async (_config: any, _outputPath: any, results: any) => {
+    for (const spec of results?.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        const contexts = (test.contexts ?? []).filter(Boolean);
+        for (const context of contexts.length > 0 ? contexts : [{}]) {
+          const where = [context.platform, context.browser].filter(Boolean).join("/");
+          console.log(
+            [context.result ?? test.result, spec.specId, test.testId, where].join("\t")
+          );
+        }
+      }
+    }
+  },
+
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     // Define supported output extensions
     const outputExtensions = [".json"];
@@ -592,7 +633,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
 
       // Write results to output file
       fs.writeFileSync(outputFile, data);
-      console.log(`See detailed results at ${outputFile}\n`);
+      log(`Results: ${displayPath(outputFile)}`, "info", config);
       return outputFile;
     } catch (err) {
       console.error(`Error writing results to ${outputFile}. ${err}`);
@@ -689,7 +730,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       try {
         const { buildHtml } = await import("./reporters/htmlReporter.js");
         fs.writeFileSync(htmlFile, buildHtml(persistedResults));
-        console.log(`See per-run HTML report at ${htmlFile}\n`);
+        log(`Run report: ${displayPath(htmlFile)}`, "info", config);
       } catch (htmlErr) {
         // Pass the error as a separate arg so its stack survives (string
         // interpolation would flatten it, e.g. to "[object Object]").
@@ -699,15 +740,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         );
       }
 
-      // Log the JSON path *after* the HTML line so that, within this reporter,
-      // no "...report at <html>" line trails the per-run "results at" line. The
-      // doc-detective GitHub Action resolves the results file by splitting
-      // stdout on "results at " and require()-ing the trimmed last segment; a
-      // trailing HTML line folded into that segment broke the release smoke
-      // test. (Reporters run concurrently, so this line isn't guaranteed to be
-      // the final stdout token overall — but every reporter's "results at" line
-      // is itself a valid results path, so whichever lands last still resolves.)
-      console.log(`See per-run results at ${outputFile}\n`);
+      log(`Run results: ${displayPath(outputFile)}`, "info", config);
 
       return outputFile;
     } catch (err) {
@@ -718,15 +751,9 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
 
   // Terminal reporter: outputs a summary to the terminal
   terminalReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
-    // Defines colors for terminal output
-    const colors = {
-      red: "\x1b[31m",
-      green: "\x1b[32m",
-      yellow: "\x1b[33m",
-      cyan: "\x1b[36m",
-      reset: "\x1b[0m",
-      bold: "\x1b[1m",
-    };
+    const colors = palette(process.stdout);
+    // Emoji read well in a terminal, and as noise in a CI log.
+    const warningMark = process.stdout.isTTY ? "⚠️  " : "";
 
     // Single source of truth for the "No tests were run" warning so the
     // null-results path and the totalTests===0 path can't drift apart.
@@ -736,7 +763,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       const testFilterActive =
         Array.isArray(config?.testFilter) && config.testFilter.length > 0;
       console.log(
-        `\n${colors.yellow}⚠️  No tests were run. ⚠️${colors.reset}`
+        `\n${colors.yellow}${warningMark}No tests were run.${colors.reset}`
       );
       if (specFilterActive || testFilterActive) {
         console.log(
@@ -793,110 +820,27 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       const allSpecsSkipped =
         specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0;
 
-      console.log(
-        `\n${colors.bold}===== Doc Detective Results Summary =====${colors.reset}`
-      );
-
-      // Print specs summary if available
-      if (specs) {
-        console.log(`\n${colors.bold}Specs:${colors.reset}`);
-        console.log(`Total: ${totalSpecs}`);
-        if (specs.pass > 0) {
-          console.log(`${colors.green}Passed: ${specs.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${specs.pass}`);
-        }
-        console.log(
-          `${specs.fail > 0 ? colors.red : colors.green}Failed: ${specs.fail}${
-            colors.reset
-          }`
-        );
-        if (specs.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${specs.warning}${colors.reset}`
-          );
-        if (specs.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${specs.skipped}${colors.reset}`
-          );
-      }
-
-      // Print tests summary if available
-      if (tests) {
-        console.log(`\n${colors.bold}Tests:${colors.reset}`);
-        console.log(`Total: ${totalTests}`);
-        if (tests.pass > 0) {
-          console.log(`${colors.green}Passed: ${tests.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${tests.pass}`);
-        }
-        console.log(
-          `${tests.fail > 0 ? colors.red : colors.green}Failed: ${tests.fail}${
-            colors.reset
-          }`
-        );
-        if (tests.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${tests.warning}${colors.reset}`
-          );
-        if (tests.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${tests.skipped}${colors.reset}`
-          );
-      }
-
-      // Print contexts summary if available
-      if (contexts) {
-        console.log(`\n${colors.bold}Contexts:${colors.reset}`);
-        console.log(`Total: ${totalContexts}`);
-        if (contexts.pass > 0) {
-          console.log(`${colors.green}Passed: ${contexts.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${contexts.pass}`);
-        }
-        console.log(
-          `${contexts.fail > 0 ? colors.red : colors.green}Failed: ${
-            contexts.fail
-          }${colors.reset}`
-        );
-        if (contexts.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`
-          );
-        if (contexts.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${contexts.skipped}${colors.reset}`
-          );
-      }
-
-      // Print steps summary if available
-      if (steps) {
-        console.log(`\n${colors.bold}Steps:${colors.reset}`);
-        console.log(`Total: ${totalSteps}`);
-        if (steps.pass > 0) {
-          console.log(`${colors.green}Passed: ${steps.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${steps.pass}`);
-        }
-        console.log(
-          `${steps.fail > 0 ? colors.red : colors.green}Failed: ${steps.fail}${
-            colors.reset
-          }`
-        );
-        if (steps.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${steps.warning}${colors.reset}`
-          );
-        if (steps.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${steps.skipped}${colors.reset}`
-          );
-      }
+      const summaryLine = (label: string, counts: any, total: number) => {
+        if (!counts) return;
+        const parts = [
+          `${total} total`,
+          `${counts.pass > 0 ? colors.green : ""}${counts.pass} passed${counts.pass > 0 ? colors.reset : ""}`,
+          `${counts.fail > 0 ? colors.red : ""}${counts.fail} failed${counts.fail > 0 ? colors.reset : ""}`,
+        ];
+        if (counts.warning > 0) parts.push(`${colors.yellow}${counts.warning} warnings${colors.reset}`);
+        if (counts.skipped > 0) parts.push(`${colors.yellow}${counts.skipped} skipped${colors.reset}`);
+        console.log(`${colors.bold}${label}${colors.reset} ${parts.join(", ")}`);
+      };
+      console.log("");
+      summaryLine("Specs:   ", specs, totalSpecs);
+      summaryLine("Tests:   ", tests, totalTests);
+      summaryLine("Contexts:", contexts, totalContexts);
+      summaryLine("Steps:   ", steps, totalSteps);
 
       // If all specs were skipped, call it out
       if (allSpecsSkipped) {
         console.log(
-          `\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`
+          `\n${colors.yellow}${warningMark}All items were skipped. No specs passed or failed.${colors.reset}`
         );
       }
 
@@ -1126,11 +1070,6 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
             );
           });
         }
-      } else if (!hasFailures && !allSpecsSkipped && totalTests > 0) {
-        // Celebration when all tests pass. Gated on totalTests > 0 so an
-        // empty run (no input matched, all filtered out) doesn't print the
-        // success banner alongside the "No tests were run" warning above.
-        console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
     } else {
       console.log(
@@ -1306,19 +1245,17 @@ async function spawnCommand(cmd: string, args?: string[]) {
     env: process.env, // Explicitly pass environment variables
   });
 
-  // Capture stdout
-  let stdout = "";
-  for await (const chunk of runCommand.stdout) {
-    stdout += chunk;
-  }
+  // Drain both streams at once. Reading them in turn deadlocks: a child that fills
+  // the unread pipe blocks on its write and never closes the other.
+  const collect = async (stream: AsyncIterable<any>) => {
+    let text = "";
+    for await (const chunk of stream) text += chunk;
+    return text;
+  };
+  let [stdout, stderr] = await Promise.all([collect(runCommand.stdout), collect(runCommand.stderr)]);
   // Remove trailing newline
   stdout = stdout.replace(/\n$/, "");
 
-  // Capture stderr
-  let stderr = "";
-  for await (const chunk of runCommand.stderr) {
-    stderr += chunk;
-  }
   // Remove trailing newline
   stderr = stderr.replace(/\n$/, "");
 

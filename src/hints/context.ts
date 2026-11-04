@@ -73,7 +73,7 @@ export interface BuildHintContextOptions {
   results?: any;
   /** Defaults to `process.cwd()`. Injectable for tests. */
   cwd?: string;
-  /** Defaults to `!!process.stdout.isTTY`. Injectable for tests. */
+  /** Defaults to `!!process.stderr.isTTY`. Injectable for tests. */
   isTTY?: boolean;
   /** Defaults to `os.platform()`. Injectable for tests. */
   platform?: NodeJS.Platform;
@@ -91,7 +91,7 @@ export async function buildHintContext(
 ): Promise<HintContext> {
   const cwd = options.cwd ?? process.cwd();
   const isTTY =
-    typeof options.isTTY === "boolean" ? options.isTTY : !!process.stdout.isTTY;
+    typeof options.isTTY === "boolean" ? options.isTTY : !!process.stderr.isTTY;
   const platform = options.platform ?? os.platform();
   const config = options.config ?? {};
 

@@ -15,13 +15,6 @@ import { readFile, resolvePaths } from "./files.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
-const supportMessage = `
-##########################################################################
-# Thanks for using Doc Detective! If this project was helpful to you,    #
-# please consider starring the repo on GitHub or sponsoring the project: #
-# - GitHub Sponsors: https://github.com/sponsors/doc-detective           #
-# - Open Collective: https://opencollective.com/doc-detective            #
-##########################################################################`;
 
 /**
  * Detects and resolves tests based on the provided configuration.
@@ -435,7 +428,6 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);
-  log(config, "info", supportMessage);
 
   return results;
 }

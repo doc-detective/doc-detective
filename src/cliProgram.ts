@@ -77,7 +77,7 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
         const next = target.commands.find(
           (c) => c.name() === name || c.aliases().includes(name)
         );
-        if (!next) target.error(`error: unknown command '${names.join(" ")}'`);
+        if (!next) target.error(`unknown command '${names.join(" ")}'`);
         target = next as Command;
       }
       target.outputHelp();

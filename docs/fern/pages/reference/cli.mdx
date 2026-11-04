@@ -28,7 +28,8 @@ These flags apply to the default run command. Each has a config-file equivalent;
 |--------|-------|------|---------|-------------|
 | `--config` | `-c` | string |  | Path to a `config.json` or `config.yaml` file. |
 | `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. |
-| `--output` | `-o` | string |  | Path of the JSON results file. It's overwritten on each run. |
+| `--output` | `-o` | string |  | Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout. |
+| `--plain` |  | boolean |  | Print one tab-separated line per test. |
 | `--output-dir` |  | string | `.` | Path of the folder that holds the run folder and the html, junit, and markdown reports. |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
@@ -50,7 +51,7 @@ These flags apply to the default run command. Each has a config-file equivalent;
 | `--log-level` | `-l` | string | `info` | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
 | `--logLevel` |  | string | `info` | Detail level of logging events. [deprecated: use --log-level] |
 | `--json` |  | boolean |  | Print one JSON document to stdout. |
-| `--no-color` |  | string |  | Turn off color. Also NO_COLOR. |
+| `--no-color` |  | boolean |  | Turn off color. Also NO_COLOR. |
 
 ### Negating boolean flags
 
@@ -96,7 +97,7 @@ This is distinct from `install agents`: the language server (`lsp`) exposes edit
 | `--log-level` | string |  | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
 | `--logLevel` | string |  | Detail level of logging events. [deprecated: use --log-level] |
 | `--json` | boolean |  | Print one JSON document to stdout. |
-| `--no-color` | string |  | Turn off color. Also NO_COLOR. |
+| `--no-color` | boolean |  | Turn off color. Also NO_COLOR. |
 | `--stdio` | boolean | `true` | Communicate over stdio (the only supported transport). Present for explicitness and editor configs. |
 
 ```bash

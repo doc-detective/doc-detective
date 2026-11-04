@@ -1,4 +1,5 @@
 import kill from "tree-kill";
+import { noteContextDone } from "./progress.js";
 import fs from "node:fs";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
 // site so the shim's CLI startup doesn't pay its ~50MB load cost when the
@@ -1773,6 +1774,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         });
         if (result.kind === "skipped") {
           testReport.contexts[slot] = result.contextReport;
+
+          noteContextDone(specReport.specId, testReport.testId, result.contextReport);
         } else {
           jobs.push(result.job);
         }
@@ -2215,6 +2218,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           resultDescription: `Unexpected error: ${detail}`,
           steps: [],
         };
+      } finally {
+        noteContextDone(job.spec.specId, job.test.testId, job.contexts[job.slot]);
       }
     };
 
@@ -2671,6 +2676,8 @@ async function runRoutedSpec({
       });
       if (result.kind === "skipped") {
         testReport.contexts[slot] = result.contextReport;
+
+        noteContextDone(specReport.specId, testReport.testId, result.contextReport);
       } else {
         contextJobs.push(result.job);
       }
@@ -2725,6 +2732,8 @@ async function runRoutedSpec({
           resultDescription: `Unexpected error: ${detail}`,
           steps: [],
         };
+      } finally {
+        noteContextDone(job.spec.specId, job.test.testId, job.contexts[job.slot]);
       }
     };
     if (limit > 1) {

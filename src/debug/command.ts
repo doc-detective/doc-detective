@@ -59,6 +59,7 @@ export const debugHandler = async (args: DebugArgv): Promise<void> => {
     // `--include-env` lands on argv as both kebab and camel; tolerate either.
     const includeEnv = Boolean(args["include-env"] ?? args.includeEnv);
 
+    const json = Boolean((args as any).json);
     let config: any;
     try {
       config = await setConfig({ configPath, args });
@@ -85,6 +86,7 @@ export const debugHandler = async (args: DebugArgv): Promise<void> => {
         includeEnv,
         outDir,
         args,
+        json,
       });
       // Config is broken — exit non-zero so scripts/CI that gate on the
       // exit code don't treat a CONFIG INVALID dump as success. Mirrors
@@ -99,5 +101,6 @@ export const debugHandler = async (args: DebugArgv): Promise<void> => {
       includeEnv,
       outDir,
       args,
+      json,
     });
 };

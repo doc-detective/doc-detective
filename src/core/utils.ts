@@ -1,3 +1,4 @@
+import { diag } from "../cliOutput.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1896,6 +1897,15 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
+function logLabel(config: any, level: string): string {
+  if (config?.logLevel === "debug") {
+    return `${new Date().toISOString()} (${level.toUpperCase()}) `;
+  }
+  if (level === "warning") return "Warning: ";
+  if (level === "error") return "Error: ";
+  return "";
+}
+
 async function log(config: any, level: string, message?: any) {
   if (message === undefined) {
     // 2-arg form: log(message, level)
@@ -1905,13 +1915,13 @@ async function log(config: any, level: string, message?: any) {
   const logLevelMatch = logLevelEnabled(config, level);
 
   if (logLevelMatch) {
+    // stdout is for results. Labels and timestamps appear only at debug level.
+    const label = logLabel(config, level);
     if (typeof message === "string") {
-      let logMessage = `(${level.toUpperCase()}) ${message}`;
-      console.log(logMessage);
+      diag(`${label}${message}`);
     } else if (typeof message === "object") {
-      let logMessage = `(${level.toUpperCase()})`;
-      console.log(logMessage);
-      console.log(JSON.stringify(message, null, 2));
+      if (label) diag(label.trimEnd());
+      diag(JSON.stringify(message, null, 2));
     }
   }
 }

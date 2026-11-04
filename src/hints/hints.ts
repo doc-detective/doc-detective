@@ -482,6 +482,21 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // sponsorProject (community)
+  // ------------------------------------------------------------------
+  {
+    id: "sponsorProject",
+    priority: 50,
+    markdown: [
+      "Is Doc Detective helping? Star the repo on GitHub, or sponsor the project:",
+      "",
+      "- [GitHub Sponsors](https://github.com/sponsors/doc-detective)",
+      "- [Open Collective](https://opencollective.com/doc-detective)",
+    ].join("\n"),
+    when: (ctx) => ctx.totalTests > 0,
+  },
+
+  // ------------------------------------------------------------------
   // tryHtmlReporter (output & reporting) — shipped in v1
   // ------------------------------------------------------------------
   {

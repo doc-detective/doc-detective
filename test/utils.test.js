@@ -1,4 +1,4 @@
-import { setConfig, outputResults, reporters } from "../dist/utils.js";
+import { setConfig, outputResults, reporters, spawnCommand } from "../dist/utils.js";
 import { setArgs } from "../dist/cliOptions.js";
 import {
   appendQueryParams,
@@ -21,6 +21,17 @@ before(async function () {
 
 describe("Util tests", function () {
   // Test that arguments are parsed correctly
+  it("spawnCommand doesn't deadlock on a child that fills stderr", async function () {
+    this.timeout(20000);
+    const result = await spawnCommand("node", [
+      "-e",
+      "process.stderr.write(\"x\".repeat(1024 * 1024)); process.stdout.write(\"done\")",
+    ]);
+    expect(result.stdout).to.equal("done");
+    expect(result.stderr).to.have.lengthOf(1024 * 1024);
+    expect(result.exitCode).to.equal(0);
+  });
+
   it("CLI parses arguments correctly", function () {
     const argSets = [
       {
@@ -1344,14 +1355,11 @@ describe("terminalReporter zero-tests-ran warning", function () {
     };
   }
 
-  it("prints a yellow 'No tests were run' warning when totalTests === 0", async function () {
+  it("prints a "No tests were run" warning when totalTests === 0", async function () {
     const results = makeResults({ pass: 0, fail: 0, warning: 0, skipped: 0 });
     const captured = await runReporter({}, results);
     const joined = captured.join("\n");
     expect(joined).to.include("No tests were run");
-    // The warning line carries the yellow ANSI escape.
-    const warningLine = captured.find((l) => l.includes("No tests were run"));
-    expect(warningLine).to.match(/\x1b\[33m/);
   });
 
   it("includes a filter hint when config has filters and totalTests === 0", async function () {

@@ -120,7 +120,7 @@ describe("lazy available-apps detection", function () {
 
   function capturedLogs() {
     const lines = [];
-    sinon.stub(console, "log").callsFake((...a) => lines.push(a.join(" ")));
+    sinon.stub(console, "error").callsFake((...a) => lines.push(a.join(" ")));
     return lines;
   }
   const SKIP = /No context in this run uses a browser/;

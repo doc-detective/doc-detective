@@ -234,6 +234,165 @@ describe("CLI contract", function () {
     });
   });
 
+  describe("streams", function () {
+    it("keeps logs off stdout", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stdout).to.not.match(/Resolving test specs|Running test specs/);
+      expect(r.stderr).to.match(/Running test specs/);
+    });
+
+    it("drops level labels by default", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/\((INFO|WARNING|DEBUG)\)/);
+      expect(run(["-i", "does-not-exist.md", "--no-exit-on-fail"]).stderr).to.match(/^Warning: /m);
+    });
+
+    it("restores labels and adds timestamps with -d", function () {
+      const r = run(["-d", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.match(/\d{4}-\d{2}-\d{2}T\S+ \(INFO\)/);
+      expect(r.status).to.equal(0);
+    });
+
+    it("prints no sponsor banner", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stdout + r.stderr).to.not.match(/Thanks for using|####/);
+    });
+
+    it("ends stdout with a one-line verdict", function () {
+      const pass = run(["-i", "pass.spec.json"]).stdout.trim().split("\n").pop();
+      expect(pass).to.match(/1 of 1 test passed/);
+      const fail = run(["-i", "fail.spec.json"]).stdout.trim().split("\n").pop();
+      expect(fail).to.match(/1 of 1 test failed/);
+    });
+
+    it("prints progress as plain lines when not on a terminal", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stderr).to.match(/PASS pass\.spec\.json\/pass\.spec\.json-t/);
+      expect(r.stderr).to.not.match(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+    });
+
+    it("prints a result path relative to the current directory", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stdout + r.stderr).to.not.include(cwd);
+    });
+
+    for (const args of [["--json"], ["-o", "-"]]) {
+      it(`prints only one JSON document on stdout with ${args.join(" ")}`, function () {
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      });
+    }
+
+    it("keeps the exit code with --json", function () {
+      const r = run(["-i", "fail.spec.json", "--json"]);
+      expect(r.status).to.equal(1);
+      expect(JSON.parse(r.stdout).summary.specs.fail).to.equal(1);
+    });
+
+    for (const level of ["silent", "error", "warning", "info", "debug"]) {
+      it(`keeps --dry-run stdout parseable at -l ${level}`, function () {
+        const r = run(["-i", "pass.spec.json", "-n", "-l", level]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout).specs).to.be.an("array");
+      });
+    }
+
+    it("prints one tab-separated line per test with --plain", function () {
+      const r = run(["-i", "pass.spec.json", "--plain"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const lines = r.stdout.trim().split("\n");
+      expect(lines).to.have.lengthOf(1);
+      expect(lines[0].split("\t").slice(0, 3)).to.deep.equal(["PASS", "pass.spec.json", "pass.spec.json-t"]);
+    });
+
+    it("prints only a verdict with -q", function () {
+      const r = run(["-i", "pass.spec.json", "-q"]);
+      expect(r.status).to.equal(0);
+      expect(r.stdout.trim().split("\n")).to.have.lengthOf(1);
+      expect(r.stdout).to.match(/passed/);
+      expect(r.stderr.trim()).to.equal("");
+    });
+
+    it("prints nothing with -l silent", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "silent"]);
+      expect(r.status).to.equal(0);
+      expect(r.stdout + r.stderr).to.equal("");
+    });
+
+    it("prints JSON from `debug --json`", function () {
+      const r = run(["debug", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("object");
+    });
+
+    it("prints JSON from `install status --json`", function () {
+      const r = run(["install", "status", "--json", "--cache-dir", "cc"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+
+    it("prints one JSON document from `install all --dry-run --json`", function () {
+      const r = run(["install", "all", "--dry-run", "--json", "--cache-dir", "cc"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+
+    it("prints one JSON document from `install agents --dry-run --json`", function () {
+      const r = run(["install", "agents", "--agent", "claude", "--scope", "project", "--yes", "--dry-run", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+  });
+
+  describe("color", function () {
+    const failing = ["-i", "fail.spec.json"];
+    it("is off when piped", function () {
+      const r = run(failing);
+      expect(r.stdout).to.not.match(ESC);
+      expect(r.stderr).to.not.match(ESC);
+    });
+    it("is forced on by FORCE_COLOR", function () {
+      expect(run(failing, { env: { FORCE_COLOR: "1" } }).stdout).to.match(ESC);
+    });
+    it("is forced on by --color", function () {
+      expect(run([...failing, "--color"]).stdout).to.match(ESC);
+    });
+    it("is forced off by --no-color, even with FORCE_COLOR", function () {
+      expect(run([...failing, "--no-color"], { env: { FORCE_COLOR: "1" } }).stdout).to.not.match(ESC);
+    });
+    it("is forced off by DOC_DETECTIVE_NO_COLOR, even with FORCE_COLOR", function () {
+      const r = run(failing, { env: { FORCE_COLOR: "1", DOC_DETECTIVE_NO_COLOR: "1" } });
+      expect(r.stdout).to.not.match(ESC);
+    });
+  });
+
+  describe("debug scopes", function () {
+    const rows = [
+      { env: { DOC_DETECTIVE_DEBUG: "1" }, on: true },
+      { env: { DOC_DETECTIVE_DEBUG: "true" }, on: true },
+      { env: { DOC_DETECTIVE_DEBUG: "0" }, on: false },
+      { env: { DEBUG: "1" }, on: true },
+      { env: { DEBUG: "*" }, on: true },
+      { env: { DEBUG: "doc-detective" }, on: true },
+      { env: { DEBUG: "express:*,doc-detective*" }, on: true },
+      { env: { DEBUG: "express:*" }, on: false },
+    ];
+    for (const { env, on } of rows) {
+      it(`${JSON.stringify(env)} ${on ? "turns on" : "leaves off"} debug output, and still runs tests`, function () {
+        const r = run(["-i", "pass.spec.json", "-o", "results.json"], { env });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(/\(DEBUG\)/.test(r.stderr)).to.equal(on);
+        expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+      });
+    }
+
+    it("lets a flag beat the environment", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "info"], { env: { DEBUG: "1" } });
+      expect(r.stderr).to.not.match(/\(DEBUG\)/);
+    });
+  });
+
   describe("deprecated arguments", function () {
     const deprecated = [
       { args: ["runTests", "-i", "pass.spec.json"], replacement: /use `?run/ },

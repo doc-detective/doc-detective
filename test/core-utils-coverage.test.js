@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // Unit-coverage tests for src/core/utils.ts (imported from the compiled
 // dist/core/utils.js). These exercise the pure / cleanly-mockable helpers:
 // URL/SSRF guards, filesystem-name sanitizers, filter compilation, log-level
@@ -394,7 +395,7 @@ describe("core/utils coverage", function () {
     beforeEach(function () {
       sandbox = sinon.createSandbox();
       logged = [];
-      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+      sandbox.stub(console, "error").callsFake((m) => logged.push(m));
     });
     afterEach(function () {
       sandbox.restore();
@@ -405,27 +406,26 @@ describe("core/utils coverage", function () {
       await log({ logLevel: "error" }, "error", "boom");
       await log({ logLevel: "error" }, "info", "quiet");
       assert.equal(logged.length, 1);
-      assert.equal(logged[0], "(ERROR) boom");
+      assert.equal(logged[0], "Error: boom");
     });
     it("warning level logs error + warning, not info", async function () {
       await log({ logLevel: "warning" }, "warning", "w");
       await log({ logLevel: "warning" }, "error", "e");
       await log({ logLevel: "warning" }, "info", "i");
-      assert.deepEqual(logged, ["(WARNING) w", "(ERROR) e"]);
+      assert.deepEqual(logged, ["Warning: w", "Error: e"]);
     });
     it("info level logs error/warning/info, not debug", async function () {
       await log({ logLevel: "info" }, "info", "i");
       await log({ logLevel: "info" }, "debug", "d");
-      assert.deepEqual(logged, ["(INFO) i"]);
+      assert.deepEqual(logged, ["i"]);
     });
     it("debug level logs everything including debug", async function () {
       await log({ logLevel: "debug" }, "debug", "d");
-      assert.deepEqual(logged, ["(DEBUG) d"]);
+      assert.match(logged[0], /^\S+ \(DEBUG\) d$/);
     });
     it("logs objects as pretty JSON on a second line", async function () {
       await log({ logLevel: "info" }, "info", { a: 1 });
-      assert.equal(logged[0], "(INFO)");
-      assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
+      assert.equal(logged[0], JSON.stringify({ a: 1 }, null, 2));
     });
     it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
       // config defaults to {} so logLevel is undefined → treated as "info" (parity
@@ -434,7 +434,7 @@ describe("core/utils coverage", function () {
       await log("just a message", "info");
       await log("an error", "error");
       await log("a warning", "warning");
-      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+      assert.deepEqual(logged, ["just a message", "Error: an error", "Warning: a warning"]);
     });
     it("2-arg form still suppresses debug under the info default", async function () {
       // The info default surfaces error/warning/info but NOT debug — matching the
@@ -455,7 +455,7 @@ describe("core/utils coverage", function () {
     beforeEach(function () {
       sandbox = sinon.createSandbox();
       logged = [];
-      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+      sandbox.stub(console, "error").callsFake((m) => logged.push(m));
     });
     afterEach(function () {
       sandbox.restore();
@@ -512,7 +512,7 @@ describe("core/utils coverage", function () {
       assert.equal(logged.length, 0);
       const dbgCfg = { logLevel: "debug" };
       if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
-      assert.deepEqual(logged, ["(DEBUG) X"]);
+      assert.match(logged[0], /^\S+ \(DEBUG\) X$/);
     });
   });
 
@@ -1316,7 +1316,7 @@ describe("core/utils coverage", function () {
       guardBlankDocumentNavigation(runner, {});
       const written = [];
       const originalLog = console.log;
-      console.log = (...args) => written.push(args.join(" "));
+      console.error = console.log = (...args) => written.push(args.join(" "));
       try {
         await assert.rejects(
           () => runner.url("https://admin:hunter2@localhost:8092/index.html"),
@@ -1331,6 +1331,7 @@ describe("core/utils coverage", function () {
         );
       } finally {
         console.log = originalLog;
+        console.error = originalConsoleError;
       }
       const warning = written.join("\n");
       assert.match(warning, /still on its initial blank document/);

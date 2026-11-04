@@ -92,7 +92,11 @@ export function addInputOptions(command: Command): Command {
 export function addRunOptions(command: Command): Command {
   addInputOptions(command);
   command
-    .option("-o, --output <file>", "Path of the JSON results file. It's overwritten on each run.")
+    .option(
+      "-o, --output <file>",
+      "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout."
+    )
+    .option("--plain", "Print one tab-separated line per test.")
     .option(
       "--output-dir <dir>",
       "Path of the folder that holds the run folder and the html, junit, and markdown reports."

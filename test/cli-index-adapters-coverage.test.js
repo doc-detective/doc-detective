@@ -207,32 +207,24 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("DOC_DETECTIVE_DEBUG=1 with a valid config prints the diagnostic dump and returns", function () {
+  it("DOC_DETECTIVE_DEBUG=1 adds debug output to a real run", function () {
     const dir = mkTmp("dd-cli-dbg-");
     try {
-      // Empty input dir → nothing to resolve, but the debug dump fires first
-      // and returns before any run. Fully offline.
-      const r = runCli(["--input", dir, "--logLevel", "silent"], {
-        env: { DOC_DETECTIVE_DEBUG: "1" },
-      });
-      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
-      // printDebug emits a recognizable banner to stdout.
-      assert.match(
-        r.stdout + r.stderr,
-        /debug|diagnostic|config/i,
-        "expected some diagnostic output"
-      );
+      // An empty input dir exits 2, since nothing ran. The dump lives in
+      // `doc-detective debug` now.
+      const r = runCli(["--input", dir], { env: { DOC_DETECTIVE_DEBUG: "1" } });
+      assert.equal(r.status, 2, `stderr: ${r.stderr}`);
+      assert.match(r.stderr, /(DEBUG)/);
+      assert.doesNotMatch(r.stdout, /diagnostic dump/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it("DOC_DETECTIVE_DEBUG=1 with an invalid config still dumps and exits non-zero", function () {
+  it("DOC_DETECTIVE_DEBUG=1 with an invalid config exits non-zero", function () {
     const dir = mkTmp("dd-cli-dbgerr-");
     try {
       // A .doc-detective.json that fails schema validation → setConfig throws.
-      // With the debug env var set, the handler renders a stub-config dump and
-      // sets process.exitCode = 1 rather than a hard throw.
       const cfg = path.join(dir, ".doc-detective.json");
       fs.writeFileSync(cfg, JSON.stringify({ logLevel: 12345 }));
       const r = runCli([], {
@@ -382,6 +374,7 @@ describe("core/index.ts — runTests offline branches", function () {
   let detectAndResolveTests;
   let tmpDir;
   let origLog;
+  let origError;
   let captured;
 
   before(async function () {
@@ -392,11 +385,13 @@ describe("core/index.ts — runTests offline branches", function () {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-core-idx-"));
     captured = [];
     origLog = console.log;
-    console.log = (...args) => captured.push(args.join(" "));
+    origError = console.error;
+    console.error = console.log = (...args) => captured.push(args.join(" "));
   });
 
   afterEach(function () {
     console.log = origLog;
+    console.error = origError;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 

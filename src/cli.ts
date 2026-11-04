@@ -10,13 +10,13 @@ import {
   logLevelEnabled,
   getResolvedTestsFromEnv,
   reportResults,
-  isDebugRequested,
   readStdinInputs,
   writeResultsFile,
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
-import { printDebug, defaultDebugDir } from "./debug/index.js";
+import { applyColorFlags, showRunProgress, verdictLine } from "./cliOutput.js";
+import { runProgress } from "./core/progress.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
@@ -38,6 +38,7 @@ main(processArgv).catch((err) => {
 });
 
 async function main(argv: string[]) {
+  applyColorFlags(argv);
   try {
     await buildProgram({ runTests: runTestsHandler }).parseAsync(argv);
   } catch (err) {
@@ -76,58 +77,8 @@ async function runTestsHandler(args: any) {
     ? configPathYML
     : null;
 
-  // Detect env-var debug intent before setConfig so we can still emit
-  // the diagnostic dump when validation fails. `isDebugRequested`
-  // reads `process.env.DOC_DETECTIVE_DEBUG`. Users who want diagnostic
-  // output on the CLI should prefer the dedicated `doc-detective
-  // debug` subcommand (which also supports `--include-env`); this
-  // env-var path stays as the CI-friendly trigger.
-  const debugRequested = isDebugRequested();
-
   // Set config
-  let config: any;
-  try {
-    config = await setConfig({ configPath: configPath, args: args });
-  } catch (err: any) {
-    if (debugRequested) {
-      // Build a minimal stub config so the dump can still render.
-      // `printDebug` tolerates undefined fields; the configError banner
-      // surfaces the underlying validation message.
-      const stubConfig: any = {
-        logLevel: typeof args.logLevel === "string" ? args.logLevel : "info",
-        input: typeof args.input === "string" ? args.input : ".",
-      };
-      await printDebug({
-        config: stubConfig,
-        configPath: configPath,
-        configError: err instanceof Error ? err : new Error(String(err)),
-        outDir: defaultDebugDir(),
-        args,
-      });
-      // The env-var dump replaced a real test run; a broken config must
-      // still fail the process so CI doesn't go green on an unran suite.
-      process.exitCode = 2;
-      return;
-    }
-    throw err;
-  }
-
-  // Diagnostic dump — fires when DOC_DETECTIVE_DEBUG is truthy. The
-  // env-var path intentionally does NOT enable --include-env; users
-  // who want the full process.env must run `doc-detective debug
-  // --include-env` explicitly. (There is no config-file equivalent —
-  // the `debug` config field is deprecated and ignored; diagnostics live
-  // behind this env var and the `debug` subcommand.)
-  if (debugRequested) {
-    await printDebug({
-      config,
-      configPath,
-      configError: null,
-      outDir: defaultDebugDir(),
-      args,
-    });
-    return;
-  }
+  const config: any = await setConfig({ configPath: configPath, args: args });
 
   // Guard the pretty-print dumps behind a cheap level check so the (large)
   // JSON.stringify only runs when the debug message would actually print.
@@ -214,10 +165,15 @@ async function runTestsHandler(args: any) {
   const apiConfig = api?.apiConfig || null;
 
   // Run tests
+  // Progress is for people, so it follows the same switch as other info output.
+  const stopProgress = logLevelEnabled("info", config)
+    ? await showRunProgress(runProgress)
+    : () => {};
   const strictSpecs = config.exitOnFail !== false;
-  const results = resolvedTests
-    ? await runTests(config, { resolvedTests, updateJoin, strictSpecs })
-    : await runTests(config, { updateJoin, strictSpecs });
+  const results = await (resolvedTests
+    ? runTests(config, { resolvedTests, updateJoin, strictSpecs })
+    : runTests(config, { updateJoin, strictSpecs })
+  ).finally(stopProgress);
 
   // Dry-run already emitted the resolved-tests JSON inside runTests().
   // Skip both reporters (which assume executed-result shape) and the
@@ -250,6 +206,12 @@ async function runTestsHandler(args: any) {
     // Optionally print one contextual hint after the reporters finish.
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
+  }
+
+  // Last on stdout, so it's what a person reads first. Modes that make stdout
+  // machine-readable, and -l silent, leave it out.
+  if (!args.json && !args.plain && args.output !== "-" && config.logLevel !== "silent") {
+    console.log(verdictLine(results));
   }
 
   // Results are written before the exit code is set (ADR 01146). The guard

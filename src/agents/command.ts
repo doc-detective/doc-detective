@@ -14,7 +14,12 @@ async function installAgentsHandler(argv: any): Promise<void> {
   // Lazy-load so unrelated subcommands don't pay the import cost.
   const { runInstallAgents } = await import("./runner.js");
   const { createPrompts } = await import("./prompts.js");
-  await runInstallAgents(argv, { prompts: createPrompts() });
+  const reports = await runInstallAgents(argv, {
+    prompts: createPrompts(),
+    // With --json, stdout holds the JSON document and nothing else.
+    ...(argv.json ? { logger: (message: string) => console.error(message) } : {}),
+  });
+  if (argv.json) console.log(JSON.stringify(reports, null, 2));
 }
 
 // `handler` is replaceable for tests.

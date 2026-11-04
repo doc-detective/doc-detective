@@ -1,6 +1,7 @@
 import { Argument, Command, Option } from "commander";
 import { buildInstallAgentsCommand } from "../agents/command.js";
 import { addGlobalOptions, cliArgv } from "../cliOptions.js";
+import { clearSpinner, startSpinner } from "../cliOutput.js";
 import type { Logger, LogLevel } from "./loader.js";
 import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
 
@@ -45,7 +46,9 @@ function makeLogger(level: LogLevel): Logger {
   const threshold = order[level];
   return (msg, lvl = "info") => {
     if (order[lvl] < threshold) return;
-    if (lvl === "error") console.error(msg);
+    clearSpinner();
+    // With --json, stdout holds the JSON document and nothing else.
+    if (lvl === "error" || jsonReports) console.error(msg);
     else console.log(msg);
   };
 }
@@ -73,7 +76,12 @@ function ctxFromArgv(argv: InstallArgv) {
   return argv.cacheDir ? { cacheDir: argv.cacheDir } : {};
 }
 
+// Set while a subcommand runs with --json: it collects reports to print as one
+// document, rather than printing lines.
+let jsonReports: any[] | null = null;
+
 function printReports(reports: any[], logger: Logger) {
+  jsonReports?.push(...reports);
   for (const r of reports) {
     const ver = r.installedVersion ? ` @ ${r.installedVersion}` : "";
     const notes = r.notes && r.notes.length > 0 ? ` (${r.notes.join("; ")})` : "";
@@ -262,6 +270,7 @@ const statusSubcommand: InstallSubcommand = {
     const logger = makeLogger(pickLogLevel(argv));
     const { status } = await import("./installer.js");
     const rows = status(ctxFromArgv(argv));
+    jsonReports?.push(...rows);
     for (const r of rows) {
       const present = r.installed ? r.installedVersion ?? "?" : "—";
       const expected = r.expectedVersion ?? r.latestKnownVersion ?? "—";
@@ -340,7 +349,17 @@ function toCommand(subcommand: InstallSubcommand): Command {
     command.registeredArguments.forEach((argument, index) => {
       argv[argument.name()] = actionArgs[index];
     });
-    await subcommand.handler(argv);
+    jsonReports = argv.json ? [] : null;
+    const spinner =
+      subcommand.readOnly || argv.quiet || argv.json
+        ? { stop: () => {} }
+        : await startSpinner(`Installing ${subcommand.command}`);
+    try {
+      await subcommand.handler(argv);
+    } finally {
+      spinner.stop();
+    }
+    if (jsonReports) console.log(JSON.stringify(jsonReports, null, 2));
   });
 }
 

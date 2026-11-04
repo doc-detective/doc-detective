@@ -57,6 +57,17 @@ function rmTmpDir(dir) {
 }
 
 describe("hints/render", function () {
+  // These assert escape codes, which only print where color is on.
+  let savedForceColor;
+  before(function () {
+    savedForceColor = process.env.FORCE_COLOR;
+    process.env.FORCE_COLOR = "1";
+  });
+  after(function () {
+    if (savedForceColor === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = savedForceColor;
+  });
+
   describe("renderMarkdown", function () {
     it("renders **bold** with the SGR bold code and a reset", function () {
       const out = renderMarkdown("hello **world** end", { osc8: false });
@@ -2360,6 +2371,12 @@ describe("hints/hints (registry)", function () {
         fakeCtx({ config: { reporters: ["terminal"] }, isGitHubRepo: false })
       )
     ).to.equal(false);
+  });
+
+  it("sponsorProject: fires once any tests ran", function () {
+    const h = findHint("sponsorProject");
+    expect(h.when(fakeCtx({ totalTests: 1 }))).to.equal(true);
+    expect(h.when(fakeCtx({ totalTests: 0 }))).to.equal(false);
   });
 
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
