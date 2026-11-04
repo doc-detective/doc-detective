@@ -40,8 +40,8 @@ Chosen option: **A**.
 
 ### Update guard
 
-`checkForUpdate` doesn't update across a major. When `latest` is a newer major, it logs that it's
-available with `npm i doc-detective@<major>`, then updates through the `release-<major>.x` dist-tag if
+`checkForUpdate` doesn't update across a major. When `latest` is a newer major, it logs the
+`npm i doc-detective@<major>` command. It then updates through the `release-<major>.x` dist-tag if
 that holds something newer in the current major. A tag holding another major is ignored. The
 local-install message names the exact version, not `@latest`. Update notices move to stderr.
 
@@ -62,7 +62,7 @@ Each warning goes to stderr once per process, and links
 | The `doc-detective-lsp` or `doc-detective-runner` bin | Removed |
 
 An output path names a folder when it ends in a slash, is an existing directory, or has no file
-extension. That last case is what 4.x itself treats as a folder, and it's stricter than 5.0's check, so
+extension. 4.x itself treats that last case as a folder. It's stricter than 5.0's check, so
 a first run to a new `--output results` warns too.
 
 Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_interface` is
@@ -71,7 +71,7 @@ Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_int
 ### Unset `exitOnFail`
 
 AJV fills schema defaults, which hid whether the user set `exitOnFail`. The default moves out of
-`config_v3` to the consumption site: the exit gate in `src/cli.ts` already treats unset as false, so
+`config_v3` to the consumption site. The exit gate in `src/cli.ts` already treats unset as false, so
 the default stays exit `0` and stays documented in the field's description.
 
 ### Release wiring and major-release guard
@@ -107,7 +107,7 @@ releasing.
   each trigger and each quiet path, including that `--dry-run` stdout parses as JSON.
 - `test/runtime-helpers-coverage.test.js` covers same-major, newer-major with and without the tag, a
   tag holding another major, and prereleases.
-- `test/release-config.test.js` asserts that no channel parses as a semver range, and runs the guard
+- `test/release-config.test.js` asserts that no channel parses as a semver range. It also runs the guard
   for a major with the variable unset and set, a major on a prerelease channel, and a non-major.
 
 ## Pros and Cons of the Options
