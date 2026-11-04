@@ -223,7 +223,8 @@ async function runTestsHandler(args: any) {
   }
 
   // A bare command in the wrong folder is the likeliest first-run mistake.
-  const nothingRan = !results || (results.summary?.tests?.pass ?? 0) + (results.summary?.tests?.fail ?? 0) + (results.summary?.tests?.warning ?? 0) + (results.summary?.tests?.skipped ?? 0) === 0;
+  const testCounts: number[] = Object.values(results?.summary?.tests ?? {});
+  const nothingRan = testCounts.every((count) => count === 0);
   if (nothingRan && !args.input && !args.inputs?.length && logLevelEnabled("info", config)) {
     diag("No tests found here. Point at your docs with `doc-detective -i <path>`, or see `doc-detective --help`.");
   }

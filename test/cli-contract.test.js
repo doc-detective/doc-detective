@@ -616,6 +616,11 @@ describe("CLI contract", function () {
       });
     }
 
+    it("doesn't warn for --no-exit-on-fail, which isn't deprecated", function () {
+      const r = run(["--no-exit-on-fail", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/deprecated/i);
+    });
+
     it("hides the warning with -q", function () {
       const r = run(["runTests", "-q", "-i", "pass.spec.json"]);
       expect(r.stderr).to.not.match(/deprecated/i);

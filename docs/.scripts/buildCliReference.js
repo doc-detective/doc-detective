@@ -141,6 +141,14 @@ function readOptions(command, { except = new Set() } = {}) {
     .map(readOption);
 }
 
+// A command's help description, without the examples and line breaks that are
+// laid out for a terminal.
+function prose(description) {
+  return description.split(/
+s*Examples:/)[0].replace(/s*
+s*/g, " ").trim();
+}
+
 function subcommand(command, name) {
   const found = command.commands.find((c) => c.name() === name);
   if (!found) throw new Error(`${name} command not found in the CLI`);
@@ -510,14 +518,14 @@ async function main() {
 
   const lspCommand = subcommand(program, "lsp");
   const lsp = {
-    describe: lspCommand.description(),
+    describe: prose(lspCommand.description()),
     options: readOptions(lspCommand),
   };
 
   // `debug` also accepts the run flags, which are documented once, above.
   const debugCommand = subcommand(program, "debug");
   const debug = {
-    describe: debugCommand.description(),
+    describe: prose(debugCommand.description()),
     options: readOptions(debugCommand, { except: runFlagNames }),
   };
 
