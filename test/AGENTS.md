@@ -91,8 +91,8 @@ in `src/core/utils.ts`) keeps it safe:
 
 ## Coverage ratchets
 
-- **Root coverage gates on the cross-platform union** of the full matrix (3 OS on node 24, plus ubuntu on node 26), not
-  a single OS. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
+- **Root coverage gates on the cross-platform union** of the full matrix, not a single OS. That matrix
+  is 3 OS on node 24, plus ubuntu on node 26. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
   reports (see `.github/workflows/test.yml`, `scripts/prune-coverage.cjs`,
   `scripts/merge-coverage.cjs`, `scripts/check-coverage-ratchet.cjs`).
   - `tsconfig.json` pins `newLine: "lf"`. Raw V8 coverage encodes character offsets into the
