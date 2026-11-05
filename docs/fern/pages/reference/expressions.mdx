@@ -106,7 +106,7 @@ A condition is an `if` guard on a spec, test, or step, the `if` of an `onPass`, 
 - It references a `$$` value that doesn't exist. Doc Detective logs a warning.
 - A `jq()` query in it fails, for example because of a syntax error in the query.
 - It evaluates to `null`, such as a `jq()` query that finds nothing.
-- It's plain text, with no `$$` reference, operator, or function. Examples are `"1"`, `"yes"`, and an unset environment variable such as `$FEATURE_FLAG`. Doc Detective logs a warning. Write a comparison instead, such as `$$outputs.exitCode == 0`.
+- It's plain text, with no `$$` reference, operator, or function. Examples are `"1"`, `"yes"`, and an environment variable reference such as `$FEATURE_FLAG`. An `if` condition doesn't substitute environment variables, so `$FEATURE_FLAG` there is plain text even when the variable is set. A custom assertion substitutes a variable that's set, but an unset one stays plain text. Doc Detective logs a warning. Write a comparison instead, such as `$$outputs.exitCode == 0`.
 
 ## Regular expressions in `matches`
 
