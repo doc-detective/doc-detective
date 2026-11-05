@@ -10484,7 +10484,8 @@
                                                 "default": {},
                                                 "patternProperties": {
                                                   "^[A-Za-z0-9_]+$": {
-                                                    "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                    "type": "string",
+                                                    "description": "Runtime expression for a user-defined output value."
                                                   }
                                                 },
                                                 "title": "Variables (step)"
@@ -12248,7 +12249,8 @@
                                             "default": {},
                                             "patternProperties": {
                                               "^[A-Za-z0-9_]+$": {
-                                                "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                "type": "string",
+                                                "description": "Runtime expression for a user-defined output value."
                                               }
                                             },
                                             "title": "Variables (step)"
@@ -12392,7 +12394,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -13569,7 +13572,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -15245,7 +15249,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -24559,7 +24564,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -26696,7 +26702,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -28659,7 +28666,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -30016,7 +30024,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -31322,7 +31331,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -32770,7 +32780,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -36800,7 +36811,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -45776,7 +45788,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -46990,7 +47003,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -48865,7 +48879,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -49885,7 +49900,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -52143,7 +52159,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -54529,7 +54546,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -55507,7 +55525,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -57126,7 +57145,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -58323,7 +58343,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -60664,7 +60685,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -61674,7 +61696,8 @@
                                                   "default": {},
                                                   "patternProperties": {
                                                     "^[A-Za-z0-9_]+$": {
-                                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                                      "type": "string",
+                                                      "description": "Runtime expression for a user-defined output value."
                                                     }
                                                   },
                                                   "title": "Variables (step)"
@@ -69076,7 +69099,8 @@
                                   "default": {},
                                   "patternProperties": {
                                     "^[A-Za-z0-9_]+$": {
-                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                      "type": "string",
+                                      "description": "Runtime expression for a user-defined output value."
                                     }
                                   },
                                   "title": "Variables (step)"
@@ -70840,7 +70864,8 @@
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "type": "string",
+                                  "description": "Runtime expression for a user-defined output value."
                                 }
                               },
                               "title": "Variables (step)"
@@ -70984,7 +71009,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -72161,7 +72187,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -73837,7 +73864,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -83151,7 +83179,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -85288,7 +85317,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -87251,7 +87281,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -88608,7 +88639,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -89914,7 +89946,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -91362,7 +91395,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -95392,7 +95426,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -104368,7 +104403,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -105582,7 +105618,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -107457,7 +107494,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -108477,7 +108515,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -110735,7 +110774,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -113121,7 +113161,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -114099,7 +114140,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -115718,7 +115760,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -116915,7 +116958,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -119256,7 +119300,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
@@ -120266,7 +120311,8 @@
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "type": "string",
+                                        "description": "Runtime expression for a user-defined output value."
                                       }
                                     },
                                     "title": "Variables (step)"
