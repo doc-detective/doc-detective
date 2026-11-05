@@ -265,7 +265,7 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 
 #### Downstream (`.github/workflows/npm-test.yaml`)
 
-Runs the reusable test matrix (Ubuntu/Windows/macOS × Node 20/22/24) on pull requests as the PR gate. All release-side jobs (pre-publish matrix, publish, smoke test, promote to `@latest`, Docker build) live in `release.yml`.
+Runs the reusable test matrix (Ubuntu/Windows/macOS on Node 24, plus Ubuntu on Node 26) on pull requests as the PR gate. All release-side jobs (pre-publish matrix, publish, smoke test, promote to `@latest`, Docker build) live in `release.yml`.
 
 #### Commit message enforcement
 
