@@ -771,7 +771,7 @@ export async function parseContent({
     if (!validation.valid) {
       log(config, "warn", `Couldn't convert test in ${filePath} to valid test. Skipping.`);
       // A test that only ended up with no steps isn't an authoring mistake.
-      if (test.steps?.length) onInvalid?.(validation.errors, { schemaKey: "test_v3", object: test });
+      if (test.steps.length) onInvalid?.(validation.errors, { schemaKey: "test_v3", object: test });
       return;
     }
     validatedTests.push(validation.object);
