@@ -176,6 +176,22 @@ describe("unknown keys", function () {
       expect(reasons[0].details.schemaKey).to.equal("test_v3");
     });
 
+    it("reports a duplicate test ID, without adding the second test", async function () {
+      const reasons = [];
+      const content = [
+        '<!-- test {"testId":"same"} -->',
+        '<!-- step {"goTo":"https://example.com"} -->',
+        "<!-- test end -->",
+        '<!-- test {"testId":"same"} -->',
+        '<!-- step {"goTo":"https://example.org"} -->',
+        "<!-- test end -->",
+      ].join("\n");
+      const tests = await detect(content, (reason) => reasons.push(reason));
+      expect(reasons).to.deep.equal(["duplicate test ID 'same'."]);
+      expect(tests).to.have.lengthOf(1);
+      expect(await detect(content)).to.have.lengthOf(1);
+    });
+
     it("works without an onInvalid callback", async function () {
       for (const content of [
         '<!-- step {"goTo":"https://example.com","asertions":[]} -->',
