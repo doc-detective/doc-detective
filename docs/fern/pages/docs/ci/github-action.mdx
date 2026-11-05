@@ -155,7 +155,7 @@ jobs:
 | `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
 | `prompt` | See README | Prompt text passed to integrations. |
 
-GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run.
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
 The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations).
 
