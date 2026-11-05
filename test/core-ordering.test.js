@@ -232,12 +232,12 @@ describe("Advanced ordering under concurrentRunners", function () {
     }
   });
 
-  it("a forged _fromAfter on an authored step cannot bypass skip-on-failure", async () => {
+  it("a forged _fromAfter on an authored step makes the spec invalid", async () => {
     const dir = mkTempDir();
     try {
       // `_fromAfter` is an internal hard-routing marker. A spec that forges it
-      // on an authored step must NOT gain hard-routing — detection scrubs it,
-      // so the step still skips after an earlier failure like any other step.
+      // on an authored step must NOT gain hard-routing, and the unknown key
+      // means the spec doesn't run at all.
       const core = writeSpec(dir, "core.json", {
         tests: [
           {
@@ -249,9 +249,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         ],
       });
       const result = await runTests({ input: [core], logLevel: "error" });
-      const steps = result.specs[0].tests[0].contexts[0].steps;
-      assert.equal(steps[0].result, "FAIL");
-      assert.equal(steps[1].result, "SKIPPED"); // scrubbed → not hard-routed
+      assert.equal(result, null);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

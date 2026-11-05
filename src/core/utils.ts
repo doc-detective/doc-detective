@@ -1180,9 +1180,9 @@ function specSchemas() {
 }
 
 // The keys valid at a spec, test, or step. Anything deeper gets no suggestion.
-function knownKeysAt(parts: string[]): string[] {
+function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
   const parent = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]) ? parts[parts.length - 2] : undefined;
-  const schemaKey = parts.length === 0 ? "spec_v3" : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
+  const schemaKey = parts.length === 0 ? rootSchemaKey : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
   return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
 }
 
@@ -1191,7 +1191,7 @@ const ONE_ACTION_MESSAGE = "a step can only have one action.";
 // Turn AJV's error string into something a person can act on: one line per
 // problem, with `anyOf` branches collapsed, and the nearest real key named when
 // something is unknown. Raw errors stay available at debug level.
-function summarizeSpecErrors(errors: string, object: any): string {
+function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, string[]>();
   const unknownByPath = new Map<string, string[]>();
   for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
@@ -1223,9 +1223,15 @@ function summarizeSpecErrors(errors: string, object: any): string {
       lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
       continue;
     }
-    if (/steps\/\d+$/.test(instancePath) && actions.length > 0 && actions.length === messages.length) {
+    const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
+    if (isStep && actions.length > 0 && actions.length === messages.length) {
       const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
       const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
+      const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+      // A real action whose value is wrong has its own, more useful errors.
+      if (!unknownKeys.length && Object.keys(value).some((key) => stepKeys.has(key) && !metadata.has(key))) {
+        continue;
+      }
       const unknown = unknownKeys.length
         ? unknownKeys
         : Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
@@ -1237,7 +1243,7 @@ function summarizeSpecErrors(errors: string, object: any): string {
       }
       continue;
     }
-    const known = knownKeysAt(parts);
+    const known = knownKeysAt(parts, rootSchemaKey);
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
       lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);

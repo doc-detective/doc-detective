@@ -76,6 +76,11 @@
           }
         ],
         "properties": {
+          "timeout": {
+            "type": "integer",
+            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "default": 5000
+          },
           "button": {
             "$ref": "#/components/schemas/button"
           },
