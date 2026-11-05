@@ -164,9 +164,26 @@ describe("unknown keys", function () {
       expect(reasons).to.have.lengthOf(1);
     });
 
+    it("reports an inline test with steps and an unknown key", async function () {
+      const reasons = [];
+      const tests = await detect(
+        '<!-- test {"testId":"t","typo":1} -->\n<!-- step {"goTo":"https://example.com"} -->\n<!-- test end -->',
+        (reason, details) => reasons.push({ reason, details })
+      );
+      expect(tests).to.deep.equal([]);
+      expect(reasons).to.have.lengthOf(1);
+      expect(reasons[0].reason).to.include("typo");
+      expect(reasons[0].details.schemaKey).to.equal("test_v3");
+    });
+
     it("works without an onInvalid callback", async function () {
-      const tests = await detect('<!-- step {"goTo":"https://example.com","asertions":[]} -->');
-      expect(tests).to.be.an("array");
+      for (const content of [
+        '<!-- step {"goTo":"https://example.com","asertions":[]} -->',
+        '<!-- test {"id":"t","typo":1} -->',
+        '<!-- test {"testId":"t","typo":1} -->\n<!-- step {"goTo":"https://example.com"} -->',
+      ]) {
+        expect(await detect(content)).to.be.an("array");
+      }
     });
   });
 });
