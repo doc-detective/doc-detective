@@ -10,7 +10,7 @@ For the full list of reporter and output options, see the [`config`](/reference/
 ## Before you begin
 
 - [Install Doc Detective](/docs/get-started/installation) and have a spec you can run.
-- Know your output folder. Reporters that write files use the `outputDir` config option (or the `--output-dir` flag), which defaults to the current directory.
+- Know your output folder. Reporters that write files use the `outputDir` config option (or the `--output-dir` flag), which defaults to the current directory. The GitHub Action sets it to the runner's temporary directory instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
 
 ## Step 1: Choose your reporters
 

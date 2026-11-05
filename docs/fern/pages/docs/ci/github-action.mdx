@@ -45,13 +45,13 @@ By default, the action runs from the repository root and uses the config file Do
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `5` | Doc Detective version to run, as a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
+| `version` | `5` | Doc Detective version to run, as a version number, a range such as `^5`, or an npm tag such as `latest`. Action `@v2` expects version 5 or later. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
 <Note>
-Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. With an empty `version`, the action always passes the `--output-dir` flag. Version 4 rejects that flag, so the local build must be version 5 or later.
 </Note>
 
 ## Step 3: Fail the build when tests fail
@@ -71,6 +71,13 @@ The action follows the exit code from the CLI:
 | `0` | The job passes. |
 | `1` | At least one test failed. The job fails unless `exit_on_fail` is `false`. |
 | `2` | Nothing valid was tested, such as a mistyped `input` or an invalid config. The job always fails. |
+| Any other code | The run didn't finish, for example `130` after an interrupt. The job always fails. |
+
+The job also fails when the CLI writes no results file, whatever `exit_on_fail` says. The action treats that as a run that never happened, not as a failing test. For example, a network error while `npx` installs Doc Detective exits `1` with no results.
+
+When the CLI does write results, the action sets the `results` output and runs the issue and pull request steps before it fails the job.
+
+`exit_on_fail` acts only on exit code `1`. If a test fails but the CLI exits `0`, the job passes and the action logs a warning. The CLI exits `0` on a failing test when your config sets `exitOnFail: false`, or when `version` runs a CLI older than 5. To stay on CLI 4, use `doc-detective/github-action@v1`.
 
 See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the exit codes in detail.
 
@@ -148,6 +155,8 @@ jobs:
 | `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
 | `prompt` | See README | Prompt text passed to integrations. |
 
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `prompt` leave no room for results, the action logs an error and doesn't create the issue.
+
 The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations).
 
 ## Step 6: Use the results in later steps
@@ -165,6 +174,33 @@ The action exposes the run's results so later steps can act on them. Give the st
 | `results` | JSON-formatted test results. |
 | `pull_request_url` | URL of the created pull request, when `create_pr_on_change` opens one. |
 | `issue_url` | URL of the created issue, when `create_issue_on_fail` opens one. |
+
+## Find reports and the run folder
+
+The action writes the run's files to the runner's temporary directory, `${{ runner.temp }}`, rather than to your repository. That keeps your checkout clean, so `create_pr_on_change` doesn't open a pull request for the run's own output. The directory holds these files:
+
+- The results file, `${{ runner.temp }}/doc-detective-output.json`, which the action reads to set the `results` output.
+- The run folder, `${{ runner.temp }}/.doc-detective/runs/<runId>/`, with the run's screenshots and recordings.
+- Files from reporters you turn on with `reporters` in your config, such as `${{ runner.temp }}/junit.xml` from `junit` and `${{ runner.temp }}/doc-detective-summary.md` from `markdown`. See [Choose your reporters](/docs/ci/reporters-and-artifacts#step-1-choose-your-reporters).
+
+The action sets this location with the `--output-dir` flag, which overrides any `outputDir` in your config. In a `run:` script, read the same directory from the `$RUNNER_TEMP` environment variable, for example `cat "$RUNNER_TEMP/doc-detective-output.json"`.
+
+GitHub empties this directory when the job ends. To keep the files, upload them in a later step. Leave out any path your config doesn't produce:
+
+```yaml
+- uses: doc-detective/github-action@v2
+- if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: doc-detective-run
+    path: |
+      ${{ runner.temp }}/doc-detective-output.json
+      ${{ runner.temp }}/junit.xml
+      ${{ runner.temp }}/.doc-detective/runs/
+    include-hidden-files: true
+```
+
+`if: always()` uploads the files even when a failing test fails the job. `upload-artifact` treats files in a folder whose name starts with `.` as hidden and skips them by default, so set `include-hidden-files: true` to upload the run folder.
 
 ## Browser modes
 
@@ -271,9 +307,19 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### The job passes even though a test failed
 
-**Cause:** The step sets `exit_on_fail: false`, or the workflow still uses `@v1`, where `exit_on_fail` defaults to `false`.
+**Cause:** One of these settings keeps the job green:
 
-**Solution:** Remove `exit_on_fail: false` and use `@v2`. See [Step 3](#step-3-fail-the-build-when-tests-fail).
+- The step sets `exit_on_fail: false`.
+- The workflow still uses `@v1`, where `exit_on_fail` defaults to `false`.
+- Your config sets `exitOnFail: false`, or `version` runs a CLI older than 5. The CLI then exits `0` when a test fails, and the job log shows a warning.
+
+**Solution:** Use `@v2`, remove `exit_on_fail: false` from the step and `exitOnFail: false` from your config, and remove any `version` value below 5. See [Step 3](#step-3-fail-the-build-when-tests-fail).
+
+### Reports or the run folder are missing from the workspace
+
+**Cause:** The action writes the results file, the run folder, and reporter files to `${{ runner.temp }}`, and overrides any `outputDir` in your config.
+
+**Solution:** Read or upload the files from `${{ runner.temp }}`. See [Find reports and the run folder](#find-reports-and-the-run-folder).
 
 ### The action can't create a pull request or issue
 
