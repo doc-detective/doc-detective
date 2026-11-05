@@ -4,36 +4,45 @@ Design for replacing regex-only test detection with structure-aware (AST-backed)
 **semantic selectors**, while keeping regex detection fully supported. Decision record:
 [ADR 01139](../../adrs/01139-semantic-selector-test-detection.md).
 
+> **Revision (2026-10-17): selectors are opt-in, built-ins don't change.** Compatibility outranks
+> the structural fixes. The `markdown`, `html`, `dita`, and `asciidoc` built-ins keep their legacy
+> regex definitions byte for byte, and the default `fileTypes` list is unchanged. The `mdx` fileType
+> is an opt-in selector built-in (list it before `markdown`). Where the phases below describe
+> migrating a built-in to selectors or enumerate parity divergences, that's superseded. The selector
+> definitions shown are examples for custom file types. ADR 01139 decisions 5 and 6 are
+> authoritative.
+
 ## Context
 
-Doc Detective's test detection is 100% regex today: `fileTypes[].markup[].regex` and
+Doc Detective's test detection is 100% regex today. The `fileTypes[].markup[].regex` and
 `inlineStatements` patterns run via `matchAll` over raw file text, ordered by character offset,
 through the state machine in `src/common/src/detectTests.ts`. This causes a persistent class of
-problems: hand-tuned guard hacks (image negative-lookbehinds, `testIgnore` lookaheads, non-greedy
-bold matching in `src/common/src/fileTypes.ts`), false positives from comments inside code fences,
-HTML-entity/escaping workarounds in `parseObject`, prototype-pollution guards in
-`parseXmlAttributes`, a ReDoS guard (`safeRegExp`), duplicated default tables
-(`src/common/src/fileTypes.ts` vs `src/core/config.ts`), and a third divergent detection
-reimplementation in the LSP (`src/lsp/inline.ts`).
+problems. The table in `src/common/src/fileTypes.ts` needs hand-tuned guard hacks: image
+negative-lookbehinds, `testIgnore` lookaheads, and non-greedy bold matching. Comments inside code
+fences cause false positives. The code needs HTML-entity/escaping workarounds in `parseObject`,
+prototype-pollution guards in `parseXmlAttributes`, and a ReDoS guard (`safeRegExp`). The default
+tables are duplicated (`src/common/src/fileTypes.ts` vs `src/core/config.ts`), and the LSP has a
+third divergent detection reimplementation (`src/lsp/inline.ts`).
 
 Two prior AST prototypes (Dec 2025 Copilot draft PR in `.github`; Feb 2026
 `doc-detective-common/ast` branch, ~13.9k insertions) implemented a raw `astNodeMatch`
-node-matcher design. Neither was rejected on merit — both were orphaned by the monorepo migration.
+node-matcher design. Neither was rejected on merit. Both were orphaned by the monorepo migration.
 Research into the 2026 parser landscape and comparable tools (Vale, markdownlint, Bluehawk,
 pytest-codeblocks) informed the design below.
 
 **Decisions:**
 
-1. **Config surface = semantic selectors only** — no raw AST node-matcher surface; regex remains
+1. **Config surface = semantic selectors only**: no raw AST node-matcher surface; regex remains
    the escape hatch.
-2. **AsciiDoc = purpose-built line-aware scanner backend** — asciidoctor.js discards comments
-   pre-parse and is Opal-heavy; tree-sitter-asciidoc is the future upgrade slot, not v1.
+2. **AsciiDoc = purpose-built line-aware scanner backend**: asciidoctor.js discards comments
+   pre-parse and is Opal-heavy. The tree-sitter-asciidoc grammar is the future upgrade slot, not
+   v1.
 3. **Regex stays co-equal indefinitely**; built-in fileType definitions migrate to selectors; user
    regex configs keep working unchanged.
 
-**Node/ESM:** the repo requires Node ≥22.12.0, which supports unflagged `require(esm)`, so the
-ESM-only unified/remark stack is directly consumable from the CJS build — no engines bump, no
-bundling. The effort ships as `feat` minors.
+**Node/ESM:** the repo requires Node ≥22.12.0, which supports unflagged `require(esm)`. The
+ESM-only unified/remark stack is therefore directly consumable from the CJS build, with no engines
+bump and no bundling. The effort ships as `feat` minors.
 
 ## Design
 
@@ -47,17 +56,18 @@ onto it:
 |---|---|---|---|---|---|
 | `comment` | non-rendered author note | `<!-- -->`, `[comment]: #` (all quote variants), MDX `{/* */}` | `<!-- -->` | `<!-- -->` | `//` line, `////` block |
 | `codeBlock` | fenced/source block | ``` fence (language + meta from info string) | `<pre><code class="language-x">` | `<codeblock>` | `[source,lang]` + `----` |
-| `link` | hyperlink | `[text](url)` (images are a different node — no lookbehind needed) | `<a href>` | — (use `element`) | `https://…[text]` |
+| `link` | hyperlink | `[text](url)` (images are a different node, so no lookbehind is needed) | `<a href>` | none (use `element`) | `https://…[text]` |
 | `image` | image w/ optional attrs | `![alt](src){: .cls #id key="val"}` | `<img>` | `<image>` | `image::src[alt, role=…]` |
 | `strong` / `emphasis` | bold / italic text | `**x**` / `*x*` | `<strong>/<b>`, `<em>/<i>` | `<b>` / `<i>` | `*x*` / `_x_` |
 | `text` | prose text runs (never inside code/comments) | text nodes | text nodes | text nodes | body lines |
-| `element` | named element + attributes | MDX JSX components | any tag | any tag (`<uicontrol>`, `<xref>`…) | — |
+| `element` | named element + attributes | MDX JSX components | any tag | any tag (`<uicontrol>`, `<xref>`…) | none |
 
-Each node carries exact start/end offsets (drives existing `sortIndex` ordering), line number, and
-named fields (`content`, `text`, `language`, `meta`, `url`, `alt`, `src`, `tag`, `attributes.*`).
+Each node carries exact start/end offsets, which drive the existing `sortIndex` ordering. It also
+carries a line number and named fields (`content`, `text`, `language`, `meta`, `url`, `alt`, `src`,
+`tag`, `attributes.*`).
 
 **Selectors** are declarative matchers against semantic nodes, added to `markupDefinition` as a
-peer of `regex` — and **modeled on the step schema: the kind IS the key** (like `{"goTo": …}`,
+peer of `regex`. They're **modeled on the step schema: the kind IS the key** (like `{"goTo": …}`,
 `{"find": …}` in `step_v3`). The schema is a `oneOf` across kind keys, so each kind object exposes
 only the options valid for that kind:
 
@@ -74,19 +84,21 @@ only the options valid for that kind:
 ```
 
 A `markupDefinition` is a single object schema whose property table holds both modes (`name`,
-`regex`, the eight kind keys, `captures`, `actions`, `batchMatches`), constrained by an outer
-`oneOf`: `required: ["regex"]` | inner `oneOf` over the kind keys (exactly one). The outer
-`oneOf` makes the modes mutually exclusive — a definition carrying both `regex` and a kind key
-fails validation. One shared property
-table matters because the schema build fully dereferences `$ref`s: `actions` embeds the entire
-step schema, and a two-branch `anyOf` would duplicate it at every markupDefinition site (measured:
-+39 MB on the generated `schemas.json`; the flattened shape costs +9 MB, all from the selector
-tree itself). Consequence: unknown top-level properties pass when a valid mode is present (as
-regex definitions always allowed), but kind *option* objects are `additionalProperties: false`, a
-misspelled kind key means "no valid mode" and fails, and two kind keys fail the `oneOf`. Per-kind
-options (all optional; `{}` = any node of that kind; scalar shorthands mirror the step schema,
-e.g. `"codeBlock": "bash"` ≡ `{"language": "bash"}`, `"element": "uicontrol"` ≡
-`{"tag": "uicontrol"}`):
+`regex`, the eight kind keys, `captures`, `actions`, `batchMatches`). An outer `oneOf` constrains
+it: `required: ["regex"]` | inner `oneOf` over the kind keys (exactly one). The outer `oneOf`
+makes the modes mutually exclusive, so a definition carrying both `regex` and a kind key fails
+validation. One shared property table matters because the schema build fully dereferences
+`$ref`s. The `actions` field embeds the entire step schema, and a two-branch `anyOf` would
+duplicate it at every markupDefinition site. The measured cost was +39 MB on the generated
+`schemas.json`. The flattened shape costs +9 MB, all from the selector tree itself.
+
+Consequence: unknown top-level properties pass when a valid mode is present (as regex definitions
+always allowed), but kind *option* objects are `additionalProperties: false`. A misspelled kind
+key means "no valid mode" and fails, and two kind keys fail the `oneOf`.
+
+Per-kind options follow. All are optional, and `{}` = any node of that kind. Scalar shorthands
+mirror the step schema, e.g. `"codeBlock": "bash"` ≡ `{"language": "bash"}`,
+`"element": "uicontrol"` ≡ `{"tag": "uicontrol"}`:
 
 | Kind key | Options | Capturable fields |
 |---|---|---|
@@ -100,60 +112,61 @@ e.g. `"codeBlock": "bash"` ≡ `{"language": "bash"}`, `"element": "uicontrol"` 
 
 Shared option semantics:
 
-- `attributes` — map of attribute name → exact string | regex string | `true` (exists). Collapses
-  today's attribute-order/quote-variant regex quadruplication; entities decoded by the real
-  parser. Where attributes come from is per-backend:
+- `attributes`: map of attribute name → exact string | regex string | `true` (exists). It
+  collapses today's attribute-order/quote-variant regex quadruplication, and the real parser
+  decodes entities. Where attributes come from is per-backend:
   - **Markdown/MDX**: Kramdown-style IALs and Pandoc-style attribute spans on images, links, and
-    code fences — `{: .screenshot}`, `{.screenshot}`, `{: #results .screenshot width="800"}` all
-    normalize the same way: `.foo` → `class` (multiple classes space-joined), `#bar` → `id`,
-    `key="val"`/`key=val` → named attribute. This is load-bearing: today's `screenshotImage` regex
-    already keys off `{….screenshot…}`, and the backend upgrade makes *every* IAL attribute (not
-    just classes) matchable and capturable. Kramdown block IALs on their own line attach to the
-    adjacent block. MDX JSX attributes surface on `element` nodes the same way.
+    code fences. `{: .screenshot}`, `{.screenshot}`, and `{: #results .screenshot width="800"}`
+    all normalize the same way. Normalization maps `.foo` → `class` (multiple classes
+    space-joined), `#bar` → `id`, and `key="val"`/`key=val` → named attribute. This is
+    load-bearing: today's `screenshotImage` regex already keys off `{….screenshot…}`. The backend
+    upgrade makes *every* IAL attribute (not just classes) matchable and capturable. Kramdown
+    block IALs on their own line attach to the adjacent block. MDX JSX attributes surface on
+    `element` nodes the same way.
   - **HTML/XML**: native element attributes.
   - **AsciiDoc**: bracket attrlists (`image::x.png[alt, role=screenshot]` → positional + named
     attrs).
 - `contentMatches`/`matches` capture groups are exposed as `match.1`, `match.2`, … (scoped regex
-  power *inside* structure — replaces guard-hack lookarounds).
-- `precededBy` / `followedBy` — regex against adjacent sibling text, for verb-context patterns
+  power *inside* structure, replacing guard-hack lookarounds).
+- `precededBy` / `followedBy`: regex against adjacent sibling text, for verb-context patterns
   ("Click **X**", "Go to \[url]"). `followedBy` may also be
   `{ "text": regex, "then": { "<kind>": {…} } }` to chain a second node for sequence patterns
-  (DITA's "Type `<userinput>` into `<uicontrol>`"); chained fields capture as `then.*`.
-- `captures` — array of field paths mapped in order to `$1..$n`. The full set of exposed paths
+  (DITA's "Type `<userinput>` into `<uicontrol>`"). Chained fields capture as `then.*`.
+- `captures`: array of field paths mapped, in order, to `$1..$n`. The full set of exposed paths
   (each kind exposes the subset shown in the "Capturable fields" column above):
-  - `content` — the node's inner source text (code block body, comment body, element inner
+  - `content`: the node's inner source text (code block body, comment body, element inner
     text/XML).
-  - `text` — the rendered/display text (link text, strong/emphasis text).
-  - `language` / `meta` — codeBlock info-string language and its tail.
-  - `url` / `title` — link destination and optional title.
-  - `src` / `alt` — image source and alt text.
-  - `tag` — element/component name.
-  - `attributes.<name>` — any attribute value by name (element, image), post-entity-decoding.
-  - `match.<n>` — the n-th capture group of the kind's `matches`/`contentMatches` regex.
-  - `then.<field>` — any of the above on the node chained via `followedBy.then` (e.g.
+  - `text`: the rendered/display text (link text, strong/emphasis text).
+  - `language` / `meta`: codeBlock info-string language and its tail.
+  - `url` / `title`: link destination and optional title.
+  - `src` / `alt`: image source and alt text.
+  - `tag`: element/component name.
+  - `attributes.<name>`: any attribute value by name (element, image), post-entity-decoding.
+  - `match.<n>`: the n-th capture group of the kind's `matches`/`contentMatches` regex.
+  - `then.<field>`: any of the above on the node chained via `followedBy.then` (e.g.
     `then.content`, `then.attributes.href`).
 
   Each kind has a documented default capture order; built-ins set `captures` explicitly.
 
 ### Inline statements
 
-(`test`, `test end`, `step`, `test ignore start/end`): today, each statement form needs its own
-regex that matches the *entire literal text* — wrapper syntax included — so the markdown built-in
-carries 8 separate `testStart` regexes (HTML comment, MDX comment, and `[comment]: #` in three
-quote flavors), and DITA carries 7 `step` regexes (PI, XML comment, and `<data>` in quote ×
-attribute-order permutations). Every wrapper × every keyword × every quoting variant = its own
-pattern.
+The inline statements are `test`, `test end`, `step`, and `test ignore start/end`. Today, each
+statement form needs its own regex that matches the *entire literal text*, wrapper syntax
+included. The markdown built-in therefore carries 8 separate `testStart` regexes (HTML comment,
+MDX comment, and `[comment]: #` in three quote flavors). DITA carries 7 `step` regexes (PI, XML
+comment, and `<data>` in quote × attribute-order permutations). Every wrapper × every keyword ×
+every quoting variant = its own pattern.
 
 The new model splits that into two independent parts:
 
-1. **Where statements live** — `inlineStatements.in` lists which semantic nodes to look inside,
+1. **Where statements live**: `inlineStatements.in` lists which semantic nodes to look inside,
    using the same kind-as-key shapes as markup selectors. Each entry answers one question: "which
    nodes should be read as potential statements?"
-2. **What a statement says** — one shared parser takes each matching node's text, checks whether
+2. **What a statement says**: one shared parser takes each matching node's text and checks whether
    it starts with a statement keyword (`test`, `test end`, `step`, `test ignore start`,
-   `test ignore end`), and hands the remainder to the existing `parseObject` (JSON/YAML/XML-attrs,
-   unchanged). The wrapper syntax is already gone by this point — the backend stripped it when it
-   built the node.
+   `test ignore end`). It hands the remainder to the existing `parseObject` (JSON/YAML/XML-attrs,
+   unchanged). The wrapper syntax is already gone by this point, because the backend stripped it
+   when it built the node.
 
 The migrated DITA config declares its statement locations like this:
 
@@ -179,16 +192,16 @@ The migrated DITA config declares its statement locations like this:
 attribute, as with DITA `<data>`.)
 
 Markdown collapses to just `"in": ["comment"]` because the backend normalizes `<!-- -->` and all
-three `[comment]: #` quote variants into identical comment nodes — 8 testStart regexes become
+three `[comment]: #` quote variants into identical comment nodes. The 8 testStart regexes become
 zero. And because comment nodes structurally can't occur inside code fences, the
 comment-in-code-block false-positive class disappears. Regex `inlineStatements` continue to work
-unchanged for custom/legacy fileTypes — including DITA's `<?doc-detective …?>`
-processing-instruction statements, which stay on the legacy regex path only (rarely used, slated
-for deprecation; the new selector surface deliberately has no PI kind).
+unchanged for custom/legacy fileTypes. That includes DITA's `<?doc-detective …?>`
+processing-instruction statements, which stay on the legacy regex path only. They're rarely used
+and slated for deprecation, and the new selector surface deliberately has no PI kind.
 
-Detection pipeline change is additive: selector matches and regex matches both produce positioned
+Detection pipeline change is additive. Selector matches and regex matches both produce positioned
 statements feeding the existing sorted state machine, `contentHash` IDs, and `step_v3`/`test_v3`
-validation — unchanged downstream.
+validation. Everything downstream is unchanged.
 
 ### Backends
 

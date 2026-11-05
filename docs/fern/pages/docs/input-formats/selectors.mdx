@@ -4,13 +4,15 @@ sidebar-title: Selectors
 description: Match tests and steps against document structure—comments, code blocks, links, images, and elements—instead of regular expressions.
 ---
 
-Selectors let a [file type](/docs/input-formats/custom) match **document structure** instead of raw text. Doc Detective parses Markdown, MDX, HTML, DITA/XML, and AsciiDoc files into semantic nodes—comments, code blocks, links, images, bold and italic text, prose runs, and elements—and your configuration describes which nodes become tests and steps.
+Selectors let a [custom file type](/docs/input-formats/custom) match **document structure** instead of raw text. Doc Detective parses Markdown, MDX, HTML, DITA/XML, and AsciiDoc files into semantic nodes—comments, code blocks, links, images, bold and italic text, prose runs, and elements—and your configuration describes which nodes become tests and steps.
 
-Compared to regular expressions, selectors can't produce a whole class of false positives. A comment inside a code fence is code, not a statement. An image can never match a link selector. Attribute matching doesn't care about quoting style or attribute order. Regular-expression definitions remain fully supported—the two styles coexist in one file type, and existing configurations keep working unchanged.
+Compared to regular expressions, selectors can't produce a whole class of false positives. A comment inside a code fence is code, not a statement. An image can never match a link selector. Attribute matching doesn't care about quoting style or attribute order.
+
+Selectors are opt-in. The built-in `markdown`, `html`, `dita`, and `asciidoc` file types keep their regular expressions, so upgrading never changes what an existing configuration detects. That includes statements the regular expressions find inside code blocks. The `mdx` built-in is the one selector-based built-in, and you choose it explicitly (see [Structure-aware MDX](#structure-aware-mdx)).
 
 ## How files get parsed
 
-Doc Detective picks a parser per file from its extension—there's nothing to configure:
+When a file type uses selectors, Doc Detective picks a parser per file from its extension—there's nothing to configure:
 
 | Extensions | Parser |
 |---|---|
@@ -20,7 +22,7 @@ Doc Detective picks a parser per file from its extension—there's nothing to co
 | `dita`, `ditamap`, `xml` | XML (entities decoded by the parser) |
 | `adoc`, `asciidoc`, `asc` | AsciiDoc (comments, listings, macros, inline formatting) |
 
-Files with other extensions fall back to content sniffing. When no parser applies, only regular-expression definitions run for that file. If a file fails to parse (for example, malformed XML), that file degrades to regular-expression detection, and Doc Detective skips its selector definitions.
+Files with other extensions fall back to the parser for the file type's `name` or `extends`. When no parser applies, only regular-expression definitions run for that file. If a file fails to parse (for example, malformed XML), that file degrades to regular-expression detection, and Doc Detective skips its selector definitions.
 
 ## Inline statements: where they live
 
@@ -34,9 +36,9 @@ For parsed file types, `inlineStatements.in` lists the **containers** whose text
 }
 ```
 
-That single `"comment"` entry is the whole story for Markdown: `<!-- test -->` comments and every `[comment]: #` quote variant normalize to the same comment nodes. In MDX, `{/* test */}` expression comments do too.
+For Markdown, that single `"comment"` entry covers `<!-- test -->` comments and every `[comment]: #` quote variant: they all normalize to the same comment nodes. In MDX, `{/* test */}` expression comments and `<!-- test -->` comments do too.
 
-A container can also be a filtered node with a `value` field path when the statement text lives somewhere other than the node's content. The built-in DITA definition uses both forms:
+A container can also be a filtered node with a `value` field path when the statement text lives somewhere other than the node's content. A DITA file type can use both forms:
 
 ```json
 {
@@ -44,7 +46,7 @@ A container can also be a filtered node with a `value` field path when the state
     "in": [
       "comment",
       {
-        "element": { "tag": "data", "attributes": { "name": "doc-detective" } },
+        "element": { "tag": "data", "attributes": { "name": "^doc-detective$" } },
         "value": "attributes.value"
       }
     ]
@@ -52,7 +54,7 @@ A container can also be a filtered node with a `value` field path when the state
 }
 ```
 
-And the built-in AsciiDoc definition uses a filter to keep the `// (test …)` parenthesis grammar while ignoring ordinary comments:
+And an AsciiDoc file type can use a filter to keep the `// (test …)` parenthesis grammar while ignoring ordinary comments:
 
 ```json
 {
@@ -64,7 +66,7 @@ And the built-in AsciiDoc definition uses a filter to keep the `// (test …)` p
 }
 ```
 
-Legacy regular-expression statement properties (`testStart`, `step`, …) still work and can coexist with `in`—the built-in DITA definition keeps its `<?doc-detective …?>` processing-instruction statements on the legacy path (deprecated).
+Regular-expression statement properties (`testStart`, `step`, …) still work and can coexist with `in`. For example, a DITA file type can keep matching `<?doc-detective …?>` processing instructions with `testStart` and `step` patterns, since processing instructions aren't containers.
 
 ## Markup definitions: the kind is the key
 
@@ -100,14 +102,14 @@ A selector-based markup definition names exactly one node **kind** as its key—
 
 Option semantics:
 
-- **`attributes`**—a map of attribute name to matcher: a regular-expression string, or `true` to require the attribute exists. Where attributes come from depends on the format:
+- **`attributes`**—a map of attribute name to matcher: a regular-expression string, or `true` to require the attribute exists. The expression matches anywhere in the value, so `"doc-detective"` also matches `doc-detective-notes`. Anchor it (`"^doc-detective$"`) for an exact value. Classes are one space-separated value, so match a single class with `"(?:^|\\s)screenshot(?:\\s|$)"`. Where attributes come from depends on the format:
   - **Markdown**: Kramdown/Pandoc-style attribute lists on images, links, and code fences. `{: .screenshot}`, `{.screenshot}`, and `{: #results .screenshot width="800"}` all normalize the same way (`.cls` → `class`, `#id` → `id`, `key="val"` → named attribute).
   - **MDX**: the same attribute lists, plus JSX component props on `element` nodes (`<Button label="Save" />` exposes `label`).
   - **HTML and XML**: the native element attributes.
   - **AsciiDoc**: the bracket attribute list (`image::x.png[alt, role=screenshot]`).
 - **`matches`/`contentMatches`**—a regular expression the node's content must match. Its parenthesized match groups become `match.1`, `match.2`, … `captures` paths. `excludes`/`contentExcludes` reject matches.
 - **`precededBy` / `followedBy`**—regular expressions tested against the raw source adjacent to the node, for verb-context patterns like "Click **X**" (`"precededBy": "\\b[Cc]lick\\s+$"`). When the match touches the node, the step's recorded source span extends over it.
-- **`followedBy` with `then`**—chains a second node for sequence patterns. The chained node's fields map to `then.<field>` paths. The built-in DITA `typeIntoUiControl` definition is the worked example:
+- **`followedBy` with `then`**—chains a second node for sequence patterns. The chained node's fields map to `then.<field>` paths. For example, this definition turns DITA's "Type `<userinput>` into the `<uicontrol>`" sentences into steps:
 
 ```json
 {
@@ -132,7 +134,7 @@ Screenshot an image by attribute—you can match and reference any attribute-lis
 ```json
 {
   "name": "screenshotToPath",
-  "image": { "attributes": { "class": "screenshot", "path": true } },
+  "image": { "attributes": { "class": "(?:^|\\s)screenshot(?:\\s|$)", "path": true } },
   "captures": ["src", "attributes.path"],
   "actions": [{ "screenshot": "$2" }]
 }
@@ -162,4 +164,18 @@ Check links only when they're real hyperlinks (images can't match):
 
 ## Mixing selectors and regular expressions
 
-A markup definition is selector-based when it has a kind key, and regular-expression-based when it has `regex`—one definition can't be both, but one file type freely mixes definitions of each style, and `extends` merges them across built-ins and your overrides. The built-in Markdown, MDX, HTML, DITA, and AsciiDoc definitions are all selector-based. Anything they don't cover is a job for regular expressions.
+A markup definition is selector-based when it has a kind key, and regular-expression-based when it has `regex`—one definition can't be both, but one file type freely mixes definitions of each style, and `extends` merges them across built-ins and your overrides. For example, extend `markdown` and add selector definitions: the built-in regular expressions keep running, and your selectors run alongside them.
+
+## Structure-aware MDX
+
+The `mdx` built-in uses selectors throughout. It reads `{/* … */}` expression comments, `<!-- -->` comments, and `[comment]: #` definitions as statements. It exposes JSX components as `element` nodes, and it applies the same link, image, bold, prose, and code-block definitions as the Markdown built-in, in selector form.
+
+The `markdown` built-in still claims `.mdx` files, so `mdx` only takes over when you list it first:
+
+```json
+{
+  "fileTypes": ["mdx", "markdown", "asciidoc", "html", "dita"]
+}
+```
+
+Doc Detective uses the first file type whose extensions include the file's extension. With `mdx` listed first, `.mdx` files get structure-aware detection, and every other file keeps the built-in regular expressions.
