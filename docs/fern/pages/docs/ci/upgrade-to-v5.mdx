@@ -54,7 +54,7 @@ npx doc-detective@4
 
 A run where every test skipped exits `2`, because nothing was tested. A repository with only fenced code blocks is an example, because those steps skip unless you pass `--allow-unsafe`.
 
-**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed and empty runs into `0`. Usage and config errors still exit `2`.
+**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed, empty, and all-skipped runs into `0`. Usage and config errors still exit `2`.
 
 If a suite only applies to one platform, limit the job to that platform rather than relaxing it:
 

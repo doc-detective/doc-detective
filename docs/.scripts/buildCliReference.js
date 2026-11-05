@@ -88,7 +88,7 @@ const REFERENCE_DESCRIPTIONS = {
   "config": "Path to a `config.json` or `config.yaml` file.",
   "input": "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Comma-separate multiple values.",
   "output": "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. A folder isn't valid here: use `--output-dir`.",
-  "plain": "Print one tab-separated line per test.",
+  "plain": "Print one line per test context, with four tab-separated columns: result, spec ID, test ID, and platform and browser, such as `linux/chrome`.",
   "output-dir": "Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports.",
   "allow-unsafe": "Allow execution of potentially unsafe tests",
   "dry-run": "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
@@ -115,7 +115,7 @@ const REFERENCE_DESCRIPTIONS = {
   "no-telemetry": "Don't send anonymous usage data for this run. `DO_NOT_TRACK` and `telemetry.send: false` do the same.",
   "no-hints": "Don't show a post-run hint. Hints are on by default, and show one applicable tip with code samples and links after a run in an interactive shell.",
   "no-auto-update": "Don't check the npm registry on startup for a newer 5.x and self-update before running. Self-update never crosses a major version, and never runs in CI.",
-  "no-exit-on-fail": "Exit `0` even when tests fail or nothing was tested, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run."
+  "no-exit-on-fail": "Exit `0` even when tests fail or nothing was tested, including when every spec skipped, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`."
 };
 
 // A commander Option in the shape the tables below render. Hidden options (the
@@ -447,7 +447,7 @@ function buildPage(data) {
     "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, every spec skipped, an invalid spec, a declined install, or a crash |",
     "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, which exits `2` without these options.",
     ""
   );
 
