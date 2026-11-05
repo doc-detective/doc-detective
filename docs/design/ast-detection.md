@@ -16,8 +16,8 @@ Each step is one PR into `feat/v5-rc`.
 |---|---|---|
 | 1 | One default `fileTypes` table, in common (ADR 01153) | PR #801 |
 | 2 | `runCode` accepts `py` and `js` (ADR 01154) | PR #802 |
-| 3 | Selector engine, Markdown and MDX parsers, schema, `inlineStatements.in` (ADR 01155) | This change |
-| 4 | The LSP reads statements through the shared collector, and drops its own regex scanning | Next |
+| 3 | Selector engine, Markdown and MDX parsers, schema, `inlineStatements.in` (ADR 01155) | PR #803 |
+| 4 | The LSP reads statements through the shared collector, and drops its own regex scanning (ADR 01156) | This change |
 | 5 | Parsers for HTML and DITA (`htmlparser2`) and AsciiDoc (a line scanner). Markdown sends embedded HTML, and `.mdx` sends lowercase JSX tags, through the HTML mapping | |
 | 6 | The built-ins move to selectors, and the upgrade guide lists what they detect differently | |
 
