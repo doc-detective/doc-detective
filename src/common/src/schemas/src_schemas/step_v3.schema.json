@@ -26,6 +26,12 @@
           "outputs": {
             "$ref": "#/components/schemas/outputs"
           },
+          "result": {
+            "$ref": "#/components/schemas/result"
+          },
+          "resultDescription": {
+            "$ref": "#/components/schemas/resultDescription"
+          },
           "variables": {
             "$ref": "#/components/schemas/variables"
           },

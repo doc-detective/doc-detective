@@ -2188,6 +2188,12 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const invalid = validate({ schemaKey: "report_v3", object: broken });
         expect(invalid.valid).to.be.false;
         expect(invalid.errors).to.include("result");
+
+        const brokenStep = structuredClone(object);
+        brokenStep.specs[0].tests[0].contexts[0].steps[0].result = "BROKEN";
+        const invalidStep = validate({ schemaKey: "report_v3", object: brokenStep });
+        expect(invalidStep.valid).to.be.false;
+        expect(invalidStep.errors).to.include("result");
       });
     });
 

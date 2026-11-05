@@ -14604,6 +14604,14 @@ export interface Common {
    */
   unsafe?: boolean;
   outputs?: OutputsStep;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -14864,6 +14872,14 @@ export interface Common1 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep1;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep1;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -15160,6 +15176,14 @@ export interface Common2 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep2;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep2;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -15657,6 +15681,14 @@ export interface Common3 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep3;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep3;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -15941,6 +15973,14 @@ export interface Common4 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep4;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep4;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16241,6 +16281,14 @@ export interface Common5 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep5;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep5;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16549,6 +16597,14 @@ export interface Common6 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep6;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep6;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16858,6 +16914,14 @@ export interface Common7 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep7;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep7;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17172,6 +17236,14 @@ export interface Common8 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep8;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep8;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17520,6 +17592,14 @@ export interface Common9 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep9;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep9;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18354,6 +18434,14 @@ export interface Common10 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep10;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep10;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18581,6 +18669,14 @@ export interface Common11 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep11;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep11;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18952,6 +19048,14 @@ export interface Common12 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep12;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep12;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19185,6 +19289,14 @@ export interface Common13 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep13;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep13;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19562,6 +19674,14 @@ export interface Common14 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep14;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep14;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20173,6 +20293,14 @@ export interface Common15 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep15;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep15;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20400,6 +20528,14 @@ export interface Common16 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep16;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep16;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20697,6 +20833,14 @@ export interface Common17 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep17;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep17;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20924,6 +21068,14 @@ export interface Common18 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep18;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep18;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21342,6 +21494,14 @@ export interface Common19 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep19;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep19;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21569,6 +21729,14 @@ export interface Common20 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep20;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep20;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -22850,6 +23018,14 @@ export interface Common21 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep21;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep21;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23110,6 +23286,14 @@ export interface Common22 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep22;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep22;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23406,6 +23590,14 @@ export interface Common23 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep23;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep23;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23903,6 +24095,14 @@ export interface Common24 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep24;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep24;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24187,6 +24387,14 @@ export interface Common25 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep25;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep25;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24487,6 +24695,14 @@ export interface Common26 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep26;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep26;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24795,6 +25011,14 @@ export interface Common27 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep27;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep27;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25104,6 +25328,14 @@ export interface Common28 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep28;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep28;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25418,6 +25650,14 @@ export interface Common29 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep29;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep29;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25766,6 +26006,14 @@ export interface Common30 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep30;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep30;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26600,6 +26848,14 @@ export interface Common31 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep31;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep31;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26827,6 +27083,14 @@ export interface Common32 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep32;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep32;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27198,6 +27462,14 @@ export interface Common33 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep33;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep33;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27431,6 +27703,14 @@ export interface Common34 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep34;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep34;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27808,6 +28088,14 @@ export interface Common35 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep35;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep35;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28419,6 +28707,14 @@ export interface Common36 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep36;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep36;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28646,6 +28942,14 @@ export interface Common37 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep37;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep37;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28943,6 +29247,14 @@ export interface Common38 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep38;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep38;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29170,6 +29482,14 @@ export interface Common39 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep39;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep39;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29588,6 +29908,14 @@ export interface Common40 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep40;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep40;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29815,6 +30143,14 @@ export interface Common41 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep41;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep41;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.

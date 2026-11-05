@@ -2791,6 +2791,12 @@
                 "$ref": "#/components/schemas/outputs",
                 "default": {}
               },
+              "result": {
+                "$ref": "#/components/schemas/result"
+              },
+              "resultDescription": {
+                "$ref": "#/components/schemas/resultDescription"
+              },
               "variables": {
                 "$ref": "#/components/schemas/variables",
                 "default": {}
@@ -10260,6 +10266,12 @@
               },
               "outputs": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/outputs"
+              },
+              "result": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/result"
+              },
+              "resultDescription": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultDescription"
               },
               "variables": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/variables"

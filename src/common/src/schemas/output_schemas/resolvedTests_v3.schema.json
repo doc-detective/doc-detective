@@ -1143,6 +1143,22 @@
                                                   },
                                                   "title": "Outputs (step)"
                                                 },
+                                                "result": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "PASS",
+                                                    "FAIL",
+                                                    "WARNING",
+                                                    "SKIPPED"
+                                                  ],
+                                                  "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                  "readOnly": true
+                                                },
+                                                "resultDescription": {
+                                                  "type": "string",
+                                                  "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                  "readOnly": true
+                                                },
                                                 "variables": {
                                                   "type": "object",
                                                   "description": "Environment variables to set from user-defined expressions.",
@@ -3035,6 +3051,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -4195,6 +4227,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -5855,6 +5903,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -15154,6 +15218,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -17275,6 +17355,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -19222,6 +19318,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -20563,6 +20675,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -21852,6 +21980,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -23284,6 +23428,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -27298,6 +27458,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -36259,6 +36435,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -37456,6 +37648,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -39316,6 +39524,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -40319,6 +40543,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -42561,6 +42801,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -44932,6 +45188,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -45893,6 +46165,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -47497,6 +47785,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -48677,6 +48981,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -51003,6 +51323,22 @@
                                                     },
                                                     "title": "Outputs (step)"
                                                   },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
                                                   "variables": {
                                                     "type": "object",
                                                     "description": "Environment variables to set from user-defined expressions.",
@@ -51996,6 +52332,22 @@
                                                       }
                                                     },
                                                     "title": "Outputs (step)"
+                                                  },
+                                                  "result": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "PASS",
+                                                      "FAIL",
+                                                      "WARNING",
+                                                      "SKIPPED"
+                                                    ],
+                                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
+                                                  },
+                                                  "resultDescription": {
+                                                    "type": "string",
+                                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                                    "readOnly": true
                                                   },
                                                   "variables": {
                                                     "type": "object",
@@ -59383,6 +59735,22 @@
                                     },
                                     "title": "Outputs (step)"
                                   },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PASS",
+                                      "FAIL",
+                                      "WARNING",
+                                      "SKIPPED"
+                                    ],
+                                    "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                    "readOnly": true
+                                  },
+                                  "resultDescription": {
+                                    "type": "string",
+                                    "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                    "readOnly": true
+                                  },
                                   "variables": {
                                     "type": "object",
                                     "description": "Environment variables to set from user-defined expressions.",
@@ -61275,6 +61643,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -62435,6 +62819,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -64095,6 +64495,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -73394,6 +73810,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -75515,6 +75947,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -77462,6 +77910,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -78803,6 +79267,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -80092,6 +80572,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -81524,6 +82020,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -85538,6 +86050,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -94499,6 +95027,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -95696,6 +96240,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -97556,6 +98116,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -98559,6 +99135,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -100801,6 +101393,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -103172,6 +103780,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -104133,6 +104757,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -105737,6 +106377,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -106917,6 +107573,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -109243,6 +109915,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -110236,6 +110924,22 @@
                                         }
                                       },
                                       "title": "Outputs (step)"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
                                     },
                                     "variables": {
                                       "type": "object",
@@ -119930,6 +120634,22 @@
                                       },
                                       "title": "Outputs (step)"
                                     },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "PASS",
+                                        "FAIL",
+                                        "WARNING",
+                                        "SKIPPED"
+                                      ],
+                                      "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
+                                    "resultDescription": {
+                                      "type": "string",
+                                      "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                      "readOnly": true
+                                    },
                                     "variables": {
                                       "type": "object",
                                       "description": "Environment variables to set from user-defined expressions.",
@@ -121822,6 +122542,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -122982,6 +123718,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -124642,6 +125394,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -133941,6 +134709,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -136062,6 +136846,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -138009,6 +138809,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -139350,6 +140166,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -140639,6 +141471,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -142071,6 +142919,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -146085,6 +146949,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -155046,6 +155926,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -156243,6 +157139,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -158103,6 +159015,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -159106,6 +160034,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -161348,6 +162292,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -163719,6 +164679,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -164680,6 +165656,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -166284,6 +167276,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -167464,6 +168472,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -169790,6 +170814,22 @@
                                         },
                                         "title": "Outputs (step)"
                                       },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
                                       "variables": {
                                         "type": "object",
                                         "description": "Environment variables to set from user-defined expressions.",
@@ -170783,6 +171823,22 @@
                                           }
                                         },
                                         "title": "Outputs (step)"
+                                      },
+                                      "result": {
+                                        "type": "string",
+                                        "enum": [
+                                          "PASS",
+                                          "FAIL",
+                                          "WARNING",
+                                          "SKIPPED"
+                                        ],
+                                        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
+                                      },
+                                      "resultDescription": {
+                                        "type": "string",
+                                        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                        "readOnly": true
                                       },
                                       "variables": {
                                         "type": "object",
@@ -176872,6 +177928,22 @@
                                             },
                                             "title": "Outputs (step)"
                                           },
+                                          "result": {
+                                            "type": "string",
+                                            "enum": [
+                                              "PASS",
+                                              "FAIL",
+                                              "WARNING",
+                                              "SKIPPED"
+                                            ],
+                                            "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                            "readOnly": true
+                                          },
+                                          "resultDescription": {
+                                            "type": "string",
+                                            "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                            "readOnly": true
+                                          },
                                           "variables": {
                                             "type": "object",
                                             "description": "Environment variables to set from user-defined expressions.",
@@ -178764,6 +179836,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -179924,6 +181012,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -181584,6 +182688,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -190883,6 +192003,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -193004,6 +194140,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -194951,6 +196103,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -196292,6 +197460,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -197581,6 +198765,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -199013,6 +200213,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -203027,6 +204243,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -211988,6 +213220,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -213185,6 +214433,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -215045,6 +216309,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -216048,6 +217328,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -218290,6 +219586,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -220661,6 +221973,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -221622,6 +222950,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -223226,6 +224570,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -224406,6 +225766,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
@@ -226732,6 +228108,22 @@
                                               },
                                               "title": "Outputs (step)"
                                             },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
                                             "variables": {
                                               "type": "object",
                                               "description": "Environment variables to set from user-defined expressions.",
@@ -227725,6 +229117,22 @@
                                                 }
                                               },
                                               "title": "Outputs (step)"
+                                            },
+                                            "result": {
+                                              "type": "string",
+                                              "enum": [
+                                                "PASS",
+                                                "FAIL",
+                                                "WARNING",
+                                                "SKIPPED"
+                                              ],
+                                              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
+                                            },
+                                            "resultDescription": {
+                                              "type": "string",
+                                              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                                              "readOnly": true
                                             },
                                             "variables": {
                                               "type": "object",
