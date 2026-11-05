@@ -69,7 +69,9 @@ async function startRecording({
   };
 
   // Validate step payload
-  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  // `__autoRecord` is the runner's own marker, and step_v3 rejects unknown keys.
+  const { __autoRecord: _autoRecord, ...authoredStep } = step;
+  const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;

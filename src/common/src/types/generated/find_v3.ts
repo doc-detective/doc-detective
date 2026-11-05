@@ -159,7 +159,6 @@ export type ClickElementDetailed = {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -530,7 +529,6 @@ export interface FindElementAndClick {
    * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
   duration?: number;
-  [k: string]: unknown;
 }
 export interface ProcessSurface {
   /**

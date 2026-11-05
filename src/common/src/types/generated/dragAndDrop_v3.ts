@@ -45,7 +45,6 @@ export type ElementDetailed = {
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
@@ -88,7 +87,6 @@ export type ElementDetailed1 = {
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -139,7 +137,6 @@ export interface DragAndDrop {
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface;
-  [k: string]: unknown;
 }
 export interface BrowserSurface {
   /**

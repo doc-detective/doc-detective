@@ -10,6 +10,7 @@
     },
     {
       "title": "Click element (detailed)",
+      "additionalProperties": false,
       "type": "object",
       "anyOf": [
         {
@@ -363,6 +364,7 @@
       },
       "object": {
         "title": "Click element (detailed)",
+        "additionalProperties": false,
         "type": "object",
         "anyOf": [
           {

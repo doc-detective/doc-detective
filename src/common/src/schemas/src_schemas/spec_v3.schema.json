@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "specification",
   "type": "object",
+  "additionalProperties": false,
   "dynamicDefaults": {
     "specId": "uuid"
   },

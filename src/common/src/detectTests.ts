@@ -83,6 +83,11 @@ export interface DetectTestsInput {
    * pass it here; defaults to the normalized filePath.
    */
   testIdBase?: string;
+  /**
+   * Called when something the author wrote is dropped for being invalid, with
+   * the validation errors. Without it, the drop only logs a warning.
+   */
+  onInvalid?: (reason: string) => void;
 }
 
 /**
@@ -116,6 +121,7 @@ export async function detectTests(input: DetectTestsInput): Promise<DetectedTest
     filePath: input.filePath,
     fileType: input.fileType,
     testIdBase: input.testIdBase,
+    onInvalid: input.onInvalid,
   });
 }
 
@@ -348,12 +354,14 @@ export async function parseContent({
   filePath = "",
   fileType,
   testIdBase,
+  onInvalid,
 }: {
   config?: DetectTestsConfig;
   content: string;
   filePath?: string;
   fileType?: FileType;
   testIdBase?: string;
+  onInvalid?: (reason: string) => void;
 }): Promise<DetectedTest[]> {
   const statements: Array<any> = [];
   const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
@@ -475,6 +483,18 @@ export async function parseContent({
           if (!test.steps) {
             test.steps = [{ action: "goTo", url: "https://doc-detective.com" }];
             stepsCleanup = true;
+          }
+          // The transform rebuilds the object from known keys, so an unknown
+          // key would silently vanish without this check.
+          const v2Validation = validate({
+            schemaKey: "test_v2" as SchemaKey,
+            object: test,
+            addDefaults: false,
+          });
+          if (!v2Validation.valid) {
+            log(config, "warn", `Inline test in ${filePath} isn't valid. Skipping.`);
+            onInvalid?.(v2Validation.errors);
+            break;
           }
           const transformed = transformToSchemaKey({
             object: test,
@@ -674,6 +694,7 @@ export async function parseContent({
         /* c8 ignore next 3 - V8 phantom branch on if-else/switch-case */
         if (!validation.valid) {
           log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
+          onInvalid?.(validation.errors);
           return;
         }
         step = validation.object;
@@ -738,6 +759,8 @@ export async function parseContent({
     });
     if (!validation.valid) {
       log(config, "warn", `Couldn't convert test in ${filePath} to valid test. Skipping.`);
+      // A test that only ended up with no steps isn't an authoring mistake.
+      if (test.steps?.length) onInvalid?.(validation.errors);
       return;
     }
     validatedTests.push(validation.object);

@@ -347,6 +347,7 @@
                 },
                 {
                   "title": "Click element (detailed)",
+                  "additionalProperties": false,
                   "type": "object",
                   "anyOf": [
                     {
@@ -700,6 +701,7 @@
                   },
                   "object": {
                     "title": "Click element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -1060,6 +1062,7 @@
                   "minimum": 1
                 }
               },
+              "additionalProperties": false,
               "title": "Find element and click"
             }
           ]
@@ -4494,6 +4497,7 @@
                   },
                   {
                     "title": "Click element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -4847,6 +4851,7 @@
                     },
                     "object": {
                       "title": "Click element (detailed)",
+                      "additionalProperties": false,
                       "type": "object",
                       "anyOf": [
                         {
@@ -5207,6 +5212,7 @@
                     "minimum": 1
                   }
                 },
+                "additionalProperties": false,
                 "title": "Find element and click"
               }
             ]

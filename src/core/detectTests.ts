@@ -595,11 +595,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       if (!content.contentPath) content.contentPath = file;
       // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
       // execution as barriers. Stripped before reporting; never in public schema.
-      // Captured here and re-stamped after the validate / resolvePaths transforms
-      // below (either of which could drop an unknown key), so a future schema
-      // tightening can't silently turn the barriers into a no-op.
+      // Captured here and stamped after the validate / resolvePaths transforms
+      // below, because spec_v3 rejects unknown keys.
       const specPhase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
-      content._phase = specPhase;
       if (Array.isArray(content.tests)) {
         const usedTestIds = new Set(
           content.tests
@@ -699,11 +697,17 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
-            // Tag before-steps with a marker that survives validation cloning.
-            // Scrub any forged _fromAfter from these authored steps first.
+            // Tag before-steps with a non-enumerable marker, which spec_v3
+            // doesn't see. Scrub any forged _fromAfter from these authored
+            // steps first.
             for (const step of setup.tests[0].steps) {
               if (step && typeof step === "object") delete step._fromAfter;
-              step._fromBefore = true;
+              Object.defineProperty(step, "_fromBefore", {
+                value: true,
+                enumerable: false,
+                writable: true,
+                configurable: true,
+              });
             }
             test.steps = setup.tests[0].steps.concat(test.steps);
           }
@@ -749,8 +753,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             log(
               config,
               "warning",
-              `Step ${step} isn't a valid step. Skipping.`
+              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
             );
+            noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, stepForValidation));
             return false;
           }
           return true;
@@ -768,6 +773,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
+        noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, content));
         return null;
       }
       content = validation.object;
@@ -824,7 +830,6 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       let spec: any = {
         specId: id,
         contentPath: file,
-        _phase: config._phaseByFile?.get(path.resolve(file)) ?? "main",
         tests: [],
       };
       const fileType = config.fileTypes.find((fileType: any) =>
@@ -904,6 +909,8 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         fileType: fileType,
         filePath: file,
         testIdBase: id,
+        onInvalid: (reason: string) =>
+          noteInvalidSpec(config, file, summarizeSpecErrors(reason, {})),
       });
       spec.tests.push(...tests);
 
@@ -924,6 +931,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           "warning",
           `Tests from ${file} don't create a valid test specification. Skipping.`
         );
+        // A document with no tests in it is just a document.
+        if (spec.tests.length > 0) {
+          noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, spec));
+        }
       } else {
         spec = await resolvePaths({
           config: config,

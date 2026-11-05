@@ -1,5 +1,5 @@
 {
-  "id": "runCode-bug1-exitcodes-forwarding",
+  "specId": "runCode-bug1-exitcodes-forwarding",
   "description": "End-to-end coverage for the Phase 4a.2a runCode bug #1 fix: runCode now forwards its own exitCodes (and other runShell-honored options) when delegating to runShell. Previously exitCodes was silently dropped, so a non-zero exit FAILed even when whitelisted. Node-only code keeps this cross-platform (no shell syntax, avoids the Windows bash restriction).",
   "tests": [
     {

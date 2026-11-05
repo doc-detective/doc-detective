@@ -151,6 +151,7 @@
                     "$ref": "click_v3.schema.json#/components/schemas/duration"
                   }
                 },
+                "additionalProperties": false,
                 "title": "Find element and click"
               }
             ]

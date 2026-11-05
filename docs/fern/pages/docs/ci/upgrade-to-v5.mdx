@@ -44,6 +44,18 @@ npx doc-detective@4
 
 **What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail`.
 
+## Unknown keys in specs and steps
+
+**What changed:** A key Doc Detective doesn't recognize on a spec or step, or in a `click`, `runCode`, `record`, or `dragAndDrop` object, makes the spec invalid. Version 4 ignored those keys, so a typo such as `asertions` silently turned off a check. An invalid inline step, or an invalid step in a `before` or `after` file, also makes its spec invalid. Version 4 dropped the step and kept going.
+
+**What to do:** Run your suite, then fix or remove each key the error names. The error suggests the closest valid key:
+
+```text
+tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
+```
+
+Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
+
 ## Logs moved to stderr
 
 **What changed:** stdout carries results only. Logs, warnings, hints, and notices go to stderr. Logs also lose their level labels, such as `(INFO)`, unless you turn on debug output.

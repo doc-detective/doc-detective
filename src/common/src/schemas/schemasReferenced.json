@@ -1088,7 +1088,17 @@
     },
     "spec_v2": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "specId": {
+          "type": "string"
+        },
+        "contentPath": {
+          "type": "string"
+        },
         "id": {
           "type": "string"
         },
@@ -2981,6 +2991,50 @@
           }
         }
       },
+      "properties": {
+        "$schema": {},
+        "result": {},
+        "resultDescription": {},
+        "stepId": {},
+        "description": {},
+        "unsafe": {},
+        "outputs": {},
+        "variables": {},
+        "breakpoint": {},
+        "if": {},
+        "assertions": {},
+        "onPass": {},
+        "onFail": {},
+        "onWarning": {},
+        "onSkip": {},
+        "location": {},
+        "autoScreenshot": {},
+        "attempts": {},
+        "visit": {},
+        "durationMs": {},
+        "checkLink": {},
+        "click": {},
+        "find": {},
+        "goTo": {},
+        "httpRequest": {},
+        "runShell": {},
+        "runCode": {},
+        "runBrowserScript": {},
+        "type": {},
+        "screenshot": {},
+        "saveCookie": {},
+        "record": {},
+        "stopRecord": {},
+        "closeSurface": {},
+        "startSurface": {},
+        "loadVariables": {},
+        "dragAndDrop": {},
+        "loadCookie": {},
+        "swipe": {},
+        "wait": {},
+        "annotate": {}
+      },
+      "additionalProperties": false,
       "anyOf": [
         {
           "allOf": [
@@ -4037,6 +4091,7 @@
     "dragAndDrop_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "source",
         "target"
@@ -4080,6 +4135,7 @@
             "type": "string"
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "anyOf": [
               {
@@ -4551,6 +4607,7 @@
             ]
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "properties": {
               "surface": {
@@ -5285,7 +5342,8 @@
                   }
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
       },
@@ -6121,7 +6179,8 @@
                       "duration": {
                         "$ref": "click_v3.nodefaults.schema.json#/components/schemas/duration"
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 ]
               },
@@ -6183,6 +6242,7 @@
             "minimum": 1
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "anyOf": [
               {
@@ -6890,6 +6950,7 @@
     "spec_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "additionalProperties": false,
       "dynamicDefaults": {
         "specId": "uuid"
       },
@@ -8796,7 +8857,17 @@
     },
     {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "specId": {
+          "type": "string"
+        },
+        "contentPath": {
+          "type": "string"
+        },
         "id": {
           "type": "string"
         },
@@ -10451,6 +10522,50 @@
           }
         }
       },
+      "properties": {
+        "$schema": {},
+        "result": {},
+        "resultDescription": {},
+        "stepId": {},
+        "description": {},
+        "unsafe": {},
+        "outputs": {},
+        "variables": {},
+        "breakpoint": {},
+        "if": {},
+        "assertions": {},
+        "onPass": {},
+        "onFail": {},
+        "onWarning": {},
+        "onSkip": {},
+        "location": {},
+        "autoScreenshot": {},
+        "attempts": {},
+        "visit": {},
+        "durationMs": {},
+        "checkLink": {},
+        "click": {},
+        "find": {},
+        "goTo": {},
+        "httpRequest": {},
+        "runShell": {},
+        "runCode": {},
+        "runBrowserScript": {},
+        "type": {},
+        "screenshot": {},
+        "saveCookie": {},
+        "record": {},
+        "stopRecord": {},
+        "closeSurface": {},
+        "startSurface": {},
+        "loadVariables": {},
+        "dragAndDrop": {},
+        "loadCookie": {},
+        "swipe": {},
+        "wait": {},
+        "annotate": {}
+      },
+      "additionalProperties": false,
       "anyOf": [
         {
           "allOf": [
@@ -11501,6 +11616,7 @@
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "source",
         "target"
@@ -11543,6 +11659,7 @@
             "type": "string"
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "anyOf": [
               {
@@ -12007,6 +12124,7 @@
             ]
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "properties": {
               "surface": {
@@ -12723,7 +12841,8 @@
                   }
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
       },
@@ -13529,7 +13648,8 @@
                       "duration": {
                         "$ref": "click_v3.nodefaults.schema.json#/components/schemas/duration"
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 ]
               },
@@ -13591,6 +13711,7 @@
             "minimum": 1
           },
           "object": {
+            "additionalProperties": false,
             "type": "object",
             "anyOf": [
               {
@@ -14285,6 +14406,7 @@
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "$schema": {
           "type": "string",

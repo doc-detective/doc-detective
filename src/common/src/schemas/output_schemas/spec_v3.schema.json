@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "specification",
   "type": "object",
+  "additionalProperties": false,
   "dynamicDefaults": {
     "specId": "uuid"
   },
@@ -5511,6 +5512,50 @@
                       }
                     }
                   },
+                  "properties": {
+                    "$schema": {},
+                    "result": {},
+                    "resultDescription": {},
+                    "stepId": {},
+                    "description": {},
+                    "unsafe": {},
+                    "outputs": {},
+                    "variables": {},
+                    "breakpoint": {},
+                    "if": {},
+                    "assertions": {},
+                    "onPass": {},
+                    "onFail": {},
+                    "onWarning": {},
+                    "onSkip": {},
+                    "location": {},
+                    "autoScreenshot": {},
+                    "attempts": {},
+                    "visit": {},
+                    "durationMs": {},
+                    "checkLink": {},
+                    "click": {},
+                    "find": {},
+                    "goTo": {},
+                    "httpRequest": {},
+                    "runShell": {},
+                    "runCode": {},
+                    "runBrowserScript": {},
+                    "type": {},
+                    "screenshot": {},
+                    "saveCookie": {},
+                    "record": {},
+                    "stopRecord": {},
+                    "closeSurface": {},
+                    "startSurface": {},
+                    "loadVariables": {},
+                    "dragAndDrop": {},
+                    "loadCookie": {},
+                    "swipe": {},
+                    "wait": {},
+                    "annotate": {}
+                  },
+                  "additionalProperties": false,
                   "anyOf": [
                     {
                       "allOf": [
@@ -7665,6 +7710,7 @@
                                 },
                                 {
                                   "title": "Click element (detailed)",
+                                  "additionalProperties": false,
                                   "type": "object",
                                   "anyOf": [
                                     {
@@ -8018,6 +8064,7 @@
                                   },
                                   "object": {
                                     "title": "Click element (detailed)",
+                                    "additionalProperties": false,
                                     "type": "object",
                                     "anyOf": [
                                       {
@@ -9678,6 +9725,7 @@
                                             },
                                             {
                                               "title": "Click element (detailed)",
+                                              "additionalProperties": false,
                                               "type": "object",
                                               "anyOf": [
                                                 {
@@ -10031,6 +10079,7 @@
                                               },
                                               "object": {
                                                 "title": "Click element (detailed)",
+                                                "additionalProperties": false,
                                                 "type": "object",
                                                 "anyOf": [
                                                   {
@@ -10391,6 +10440,7 @@
                                               "minimum": 1
                                             }
                                           },
+                                          "additionalProperties": false,
                                           "title": "Find element and click"
                                         }
                                       ]
@@ -13825,6 +13875,7 @@
                                               },
                                               {
                                                 "title": "Click element (detailed)",
+                                                "additionalProperties": false,
                                                 "type": "object",
                                                 "anyOf": [
                                                   {
@@ -14178,6 +14229,7 @@
                                                 },
                                                 "object": {
                                                   "title": "Click element (detailed)",
+                                                  "additionalProperties": false,
                                                   "type": "object",
                                                   "anyOf": [
                                                     {
@@ -14538,6 +14590,7 @@
                                                 "minimum": 1
                                               }
                                             },
+                                            "additionalProperties": false,
                                             "title": "Find element and click"
                                           }
                                         ]
@@ -24243,6 +24296,7 @@
                                       }
                                     }
                                   },
+                                  "additionalProperties": false,
                                   "title": "Run code (detailed)"
                                 }
                               ],
@@ -24386,6 +24440,7 @@
                                         }
                                       }
                                     },
+                                    "additionalProperties": false,
                                     "title": "Run code (detailed)"
                                   }
                                 }
@@ -41089,6 +41144,7 @@
                                   ]
                                 },
                                 {
+                                  "additionalProperties": false,
                                   "type": "object",
                                   "properties": {
                                     "surface": {
@@ -41494,6 +41550,7 @@
                                     ]
                                   },
                                   "object": {
+                                    "additionalProperties": false,
                                     "type": "object",
                                     "properties": {
                                       "surface": {
@@ -49597,6 +49654,7 @@
                               "title": "dragAndDrop",
                               "description": "Drag and drop an element from source to target.",
                               "type": "object",
+                              "additionalProperties": false,
                               "required": [
                                 "source",
                                 "target"
@@ -49612,6 +49670,7 @@
                                     },
                                     {
                                       "title": "Element (detailed)",
+                                      "additionalProperties": false,
                                       "type": "object",
                                       "anyOf": [
                                         {
@@ -49721,6 +49780,7 @@
                                     },
                                     {
                                       "title": "Element (detailed)",
+                                      "additionalProperties": false,
                                       "type": "object",
                                       "anyOf": [
                                         {
@@ -49992,6 +50052,7 @@
                                       },
                                       {
                                         "title": "Element (detailed)",
+                                        "additionalProperties": false,
                                         "type": "object",
                                         "anyOf": [
                                           {
@@ -50098,6 +50159,7 @@
                                   },
                                   "object": {
                                     "title": "Element (detailed)",
+                                    "additionalProperties": false,
                                     "type": "object",
                                     "anyOf": [
                                       {
@@ -62805,6 +62867,50 @@
                             }
                           }
                         },
+                        "properties": {
+                          "$schema": {},
+                          "result": {},
+                          "resultDescription": {},
+                          "stepId": {},
+                          "description": {},
+                          "unsafe": {},
+                          "outputs": {},
+                          "variables": {},
+                          "breakpoint": {},
+                          "if": {},
+                          "assertions": {},
+                          "onPass": {},
+                          "onFail": {},
+                          "onWarning": {},
+                          "onSkip": {},
+                          "location": {},
+                          "autoScreenshot": {},
+                          "attempts": {},
+                          "visit": {},
+                          "durationMs": {},
+                          "checkLink": {},
+                          "click": {},
+                          "find": {},
+                          "goTo": {},
+                          "httpRequest": {},
+                          "runShell": {},
+                          "runCode": {},
+                          "runBrowserScript": {},
+                          "type": {},
+                          "screenshot": {},
+                          "saveCookie": {},
+                          "record": {},
+                          "stopRecord": {},
+                          "closeSurface": {},
+                          "startSurface": {},
+                          "loadVariables": {},
+                          "dragAndDrop": {},
+                          "loadCookie": {},
+                          "swipe": {},
+                          "wait": {},
+                          "annotate": {}
+                        },
+                        "additionalProperties": false,
                         "anyOf": [
                           {
                             "allOf": [
@@ -64959,6 +65065,7 @@
                                       },
                                       {
                                         "title": "Click element (detailed)",
+                                        "additionalProperties": false,
                                         "type": "object",
                                         "anyOf": [
                                           {
@@ -65312,6 +65419,7 @@
                                         },
                                         "object": {
                                           "title": "Click element (detailed)",
+                                          "additionalProperties": false,
                                           "type": "object",
                                           "anyOf": [
                                             {
@@ -66972,6 +67080,7 @@
                                                   },
                                                   {
                                                     "title": "Click element (detailed)",
+                                                    "additionalProperties": false,
                                                     "type": "object",
                                                     "anyOf": [
                                                       {
@@ -67325,6 +67434,7 @@
                                                     },
                                                     "object": {
                                                       "title": "Click element (detailed)",
+                                                      "additionalProperties": false,
                                                       "type": "object",
                                                       "anyOf": [
                                                         {
@@ -67685,6 +67795,7 @@
                                                     "minimum": 1
                                                   }
                                                 },
+                                                "additionalProperties": false,
                                                 "title": "Find element and click"
                                               }
                                             ]
@@ -71119,6 +71230,7 @@
                                                     },
                                                     {
                                                       "title": "Click element (detailed)",
+                                                      "additionalProperties": false,
                                                       "type": "object",
                                                       "anyOf": [
                                                         {
@@ -71472,6 +71584,7 @@
                                                       },
                                                       "object": {
                                                         "title": "Click element (detailed)",
+                                                        "additionalProperties": false,
                                                         "type": "object",
                                                         "anyOf": [
                                                           {
@@ -71832,6 +71945,7 @@
                                                       "minimum": 1
                                                     }
                                                   },
+                                                  "additionalProperties": false,
                                                   "title": "Find element and click"
                                                 }
                                               ]
@@ -81537,6 +81651,7 @@
                                             }
                                           }
                                         },
+                                        "additionalProperties": false,
                                         "title": "Run code (detailed)"
                                       }
                                     ],
@@ -81680,6 +81795,7 @@
                                               }
                                             }
                                           },
+                                          "additionalProperties": false,
                                           "title": "Run code (detailed)"
                                         }
                                       }
@@ -98383,6 +98499,7 @@
                                         ]
                                       },
                                       {
+                                        "additionalProperties": false,
                                         "type": "object",
                                         "properties": {
                                           "surface": {
@@ -98788,6 +98905,7 @@
                                           ]
                                         },
                                         "object": {
+                                          "additionalProperties": false,
                                           "type": "object",
                                           "properties": {
                                             "surface": {
@@ -106891,6 +107009,7 @@
                                     "title": "dragAndDrop",
                                     "description": "Drag and drop an element from source to target.",
                                     "type": "object",
+                                    "additionalProperties": false,
                                     "required": [
                                       "source",
                                       "target"
@@ -106906,6 +107025,7 @@
                                           },
                                           {
                                             "title": "Element (detailed)",
+                                            "additionalProperties": false,
                                             "type": "object",
                                             "anyOf": [
                                               {
@@ -107015,6 +107135,7 @@
                                           },
                                           {
                                             "title": "Element (detailed)",
+                                            "additionalProperties": false,
                                             "type": "object",
                                             "anyOf": [
                                               {
@@ -107286,6 +107407,7 @@
                                             },
                                             {
                                               "title": "Element (detailed)",
+                                              "additionalProperties": false,
                                               "type": "object",
                                               "anyOf": [
                                                 {
@@ -107392,6 +107514,7 @@
                                         },
                                         "object": {
                                           "title": "Element (detailed)",
+                                          "additionalProperties": false,
                                           "type": "object",
                                           "anyOf": [
                                             {

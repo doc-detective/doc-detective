@@ -36,6 +36,7 @@
       },
       "object": {
         "title": "Click element (detailed)",
+        "additionalProperties": false,
         "type": "object",
         "anyOf": [
           {
