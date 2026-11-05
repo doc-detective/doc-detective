@@ -276,7 +276,7 @@ export type Condition4 = string | [string, ...string[]];
 /**
  * A step in a test.
  */
-export type Step =
+export type Step = (
   | (Common & CheckLink)
   | (Common1 & Click)
   | (Common2 & Find)
@@ -297,7 +297,114 @@ export type Step =
   | (Common17 & LoadCookie)
   | (Common18 & Swipe)
   | (Common19 & Wait)
-  | (Common20 & Annotate);
+  | (Common20 & Annotate)
+) & {
+  $schema?: unknown;
+  result?: unknown;
+  resultDescription?: unknown;
+  stepId?: unknown;
+  description?: unknown;
+  unsafe?: unknown;
+  outputs?: unknown;
+  variables?: unknown;
+  breakpoint?: unknown;
+  if?: unknown;
+  assertions?: unknown;
+  onPass?: unknown;
+  onFail?: unknown;
+  onWarning?: unknown;
+  onSkip?: unknown;
+  location?: unknown;
+  autoScreenshot?: unknown;
+  attempts?: unknown;
+  visit?: unknown;
+  durationMs?: unknown;
+  checkLink?: unknown;
+  click?: unknown;
+  find?: unknown;
+  goTo?: unknown;
+  httpRequest?: unknown;
+  runShell?: unknown;
+  runCode?: unknown;
+  runBrowserScript?: unknown;
+  type?: unknown;
+  screenshot?: unknown;
+  saveCookie?: unknown;
+  record?: unknown;
+  stopRecord?: unknown;
+  closeSurface?: unknown;
+  startSurface?: unknown;
+  loadVariables?: unknown;
+  dragAndDrop?: unknown;
+  loadCookie?: unknown;
+  swipe?: unknown;
+  wait?: unknown;
+  annotate?: unknown;
+} & (
+    | (Common & CheckLink)
+    | (Common1 & Click)
+    | (Common2 & Find)
+    | (Common3 & GoTo)
+    | (Common4 & HttpRequest)
+    | (Common5 & RunShell)
+    | (Common6 & RunCode)
+    | (Common7 & RunBrowserScript)
+    | (Common8 & Type)
+    | (Common9 & Screenshot)
+    | (Common10 & SaveCookie)
+    | (Common11 & Record)
+    | (Common12 & StopRecord)
+    | (Common13 & CloseSurface)
+    | (Common14 & StartSurface)
+    | (Common15 & LoadVariables)
+    | (Common16 & DragAndDrop)
+    | (Common17 & LoadCookie)
+    | (Common18 & Swipe)
+    | (Common19 & Wait)
+    | (Common20 & Annotate)
+  ) & {
+    $schema?: unknown;
+    result?: unknown;
+    resultDescription?: unknown;
+    stepId?: unknown;
+    description?: unknown;
+    unsafe?: unknown;
+    outputs?: unknown;
+    variables?: unknown;
+    breakpoint?: unknown;
+    if?: unknown;
+    assertions?: unknown;
+    onPass?: unknown;
+    onFail?: unknown;
+    onWarning?: unknown;
+    onSkip?: unknown;
+    location?: unknown;
+    autoScreenshot?: unknown;
+    attempts?: unknown;
+    visit?: unknown;
+    durationMs?: unknown;
+    checkLink?: unknown;
+    click?: unknown;
+    find?: unknown;
+    goTo?: unknown;
+    httpRequest?: unknown;
+    runShell?: unknown;
+    runCode?: unknown;
+    runBrowserScript?: unknown;
+    type?: unknown;
+    screenshot?: unknown;
+    saveCookie?: unknown;
+    record?: unknown;
+    stopRecord?: unknown;
+    closeSurface?: unknown;
+    startSurface?: unknown;
+    loadVariables?: unknown;
+    dragAndDrop?: unknown;
+    loadCookie?: unknown;
+    swipe?: unknown;
+    wait?: unknown;
+    annotate?: unknown;
+  };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -700,6 +807,10 @@ export type ClickElementDetailed = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -741,7 +852,6 @@ export type ClickElementDetailed = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -1117,6 +1227,10 @@ export type ClickElementDetailed1 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -1158,7 +1272,6 @@ export type ClickElementDetailed1 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -5282,7 +5395,6 @@ export type ElementDetailed = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
@@ -5345,7 +5457,6 @@ export type ElementDetailed1 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -6790,7 +6901,7 @@ export type OpenApi2 = {
 /**
  * A step in a test.
  */
-export type Step1 =
+export type Step1 = (
   | (Common21 & CheckLink2)
   | (Common22 & Click3)
   | (Common23 & Find2)
@@ -6811,7 +6922,114 @@ export type Step1 =
   | (Common38 & LoadCookie2)
   | (Common39 & Swipe2)
   | (Common40 & Wait2)
-  | (Common41 & Annotate2);
+  | (Common41 & Annotate2)
+) & {
+  $schema?: unknown;
+  result?: unknown;
+  resultDescription?: unknown;
+  stepId?: unknown;
+  description?: unknown;
+  unsafe?: unknown;
+  outputs?: unknown;
+  variables?: unknown;
+  breakpoint?: unknown;
+  if?: unknown;
+  assertions?: unknown;
+  onPass?: unknown;
+  onFail?: unknown;
+  onWarning?: unknown;
+  onSkip?: unknown;
+  location?: unknown;
+  autoScreenshot?: unknown;
+  attempts?: unknown;
+  visit?: unknown;
+  durationMs?: unknown;
+  checkLink?: unknown;
+  click?: unknown;
+  find?: unknown;
+  goTo?: unknown;
+  httpRequest?: unknown;
+  runShell?: unknown;
+  runCode?: unknown;
+  runBrowserScript?: unknown;
+  type?: unknown;
+  screenshot?: unknown;
+  saveCookie?: unknown;
+  record?: unknown;
+  stopRecord?: unknown;
+  closeSurface?: unknown;
+  startSurface?: unknown;
+  loadVariables?: unknown;
+  dragAndDrop?: unknown;
+  loadCookie?: unknown;
+  swipe?: unknown;
+  wait?: unknown;
+  annotate?: unknown;
+} & (
+    | (Common21 & CheckLink2)
+    | (Common22 & Click3)
+    | (Common23 & Find2)
+    | (Common24 & GoTo2)
+    | (Common25 & HttpRequest2)
+    | (Common26 & RunShell2)
+    | (Common27 & RunCode2)
+    | (Common28 & RunBrowserScript2)
+    | (Common29 & Type1)
+    | (Common30 & Screenshot2)
+    | (Common31 & SaveCookie2)
+    | (Common32 & Record2)
+    | (Common33 & StopRecord2)
+    | (Common34 & CloseSurface2)
+    | (Common35 & StartSurface2)
+    | (Common36 & LoadVariables2)
+    | (Common37 & DragAndDrop2)
+    | (Common38 & LoadCookie2)
+    | (Common39 & Swipe2)
+    | (Common40 & Wait2)
+    | (Common41 & Annotate2)
+  ) & {
+    $schema?: unknown;
+    result?: unknown;
+    resultDescription?: unknown;
+    stepId?: unknown;
+    description?: unknown;
+    unsafe?: unknown;
+    outputs?: unknown;
+    variables?: unknown;
+    breakpoint?: unknown;
+    if?: unknown;
+    assertions?: unknown;
+    onPass?: unknown;
+    onFail?: unknown;
+    onWarning?: unknown;
+    onSkip?: unknown;
+    location?: unknown;
+    autoScreenshot?: unknown;
+    attempts?: unknown;
+    visit?: unknown;
+    durationMs?: unknown;
+    checkLink?: unknown;
+    click?: unknown;
+    find?: unknown;
+    goTo?: unknown;
+    httpRequest?: unknown;
+    runShell?: unknown;
+    runCode?: unknown;
+    runBrowserScript?: unknown;
+    type?: unknown;
+    screenshot?: unknown;
+    saveCookie?: unknown;
+    record?: unknown;
+    stopRecord?: unknown;
+    closeSurface?: unknown;
+    startSurface?: unknown;
+    loadVariables?: unknown;
+    dragAndDrop?: unknown;
+    loadCookie?: unknown;
+    swipe?: unknown;
+    wait?: unknown;
+    annotate?: unknown;
+  };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -7214,6 +7432,10 @@ export type ClickElementDetailed2 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -7255,7 +7477,6 @@ export type ClickElementDetailed2 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -7631,6 +7852,10 @@ export type ClickElementDetailed3 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -7672,7 +7897,6 @@ export type ClickElementDetailed3 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -11796,7 +12020,6 @@ export type ElementDetailed2 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
@@ -11859,7 +12082,6 @@ export type ElementDetailed3 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -14817,7 +15039,6 @@ export interface FindElementAndClick {
    * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
   duration?: number;
-  [k: string]: unknown;
 }
 export interface ProcessSurface {
   /**
@@ -16163,7 +16384,6 @@ export interface RunCodeDetailed {
      */
     tty?: boolean;
   };
-  [k: string]: unknown;
 }
 export interface Common7 {
   /**
@@ -18169,7 +18389,6 @@ export interface RecordDetailed {
   engine?: RecordingEngine;
   verify?: RecordingVerifyGuards;
   checkpoints?: RecordingCheckpoints;
-  [k: string]: unknown;
 }
 export interface BrowserSurface8 {
   /**
@@ -20014,7 +20233,6 @@ export interface DragAndDrop1 {
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
   surface?: SurfaceByBrowserEngine7 | BrowserSurface11;
-  [k: string]: unknown;
 }
 export interface BrowserSurface11 {
   /**
@@ -23189,7 +23407,6 @@ export interface FindElementAndClick1 {
    * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
   duration?: number;
-  [k: string]: unknown;
 }
 export interface ProcessSurface4 {
   /**
@@ -24535,7 +24752,6 @@ export interface RunCodeDetailed1 {
      */
     tty?: boolean;
   };
-  [k: string]: unknown;
 }
 export interface Common28 {
   /**
@@ -26541,7 +26757,6 @@ export interface RecordDetailed1 {
   engine?: RecordingEngine1;
   verify?: RecordingVerifyGuards1;
   checkpoints?: RecordingCheckpoints1;
-  [k: string]: unknown;
 }
 export interface BrowserSurface22 {
   /**
@@ -28386,7 +28601,6 @@ export interface DragAndDrop3 {
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
   surface?: SurfaceByBrowserEngine17 | BrowserSurface25;
-  [k: string]: unknown;
 }
 export interface BrowserSurface25 {
   /**

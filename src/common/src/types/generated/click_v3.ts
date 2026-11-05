@@ -16,6 +16,10 @@ export type ClickElementDetailed = {
   [k: string]: unknown;
 } & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -57,7 +61,6 @@ export type ClickElementDetailed = {
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.

@@ -166,6 +166,8 @@ Common HTML documentation tools that work with Doc Detective:
 If you use templating systems (like Handlebars, Jinja2, or EJS), you can include Doc Detective comments in your templates:
 
 **Handlebars example:**
+
+{/* test ignore start */}
 ```handlebars
 {{#if showTutorial}}
   <!-- test { "testId": "tutorial-test" } -->
@@ -175,6 +177,7 @@ If you use templating systems (like Handlebars, Jinja2, or EJS), you can include
   <!-- test end -->
 {{/if}}
 ```
+{/* test ignore end */}
 
 The test comments remain in the generated HTML and can be processed by Doc Detective.
 

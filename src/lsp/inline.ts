@@ -180,6 +180,11 @@ function diagnoseStep(doc: TextDocument, stmt: InlineStatement): Diagnostic[] {
       error(range, 'Not a recognized Doc Detective step (expected `{"<action>": …}`).'),
     ];
   }
+  // An unknown key sits beside the action, so the prefix filter below would miss it.
+  const unknownKey = (result.errorObjects || []).find(
+    (e) => e.keyword === "additionalProperties" && !e.instancePath,
+  );
+  if (unknownKey) return [error(range, schemaMessage(unknownKey))];
   const prefix = pointerFromPath([actionKey]);
   /* c8 ignore next - errorObjects is always set here (structuredErrors: true) */
   const relevant = (result.errorObjects || []).filter((e) =>

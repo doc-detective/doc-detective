@@ -13,6 +13,7 @@
       ]
     },
     {
+      "additionalProperties": false,
       "type": "object",
       "properties": {
         "surface": {
@@ -418,6 +419,7 @@
         ]
       },
       "object": {
+        "additionalProperties": false,
         "type": "object",
         "properties": {
           "surface": {

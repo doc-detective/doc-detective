@@ -1173,15 +1173,35 @@ function shouldFailRun(results: any): boolean {
   return typeof failCount === "number" && failCount > 0;
 }
 
+// Loaded only here, on the way to an error: the file is tens of megabytes.
+let loadedSpecSchemas: any;
+function specSchemas() {
+  return (loadedSpecSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+}
+
+// The keys valid at a spec, test, or step. Anything deeper gets no suggestion.
+function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
+  const parent = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]) ? parts[parts.length - 2] : undefined;
+  const schemaKey = parts.length === 0 ? rootSchemaKey : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
+  return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
+}
+
 // Turn AJV's error string into something a person can act on: one line per
-// problem, with `anyOf` branches collapsed, and the nearest action named when a
-// step has an unknown key. Raw errors stay available at debug level.
-function summarizeSpecErrors(errors: string, object: any): string {
+// problem, with `anyOf` branches collapsed, and the nearest real key named when
+// something is unknown. Raw errors stay available at debug level.
+function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, string[]>();
-  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(?:\([^)]*\))?(?:, |$)/g)) {
-    const [, instancePath = "", message] = match;
+  const unknownByPath = new Map<string, string[]>();
+  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
+    const [, instancePath = "", message, params = ""] = match;
     if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
-    byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), message]);
+    byPath.set(instancePath, byPath.get(instancePath) ?? []);
+    const unknownKey = /"additionalProperty":"([^"]+)"/.exec(params)?.[1];
+    if (unknownKey) {
+      unknownByPath.set(instancePath, [...(unknownByPath.get(instancePath) ?? []), unknownKey]);
+    } else {
+      byPath.get(instancePath)!.push(message);
+    }
   }
   const lines: string[] = [];
   for (const [instancePath, messages] of byPath) {
@@ -1191,10 +1211,19 @@ function summarizeSpecErrors(errors: string, object: any): string {
     const actions = messages
       .map((message) => /required property '([^']+)'/.exec(message)?.[1])
       .filter(Boolean) as string[];
-    if (/steps\/\d+$/.test(instancePath) && actions.length === messages.length) {
+    const unknownKeys = [...new Set(unknownByPath.get(instancePath) ?? [])];
+    const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
+    if (isStep && actions.length > 0 && actions.length === messages.length) {
       const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
-      const metadata = new Set(["stepId", "description", "unsafe", "outputs", "variables", "breakpoint", "location", "contentPath", "if", "on"]);
-      const unknown = Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
+      const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+      // A real action whose value is wrong has its own, more useful errors.
+      if (!unknownKeys.length && Object.keys(value).some((key) => stepKeys.has(key) && !metadata.has(key))) {
+        continue;
+      }
+      const unknown = unknownKeys.length
+        ? unknownKeys
+        : Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
       if (unknown.length === 0) {
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
@@ -1202,6 +1231,11 @@ function summarizeSpecErrors(errors: string, object: any): string {
         lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
       }
       continue;
+    }
+    const known = knownKeysAt(parts, rootSchemaKey);
+    for (const key of unknownKeys) {
+      const near = nearestCommand(key, known);
+      lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
     }
     for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
   }

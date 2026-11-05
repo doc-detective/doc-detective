@@ -89,5 +89,4 @@ export interface RunCodeDetailed {
      */
     tty?: boolean;
   };
-  [k: string]: unknown;
 }

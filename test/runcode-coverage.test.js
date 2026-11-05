@@ -140,8 +140,7 @@ describe("runCode coverage", function () {
     assert.match(result.description, /Failed to create temporary script/);
   });
 
-  it("FAILs when the resolved command is unavailable", async function () {
-    this.timeout(15000);
+  it("rejects `command`, which isn't part of the schema", async function () {
     const result = await runCode({
       config,
       step: {
@@ -153,7 +152,7 @@ describe("runCode coverage", function () {
       },
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /is unavailable/);
+    assert.match(result.description, /additionalProperty":"command"/);
   });
 
   it("uses the .py extension and python command for a python snippet", async function () {

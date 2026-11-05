@@ -3,6 +3,7 @@
   "title": "dragAndDrop",
   "description": "Drag and drop an element from source to target.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "source",
     "target"
@@ -18,6 +19,7 @@
         },
         {
           "title": "Element (detailed)",
+          "additionalProperties": false,
           "type": "object",
           "anyOf": [
             {
@@ -127,6 +129,7 @@
         },
         {
           "title": "Element (detailed)",
+          "additionalProperties": false,
           "type": "object",
           "anyOf": [
             {
@@ -398,6 +401,7 @@
           },
           {
             "title": "Element (detailed)",
+            "additionalProperties": false,
             "type": "object",
             "anyOf": [
               {
@@ -504,6 +508,7 @@
       },
       "object": {
         "title": "Element (detailed)",
+        "additionalProperties": false,
         "type": "object",
         "anyOf": [
           {
