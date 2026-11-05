@@ -758,19 +758,18 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             );
             return [];
           }
-          // Keep the validated step, because a v2 step from a before or after
-          // file comes back upgraded. Without it, spec_v3 rejects the merged test.
+          // A v2 step from a before or after file has to be upgraded, or spec_v3
+          // rejects the merged test. The test's own steps stay as written, so a
+          // whole v2 spec still upgrades as one through validate() below.
+          const marker = ["_fromBefore", "_fromAfter"].find((name) => step[name]);
+          if (!marker) return [step];
           const validStep = validation.object;
-          for (const marker of ["_fromBefore", "_fromAfter"]) {
-            if (step[marker]) {
-              Object.defineProperty(validStep, marker, {
-                value: true,
-                enumerable: false,
-                writable: true,
-                configurable: true,
-              });
-            }
-          }
+          Object.defineProperty(validStep, marker, {
+            value: true,
+            enumerable: false,
+            writable: true,
+            configurable: true,
+          });
           return [validStep];
         });
       }
