@@ -9,8 +9,8 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 
 - **5.0.0 is one major carrying every breaking CLI change.** A failed test fails the run, and the CLI
   conforms to clig.dev. [ADR 01146](../../adrs/01146-cli-v5-contract.md) is the contract. Users migrate
-  once. Work that isn't part of the contract ships on 4.x before it or 5.x after it, unless changing it
-  later would need another major. The Node floor, unknown-key rejection, false-pass fixes, and the JS
+  once. Work outside the contract ships on 4.x before it or 5.x after it. The exception is a change that
+  would need another major later. The Node floor, unknown-key rejection, false-pass fixes, and the JS
   exports land in 5.0 for that reason, each under its own ADR.
 - **Nothing is retained for assets we control.** The Action, agent-tools, the VS Code extension, Online,
   and Docker images get updated to the new CLI, with no shims. v4-era assets refuse v5 instead.
@@ -57,10 +57,9 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 2. **Fenced code stays gated.** Default markup marks detected code fences `unsafe: true`
    (`src/core/config.ts:368`) because nobody authored them as tests. That's unchanged by decision 1.
 3. **An Action major pins a CLI major.** v1 uses `4`, v2 uses `5`. Users can still set `version`.
-4. **Schema names stay `_v3`.** Bumping the names would force a migration with no user benefit. The shape
-   changes are an added `outputDir` key (a folder value in `output` fails with a pointer to it), rejected
-   unknown keys on specs and steps, a declared `summary` and result fields on reports, and the additive
-   `environment` from 1.2.
+4. **Schema names stay `_v3`.** Bumping the names would force a migration with no user benefit. Specs and
+   steps now reject unknown keys, and reports declare `summary` and result fields. `output` rejects a
+   folder value and points to the new `outputDir` key. Item 1.2 adds `environment`.
 5. **Online moves in lockstep with GA.** See [Online](#online).
 6. **Telemetry stays opt-out, and self-update stays on by default.** Both are recorded departures from
    clig in ADR 01146.
@@ -678,9 +677,9 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 - **An agent as reader, and self-healing built on it.** Doc Detective is deterministic: the same docs and
   product give the same result. An agent judging whether a page can be followed can't promise that, so
   it's outside the project's scope in any version.
-- **A Node floor of 26.** 5.0 raises the floor to 24.15, because Node 22 reaches end of life about three
-  months after GA. Node 26 would add a year, but it excludes a supported LTS, and hosted runners don't
-  cache it. CI tests 26, and the next forced major is around April 2028, when Node 24 reaches end of life.
+- **A Node floor of 26.** Version 5.0 raises the floor to 24.15. Node 22 reaches end of life about three
+  months after GA. Node 26 would add a year, but it excludes a supported LTS. Hosted runners also don't
+  cache it. CI tests 26. The next forced major is around April 2028, when Node 24 reaches end of life.
 - **Removing v2 specs.** They're under 1% of the schema bytes, so removal gains little and breaks authors.
   The LSP already warns.
 - **Removing the deprecated `debug` key.** It's harmless, and removal makes old configs fail validation.

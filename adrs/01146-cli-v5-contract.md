@@ -62,7 +62,7 @@ removed, and everything that calls them is updated.
 |---|---|
 | `0` | No spec failed, and at least one spec passed or warned. Skipped specs alongside them are fine. |
 | `1` | At least one spec failed |
-| `2` | Nothing valid was tested, or the CLI couldn't proceed: usage error, bad config, no specs, every spec skipped, invalid spec, declined or refused install, crash |
+| `2` | Nothing valid was tested: no specs, every spec skipped, or an invalid spec. Or the CLI couldn't proceed: usage error, bad config, declined or refused install, or crash. |
 | `130`, `143` | Interrupted by SIGINT or SIGTERM |
 
 `--no-exit-on-fail` and `exitOnFail: false` turn FAIL, empty, and all-skipped runs into `0`, and invalid
