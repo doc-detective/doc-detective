@@ -447,7 +447,7 @@ function buildPage(data) {
     "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, every spec skipped, an invalid spec, a declined install, or a crash |",
     "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped.",
     ""
   );
 
