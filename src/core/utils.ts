@@ -1250,14 +1250,13 @@ function summarizeSpecErrors(errors: string, object: any): string {
 }
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
-// failed, `2` nothing was tested. exitOnFail: false relaxes the last two.
+// failed, `2` nothing was tested, which includes every spec skipping.
+// exitOnFail: false relaxes the last two.
 function runExitCode(results: any, config: any = {}): number {
   if (config.exitOnFail === false) return 0;
   const specs = results?.summary?.specs;
-  const total = specs
-    ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) + (specs.skipped || 0)
-    : 0;
-  if (total === 0) return 2;
+  const tested = specs ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) : 0;
+  if (tested === 0) return 2;
   return shouldFailRun(results) ? 1 : 0;
 }
 

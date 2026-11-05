@@ -188,16 +188,16 @@ The exit code from the CLI gates your build, so most pipelines need nothing extr
 
 | Code | Meaning |
 |---|---|
-| `0` | All tests passed, warned, or were skipped. |
+| `0` | No test failed, and at least one passed or warned. |
 | `1` | At least one test failed. |
-| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
-`WARNING` and `SKIPPED` results never fail a run.
+A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, because then nothing was tested. If a suite only applies to one platform, run that job only on that platform.
 
 If you want different behavior, you have two options:
 
-- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed and empty runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
+- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed, empty, and all-skipped runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
 - **Apply your own logic.** Read the `summary` object from the results file and decide for yourself. This example tolerates up to two failing specs:
 
 ```bash

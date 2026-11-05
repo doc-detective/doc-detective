@@ -62,6 +62,21 @@ async function main(argv: string[]) {
 }
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
+// The first skip's explanation, looking at the most specific level first.
+function firstSkipReason(results: any): string | undefined {
+  for (const spec of results?.specs ?? []) {
+    for (const test of spec.tests ?? []) {
+      for (const context of test.contexts ?? []) {
+        const skippedStep = (context.steps ?? []).find((step: any) => step.result === "SKIPPED");
+        const reason = skippedStep?.resultDescription ?? context.resultDescription;
+        if (reason) return reason;
+      }
+      if (test.resultDescription) return test.resultDescription;
+    }
+  }
+  return undefined;
+}
+
 async function runTestsHandler(args: any) {
   await loadProjectEnv(args);
   await readStdinInputs(args);
@@ -237,6 +252,14 @@ async function runTestsHandler(args: any) {
   // preserves any non-zero code an earlier stage already set.
   if (!process.exitCode) {
     process.exitCode = runExitCode(results, config);
+    // A bare exit 2 after a clean-looking summary would be a mystery. This is
+    // an error, so it survives -q, though not -l silent.
+    if (process.exitCode === 2 && results?.summary?.specs?.skipped > 0 && logLevelEnabled("error", config)) {
+      const reason = firstSkipReason(results);
+      diag(
+        `Nothing was tested: every test was skipped.${reason ? ` First reason: ${reason}` : ""} Run where these tests apply, or pass --no-exit-on-fail.`
+      );
+    }
   }
 
   // Join the telemetry flush started inside runTests. Awaited only NOW — after

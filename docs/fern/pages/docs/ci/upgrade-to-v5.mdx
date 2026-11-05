@@ -31,12 +31,20 @@ npx doc-detective@4
 
 | Code | Meaning |
 |---|---|
-| `0` | All tests passed, warned, or were skipped. |
+| `0` | No test failed, and at least one passed or warned. |
 | `1` | At least one test failed. |
-| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
+A run where every test skipped exits `2`, because nothing was tested. A repository with only fenced code blocks is an example, because those steps skip unless you pass `--allow-unsafe`.
+
 **What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed and empty runs into `0`. Usage and config errors still exit `2`.
+
+If a suite only applies to one platform, limit the job to that platform rather than relaxing it:
+
+```yaml
+if: runner.os == 'macOS'
+```
 
 ## Invalid specs
 
