@@ -43,6 +43,9 @@ jobs:
     name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
     if: ${{ inputs.run-matrix }}
     runs-on: ${{ matrix.os }}
+    # coverage-merge has `needs: test`, so a failing node 26 cell would otherwise
+    # suppress a required check. Remove once it has been green through an RC.
+    continue-on-error: ${{ matrix.node == 26 }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
@@ -56,9 +59,9 @@ jobs:
         # by @puppeteer/browsers@3 (engines >=22.12, needed for node 24
         # browser installs). Node-line behavior is OS-independent (the fixture
         # jobs pin node 24 for the same reason — see fixtures.yml), so the full
-        # OS grid runs on node 24 only, plus a single ubuntu node-22 cell to
-        # keep the older supported line exercised. This halves the two slowest
-        # cells' worth of matrix time (Windows/macOS node 22).
+        # OS grid runs on node 24 only, plus a single ubuntu node-26 cell to
+        # keep the newer LTS line exercised (ADR 01148). That cell can't fail
+        # the gate: see continue-on-error on this job.
         node:
           - 24
         # Each cell's mocha suite runs as parallel shard jobs, split by
@@ -80,7 +83,7 @@ jobs:
         # Every cell states its shard count. It can't be a base `shards`
         # dimension, because `include` can't overwrite a base value, so
         # Windows could never say 3. The first three entries extend the base
-        # cells per OS. The rest add cells (Windows shard 3, node 22), and
+        # cells per OS. The rest add cells (Windows shard 3, node 26), and
         # spell out every key, since `include` only extends a combination
         # when every listed key matches it.
         include:
@@ -95,11 +98,11 @@ jobs:
             shard: 3
             shards: 3
           - os: ubuntu-latest
-            node: 22
+            node: 26
             shard: 1
             shards: 2
           - os: ubuntu-latest
-            node: 22
+            node: 26
             shard: 2
             shards: 2
     steps:
@@ -217,7 +220,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -266,7 +269,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -322,10 +325,10 @@ jobs:
         # nothing to report to, so spinning runners for it would be waste.
         include:
           - os: ubuntu-latest
-            node: 22
+            node: 24
             shard: 1
           - os: ubuntu-latest
-            node: 22
+            node: 24
             shard: 2
     steps:
       - name: Nothing to exercise

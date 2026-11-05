@@ -1,5 +1,5 @@
 # Install packages and dependencies
-FROM node:22-slim AS runtime
+FROM node:24-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
 # Set environment container to trigger container-based behaviors. The cache

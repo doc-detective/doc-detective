@@ -84,7 +84,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           # Fixture runtime behavior is node-line-independent; the smoke +
-          # unit matrix in test.yml still exercises node 22 and 24. Pin the
+          # unit matrix in test.yml still exercises node 24 and 26. Pin the
           # fixture jobs to one line to keep the job count at group x OS.
           node-version: 24
           cache: 'npm'

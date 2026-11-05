@@ -1,3 +1,16 @@
+# [5.0.0-v5-rc.2](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.1...v5.0.0-v5-rc.2) (2026-11-05)
+
+
+* build(node)!: raise the Node floor to 24.15, and test on 26 ([20dc1ec](https://github.com/doc-detective/doc-detective/commit/20dc1ec7fc1c7ed2c3ee70d071f614807d576ce9))
+
+
+### BREAKING CHANGES
+
+* Doc Detective now needs Node.js 24.15 or later. Node.js 22 gets
+an EBADENGINE warning at install and isn't supported.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.1](https://github.com/doc-detective/doc-detective/compare/v4.41.5...v5.0.0-v5-rc.1) (2026-11-04)
 
 

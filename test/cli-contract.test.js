@@ -359,7 +359,10 @@ describe("CLI contract", function () {
       expect(r.status, r.stderr).to.equal(0);
       const lines = r.stdout.trim().split("\n");
       expect(lines).to.have.lengthOf(1);
-      expect(lines[0].split("\t").slice(0, 3)).to.deep.equal(["PASS", "pass.spec.json", "pass.spec.json-t"]);
+      const columns = lines[0].split("\t");
+      expect(columns.slice(0, 3)).to.deep.equal(["PASS", "pass.spec.json", "pass.spec.json-t"]);
+      // A context with no browser reports the platform alone.
+      expect(columns[3]).to.match(/^(windows|mac|linux)$/);
     });
 
     it("prints only a verdict with -q", function () {

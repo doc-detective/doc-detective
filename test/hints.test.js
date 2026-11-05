@@ -1809,7 +1809,7 @@ function fakeCtx(partial = {}) {
     hasPackageJson: true,
     hasDocDetectiveNpmScript: true,
     outputDirGitignored: true,
-    nodeMajor: 22,
+    nodeMajor: 24,
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
@@ -2333,16 +2333,16 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ totalSpecs: 0, totalTests: 0 }))).to.equal(false);
   });
 
-  it("upgradeNodeVersion: fires when nodeMajor < 20 (and nonzero)", function () {
+  it("upgradeNodeVersion: fires when nodeMajor < 24 (and nonzero)", function () {
     const h = findHint("upgradeNodeVersion");
-    expect(h.when(fakeCtx({ nodeMajor: 18 }))).to.equal(true);
-    // Node 19 is in the < 20 range too — included as a regression
-    // anchor so the hint body's "19 or older" stays in sync with the
-    // predicate. If the predicate ever narrows to < 19, this test
+    expect(h.when(fakeCtx({ nodeMajor: 22 }))).to.equal(true);
+    // Node 23 is in the < 24 range too — included as a regression
+    // anchor so the hint body's "23 or older" stays in sync with the
+    // predicate. If the predicate ever narrows to < 23, this test
     // should be updated alongside the hint markdown.
-    expect(h.when(fakeCtx({ nodeMajor: 19 }))).to.equal(true);
-    expect(h.when(fakeCtx({ nodeMajor: 20 }))).to.equal(false);
-    expect(h.when(fakeCtx({ nodeMajor: 22 }))).to.equal(false);
+    expect(h.when(fakeCtx({ nodeMajor: 23 }))).to.equal(true);
+    expect(h.when(fakeCtx({ nodeMajor: 24 }))).to.equal(false);
+    expect(h.when(fakeCtx({ nodeMajor: 26 }))).to.equal(false);
     expect(h.when(fakeCtx({ nodeMajor: 0 }))).to.equal(false);
   });
 

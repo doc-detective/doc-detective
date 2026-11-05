@@ -2910,11 +2910,10 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("two distinct tests with the same testId are NOT stamped as a re-visit", async () => {
-    // `visit` is keyed by test INDEX, not testId. testIds aren't unique within a
-    // spec, so two DISTINCT tests sharing an id must each be visit 1 (no stamp)
-    // — only a true goToTest re-run of the same index gets visit>1. The spec is
-    // routed (first test has a handler) so it runs in the sequencer.
+  it("two distinct tests in a routed spec are NOT stamped as a re-visit", async () => {
+    // `visit` is keyed by test INDEX. Two DISTINCT tests must each be visit 1 (no
+    // stamp) — only a true goToTest re-run of the same index gets visit>1. The
+    // spec is routed (first test has a handler) so it runs in the sequencer.
     const t = {
       tests: [
         {
@@ -2922,7 +2921,7 @@ describe("getRunner() function", function () {
           steps: [{ runShell: "node -e \"process.exit(0)\"" }],
           onPass: [{ continue: true }],
         },
-        { testId: "dup", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
+        { testId: "other", steps: [{ runShell: "node -e \"process.exit(0)\"" }] },
       ],
     };
     const tempFilePath = path.resolve("./test/temp-routing-gototest-dupid.json");

@@ -13,8 +13,8 @@ realities around them.
   nothing. Read `gh api repos/:owner/:repo/rulesets/13338220` instead. Its blockers are
   `code_quality` (CodeQL at severity=errors), a `pull_request` rule requiring 1 approving review,
   and a `required_status_checks` rule naming five contexts: `lint`,
-  `test / Test (ubuntu-latest, node 22, shard 1)`,
-  `test / Test (ubuntu-latest, node 22, shard 2)`,
+  `test / Test (ubuntu-latest, node 24, shard 1)`,
+  `test / Test (ubuntu-latest, node 24, shard 2)`,
   `test / Coverage ratchet (src/common)`, and
   `test / Coverage ratchet (root, cross-platform)`.
   `require_code_owner_review` is vacuous, because there's no CODEOWNERS file.
@@ -176,14 +176,14 @@ Regeneration recipe (Docker, repo mounted; on Windows Bash prefix commands with
 `MSYS_NO_PATHCONV=1`):
 
 1. Start from a complete base (`git checkout origin/main -- package-lock.json`).
-2. Work in a **`node:22`** container, because CI's setup-node bundles npm 10 and npm 11 builds a
-   different ideal tree. Copy `package.json` and `src/common` to a scratch dir, then run
+2. Work in a **`node:24`** container, so you get the same npm 11 as CI, since npm 10 and npm 11 build
+   different ideal trees. Copy `package.json` and `src/common` to a scratch dir, then run
    `npm install --package-lock-only --ignore-scripts --no-audit --no-fund` **twice**. The second
    reconcile pass drops platform-gated `"extraneous"` entries that make `npm ci` fail with
    EBADPLATFORM on other OSes. A reconcile-only pass over an incomplete lockfile is NOT
    sufficient.
 3. Validate before committing: fresh-copy `npm ci --ignore-scripts` in Linux containers under
-   node:22 AND node:24, plus `npm ci --ignore-scripts --dry-run` on the Windows host.
+   node:24 AND node:26, plus `npm ci --ignore-scripts --dry-run` on the Windows host.
 
 Local-dev workaround while a lockfile is broken: `npm install --no-save --package-lock=false`.
 Commit only `package.json`/lockfile/src-common dep changes; discard generated-file CRLF churn.
