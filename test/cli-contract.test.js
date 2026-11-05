@@ -321,12 +321,13 @@ describe("CLI contract", function () {
     }
 
     it("names the platform and browser in the fourth --plain column", async function () {
+      const counts = { pass: 1, fail: 0, warning: 0, skipped: 0 };
       const lines = [];
       const original = console.log;
       console.log = (line) => lines.push(String(line));
       try {
         await outputResults({ reporters: ["plainReporter"], logLevel: "silent" }, cwd, {
-          summary: {},
+          summary: { specs: counts, tests: counts, contexts: counts, steps: counts },
           specs: [
             {
               specId: "s",
@@ -345,6 +346,12 @@ describe("CLI contract", function () {
         console.log = original;
       }
       expect(lines).to.include("PASS\ts\tt\tlinux/firefox");
+    });
+
+    it("prints nothing with --plain when a filter matches nothing", function () {
+      const r = run(["-i", "pass.spec.json", "-t", "no-such-test", "--plain"]);
+      expect(r.status).to.equal(2);
+      expect(r.stdout).to.equal("");
     });
 
     it("prints one tab-separated line per test context with --plain", function () {

@@ -6022,8 +6022,11 @@ async function runStep({
             context: { ...metaValues, ...actionResult.outputs },
           });
         } catch (error: any) {
+          // An earlier failure is the one that matters to the reader.
+          if (actionResult.status !== "FAIL") {
+            actionResult.description = `Couldn't set variable ${key}: ${error.message}`;
+          }
           actionResult.status = "FAIL";
-          actionResult.description = `Couldn't set variable ${key}: ${error.message}`;
         }
       })
     );

@@ -297,7 +297,6 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
             try {
               // Construct a findElement step with the timeout
               const findStep = {
-                action: "find",
                 find: {
                   ...step.goTo.waitUntil.find,
                   timeout: remainingTimeout,

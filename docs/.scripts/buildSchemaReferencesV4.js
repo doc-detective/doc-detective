@@ -142,6 +142,7 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
 
       // Process properties (merged across allOf branches)
       for (const [propName, propSchema] of Object.entries(effective.properties)) {
+        if (Object.keys(propSchema).length === 0) continue;
         const propPath = currentPath ? `${currentPath}.${propName}` : propName;
         const nestedSchemas = extractObjectSchemas(
           propSchema,
@@ -362,6 +363,8 @@ function exampleValue(propSchema, depth = 0) {
 function buildExampleObject(eff, depth = 0) {
   const example = {};
   for (const [propName, propSchema] of Object.entries(eff.properties)) {
+    // step_v3's root allow-list holds empty schemas. The real fields are in its branches.
+    if (Object.keys(propSchema).length === 0) continue;
     if (propSchema.readOnly || propSchema.deprecated) continue;
     const v = exampleValue(propSchema, depth);
     if (v !== undefined) example[propName] = v;
