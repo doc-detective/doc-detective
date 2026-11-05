@@ -13,7 +13,7 @@ The `runCode` action executes a code snippet in a specified language (like JavaS
 You must specify the `runCode` action using an object format with the following properties:
 
 - **Object Format:**
-  - `language`: (Required) The programming language of the code snippet (`javascript`, `python`, `bash`).
+  - `language`: (Required) The programming language of the code snippet: `javascript` or `js`, `python` or `py`, or `bash`. `js` and `py` run the same as `javascript` and `python`.
 
     > Note: `bash` works on every platform, Windows included. Doc Detective uses Git Bash there. Without Git for Windows installed, it downloads a portable copy into its cache the first time a test needs one. See [Shell selection](/docs/actions/runshell#shell-selection).
 
