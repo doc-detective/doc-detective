@@ -677,9 +677,10 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 - **An agent as reader, and self-healing built on it.** Doc Detective is deterministic: the same docs and
   product give the same result. An agent judging whether a page can be followed can't promise that, so
   it's outside the project's scope in any version.
-- **A Node floor of 26.** Version 5.0 raises the floor to 24.15. Node 22 reaches end of life about three
-  months after GA. Node 26 would add a year, but it excludes a supported LTS. Hosted runners also don't
-  cache it. CI tests 26. The next forced major is around April 2028, when Node 24 reaches end of life.
+- **A Node floor of 26.** The floor for 5.0 is Node 24.15 or later. Node 22 reaches end of life about
+  three months after GA. Node 26 would add a year, but it excludes a supported LTS. Hosted runners also
+  don't cache it. CI tests 26. The next forced major is around April 2028, when Node 24 reaches end of
+  life.
 - **Removing v2 specs.** They're under 1% of the schema bytes, so removal gains little and breaks authors.
   The LSP already warns.
 - **Removing the deprecated `debug` key.** It's harmless, and removal makes old configs fail validation.
