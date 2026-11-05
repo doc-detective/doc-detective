@@ -92,6 +92,13 @@ describe("unknown keys through the CLI", function () {
     expect(JSON.parse(r.stdout).specs[0].tests[0].contexts[0].steps).to.have.lengthOf(2);
   });
 
+  it("still runs a whole v2 spec", function () {
+    write("a.spec.json", { id: "v2", tests: [{ steps: [{ action: "runShell", command: "echo hi" }] }] });
+    const r = run(["-i", "a.spec.json", "--json"]);
+    expect(r.status, r.stderr).to.equal(0);
+    expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+  });
+
   it("suggests a step key for an unknown key in an inline step", function () {
     write("a.md", '<!-- step {"runShell":"echo hi","asertions":[]} -->\n');
     const r = run(["-i", "a.md"]);
