@@ -99,6 +99,12 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 
 A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
 
+## Capitalized typing instructions
+
+**What changed:** With step detection on, a Markdown instruction such as `Type "kittens"` or `Enter "admin"` becomes a `type` step whether or not its verb starts with a capital letter. Version 4 detected only lowercase verbs in Markdown, though the docs described both. A test without its own `testId` gets a new generated ID when it gains a step.
+
+**What to do:** Compare `--dry-run` output from version 4 and version 5 to find the new steps. To keep a sentence from becoming a step, put it between `<!-- test ignore start -->` and `<!-- test ignore end -->`, or set `detectSteps: false`.
+
 ## Logs moved to stderr
 
 **What changed:** stdout carries results only. Logs, warnings, hints, and notices go to stderr. Logs also lose their level labels, such as `(INFO)`, unless you turn on debug output.

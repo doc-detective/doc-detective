@@ -25,6 +25,7 @@ import {
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
 } from "../dist/core/config.js";
+import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -584,6 +585,46 @@ describe("config.ts — setConfig", function () {
     });
     assert.equal(typeof config.fileTypes[0], "object");
     assert.equal(config.fileTypes[0].name, "markdown");
+  });
+
+  it("expands fileType keywords from common's default table", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: ["markdown", "asciidoc", "html", "dita"],
+      },
+    });
+    assert.deepEqual(config.fileTypes, [
+      defaultFileTypes.markdown,
+      defaultFileTypes.asciidoc,
+      defaultFileTypes.html,
+      defaultFileTypes.dita,
+    ]);
+  });
+
+  it("detects capitalized typing instructions in Markdown", async function () {
+    const config = await setConfig({
+      config: { logLevel: "silent", dryRun: true, input: ["./README.md"], fileTypes: ["markdown"] },
+    });
+    const typeText = config.fileTypes[0].markup.find((markup) => markup.name === "typeText");
+    const pattern = new RegExp(typeText.regex[0]);
+    assert.equal(pattern.exec('Type "hello" in the box.')?.[1], "hello");
+    assert.equal(pattern.exec('Press "Enter" to search.')?.[1], "Enter");
+    assert.equal(pattern.exec('then type "kittens" here.')?.[1], "kittens");
+  });
+
+  it("gives each run its own copy of a default fileType", async function () {
+    const options = () => ({
+      config: { logLevel: "silent", dryRun: true, input: ["./README.md"], fileTypes: ["markdown"] },
+    });
+    const before = JSON.stringify(defaultFileTypes.markdown);
+    const first = await setConfig(options());
+    first.fileTypes[0].markup.length = 0;
+    const second = await setConfig(options());
+    assert.ok(second.fileTypes[0].markup.length > 0, "a later run still gets the default markup");
+    assert.equal(JSON.stringify(defaultFileTypes.markdown), before);
   });
 
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
