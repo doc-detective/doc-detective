@@ -60,13 +60,17 @@ removed, and everything that calls them is updated.
 
 | Code | Meaning |
 |---|---|
-| `0` | All specs PASS, WARNING, or SKIPPED |
+| `0` | No spec failed, and at least one spec passed or warned. Skipped specs alongside them are fine. |
 | `1` | At least one spec failed |
-| `2` | Nothing valid was tested, or the CLI couldn't proceed: usage error, bad config, no specs, invalid spec, declined or refused install, crash |
+| `2` | Nothing valid was tested, or the CLI couldn't proceed: usage error, bad config, no specs, every spec skipped, invalid spec, declined or refused install, crash |
 | `130`, `143` | Interrupted by SIGINT or SIGTERM |
 
-`--no-exit-on-fail` and `exitOnFail: false` turn FAIL and empty runs into `0`, and invalid specs back
-into warn-and-skip. Usage and config errors stay `2`. This supersedes the default in ADR 01066.
+`--no-exit-on-fail` and `exitOnFail: false` turn FAIL, empty, and all-skipped runs into `0`, and invalid
+specs back into warn-and-skip. Usage and config errors stay `2`. This supersedes the default in ADR 01066.
+
+A run where every spec skipped tested nothing, so it gets the same code as a run with no specs. A skip
+can hide a broken environment, such as a driver that wouldn't start. A suite that only applies to one
+platform should gate the job in its workflow rather than rely on a green skip.
 
 ### Streams and output
 

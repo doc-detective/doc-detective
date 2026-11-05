@@ -1,6 +1,6 @@
 # Design: Doc Detective v5 rollout
 
-Status: **proposed** (2026-11-02). This plan turns the November 2026 project review into a release
+Status: **accepted** (2026-11-04), with dates still proposed. This plan turns the November 2026 project review into a release
 sequence across the CLI, the GitHub Action, Online, and agent-tools. Claims about today's behavior
 were checked against the code or a run of published `doc-detective@4.41.5`. Anything only read, not
 run, says so. Dates are proposals, and line references are a snapshot that will drift.
@@ -9,7 +9,9 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 
 - **5.0.0 is one major carrying every breaking CLI change.** A failed test fails the run, and the CLI
   conforms to clig.dev. [ADR 01146](../../adrs/01146-cli-v5-contract.md) is the contract. Users migrate
-  once. Work that isn't part of the contract still ships on 4.x before it or 5.x after it.
+  once. Work that isn't part of the contract ships on 4.x before it or 5.x after it, unless changing it
+  later would need another major. The Node floor, unknown-key rejection, false-pass fixes, and the JS
+  exports land in 5.0 for that reason, each under its own ADR.
 - **Nothing is retained for assets we control.** The Action, agent-tools, the VS Code extension, Online,
   and Docker images get updated to the new CLI, with no shims. v4-era assets refuse v5 instead.
 - **The GitHub Action gets a matching major.** Action v2 uses CLI 5, and Action v1 stays on CLI 4.
@@ -55,9 +57,10 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 2. **Fenced code stays gated.** Default markup marks detected code fences `unsafe: true`
    (`src/core/config.ts:368`) because nobody authored them as tests. That's unchanged by decision 1.
 3. **An Action major pins a CLI major.** v1 uses `4`, v2 uses `5`. Users can still set `version`.
-4. **Schema names stay `_v3`.** The only shape change is an added `outputDir` key, and a folder value
-   in `output` fails with a pointer to it. Bumping the names would force a migration with no user
-   benefit.
+4. **Schema names stay `_v3`.** Bumping the names would force a migration with no user benefit. The shape
+   changes are an added `outputDir` key (a folder value in `output` fails with a pointer to it), rejected
+   unknown keys on specs and steps, a declared `summary` and result fields on reports, and the additive
+   `environment` from 1.2.
 5. **Online moves in lockstep with GA.** See [Online](#online).
 6. **Telemetry stays opt-out, and self-update stays on by default.** Both are recorded departures from
    clig in ADR 01146.
@@ -66,13 +69,15 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 
 | Run outcome | 4.x exit | 5.0 exit | 5.0 with `exitOnFail: false` |
 |---|---|---|---|
-| All specs PASS, WARNING, or SKIPPED | 0 | 0 | 0 |
+| No spec FAIL, and at least one PASS or WARNING | 0 | 0 | 0 |
 | At least one spec FAIL | 0 | **1** | 0 |
 | No specs found | 0 | **2** | 0 |
+| Every spec SKIPPED | 0 | **2** | 0 |
 | Invalid spec | 0, skipped with a warning | **2**, before any test runs | 0, skipped with a warning |
 | Usage error, invalid config, or crash | 1 | **2** | 2 |
 
-- `WARNING` and `SKIPPED` never fail a run, matching `shouldFailRun` (`src/core/utils.ts:1167`).
+- `WARNING` never fails a run, matching `shouldFailRun` (`src/core/utils.ts:1167`). `SKIPPED` doesn't
+  either, unless every spec skipped, because then nothing was tested.
 - The way out already exists: `exitOnFail: false` or `--no-exit-on-fail`.
 - Results are written before the exit code is set. I confirmed that `--exit-on-fail` on a failing run
   exits 1 and still writes the results file.
@@ -445,7 +450,7 @@ The same applies to `release-4.x`.
    (W1). Docs land with the code, so they can't describe unreleased behavior.
 
 **Migration guide advice:** Run once with `--no-exit-on-fail`, triage existing failures, then turn the
-gate on. Pin `doc-detective@4` if you can't move yet.
+gate on. Move to Node 24.15 or later while still on 4.x. Pin `doc-detective@4` if you can't move yet.
 
 **Branch rules:**
 
@@ -468,7 +473,9 @@ real repository. If a blocker is open on January 8, GA moves a week, to January 
 
 Target: Tuesday, January 12, 2027. In order:
 
-1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks.
+1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks. Then
+   change the `main` ruleset's required test checks from `node 22` to `node 24`. The GA PR removes the
+   Node 22 cells, so without this it blocks with nothing visibly failing.
 2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge the `feat/v5-rc` PR with
    `gh pr merge --merge`, not the web UI. A squash could drop the footer, and then no 5.0.0 gets cut.
    On the merge, semantic-release cuts 5.0.0 to the `staging-5.0.0` dist-tag, which publishes the docs. Unset the
@@ -521,7 +528,7 @@ also means it works in CI, where the update check doesn't run (`src/cli.ts:188`)
 Doc Detective 5 is available. 4.x now gets security fixes only, through <end-of-support date>.
 
 What changes: a failed test now fails the run with exit code 1, logs move to stderr, and --output
-is now a results file. The guide lists every change.
+is now a results file, and Node 24.15 or later is required. The guide lists every change.
 To keep today's exit codes while you triage, use --no-exit-on-fail, or exit_on_fail: false in the Action.
 
 Upgrade:
@@ -671,8 +678,9 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 - **An agent as reader, and self-healing built on it.** Doc Detective is deterministic: the same docs and
   product give the same result. An agent judging whether a page can be followed can't promise that, so
   it's outside the project's scope in any version.
-- **Raising the Node floor.** Node 22 reaches end of life around April 2027, and CI still runs it. Do that
-  as its own major then. Once Action majors pin CLI majors, a later major costs far less.
+- **A Node floor of 26.** 5.0 raises the floor to 24.15, because Node 22 reaches end of life about three
+  months after GA. Node 26 would add a year, but it excludes a supported LTS, and hosted runners don't
+  cache it. CI tests 26, and the next forced major is around April 2028, when Node 24 reaches end of life.
 - **Removing v2 specs.** They're under 1% of the schema bytes, so removal gains little and breaks authors.
   The LSP already warns.
 - **Removing the deprecated `debug` key.** It's harmless, and removal makes old configs fail validation.
