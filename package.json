@@ -29,8 +29,7 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
-    },
-    "./cli": "./bin/doc-detective.js"
+    }
   },
   "scripts": {
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",

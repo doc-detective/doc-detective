@@ -134,7 +134,7 @@ describe("reporters/htmlReporter — direct coverage", function () {
     it("treats a non-.html path as a directory and generates a timestamped name", async function () {
       const result = await htmlReporter({}, tmpDir, makeResults());
       // Structure, not exact timestamp: doc-detective-results-<digits>.html
-      assert.match(path.basename(result), /^doc-detective-results-\d+\.html$/);
+      assert.match(path.basename(result), /^doc-detective-results-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
       assert.equal(path.dirname(result), path.resolve(tmpDir));
       assert.ok(fs.existsSync(result));
     });
@@ -143,7 +143,13 @@ describe("reporters/htmlReporter — direct coverage", function () {
       const result = await htmlReporter({}, tmpDir, makeResults(), {
         command: "runTests",
       });
-      assert.match(path.basename(result), /^testResults-\d+\.html$/);
+      assert.match(path.basename(result), /^testResults-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
+    });
+
+    it("uses the run's ID, so the name matches the run folder", async function () {
+      const results = { ...makeResults(), runId: "2026-11-05T01-02-03-004Z" };
+      const result = await htmlReporter({}, tmpDir, results, { command: "runTests" });
+      assert.equal(path.basename(result), "testResults-2026-11-05T01-02-03-004Z.html");
     });
 
 
@@ -151,7 +157,7 @@ describe("reporters/htmlReporter — direct coverage", function () {
       const result = await htmlReporter({}, tmpDir, makeResults(), {
         command: "somethingElse",
       });
-      assert.match(path.basename(result), /^doc-detective-results-\d+\.html$/);
+      assert.match(path.basename(result), /^doc-detective-results-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
     });
   });
 

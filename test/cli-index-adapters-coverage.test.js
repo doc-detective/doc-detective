@@ -346,13 +346,13 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
 // core/index.ts — public API surface + in-process runTests branches.
 // ---------------------------------------------------------------------------
 
-describe("core/index.ts — public API surface", function () {
+describe("core/index.ts — internal API surface", function () {
   let mod;
   before(async function () {
     mod = await import("../dist/core/index.js");
   });
 
-  it("re-exports the documented public functions", function () {
+  it("re-exports the functions the CLI uses", function () {
     for (const name of [
       "runTests",
       "getRunner",

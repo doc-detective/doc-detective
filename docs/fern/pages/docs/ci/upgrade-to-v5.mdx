@@ -124,7 +124,7 @@ doc-detective --input ./docs --output-dir ./reports
 doc-detective --input ./docs --output results.json
 ```
 
-The `json` reporter still exists, and it still writes a timestamped file in `outputDir`. Skip it when you pass `--output`, or you get both files.
+The `json` reporter still exists, and it still writes a timestamped file in `outputDir`. The `json` and `html` reporters now name files after the run ID, as in `testResults-2026-11-05T01-02-03-004Z.json`, not epoch milliseconds. The `testResults-*` prefix is unchanged. Skip it when you pass `--output`, or you get both files.
 
 ## `--concurrent-runners` needs a value
 
@@ -199,6 +199,12 @@ doc-detective install agents --agent claude --scope project --yes
 **What changed:** The [telemetry notice](/legal/telemetry) prints once per machine on stderr, not on every run.
 
 **What to do:** Remove anything that matches the old notice text. The opt-outs are `--no-telemetry`, `DO_NOT_TRACK`, and `telemetry.send: false`.
+
+## JavaScript API
+
+**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone.
+
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it.
 
 ## Deprecated arguments
 

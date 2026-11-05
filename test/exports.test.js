@@ -1,42 +1,27 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { createRequire } from "node:module";
 
-describe("cli/index.js exports", function () {
-  let cliExports;
+// ADR 01152: the public API is exactly these. Adding one is a commitment.
+const PUBLIC_API = ["getRunner", "runTests"];
+const require = createRequire(import.meta.url);
 
-  before(async function () {
-    cliExports = await import("../dist/index.js");
+describe("doc-detective exports", function () {
+  it("exports exactly the public API from ESM", async function () {
+    const esm = await import("../dist/index.js");
+    assert.deepEqual(Object.keys(esm).filter((key) => key !== "default").sort(), PUBLIC_API);
+    for (const name of PUBLIC_API) assert.equal(typeof esm[name], "function");
   });
 
-  it("should export runTests as a function", function () {
-    assert.equal(typeof cliExports.runTests, "function");
+  it("exports exactly the public API from CommonJS", function () {
+    const cjs = require("../dist/index.cjs");
+    assert.deepEqual(Object.keys(cjs).filter((key) => key !== "default").sort(), PUBLIC_API);
+    for (const name of PUBLIC_API) assert.equal(typeof cjs[name], "function");
   });
 
-  it("should export getRunner as a function", function () {
-    assert.equal(typeof cliExports.getRunner, "function");
-  });
-
-  it("should export detectTests as a function", function () {
-    assert.equal(typeof cliExports.detectTests, "function");
-  });
-
-  it("should export detectAndResolveTests as a function", function () {
-    assert.equal(typeof cliExports.detectAndResolveTests, "function");
-  });
-
-  it("should export resolveTests as a function", function () {
-    assert.equal(typeof cliExports.resolveTests, "function");
-  });
-
-  it("should export readFile as a function", function () {
-    assert.equal(typeof cliExports.readFile, "function");
-  });
-
-  it("should export resolvePaths as a function", function () {
-    assert.equal(typeof cliExports.resolvePaths, "function");
-  });
-
-  it("should export exactly 7 functions", function () {
-    const exportKeys = Object.keys(cliExports).filter(k => k !== 'default');
-    assert.equal(exportKeys.length, 7);
+  it("only exposes the package root", function () {
+    const manifest = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    assert.deepEqual(Object.keys(manifest.exports), ["."]);
+    assert.equal(manifest.bin["doc-detective"], "bin/doc-detective.js");
   });
 });

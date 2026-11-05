@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { timestamp } from "../core/utils.js";
 
 export async function htmlReporter(
   config: any = {},
@@ -34,7 +35,7 @@ export async function htmlReporter(
     }
   } else {
     outputDir = outputPath;
-    outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.html`);
+    outputFile = path.resolve(outputDir, `${reportType}-${results?.runId ?? timestamp()}.html`);
   }
 
   try {
