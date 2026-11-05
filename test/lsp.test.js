@@ -61,7 +61,7 @@ import { schemas } from "../dist/common/src/schemas/index.js";
 /** Independently derive the action keys from step_v3.anyOf (for anti-drift). */
 function actionKeysFromSchema() {
   const keys = [];
-  for (const branch of schemas.step_v3.anyOf) {
+  for (const branch of schemas.step_v3.oneOf) {
     const parts = Array.isArray(branch.allOf) ? branch.allOf : [branch];
     const part = parts.find(
       (p) => Array.isArray(p.required) && p.required.length === 1 && p.required[0] !== "$schema",
@@ -410,14 +410,14 @@ describe("lsp — registry helpers", function () {
     // Injected schema: branch has no `allOf` (actionPartOf falls back to
     // [branch]) and the action part has no `title` (title falls back to key).
     const reg = buildRegistry({
-      anyOf: [{ required: ["wait"], properties: { wait: { type: "number" } } }],
+      oneOf: [{ required: ["wait"], properties: { wait: { type: "number" } } }],
     });
     expect(reg.actions).to.have.length(1);
     expect(reg.actions[0].key).to.equal("wait");
     expect(reg.actions[0].title).to.equal("wait");
   });
 
-  it("buildRegistry tolerates a schema with no anyOf", function () {
+  it("buildRegistry tolerates a schema with no oneOf", function () {
     expect(buildRegistry({}).actions).to.deep.equal([]);
   });
 });

@@ -23,7 +23,7 @@ import type { AgentDetection, HintContext } from "./types.js";
 import { requireYaml } from "../core/lazyYaml.js";
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
-// `step_v3.schema.json`'s anyOf branches — extra entries here would
+// `step_v3.schema.json`'s oneOf branches — extra entries here would
 // silently never match real results, so this list must mirror the
 // schema. Order doesn't matter; the consumer is `Set.has()`.
 const STEP_ACTION_KEYS = [

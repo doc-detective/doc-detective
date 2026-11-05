@@ -511,6 +511,14 @@ export async function parseContent({
         }
 
         if (test.testId) {
+          // findTest returns the first match, so the second test's settings and
+          // steps would silently merge into it.
+          if (tests.some((existing) => existing.testId === test!.testId)) {
+            log(config, "warn", `Duplicate test ID '${test.testId}' in ${filePath}.`);
+            onInvalid?.(`duplicate test ID '${test.testId}'.`);
+            testId = test.testId;
+            break;
+          }
           testId = test.testId;
         } else {
           test.testId = testId;

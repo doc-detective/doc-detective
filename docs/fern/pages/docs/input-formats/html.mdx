@@ -25,7 +25,7 @@ HTML files use HTML comments for inline tests:
 
 **Test start:**
 ```html
-<!-- test { "testId": "my-test" } -->
+<!-- test { "testId": "my-test-start" } -->
 ```
 
 **Step:**
@@ -130,13 +130,13 @@ HTML inline tests support both JSON and YAML syntax:
 
 **JSON syntax:**
 ```html
-<!-- test { "testId": "my-test", "description": "Test description" } -->
+<!-- test { "testId": "my-json-test", "description": "Test description" } -->
 <!-- step { "goTo": "https://example.com" } -->
 ```
 
 **YAML syntax:**
 ```html
-<!-- test testId: my-test description: Test description -->
+<!-- test testId: my-yaml-test description: Test description -->
 <!-- step goTo: https://example.com -->
 ```
 

@@ -32,7 +32,7 @@ describe("unknown keys", function () {
 
     it("lists exactly the common keys and every action at the root", function () {
       const step = schemas.step_v3;
-      const actions = step.anyOf.flatMap((branch) =>
+      const actions = step.oneOf.flatMap((branch) =>
         branch.allOf.flatMap((part) => Object.keys(part.properties ?? {}))
       );
       const common = Object.keys(step.components.schemas.common.properties);
@@ -174,6 +174,22 @@ describe("unknown keys", function () {
       expect(reasons).to.have.lengthOf(1);
       expect(reasons[0].reason).to.include("typo");
       expect(reasons[0].details.schemaKey).to.equal("test_v3");
+    });
+
+    it("reports a duplicate test ID, without adding the second test", async function () {
+      const reasons = [];
+      const content = [
+        '<!-- test {"testId":"same"} -->',
+        '<!-- step {"goTo":"https://example.com"} -->',
+        "<!-- test end -->",
+        '<!-- test {"testId":"same"} -->',
+        '<!-- step {"goTo":"https://example.org"} -->',
+        "<!-- test end -->",
+      ].join("\n");
+      const tests = await detect(content, (reason) => reasons.push(reason));
+      expect(reasons).to.deep.equal(["duplicate test ID 'same'."]);
+      expect(tests).to.have.lengthOf(1);
+      expect(await detect(content)).to.have.lengthOf(1);
     });
 
     it("works without an onInvalid callback", async function () {

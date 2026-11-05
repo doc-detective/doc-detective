@@ -5558,7 +5558,7 @@
                     "annotate": {}
                   },
                   "additionalProperties": false,
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "allOf": [
                         {
@@ -21254,7 +21254,7 @@
                                     },
                                     "maxVariation": {
                                       "type": "number",
-                                      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                       "default": 0,
                                       "minimum": 0,
                                       "maximum": 1
@@ -21653,7 +21653,7 @@
                                       },
                                       "maxVariation": {
                                         "type": "number",
-                                        "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                         "default": 0,
                                         "minimum": 0,
                                         "maximum": 1
@@ -22912,7 +22912,7 @@
                                     },
                                     "maxVariation": {
                                       "type": "number",
-                                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                       "default": 0,
                                       "minimum": 0,
                                       "maximum": 1
@@ -23063,7 +23063,7 @@
                                       },
                                       "maxVariation": {
                                         "type": "number",
-                                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                         "default": 0,
                                         "minimum": 0,
                                         "maximum": 1
@@ -24262,7 +24262,7 @@
                                     },
                                     "maxVariation": {
                                       "type": "number",
-                                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                       "default": 0,
                                       "minimum": 0,
                                       "maximum": 1
@@ -24406,7 +24406,7 @@
                                       },
                                       "maxVariation": {
                                         "type": "number",
-                                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                         "default": 0,
                                         "minimum": 0,
                                         "maximum": 1
@@ -31242,7 +31242,7 @@
                                         },
                                         "maxVariation": {
                                           "type": "number",
-                                          "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                          "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                           "default": 0.05,
                                           "minimum": 0,
                                           "maximum": 1
@@ -33854,7 +33854,7 @@
                                           },
                                           "maxVariation": {
                                             "type": "number",
-                                            "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                            "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                             "default": 0.05,
                                             "minimum": 0,
                                             "maximum": 1
@@ -36445,7 +36445,7 @@
                                       },
                                       "maxVariation": {
                                         "type": "number",
-                                        "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                        "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                         "default": 0.05,
                                         "minimum": 0,
                                         "maximum": 1
@@ -62966,7 +62966,7 @@
                           "annotate": {}
                         },
                         "additionalProperties": false,
-                        "anyOf": [
+                        "oneOf": [
                           {
                             "allOf": [
                               {
@@ -78662,7 +78662,7 @@
                                           },
                                           "maxVariation": {
                                             "type": "number",
-                                            "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                             "default": 0,
                                             "minimum": 0,
                                             "maximum": 1
@@ -79061,7 +79061,7 @@
                                             },
                                             "maxVariation": {
                                               "type": "number",
-                                              "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                              "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                               "default": 0,
                                               "minimum": 0,
                                               "maximum": 1
@@ -80320,7 +80320,7 @@
                                           },
                                           "maxVariation": {
                                             "type": "number",
-                                            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                             "default": 0,
                                             "minimum": 0,
                                             "maximum": 1
@@ -80471,7 +80471,7 @@
                                             },
                                             "maxVariation": {
                                               "type": "number",
-                                              "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                              "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                               "default": 0,
                                               "minimum": 0,
                                               "maximum": 1
@@ -81670,7 +81670,7 @@
                                           },
                                           "maxVariation": {
                                             "type": "number",
-                                            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                             "default": 0,
                                             "minimum": 0,
                                             "maximum": 1
@@ -81814,7 +81814,7 @@
                                             },
                                             "maxVariation": {
                                               "type": "number",
-                                              "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                                              "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                                               "default": 0,
                                               "minimum": 0,
                                               "maximum": 1
@@ -88650,7 +88650,7 @@
                                               },
                                               "maxVariation": {
                                                 "type": "number",
-                                                "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                                "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                                 "default": 0.05,
                                                 "minimum": 0,
                                                 "maximum": 1
@@ -91262,7 +91262,7 @@
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
-                                                  "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                                  "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                                   "default": 0.05,
                                                   "minimum": 0,
                                                   "maximum": 1
@@ -93853,7 +93853,7 @@
                                             },
                                             "maxVariation": {
                                               "type": "number",
-                                              "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                              "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                                               "default": 0.05,
                                               "minimum": 0,
                                               "maximum": 1

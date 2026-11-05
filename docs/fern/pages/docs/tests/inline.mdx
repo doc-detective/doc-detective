@@ -41,22 +41,22 @@ Doc Detective supports different comment patterns depending on your file type. F
 **Markdown files** (`.md`, `.markdown`, `.mdx`):
 
 - JSX-style comments: `{/* test { "testId": "my-test" } */}`
-- HTML comments: `<!-- test { "testId": "my-test" } -->`
-- Markdown link comments: `[comment]: # (test { "testId": "my-test" })`
+- HTML comments: `<!-- test { "testId": "my-test-2" } -->`
+- Markdown link comments: `[comment]: # (test { "testId": "my-test-3" })`
 - Step comments: `{/* step { "goTo": "https://example.com" } */}`
 - Test end: `{/* test end */}`, `<!-- test end -->`, or `[comment]: # (test end)`
 - Ignore blocks: `{/* test ignore start */}` and `{/* test ignore end */}`
 
 **HTML files** (`.html`, `.htm`):
 
-- Test comments: `<!-- test { "testId": "my-test" } -->`
+- Test comments: `<!-- test { "testId": "my-test-4" } -->`
 - Step comments: `<!-- step { "goTo": "https://example.com" } -->`
 - Test end: `<!-- test end -->`
 - Ignore blocks: `<!-- test ignore start -->` and `<!-- test ignore end -->`
 
 **AsciiDoc files** (`.adoc`, `.asciidoc`, `.asc`):
 
-- Line comments: `// (test { "testId": "my-test" })`
+- Line comments: `// (test { "testId": "my-test-5" })`
 - Step comments: `// (step { "goTo": "https://example.com" })`
 - Test end: `// (test end)`
 - Ignore blocks: `// (test ignore start)` and `// (test ignore end)`
@@ -68,7 +68,7 @@ DITA (Darwin Information Typing Architecture) files use XML processing instructi
 DITA supports multiple syntax options:
 
 **JSON format:**
-- Test comments: `<?doc-detective test {"testId": "my-test", "detectSteps": false} ?>`
+- Test comments: `<?doc-detective test {"testId": "my-test-6", "detectSteps": false} ?>`
 - Step comments: `<?doc-detective step {"checkLink": "https://example.com"} ?>`
 - Test end: `<?doc-detective test end?>`
 - Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
@@ -78,7 +78,7 @@ DITA supports multiple syntax options:
 
   ```
   <?doc-detective test
-    testId: my-test
+    testId: my-test-7
     detectSteps: false
   ?>
   ```
@@ -87,7 +87,7 @@ DITA supports multiple syntax options:
 - Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
 
 **XML attribute format:**
-- Test comments: `<?doc-detective test testId="my-test" detectSteps=false ?>`
+- Test comments: `<?doc-detective test testId="my-test-8" detectSteps=false ?>`
 - Step comments: `<?doc-detective step checkLink="https://example.com" ?>`
 - Test end: `<?doc-detective test end?>`
 - Ignore blocks: `<?doc-detective test ignore start?>` and `<?doc-detective test ignore end?>`
@@ -96,7 +96,7 @@ Attribute values are automatically converted to the appropriate type: booleans (
 
 You can also use HTML comment syntax as an alternative to processing instructions:
 
-- Test comments: `<!-- test testId="my-test" detectSteps=false -->`
+- Test comments: `<!-- test testId="my-test-9" detectSteps=false -->`
 - Step comments: `<!-- step checkLink="https://example.com" -->`
 - Test end: `<!-- test end -->`
 - Ignore blocks: `<!-- test ignore start -->` and `<!-- test ignore end -->`
@@ -107,7 +107,7 @@ HTML comments and processing instructions work identically. You can use whicheve
 
 DITA `<data>` elements let you define inline tests using standard DITA markup:
 
-- Test comments: `<data name="doc-detective" value="test testId='my-test'"/>`
+- Test comments: `<data name="doc-detective" value="test testId='my-test-10'"/>`
 - Step comments: `<data name="doc-detective" value="step checkLink='https://example.com'"/>`
 - Test end: `<data name="doc-detective" value="test end"/>`
 
@@ -153,7 +153,7 @@ Here's the same example using **YAML syntax** in Markdown:
 {/* test ignore start */}
 
 ```markdown
-{/* test testId: kitten-search */}
+{/* test testId: kitten-search-2 */}
 
 To search for American Shorthair kittens,
 

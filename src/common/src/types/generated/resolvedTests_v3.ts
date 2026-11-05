@@ -1801,7 +1801,7 @@ export type HTTPRequestDetailed = (
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -8904,7 +8904,7 @@ export type HTTPRequestDetailed1 = (
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -15534,7 +15534,7 @@ export type HTTPRequestDetailed2 = (
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -22663,7 +22663,7 @@ export interface RunShellCommandDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -22977,7 +22977,7 @@ export interface RunCodeDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -23942,7 +23942,7 @@ export interface CaptureScreenshotFields {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -29056,7 +29056,7 @@ export interface RunShellCommandDetailed1 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -32662,7 +32662,7 @@ export interface RunShellCommandDetailed2 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -32976,7 +32976,7 @@ export interface RunCodeDetailed1 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -33941,7 +33941,7 @@ export interface CaptureScreenshotFields1 {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -41030,7 +41030,7 @@ export interface RunShellCommandDetailed3 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -41344,7 +41344,7 @@ export interface RunCodeDetailed2 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -42309,7 +42309,7 @@ export interface CaptureScreenshotFields2 {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
