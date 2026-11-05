@@ -1,6 +1,6 @@
 {
   "specId": "selectors",
-  "description": "Selector detection through the real CLI (ADR 01155, ADR 01157). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs, which writes a document and config under .tmp/fixture-detection/, runs doc-detective, and checks the detected steps, exit code, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "description": "Selector detection through the real CLI (ADR 01155, ADR 01157, ADR 01158). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs, which writes a document and config under .tmp/fixture-detection/, runs doc-detective, and checks the detected steps, exit code, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
   "tests": [
     {
       "testId": "selectors-markdown-kinds",
@@ -204,6 +204,66 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/detection/dry-run-detect.cjs mdx-lowercase-jsx",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-builtin-markdown",
+      "description": "The Markdown built-in, with no fileTypes in the config.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-builtin-html",
+      "description": "The HTML built-in detects the same steps as Markdown.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-html",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-builtin-asciidoc",
+      "description": "The AsciiDoc built-in detects the same steps as Markdown.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-asciidoc",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-builtin-dita",
+      "description": "The DITA built-in, with one goTo and one checkLink per link, screenshots, and requests.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-dita",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

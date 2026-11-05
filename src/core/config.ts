@@ -246,6 +246,7 @@ async function setConfig({ config, detectApps = true }: any) {
             fileType.inlineStatements = {};
           }
           const keys = [
+            "in",
             "testStart",
             "testEnd",
             "ignoreStart",
