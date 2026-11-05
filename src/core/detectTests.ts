@@ -737,13 +737,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       }
       // Validate each step
       for (const test of content.tests) {
-        test.steps = test.steps.filter((step: any) => {
-          // Exclude internal routing markers from the validated clone so a
-          // future strict (additionalProperties:false) step schema can't drop
-          // tagged setup/cleanup steps. The markers stay on the real `step`.
+        test.steps = test.steps.flatMap((step: any) => {
+          // The spread leaves out the non-enumerable routing markers.
           const stepForValidation = { ...step };
-          delete stepForValidation._fromBefore;
-          delete stepForValidation._fromAfter;
           const validation = validate({
             schemaKey: `step_v3`,
             object: stepForValidation,
@@ -755,10 +751,27 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
               "warning",
               `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
             );
-            noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, stepForValidation));
-            return false;
+            noteInvalidSpec(
+              config,
+              file,
+              `Step ${JSON.stringify(stepForValidation)}: ${summarizeSpecErrors(validation.errors, stepForValidation, "step_v3")}`
+            );
+            return [];
           }
-          return true;
+          // Keep the validated step, because a v2 step from a before or after
+          // file comes back upgraded. Without it, spec_v3 rejects the merged test.
+          const validStep = validation.object;
+          for (const marker of ["_fromBefore", "_fromAfter"]) {
+            if (step[marker]) {
+              Object.defineProperty(validStep, marker, {
+                value: true,
+                enumerable: false,
+                writable: true,
+                configurable: true,
+              });
+            }
+          }
+          return [validStep];
         });
       }
       const validation = validate({
@@ -909,8 +922,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         fileType: fileType,
         filePath: file,
         testIdBase: id,
-        onInvalid: (reason: string) =>
-          noteInvalidSpec(config, file, summarizeSpecErrors(reason, {})),
+        onInvalid: (reason: string, details?: { schemaKey: string; object: any }) => {
+          const summary = summarizeSpecErrors(reason, details?.object ?? {}, details?.schemaKey) || reason;
+          noteInvalidSpec(config, file, details ? `${JSON.stringify(details.object)}: ${summary}` : summary);
+        },
       });
       spec.tests.push(...tests);
 

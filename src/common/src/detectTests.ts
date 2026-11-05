@@ -72,6 +72,8 @@ export interface DetectedTest {
   [key: string]: any;
 }
 
+export type InvalidHandler = (reason: string, details?: { schemaKey: string; object: any }) => void;
+
 export interface DetectTestsInput {
   content: string;
   filePath?: string;
@@ -85,9 +87,10 @@ export interface DetectTestsInput {
   testIdBase?: string;
   /**
    * Called when something the author wrote is dropped for being invalid, with
-   * the validation errors. Without it, the drop only logs a warning.
+   * the validation errors, and the schema and object they apply to. Without it,
+   * the drop only logs a warning.
    */
-  onInvalid?: (reason: string) => void;
+  onInvalid?: InvalidHandler;
 }
 
 /**
@@ -361,7 +364,7 @@ export async function parseContent({
   filePath?: string;
   fileType?: FileType;
   testIdBase?: string;
-  onInvalid?: (reason: string) => void;
+  onInvalid?: InvalidHandler;
 }): Promise<DetectedTest[]> {
   const statements: Array<any> = [];
   const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
@@ -493,7 +496,7 @@ export async function parseContent({
           });
           if (!v2Validation.valid) {
             log(config, "warn", `Inline test in ${filePath} isn't valid. Skipping.`);
-            onInvalid?.(v2Validation.errors);
+            onInvalid?.(v2Validation.errors, { schemaKey: "test_v2", object: test });
             break;
           }
           const transformed = transformToSchemaKey({
@@ -694,7 +697,7 @@ export async function parseContent({
         /* c8 ignore next 3 - V8 phantom branch on if-else/switch-case */
         if (!validation.valid) {
           log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
-          onInvalid?.(validation.errors);
+          onInvalid?.(validation.errors, { schemaKey: "step_v3", object: step });
           return;
         }
         step = validation.object;
@@ -760,7 +763,7 @@ export async function parseContent({
     if (!validation.valid) {
       log(config, "warn", `Couldn't convert test in ${filePath} to valid test. Skipping.`);
       // A test that only ended up with no steps isn't an authoring mistake.
-      if (test.steps?.length) onInvalid?.(validation.errors);
+      if (test.steps?.length) onInvalid?.(validation.errors, { schemaKey: "test_v3", object: test });
       return;
     }
     validatedTests.push(validation.object);

@@ -87,7 +87,7 @@ describe("unknown keys", function () {
 
   describe("action objects", function () {
     for (const [name, step] of [
-      ["click", { click: { selector: "a", typo: 1 } }],
+      ["click", { click: { selector: "a", timeout: 50, typo: 1 } }],
       ["find.click", { find: { selector: "a", click: { button: "left", typo: 1 } } }],
       ["runCode", { runCode: { language: "python", code: "print(1)", typo: 1 } }],
       ["record", { record: { path: "a.mp4", typo: 1 } }],

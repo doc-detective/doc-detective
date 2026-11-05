@@ -923,6 +923,10 @@ export type ClickElementDetailed = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -1338,6 +1342,10 @@ export type ClickElementDetailed1 = (
       [k: string]: unknown;
     }
 ) & {
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
   /**
    * Kind of click to perform.
    */
@@ -7545,6 +7553,10 @@ export type ClickElementDetailed2 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -7960,6 +7972,10 @@ export type ClickElementDetailed3 = (
       [k: string]: unknown;
     }
 ) & {
+  /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
   /**
    * Kind of click to perform.
    */

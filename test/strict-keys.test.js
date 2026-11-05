@@ -84,6 +84,21 @@ describe("unknown keys through the CLI", function () {
     for (const step of steps) expect(step).to.not.have.any.keys("_fromBefore", "_fromAfter");
   });
 
+  it("upgrades v2 steps from a before file, instead of dropping the spec", function () {
+    write("setup.spec.json", { tests: [{ steps: [{ action: "runShell", command: "echo hi" }] }] });
+    write("a.spec.json", { tests: [{ before: "setup.spec.json", steps: [echo] }] });
+    const r = run(["-i", "a.spec.json", "--json"]);
+    expect(r.status, r.stderr).to.equal(0);
+    expect(JSON.parse(r.stdout).specs[0].tests[0].contexts[0].steps).to.have.lengthOf(2);
+  });
+
+  it("suggests a step key for an unknown key in an inline step", function () {
+    write("a.md", '<!-- step {"runShell":"echo hi","asertions":[]} -->\n');
+    const r = run(["-i", "a.md"]);
+    expect(r.status, r.stderr).to.equal(2);
+    expect(r.stderr).to.include("Did you mean assertions?");
+  });
+
   it("exits 2 when a before step has an unknown key", function () {
     write("setup.spec.json", { tests: [{ steps: [{ ...echo, asertions: [] }] }] });
     write("a.spec.json", { tests: [{ before: "setup.spec.json", steps: [echo] }] });
@@ -134,6 +149,22 @@ describe("summarizeSpecErrors with unknown keys", function () {
     expect(summarizeSpecErrors(errors, object)).to.equal(
       "tests[0].steps[0]: no action, such as goTo."
     );
+  });
+
+  it("suggests step keys for a step validated on its own", function () {
+    expect(summarizeSpecErrors(additional("", "asertions"), { goTo: "x", asertions: [] }, "step_v3")).to.equal(
+      "unknown key 'asertions'. Did you mean assertions?"
+    );
+  });
+
+  it("doesn't call a real action unknown when only its value is wrong", function () {
+    const errors = [
+      "/tests/0/steps/0 must have required property 'find' ({\"missingProperty\":\"find\"})",
+      "/tests/0/steps/0/goTo must be object ({\"type\":\"object\"})",
+    ].join(", ");
+    const summary = summarizeSpecErrors(errors, { tests: [{ steps: [{ goTo: 1 }] }] });
+    expect(summary).to.not.include("unknown action");
+    expect(summary).to.include("tests[0].steps[0].goTo: must be object");
   });
 
   it("names an unknown spec key", function () {

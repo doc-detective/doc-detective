@@ -6284,6 +6284,10 @@
               }
             ],
             "properties": {
+              "timeout": {
+                "type": "integer",
+                "default": 5000
+              },
               "button": {
                 "$ref": "#/components/schemas/button"
               },
@@ -13755,6 +13759,9 @@
               }
             ],
             "properties": {
+              "timeout": {
+                "type": "integer"
+              },
               "button": {
                 "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
               },
