@@ -1,6 +1,6 @@
 {
   "specId": "selectors",
-  "description": "Selector detection through the real CLI (ADR 01155). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs, which writes a document and config under .tmp/fixture-detection/, runs doc-detective, and checks the detected steps, exit code, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "description": "Selector detection through the real CLI (ADR 01155, ADR 01157). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs, which writes a document and config under .tmp/fixture-detection/, runs doc-detective, and checks the detected steps, exit code, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
   "tests": [
     {
       "testId": "selectors-markdown-kinds",
@@ -129,6 +129,81 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/detection/dry-run-detect.cjs detect-steps-false",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-html-kinds",
+      "description": "Every kind HTML produces, and nothing from inside <pre> or <script>.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs html-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-dita-kinds",
+      "description": "DITA elements, the doc-detective processing instruction, and a <data> statement container.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs dita-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-asciidoc-kinds",
+      "description": "AsciiDoc comments, links, formatting, images with roles, and listings.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs asciidoc-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-embedded-html",
+      "description": "HTML inside Markdown reads as HTML kinds.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs embedded-html",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-mdx-lowercase-jsx",
+      "description": "Lowercase JSX tags in .mdx read as HTML kinds.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs mdx-lowercase-jsx",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

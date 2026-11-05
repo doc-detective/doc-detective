@@ -6,7 +6,7 @@ description: Match links, bold text, code blocks, and comments by their structur
 
 A regex definition matches your file's raw text. That includes code samples, so a pattern for `**bold**` also matches bold syntax inside a fenced example. A selector matches what the file means instead: a link, a bold phrase, a code block, or a comment. Doc Detective parses the file, and the selector picks the nodes you name.
 
-Selectors work in custom `fileTypes` for Markdown and MDX files. Regex definitions keep working, and one file type can use both.
+Selectors work in custom `fileTypes` for Markdown, MDX, HTML, DITA, and AsciiDoc files. Regex definitions keep working, and one file type can use both.
 
 ## Write your first selector
 
@@ -62,20 +62,37 @@ A kind with `regex` limits an existing pattern to the right place. This definiti
 
 ## Kinds
 
-| Kind | Markdown | MDX | Options |
-|---|---|---|---|
-| `comment` | `<!-- -->`, `[comment]: #`, and `{/* */}` | `{/* */}` and `[comment]: #` | `excludes` |
-| `codeBlock` | Fenced code blocks | Fenced code blocks | `language`, `metaExcludes`, `excludes` |
-| `link` | `[text](url)` | `[text](url)` | `url`, `attributes`, `precededBy`, `excludes` |
-| `image` | `![alt](src)` | `![alt](src)` | `src`, `attributes`, `precededBy`, `excludes` |
-| `strong` | `**text**` and `__text__` | `**text**` and `__text__` | `precededBy`, `excludes` |
-| `emphasis` | `*text*` and `_text_` | `*text*` and `_text_` | `precededBy`, `excludes` |
-| `text` | Prose outside code, links, and formatting | Prose outside code, links, and formatting | `excludes` |
-| `element` | Not produced | JSX components, such as `<Button />` | `tag`, `attributes`, `precededBy`, `excludes` |
+| Kind | Options |
+|---|---|
+| `comment` | `excludes` |
+| `codeBlock` | `language`, `metaExcludes`, `excludes` |
+| `link` | `url`, `attributes`, `precededBy`, `excludes` |
+| `image` | `src`, `attributes`, `precededBy`, `excludes` |
+| `strong` | `precededBy`, `excludes` |
+| `emphasis` | `precededBy`, `excludes` |
+| `text` | `excludes` |
+| `element` | `tag`, `attributes`, `precededBy`, `excludes` |
 
-`{}` selects every node of a kind. `codeBlock` also takes a string that names one language, and `element` takes a string that names one tag.
+`{}` selects every node of a kind. `codeBlock` also takes a string that names one language, and `element` takes a string that names one tag. A kind a format doesn't produce matches nothing.
 
-Indented code blocks, inline code, URLs in angle brackets such as `<https://example.com>`, and reference-style links such as `[text][ref]` aren't nodes. Their text stays part of the surrounding prose.
+| Kind | Markdown and MDX | HTML | DITA | AsciiDoc |
+|---|---|---|---|---|
+| `comment` | `<!-- -->` in Markdown, `[comment]: #`, and `{/* */}` | `<!-- -->` | `<!-- -->` and `<?doc-detective ?>` | `//` lines and `////` blocks |
+| `codeBlock` | Fenced code blocks | `<pre>` | `<codeblock>` | `----` and `....` blocks |
+| `link` | `[text](url)` | `<a href>` | Not produced. Select `<xref>` as an `element` | `https://...[text]` and `link:...[text]` |
+| `image` | `![alt](src)` | `<img>` | `<image>` | `image::src[alt]` and `image:src[alt]` |
+| `strong` | `**text**` and `__text__` | `<strong>` and `<b>` | `<b>` | `*text*` and `**text**` |
+| `emphasis` | `*text*` and `_text_` | `<em>` and `<i>` | `<i>` | `_text_` and `__text__` |
+| `text` | Prose outside code, links, and formatting | The same | The same | The same |
+| `element` | JSX components in MDX, and HTML tags | Other tags | Other tags | Not produced |
+
+HTML inside Markdown, and lowercase JSX tags in MDX such as `<a>` and `<img>`, produce the same kinds as HTML. Text between inline HTML tags stays Markdown prose.
+
+A code block's language comes from the fence in Markdown, a `language-x` class in HTML, a `language-x` output class in DITA, and a `[source,x]` line in AsciiDoc. In AsciiDoc, the options after the language, such as `testIgnore` in `[source,bash,testIgnore]`, are its meta.
+
+Code holds no nodes. That covers Markdown's indented code blocks and inline code, and HTML's `<pre>`, `<code>`, `<script>`, and `<style>`. It also covers DITA's `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>`, and AsciiDoc's listings, literal blocks, `++++` blocks, and indented paragraphs.
+
+In Markdown, URLs in angle brackets such as `<https://example.com>`, and reference-style links such as `[text][ref]`, aren't links. Their text stays part of the surrounding prose.
 
 ## Options
 
@@ -90,9 +107,9 @@ All options are optional. Patterns are regular expressions, run without flags.
 | `url` | Pattern | Picks links whose destination matches |
 | `src` | Pattern | Picks images whose source matches |
 | `attributes` | Object of names to patterns or `true` | Picks nodes whose attribute matches. `true` only requires the attribute |
-| `precededBy` | Pattern | Picks nodes when the source from the start of their paragraph matches. End it with `$` to match the words right before the node |
+| `precededBy` | Pattern | Picks nodes when the source from the start of their block, such as a paragraph, matches. End it with `$` to match the words right before the node. In HTML and DITA, the source includes inline tags |
 
-In Markdown, attributes come from an attribute list right after a link or image, as in `![Results](results.png){.screenshot}`. A class, such as `.screenshot`, sets `class`. In MDX, attributes are the component's props.
+Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image.
 
 ## Use node fields in actions
 
@@ -152,12 +169,22 @@ This entry reads statements from comments that start with `dd:`, and skips draft
 
 ## Which files get parsed
 
-The file's extension picks the parser. `.md` and `.markdown` files parse as Markdown, and `.mdx` files parse as MDX. For any other extension, Doc Detective uses the format in `extends`, so a file type that extends `markdown` parses its `.txt` files as Markdown.
+The file's extension picks the parser:
+
+| Extensions | Parser |
+|---|---|
+| `.md`, `.markdown` | Markdown |
+| `.mdx` | MDX |
+| `.html`, `.htm` | HTML |
+| `.dita`, `.ditamap`, `.xml` | DITA |
+| `.adoc`, `.asciidoc`, `.asc` | AsciiDoc |
+
+For any other extension, Doc Detective uses the format in `extends`, so a file type that extends `markdown` parses its `.txt` files as Markdown. The HTML and DITA parsers accept broken markup, so they never stop detection.
 
 Doc Detective warns, and keeps detecting, in two cases:
 
 - **An `.mdx` file isn't valid MDX.** It parses as Markdown instead, so content inside JSX components isn't detected. Run your site's build to find the error.
-- **No parser handles the file.** Selectors match nothing, and regex definitions still run. Set `extends` to `markdown`, or use regex definitions.
+- **No parser handles the file.** Selectors match nothing, and regex definitions still run. Set `extends` to a built-in format, or use regex definitions.
 
 Dry runs don't print warnings, so run without `--dry-run` to see them.
 
