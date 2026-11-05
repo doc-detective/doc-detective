@@ -273,6 +273,12 @@ describe("selectors", function () {
       expect(strip((await detect(content, fileType)).steps)).to.deep.equal([{ goTo: { url: "https://d.com" } }, { find: "Open Home" }]);
     });
 
+    it("keeps document order when the first capture comes from outside the node", async function () {
+      const content = "Open the long sentence here [a](https://x.com) **b**\n";
+      const fileType = md({ markup: [{ link: { precededBy: "(.*)$" }, captures: ["precededBy.1"], actions: ["find"] }, { strong: {}, actions: ["click"] }] });
+      expect(strip((await detect(content, fileType)).steps)).to.deep.equal([{ find: "Open the long sentence here " }, { click: "b" }]);
+    });
+
     it("treats a pattern that doesn't compile as matching nothing", async function () {
       const fileType = md({ markup: [{ link: { url: "(" }, actions: ["find"] }, { link: { precededBy: "(" }, actions: ["find"] }, { link: {}, regex: "(", actions: ["find"] }, { actions: ["find"] }] });
       expect((await detect("[a](b)\n", fileType)).steps).to.deep.equal([]);

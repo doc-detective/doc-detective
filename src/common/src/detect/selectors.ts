@@ -200,12 +200,14 @@ export function collectStatements({
 }: CollectStatementsInput): any[] {
   const lineStarts = getLineStarts(content);
   const statements: any[] = [];
-  // Statements sort at their start plus the length of their first value, as regex statements always have.
+  // Statements sort at their start plus the length of their first value, as
+  // regex statements always have. A capture can come from outside the node,
+  // such as a `precededBy` group, so the sort point stays inside the match.
   const add = (statement: any, startIndex: number, endIndex: number) => {
     statement._startIndex = startIndex;
     statement._endIndex = endIndex;
     statement._line = getLineNumber(content, startIndex, lineStarts);
-    statement.sortIndex = statement[1] ? startIndex + statement[1].length : startIndex;
+    statement.sortIndex = statement[1] ? Math.min(startIndex + statement[1].length, endIndex) : startIndex;
     statements.push(statement);
   };
 

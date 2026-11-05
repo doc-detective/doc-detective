@@ -732,7 +732,7 @@ describe("config.ts — setConfig", function () {
     assert.ok(ft.extensions.includes("mdbare"));
   });
 
-  it("throws when a fileType extends an unknown definition", async function () {
+  it("rejects a fileType that extends an unknown definition", async function () {
     await assert.rejects(
       () =>
         setConfig({
@@ -743,7 +743,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /references unknown fileType definition/
+      /\/fileTypes\/0\/extends must be equal to one of the allowed values/
     );
   });
 

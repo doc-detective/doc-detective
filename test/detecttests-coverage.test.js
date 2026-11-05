@@ -289,13 +289,11 @@ describe("detectTests coverage", function () {
     it("skips a file when its runShell template produces an invalid step", async function () {
       // An empty runShell object (no `command`) builds a step that fails
       // test_v3 validation, so the file is skipped (warning) and no spec emits.
+      // The config schema rejects it, so set it after setConfig, as a caller
+      // of parseTests could.
       const script = write("bad.task", "echo task");
-      const config = await makeConfig({
-        input: [script],
-        fileTypes: [
-          { name: "task", extensions: ["task"], runShell: {} },
-        ],
-      });
+      const config = await makeConfig({ input: [script] });
+      config.fileTypes = [{ name: "task", extensions: ["task"], runShell: {} }];
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
     });

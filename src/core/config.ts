@@ -493,22 +493,9 @@ async function setConfig({ config, detectApps = true }: any) {
       });
     }
     if (fileType.extends) {
-      // If fileType extends another, merge the properties
+      // If fileType extends another, merge the properties. The schema limits
+      // `extends` to the built-in names, so the lookup always finds one.
       const extendedFileTypeRaw = defaultFileTypes[fileType.extends];
-      if (!extendedFileTypeRaw) {
-        log(
-          config,
-          "error",
-          'Invalid config. fileType.extends references unknown fileType definition: "' +
-            fileType.extends +
-            '".'
-        );
-        throw new Error(
-          'Invalid config. fileType.extends references unknown fileType definition: "' +
-            fileType.extends +
-            '".'
-        );
-      }
       const extendedFileType = JSON.parse(JSON.stringify(extendedFileTypeRaw));
       if (extendedFileType) {
         if (!fileType.name) {
