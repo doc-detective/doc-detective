@@ -14,8 +14,8 @@ const matrixPath = path.join(repoRoot, ".github", "workflows", "test.yml");
 // blocks a PR forever, which is exactly what happened to a docs-only PR: the
 // matrix was path-filtered away, so these four never appeared. See ADR 01103.
 const REQUIRED_CONTEXTS = [
-  "Test (ubuntu-latest, node 22, shard 1)",
-  "Test (ubuntu-latest, node 22, shard 2)",
+  "Test (ubuntu-latest, node 24, shard 1)",
+  "Test (ubuntu-latest, node 24, shard 2)",
   "Coverage ratchet (src/common)",
   "Coverage ratchet (root, cross-platform)",
 ];
@@ -248,9 +248,17 @@ describe("npm-test gate reports on every pull request", function () {
       // once by the real job and once by its placeholder.
       const names = [];
       for (const job of Object.values(reusable.jobs)) {
-        const include = job.strategy?.matrix?.include;
+        const matrix = job.strategy?.matrix;
+        const include = matrix?.include;
         if (job.name && job.name.includes("${{") && Array.isArray(include)) {
-          for (const cell of include) {
+          // The real grid's cells come from the base dimensions, with `include`
+          // only adding to them.
+          const base = (matrix.os ?? []).flatMap((os) =>
+            (matrix.node ?? []).flatMap((node) =>
+              (matrix.shard ?? []).map((shard) => ({ os, node, shard }))
+            )
+          );
+          for (const cell of [...base, ...include]) {
             names.push(
               job.name
                 .replace("${{ matrix.os }}", cell.os)

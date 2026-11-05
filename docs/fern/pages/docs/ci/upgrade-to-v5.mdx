@@ -25,6 +25,22 @@ If you can't move yet, pin version 4. An unpinned `npx doc-detective` resolves t
 npx doc-detective@4
 ```
 
+## Node.js version
+
+**What changed:** Doc Detective 5 needs Node.js 24.15 or later, and it's tested on Node.js 24 and 26. Node.js 22 reaches end of life in April 2027. On an older version, npm prints an `EBADENGINE` warning during install, and the run isn't supported.
+
+**What to do:**
+
+1. Move to Node.js 24.15 or later while you're still on Doc Detective 4, which also runs on it.
+2. Upgrade Doc Detective.
+3. In CI, set the version explicitly, because GitHub-hosted runners default to Node.js 22:
+
+   ```yaml
+   - uses: actions/setup-node@v4
+     with:
+       node-version: 24
+   ```
+
 ## Exit codes
 
 **What changed:** Failing tests, empty runs, and invalid specs no longer exit `0`.
