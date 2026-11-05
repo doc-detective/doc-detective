@@ -4,22 +4,42 @@
  * shared by both core and vscode extension.
  */
 
+/** Options for one selector kind. See `config_v3`'s `selector*` components. */
+export type SelectorOptions = Record<string, any>;
+
+/** The selector kind keys a markup definition or statement container can have. */
+export interface SelectorKinds {
+  comment?: SelectorOptions;
+  codeBlock?: string | SelectorOptions;
+  link?: SelectorOptions;
+  image?: SelectorOptions;
+  strong?: SelectorOptions;
+  emphasis?: SelectorOptions;
+  text?: SelectorOptions;
+  element?: string | SelectorOptions;
+}
+
 export interface FileType {
   name?: string;
+  extends?: string;
   extensions: string[];
   inlineStatements?: {
+    in?: Array<"comment" | (SelectorKinds & { value?: string; regex?: string | string[] })>;
     testStart?: string[];
     testEnd?: string[];
     ignoreStart?: string[];
     ignoreEnd?: string[];
     step?: string[];
   };
-  markup?: Array<{
-    name?: string;
-    regex: string[];
-    actions?: (string | Record<string, any>)[];
-    batchMatches?: boolean;
-  }>;
+  markup?: Array<
+    SelectorKinds & {
+      name?: string;
+      regex?: string[];
+      captures?: string[];
+      actions?: (string | Record<string, any>)[];
+      batchMatches?: boolean;
+    }
+  >;
   runShell?: Record<string, any>;
 }
 

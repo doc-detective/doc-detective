@@ -14,6 +14,7 @@ description: "Reference for the `File type (executable)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
+name | string | Optional. Name of the file type. | —
 extensions | one of:<br/>- string<br/>- array of string | Required. File extensions to use with type. | —
 runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/reference/schemas/run-shell-command-detailed)) | Optional. `runShell` step to perform for this file type. Use $1 as a placeholder for the file path. | —
 
@@ -21,6 +22,7 @@ runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/ref
 
 ```json
 {
+  "name": "example",
   "extensions": "example",
   "runShell": "example"
 }

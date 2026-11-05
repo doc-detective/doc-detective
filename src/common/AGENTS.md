@@ -52,7 +52,9 @@ When `validate()` is called:
 - Property renames: `typeKeys.delay` → `type.inputDelay`, `maxVariation` (0-100) → (0-1), etc.
 
 **AJV configuration** (in `validate.js`):
-- `coerceTypes: true` - Auto-converts strings to numbers, etc.
+- `coerceTypes: true` - Auto-converts strings to numbers, etc. Inside an `anyOf`, Ajv coerces into the
+  first branch that can take the value, so `anyOf: [{ type: "string" }, { const: true }]` turns `true` into
+  `"true"`. List the untyped `const: true` branch first, as `selectorAttributes` in `config_v3` does.
 - `useDefaults: true` - Applies default values from schema
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`

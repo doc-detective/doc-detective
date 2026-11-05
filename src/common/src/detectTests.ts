@@ -8,41 +8,8 @@ import YAML from "yaml";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
-import { contentHash, getLineStarts, getLineNumber } from "./textUtils.js";
-
-// Cache of compiled patterns, keyed by `pattern + ' ' + flags`. parseContent
-// re-derives the same handful of file-type regexes for EVERY file it scans
-// (~36 per markdown file), so compiling each pattern once and reusing it
-// removes almost all of that RegExp construction. Both the compiled RegExp and
-// the `null` (invalid/unsafe) outcome are cached. Safe to share the returned
-// instance: callers only use it via `String.prototype.matchAll`, which clones
-// the regexp internally and so never mutates the cached object's `lastIndex`.
-const compiledRegExpCache = new Map<string, RegExp | null>();
-
-/**
- * Creates a RegExp from a pattern string with safety checks against ReDoS.
- * Returns null if the pattern is invalid or potentially unsafe. Results are
- * memoized per `(pattern, flags)` for the lifetime of the process.
- *
- * These patterns come from trusted file type configuration rather than
- * arbitrary user input.
- */
-export function safeRegExp(pattern: string, flags: string): RegExp | null {
-  if (typeof pattern !== 'string' || pattern.length === 0) return null;
-  // Reject excessively long patterns
-  if (pattern.length > 1500) return null;
-  const cacheKey = pattern + ' ' + flags;
-  const cached = compiledRegExpCache.get(cacheKey);
-  if (cached !== undefined) return cached;
-  let compiled: RegExp | null;
-  try {
-    compiled = new RegExp(pattern, flags);
-  } catch {
-    compiled = null;
-  }
-  compiledRegExpCache.set(cacheKey, compiled);
-  return compiled;
-}
+import { contentHash, getLineStarts, getLineNumber, safeRegExp } from "./textUtils.js";
+import { collectStatements } from "./detect/selectors.js";
 
 // Pure-string version of core's generateSpecId path normalization (no
 // node:path so it stays browser-compatible). Used as the ID base when the
@@ -55,7 +22,7 @@ function normalizePathForId(filePath?: string): string {
     .replace(/[^a-zA-Z0-9._/-]/g, "_");
 }
 
-export { contentHash, getLineStarts, getLineNumber };
+export { contentHash, getLineStarts, getLineNumber, safeRegExp };
 export { FileType } from "./fileTypes.js";
 
 export interface DetectTestsConfig {
@@ -366,9 +333,6 @@ export async function parseContent({
   testIdBase?: string;
   onInvalid?: InvalidHandler;
 }): Promise<DetectedTest[]> {
-  const statements: Array<any> = [];
-  const statementTypes = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"];
-
   function findTest({ tests, testId }: { tests: DetectedTest[]; testId: string }): DetectedTest {
     let test = tests.find((t) => t.testId === testId);
     if (!test) {
@@ -384,68 +348,13 @@ export async function parseContent({
     || Object.values(defaultFileTypes).find(ft => ft.extensions.includes(ext))
     || detectFileTypeFromContent(content);
 
-  // Precompute line starts for efficient line number lookups
-  const lineStarts = getLineStarts(content);
-
-  // Test for each statement type
-  statementTypes.forEach((statementType) => {
-    if (
-      typeof fileType.inlineStatements === "undefined" ||
-      typeof fileType.inlineStatements[statementType as keyof typeof fileType.inlineStatements] === "undefined"
-    )
-      return;
-
-    fileType.inlineStatements[statementType as keyof typeof fileType.inlineStatements]!.forEach((statementRegex) => {
-      const regex = safeRegExp(statementRegex, "g");
-      if (!regex) return;
-      const matches = [...content.matchAll(regex)];
-      matches.forEach((match: any) => {
-        match.type = statementType;
-        match.sortIndex = match[1] ? match.index + match[1].length : match.index;
-        match._startIndex = match.index;
-        match._endIndex = match.index + match[0].length;
-        match._line = getLineNumber(content, match.index, lineStarts);
-      });
-      statements.push(...matches);
-    });
+  const statements = collectStatements({
+    content,
+    fileType,
+    filePath,
+    detectSteps: config.detectSteps ?? true,
+    warn: (message) => log(config, "warn", message),
   });
-
-  if ((config.detectSteps ?? true) && fileType.markup) {
-    fileType.markup.forEach((markup) => {
-      markup.regex.forEach((pattern) => {
-        const regex = safeRegExp(pattern, "g");
-        if (!regex) return;
-        const matches = [...content.matchAll(regex)];
-        if (matches.length > 0 && markup.batchMatches) {
-          const startIdx = Math.min(...matches.map((m) => m.index!));
-          const endIdx = Math.max(...matches.map((m) => m.index! + m[0].length));
-          const combinedMatch: any = {
-            1: matches.map((match) => match[1] || match[0]).join("\n"),
-            type: "detectedStep",
-            markup: markup,
-            sortIndex: startIdx,
-            _startIndex: startIdx,
-            _endIndex: endIdx,
-            _line: getLineNumber(content, startIdx, lineStarts),
-          };
-          statements.push(combinedMatch);
-        } else if (matches.length > 0) {
-          matches.forEach((match: any) => {
-            match.type = "detectedStep";
-            match.markup = markup;
-            match.sortIndex = match[1] ? match.index + match[1].length : match.index;
-            match._startIndex = match.index;
-            match._endIndex = match.index + match[0].length;
-            match._line = getLineNumber(content, match.index, lineStarts);
-          });
-          statements.push(...matches);
-        }
-      });
-    });
-  }
-
-  // Sort statements by index
-  statements.sort((a, b) => a.sortIndex - b.sortIndex);
 
   // Process statements into tests and steps. Tests without an explicit
   // testId are grouped under an ephemeral pending ID during processing;

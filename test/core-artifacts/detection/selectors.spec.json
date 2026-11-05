@@ -1,0 +1,186 @@
+{
+  "specId": "selectors",
+  "description": "Selector detection through the real CLI (ADR 01155). fileTypes are config-level, so each test runs one case of dry-run-detect.cjs, which writes a document and config under .tmp/fixture-detection/, runs doc-detective, and checks the detected steps, exit code, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "tests": [
+    {
+      "testId": "selectors-markdown-kinds",
+      "description": "Every kind Markdown produces, with both shorthands, and nothing from inside code.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs markdown-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-statement-containers",
+      "description": "Each statement container form: comment, a container with regex, and one with a value field.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs statement-containers",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-definition-forms",
+      "description": "Regex alone, a kind alone, and a kind with regex, in one fileType.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs definition-forms",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-mdx-components",
+      "description": "JSX components in .mdx are elements, with their attributes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs mdx-components",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-mdx-fallback",
+      "description": "Invalid MDX parses as Markdown, with a warning.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs mdx-fallback",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-no-parser",
+      "description": "With no parser for the file, selectors warn and regex definitions still run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs no-parser",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-extends-markdown",
+      "description": "A file under another extension parses as the format it extends.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs extends-markdown",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-container-and-regex",
+      "description": "A regex and a container that find the same statement give one step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs container-and-regex",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-detect-steps-false",
+      "description": "detectSteps: false turns off selector markup, and containers still read statements.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs detect-steps-false",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-reject-two-kinds",
+      "description": "A definition with two kinds exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs reject-two-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-reject-unknown-key",
+      "description": "A definition with an unknown key exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs reject-unknown-key",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-reject-bad-pattern",
+      "description": "A selector pattern that doesn't compile exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs reject-bad-pattern",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

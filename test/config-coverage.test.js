@@ -694,6 +694,22 @@ describe("config.ts — setConfig", function () {
     assert.ok(names.includes("findOnscreenText"));
   });
 
+  it("keeps statement containers and selector definitions through extends", async function () {
+    const container = { element: { tag: ["meta"] }, value: "attributes.content" };
+    const selector = { name: "runBash", codeBlock: "bash", actions: [{ runShell: "$1" }] };
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [{ extends: "markdown", inlineStatements: { in: ["comment", container] }, markup: [selector] }],
+      },
+    });
+    const ft = config.fileTypes[0];
+    assert.deepEqual(ft.inlineStatements.in, ["comment", container]);
+    assert.deepEqual(ft.markup[0], selector);
+  });
+
   it("extends a default definition when the extending fileType omits inlineStatements and markup", async function () {
     // Exercises the `fileType.inlineStatements === undefined` init branch and
     // the `fileType.markup = fileType.markup || []` init branch during merge.

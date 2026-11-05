@@ -80,6 +80,12 @@ tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
 
 Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
 
+## Unknown keys in custom file types
+
+**What changed:** A custom file type can't have keys Doc Detective doesn't recognize, and neither can its `inlineStatements` or `markup` definitions. One makes the config invalid, and the run exits `2`. Version 4 ignored those keys, so a typo, or a key from an older config format such as `testStartStatementOpen`, silently did nothing. Each `markup` definition also needs `regex` or a [selector](/docs/test-docs/input-formats/selectors) kind, and an action name must be one Doc Detective knows. A file type with `runShell` can't also have `markup` or `inlineStatements`.
+
+**What to do:** Fix or remove each key the error names. Move statement patterns into `inlineStatements`, as `testStart`, `testEnd`, `ignoreStart`, `ignoreEnd`, and `step`. See [Custom input formats](/docs/test-docs/input-formats/custom).
+
 ## Checks that used to pass
 
 **What changed:** Some checks passed in version 4 without testing anything. These now fail or stop the run:
