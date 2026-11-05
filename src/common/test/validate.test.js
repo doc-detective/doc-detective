@@ -2122,6 +2122,75 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    const counts = { pass: 1, fail: 0, warning: 0, skipped: 0 };
+    const summary = { specs: counts, tests: counts, contexts: counts, steps: counts };
+
+    describe("report_v3 summary", function () {
+      const specs = [{ tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] }];
+
+      it("should require a summary", function () {
+        const result = validate({ schemaKey: "report_v3", object: { specs } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("summary");
+      });
+
+      it("should accept the empty specs of a run that matched nothing", function () {
+        const zero = { pass: 0, fail: 0, warning: 0, skipped: 0 };
+        const object = {
+          summary: { specs: zero, tests: zero, contexts: zero, steps: zero },
+          durationMs: 0,
+          specs: [],
+        };
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const [name, broken] of [
+        ["a missing level", { specs: counts, tests: counts, contexts: counts }],
+        ["a missing count", { ...summary, steps: { pass: 1, fail: 0, warning: 0 } }],
+        ["a negative count", { ...summary, steps: { ...counts, pass: -1 } }],
+        ["a fractional count", { ...summary, steps: { ...counts, pass: 0.5 } }],
+        ["an unknown count", { ...summary, steps: { ...counts, flaky: 1 } }],
+      ]) {
+        it(`should reject ${name}`, function () {
+          const result = validate({ schemaKey: "report_v3", object: { summary: broken, specs } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("summary");
+        });
+      }
+
+      it("should declare result fields on every node, with known values only", function () {
+        const node = { result: "PASS", resultDescription: "ok" };
+        const object = {
+          summary,
+          specs: [
+            {
+              ...node,
+              tests: [
+                {
+                  ...node,
+                  contexts: [
+                    {
+                      ...node,
+                      steps: [{ ...node, goTo: { url: "https://example.com" } }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+        const valid = validate({ schemaKey: "report_v3", object });
+        expect(valid.valid, valid.errors).to.be.true;
+
+        const broken = structuredClone(object);
+        broken.specs[0].tests[0].result = "BROKEN";
+        const invalid = validate({ schemaKey: "report_v3", object: broken });
+        expect(invalid.valid).to.be.false;
+        expect(invalid.errors).to.include("result");
+      });
+    });
+
     describe("report_v3 warm block", function () {
       const minimalSpecs = [
         { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
@@ -2137,6 +2206,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1234,
@@ -2161,7 +2231,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       it("should validate a report_v3 object without a warm block (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",
-          object: { specs: minimalSpecs },
+          object: { summary, specs: minimalSpecs },
         });
         expect(result.valid, result.errors).to.be.true;
         expect(result.object.warm).to.equal(undefined);
@@ -2171,6 +2241,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2187,6 +2258,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2202,6 +2274,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2217,6 +2290,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: { durationMs: 1, tasks: [], extra: true },
           },
@@ -2241,6 +2315,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       // A fully timed report: `durationMs` on the run, spec, test, resolved
       // context, and step nodes. System-populated output, never authored.
       const timedReport = {
+        summary,
         durationMs: 5000,
         specs: [
           {
@@ -2283,7 +2358,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       it("should validate a report_v3 object without durationMs (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",
-          object: { specs: minimalSpecs },
+          object: { summary, specs: minimalSpecs },
         });
         expect(result.valid, result.errors).to.be.true;
         expect(result.object.durationMs).to.equal(undefined);

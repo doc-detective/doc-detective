@@ -51,7 +51,7 @@ npx doc-detective@4
 **What to do:**
 
 - Update anything that reads logs from stdout, or that matches labels like `(ERROR)`. To collect everything in one stream, redirect with `2>&1`.
-- Use `--json` for one JSON document on stdout, or `--plain` for one tab-separated line per test.
+- Use `--json` for one JSON document on stdout, or `--plain` for one tab-separated line per test context.
 - Use `-d` to bring labels back and add timestamps.
 - Expect `-l silent` to silence the summary too. Use `-q` to keep errors and the one-line verdict.
 
@@ -59,7 +59,7 @@ npx doc-detective@4
 
 **What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
 
 ## `--output` is a results file
 

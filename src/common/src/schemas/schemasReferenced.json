@@ -2569,6 +2569,20 @@
             "$ref": "step_v3.schema.json#"
           }
         },
+        "result": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "SKIPPED"
+          ],
+          "readOnly": true
+        },
+        "resultDescription": {
+          "type": "string",
+          "readOnly": true
+        },
         "durationMs": {
           "type": "integer",
           "minimum": 0,
@@ -2580,6 +2594,20 @@
           "items": {
             "type": "object",
             "properties": {
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "WARNING",
+                  "SKIPPED"
+                ],
+                "readOnly": true
+              },
+              "resultDescription": {
+                "type": "string",
+                "readOnly": true
+              },
               "durationMs": {
                 "type": "integer",
                 "minimum": 0,
@@ -2872,18 +2900,14 @@
             "type": "object",
             "default": {},
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {
-                "type": "string"
-              }
+              "^[A-Za-z0-9_]+$": {}
             }
           },
           "variables": {
             "type": "object",
             "default": {},
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {
-                "type": "string"
-              }
+              "^[A-Za-z0-9_]+$": {}
             }
           },
           "breakpoint": {
@@ -2904,6 +2928,20 @@
           "visit": {
             "type": "integer",
             "minimum": 2,
+            "readOnly": true
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "WARNING",
+              "SKIPPED"
+            ],
+            "readOnly": true
+          },
+          "resultDescription": {
+            "type": "string",
             "readOnly": true
           },
           "durationMs": {
@@ -6886,6 +6924,20 @@
         "annotationDefaults": {
           "$ref": "annotationDefaults_v3.schema.json#"
         },
+        "result": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "SKIPPED"
+          ],
+          "readOnly": true
+        },
+        "resultDescription": {
+          "type": "string",
+          "readOnly": true
+        },
         "durationMs": {
           "type": "integer",
           "minimum": 0,
@@ -6931,9 +6983,33 @@
           "minimum": 0,
           "readOnly": true
         },
+        "summary": {
+          "type": "object",
+          "readOnly": true,
+          "additionalProperties": false,
+          "required": [
+            "specs",
+            "tests",
+            "contexts",
+            "steps"
+          ],
+          "properties": {
+            "specs": {
+              "$ref": "#/components/schemas/resultCounts"
+            },
+            "tests": {
+              "$ref": "#/components/schemas/resultCounts"
+            },
+            "contexts": {
+              "$ref": "#/components/schemas/resultCounts"
+            },
+            "steps": {
+              "$ref": "#/components/schemas/resultCounts"
+            }
+          }
+        },
         "specs": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "anyOf": [
               {
@@ -7001,8 +7077,41 @@
         }
       },
       "required": [
+        "summary",
         "specs"
       ],
+      "components": {
+        "schemas": {
+          "resultCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pass",
+              "fail",
+              "warning",
+              "skipped"
+            ],
+            "properties": {
+              "pass": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fail": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "warning": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
       "$id": "report_v3.schema.json"
     },
     "resolvedTests_v3": {
@@ -9941,6 +10050,20 @@
             "$ref": "step_v3.nodefaults.schema.json#"
           }
         },
+        "result": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "SKIPPED"
+          ],
+          "readOnly": true
+        },
+        "resultDescription": {
+          "type": "string",
+          "readOnly": true
+        },
         "durationMs": {
           "type": "integer",
           "minimum": 0,
@@ -9952,6 +10075,20 @@
           "items": {
             "type": "object",
             "properties": {
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "WARNING",
+                  "SKIPPED"
+                ],
+                "readOnly": true
+              },
+              "resultDescription": {
+                "type": "string",
+                "readOnly": true
+              },
               "durationMs": {
                 "type": "integer",
                 "minimum": 0,
@@ -10229,17 +10366,13 @@
           "outputs": {
             "type": "object",
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {
-                "type": "string"
-              }
+              "^[A-Za-z0-9_]+$": {}
             }
           },
           "variables": {
             "type": "object",
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {
-                "type": "string"
-              }
+              "^[A-Za-z0-9_]+$": {}
             }
           },
           "breakpoint": {
@@ -10259,6 +10392,20 @@
           "visit": {
             "type": "integer",
             "minimum": 2,
+            "readOnly": true
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "WARNING",
+              "SKIPPED"
+            ],
+            "readOnly": true
+          },
+          "resultDescription": {
+            "type": "string",
             "readOnly": true
           },
           "durationMs": {
@@ -14163,6 +14310,20 @@
         "annotationDefaults": {
           "$ref": "annotationDefaults_v3.nodefaults.schema.json#"
         },
+        "result": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "SKIPPED"
+          ],
+          "readOnly": true
+        },
+        "resultDescription": {
+          "type": "string",
+          "readOnly": true
+        },
         "durationMs": {
           "type": "integer",
           "minimum": 0,
@@ -14205,9 +14366,33 @@
           "minimum": 0,
           "readOnly": true
         },
+        "summary": {
+          "type": "object",
+          "readOnly": true,
+          "additionalProperties": false,
+          "required": [
+            "specs",
+            "tests",
+            "contexts",
+            "steps"
+          ],
+          "properties": {
+            "specs": {
+              "$ref": "report_v3.nodefaults.schema.json#/components/schemas/resultCounts"
+            },
+            "tests": {
+              "$ref": "report_v3.nodefaults.schema.json#/components/schemas/resultCounts"
+            },
+            "contexts": {
+              "$ref": "report_v3.nodefaults.schema.json#/components/schemas/resultCounts"
+            },
+            "steps": {
+              "$ref": "report_v3.nodefaults.schema.json#/components/schemas/resultCounts"
+            }
+          }
+        },
         "specs": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "anyOf": [
               {
@@ -14275,8 +14460,41 @@
         }
       },
       "required": [
+        "summary",
         "specs"
       ],
+      "components": {
+        "schemas": {
+          "resultCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pass",
+              "fail",
+              "warning",
+              "skipped"
+            ],
+            "properties": {
+              "pass": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fail": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "warning": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
       "$id": "report_v3.nodefaults.schema.json"
     },
     {

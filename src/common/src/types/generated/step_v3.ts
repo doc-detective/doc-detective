@@ -4709,24 +4709,28 @@ export interface Common {
  */
 export interface OutputsStep {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -4963,24 +4967,28 @@ export interface Common1 {
  */
 export interface OutputsStep1 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep1`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep1 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep1`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -5253,24 +5261,28 @@ export interface Common2 {
  */
 export interface OutputsStep2 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep2`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep2 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep2`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -5744,24 +5756,28 @@ export interface Common3 {
  */
 export interface OutputsStep3 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep3`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep3 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep3`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -6022,24 +6038,28 @@ export interface Common4 {
  */
 export interface OutputsStep4 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep4`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep4 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep4`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -6316,24 +6336,28 @@ export interface Common5 {
  */
 export interface OutputsStep5 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep5`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep5 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep5`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -6618,24 +6642,28 @@ export interface Common6 {
  */
 export interface OutputsStep6 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep6`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep6 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep6`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -6921,24 +6949,28 @@ export interface Common7 {
  */
 export interface OutputsStep7 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep7`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep7 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep7`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -7229,24 +7261,28 @@ export interface Common8 {
  */
 export interface OutputsStep8 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep8`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep8 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep8`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -7571,24 +7607,28 @@ export interface Common9 {
  */
 export interface OutputsStep9 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep9`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep9 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep9`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -8399,24 +8439,28 @@ export interface Common10 {
  */
 export interface OutputsStep10 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep10`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep10 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep10`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -8620,24 +8664,28 @@ export interface Common11 {
  */
 export interface OutputsStep11 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep11`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep11 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep11`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -8985,24 +9033,28 @@ export interface Common12 {
  */
 export interface OutputsStep12 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep12`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep12 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep12`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -9212,24 +9264,28 @@ export interface Common13 {
  */
 export interface OutputsStep13 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep13`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep13 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep13`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -9583,24 +9639,28 @@ export interface Common14 {
  */
 export interface OutputsStep14 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep14`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep14 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep14`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -10188,24 +10248,28 @@ export interface Common15 {
  */
 export interface OutputsStep15 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep15`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep15 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep15`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -10409,24 +10473,28 @@ export interface Common16 {
  */
 export interface OutputsStep16 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep16 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep16`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -10700,24 +10768,28 @@ export interface Common17 {
  */
 export interface OutputsStep17 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep17`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep17 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep17`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -10921,24 +10993,28 @@ export interface Common18 {
  */
 export interface OutputsStep18 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep18`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep18 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep18`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -11333,24 +11409,28 @@ export interface Common19 {
  */
 export interface OutputsStep19 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep19`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep19 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep19`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.
@@ -11554,24 +11634,28 @@ export interface Common20 {
  */
 export interface OutputsStep20 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
  */
 export interface VariablesStep20 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `VariablesStep20`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * An articulated assertion record produced by the runner for a step result. Each record names a single verification check, whether it passed, and the values it compared. The step's result is the roll-up of its assertion results (FAIL > WARNING > all-SKIPPED > PASS). System-populated; appears in test results, not in authored specs.

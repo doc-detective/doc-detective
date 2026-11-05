@@ -6,6 +6,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
+import { validate } from "../dist/common/src/index.js";
+import { outputResults } from "../dist/utils.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(ROOT, "bin", "doc-detective.js");
@@ -304,7 +306,48 @@ describe("CLI contract", function () {
       });
     }
 
-    it("prints one tab-separated line per test with --plain", function () {
+    for (const [name, file, args, status] of [
+      ["a passing run", "pass.spec.json", [], 0],
+      ["a failing run", "fail.spec.json", [], 1],
+      ["a run whose filter matches nothing", "pass.spec.json", ["-t", "no-such-test"], 2],
+    ]) {
+      it(`matches report_v3 for ${name}`, function () {
+        const r = run(["-i", file, "--json", ...args]);
+        expect(r.status, r.stderr).to.equal(status);
+        const report = JSON.parse(r.stdout);
+        const result = validate({ schemaKey: "report_v3", object: report, addDefaults: false });
+        expect(result.valid, result.errors).to.equal(true);
+      });
+    }
+
+    it("names the platform and browser in the fourth --plain column", async function () {
+      const lines = [];
+      const original = console.log;
+      console.log = (line) => lines.push(String(line));
+      try {
+        await outputResults({ reporters: ["plainReporter"], logLevel: "silent" }, cwd, {
+          summary: {},
+          specs: [
+            {
+              specId: "s",
+              tests: [
+                {
+                  testId: "t",
+                  contexts: [
+                    { result: "PASS", platform: "linux", browser: { name: "firefox" } },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      } finally {
+        console.log = original;
+      }
+      expect(lines).to.include("PASS\ts\tt\tlinux/firefox");
+    });
+
+    it("prints one tab-separated line per test context with --plain", function () {
       const r = run(["-i", "pass.spec.json", "--plain"]);
       expect(r.status, r.stderr).to.equal(0);
       const lines = r.stdout.trim().split("\n");

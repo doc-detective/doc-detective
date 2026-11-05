@@ -8,7 +8,7 @@
   "properties": {
     "reportId": {
       "type": "string",
-      "description": "Unique identifier for the test specification."
+      "description": "Unique identifier for this report."
     },
     "runId": {
       "type": "string",
@@ -26,10 +26,22 @@
       "description": "Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.",
       "readOnly": true
     },
+    "summary": {
+      "type": "object",
+      "description": "Counts of results at each level of the run. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true,
+      "additionalProperties": false,
+      "required": ["specs", "tests", "contexts", "steps"],
+      "properties": {
+        "specs": { "$ref": "#/components/schemas/resultCounts" },
+        "tests": { "$ref": "#/components/schemas/resultCounts" },
+        "contexts": { "$ref": "#/components/schemas/resultCounts" },
+        "steps": { "$ref": "#/components/schemas/resultCounts" }
+      }
+    },
     "specs": {
-      "description": "Test specifications that were performed.",
+      "description": "Test specifications that were performed. Empty when a filter matched nothing.",
       "type": "array",
-      "minItems": 1,
       "items": {
         "anyOf": [
           {
@@ -105,10 +117,33 @@
     }
   },
   "required": [
+    "summary",
     "specs"
   ],
+  "components": {
+    "schemas": {
+      "resultCounts": {
+        "type": "object",
+        "title": "Result counts",
+        "additionalProperties": false,
+        "required": ["pass", "fail", "warning", "skipped"],
+        "properties": {
+          "pass": { "type": "integer", "minimum": 0 },
+          "fail": { "type": "integer", "minimum": 0 },
+          "warning": { "type": "integer", "minimum": 0 },
+          "skipped": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  },
   "examples": [
     {
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+      },
       "specs": [
         {
           "$ref": "spec_v3.schema.json#/examples/0"
@@ -135,6 +170,12 @@
       }
     },
     {
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+      },
       "specs": [
         {
           "$ref": "spec_v3.schema.json#/examples/1"
@@ -142,6 +183,12 @@
       ]
     },
     {
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+      },
       "specs": [
         {
           "$ref": "spec_v3.schema.json#/examples/2"

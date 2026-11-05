@@ -633,7 +633,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       for (const test of spec.tests ?? []) {
         const contexts = (test.contexts ?? []).filter(Boolean);
         for (const context of contexts.length > 0 ? contexts : [{}]) {
-          const where = [context.platform, context.browser].filter(Boolean).join("/");
+          const where = [context.platform, context.browser?.name].filter(Boolean).join("/");
           console.log(
             [context.result ?? test.result, spec.specId, test.testId, where].join("\t")
           );

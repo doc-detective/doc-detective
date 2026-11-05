@@ -50,6 +50,17 @@
       "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
       "$ref": "annotationDefaults_v3.schema.json#"
     },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+      "description": "Outcome of this spec. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
+    "resultDescription": {
+      "type": "string",
+      "description": "Why this spec had its outcome. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
     "durationMs": {
       "type": "integer",
       "minimum": 0,

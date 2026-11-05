@@ -72,7 +72,7 @@ Logs, warnings, and progress go to stderr, so you can pipe stdout without filter
 | `-l silent` | Print nothing, including the summary. |
 | `-d`, `--debug` | Show debugging output, with level labels and timestamps. |
 | `--json` | Print the results as one JSON document on stdout. |
-| `--plain` | Print one tab-separated line per test on stdout. |
+| `--plain` | Print one tab-separated line per test context on stdout: result, spec ID, test ID, and platform and browser. |
 
 ## Step 3: Find the JSON results
 
@@ -86,6 +86,18 @@ doc-detective --input ./docs --output results.json
 - The `json` reporter writes `testResults-<timestamp>.json` in `outputDir`. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
 
 The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
+
+### Rely on these fields
+
+These parts of the results are a stable contract for scripts. A change to any of them needs a new major version:
+
+- `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts.
+- `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `durationMs` on the run and on every spec, test, context, and step.
+- `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
+- The four `--plain` columns, in order. New columns only go at the end.
+
+Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape.
 
 ### Find slow specs with `durationMs`
 
