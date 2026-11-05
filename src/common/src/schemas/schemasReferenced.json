@@ -2923,7 +2923,9 @@
             "type": "object",
             "default": {},
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {}
+              "^[A-Za-z0-9_]+$": {
+                "type": "string"
+              }
             }
           },
           "breakpoint": {
@@ -10455,7 +10457,9 @@
           "variables": {
             "type": "object",
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {}
+              "^[A-Za-z0-9_]+$": {
+                "type": "string"
+              }
             }
           },
           "breakpoint": {
