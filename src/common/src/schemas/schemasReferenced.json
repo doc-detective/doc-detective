@@ -2923,7 +2923,9 @@
             "type": "object",
             "default": {},
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {}
+              "^[A-Za-z0-9_]+$": {
+                "type": "string"
+              }
             }
           },
           "breakpoint": {
@@ -6282,6 +6284,10 @@
               }
             ],
             "properties": {
+              "timeout": {
+                "type": "integer",
+                "default": 5000
+              },
               "button": {
                 "$ref": "#/components/schemas/button"
               },
@@ -10455,7 +10461,9 @@
           "variables": {
             "type": "object",
             "patternProperties": {
-              "^[A-Za-z0-9_]+$": {}
+              "^[A-Za-z0-9_]+$": {
+                "type": "string"
+              }
             }
           },
           "breakpoint": {
@@ -13751,6 +13759,9 @@
               }
             ],
             "properties": {
+              "timeout": {
+                "type": "integer"
+              },
               "button": {
                 "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
               },

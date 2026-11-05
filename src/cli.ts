@@ -73,6 +73,7 @@ function firstSkipReason(results: any): string | undefined {
       }
       if (test.resultDescription) return test.resultDescription;
     }
+    if (spec.resultDescription) return spec.resultDescription;
   }
   return undefined;
 }

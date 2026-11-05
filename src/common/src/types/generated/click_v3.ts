@@ -16,6 +16,10 @@ export type ClickElementDetailed = {
   [k: string]: unknown;
 } & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
