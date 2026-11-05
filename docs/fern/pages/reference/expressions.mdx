@@ -96,8 +96,17 @@ Write word operators between the operands, with a space on each side.
 
 Two function operators are always available, including in a plain variable assignment:
 
-- **`jq(value, query)`**: Apply a [jq](https://jqlang.github.io/jq/) query to a value.
+- **`jq(value, query)`**: Apply a [jq](https://jqlang.github.io/jq/) query to a value. `jq(value, ".count") == 1` compares the query's result to `1`. If a query in a step's `variables` fails, the step fails instead of storing the query's text in the variable.
 - **`extract(value, pattern)`**: Return the first capture group of a regular expression match against a string, or the full match when the pattern has no capture group. Returns `null` if the pattern doesn't match. Unlike `matches`, write `pattern` as a bare or quoted string (`"[0-9a-f]+"`), not a `/pattern/` literal. `extract` passes `pattern` straight to `new RegExp()`. Wrapping it in slashes makes the slashes part of the literal text to match, which won't find what you expect.
+
+## When a condition is false
+
+A condition is an `if` guard on a spec, test, or step, the `if` of an `onPass`, `onFail`, `onWarning`, or `onSkip` routing entry, or a custom assertion. Doc Detective treats a condition as false in these cases, so an assertion fails and an `if` skips its spec, test, or step:
+
+- It references a `$$` value that doesn't exist. Doc Detective logs a warning.
+- A `jq()` query in it fails, for example because of a syntax error in the query.
+- It evaluates to `null`, such as a `jq()` query that finds nothing.
+- It's plain text, with no `$$` reference, operator, or function. Examples are `"1"`, `"yes"`, and an environment variable such as `$FEATURE_FLAG`, whether or not it's set. Doc Detective logs a warning. Write a comparison instead, such as `$$outputs.exitCode == 0`.
 
 ## Regular expressions in `matches`
 

@@ -57,7 +57,7 @@ If a step occasionally fails for transient reasons, attach a retry handler so Do
 
 ### Allow expected output variation
 
-When you save command, code, or response output to a reference file, small run-to-run differences can fail an exact comparison. Set `maxVariation` so a difference within your threshold passes, and use `overwrite` to control whether the reference file updates. See the [`runShell`](/docs/actions/runshell) reference for the output-comparison fields.
+When you save command, code, or response output to a reference file, Doc Detective compares each run's output to that file. By default, any difference returns WARNING, which doesn't fail the run. Set `maxVariation` to the fraction of difference you accept, such as `0.1` for 10%. A difference within that threshold passes. Use `overwrite` to control whether the reference file updates. See the [`runShell`](/docs/actions/runshell) reference for the output-comparison fields.
 
 ### Account for headed versus headless
 

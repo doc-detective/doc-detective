@@ -226,7 +226,8 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 
 - If the action's implicit check fails, Doc Detective skips the custom assertions and the step stays FAIL.
 - Sometimes the action produces no result to assert on, either because it was deliberately skipped (for example, `wait: false`) or because it errored first. Doc Detective then skips the custom assertions, and the step keeps its original status.
-- An expression that can't be resolved fails closed, so the assertion fails and the step fails.
+- An expression that can't be resolved fails closed, so the assertion fails and the step fails. See [when a condition is false](/reference/reference/expressions#when-a-condition-is-false).
+- Write each assertion as a string, such as `"$$outputs.exitCode == 0"`. If `assertions` holds objects, such as the assertion records in a results file, the step fails.
 
 <Note>
 Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
@@ -302,7 +303,7 @@ Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that
 
 ### How conditions resolve
 
-- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
+- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it. Plain text such as `"yes"`, or a `jq()` query that fails or finds nothing, also counts as false. See [when a condition is false](/reference/reference/expressions#when-a-condition-is-false).
 - A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
 - `if` and [contexts](/docs/test-docs/platforms-and-browsers) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
 
@@ -863,7 +864,7 @@ Doc Detective supports multiple output reporters. By default, it uses `terminal`
 
 - **terminal**: Displays a colored summary of test results in your terminal.
 - **runFolder**: Saves results, reports, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
-- **json**: Saves results to a `testResults-<timestamp>.json` file.
+- **json**: Saves results to a `testResults-<runId>.json` file.
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
 
 <Tabs>

@@ -83,7 +83,7 @@ doc-detective --input ./docs --output results.json
 ```
 
 - `--output` (or the `output` config key) names the results file, and Doc Detective overwrites it on each run. `-` writes the results to stdout instead. A folder exits `2`, so use `--output-dir` for folders.
-- The `json` reporter writes `testResults-<timestamp>.json` in `outputDir`. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
+- The `json` reporter writes `testResults-<runId>.json` in `outputDir`, named after the run's folder. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
 
 The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
 
@@ -161,7 +161,7 @@ Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to 
 
 ## Step 4: Find the HTML report
 
-The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<timestamp>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
+The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<runId>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
 
 The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
 
