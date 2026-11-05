@@ -10,8 +10,9 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 - **5.0.0 is one major carrying every breaking CLI change.** A failed test fails the run, and the CLI
   conforms to clig.dev. [ADR 01146](../../adrs/01146-cli-v5-contract.md) is the contract. Users migrate
   once. Work outside the contract ships on 4.x before it or 5.x after it. The exception is a change that
-  would need another major later. The Node floor, unknown-key rejection, false-pass fixes, the JS
-  exports, and structure-aware test detection land in 5.0 for that reason, each under its own ADR.
+  would need another major later. Five changes land in 5.0 for that reason, each under its own ADR.
+  They're the Node floor, unknown-key rejection, false-pass fixes, the JS exports, and structure-aware
+  test detection.
   Detection starts with one default `fileTypes` table ([ADR 01153](../../adrs/01153-one-default-filetypes-table.md)).
 - **Nothing is retained for assets we control.** The Action, agent-tools, the VS Code extension, Online,
   and Docker images get updated to the new CLI, with no shims. v4-era assets refuse v5 instead.
