@@ -105,8 +105,10 @@ describe("all-skipped runs through the CLI", function () {
   });
 
   it("names the reason when a whole spec skips", function () {
-    write("a.spec.json", { tests: [{ runOn: [{ platforms: ["no-such-platform"] }], steps: [{ runShell: "echo hi" }] }] });
-    const r = run(["-i", "a.spec.json", "--no-exit-on-fail"]);
-    assert.equal(r.status, 0, r.stderr);
+    write("a.spec.json", { tests: [{ runOn: [{ platforms: [process.platform === "win32" ? "mac" : "windows"] }], steps: [{ runShell: "echo hi" }] }] });
+    const r = run(["-i", "a.spec.json"]);
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /Nothing was tested/);
+    assert.match(r.stderr, /First reason:/);
   });
 });

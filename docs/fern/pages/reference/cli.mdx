@@ -36,7 +36,7 @@ The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, an
 | `--test` | `-t` | string |  | Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches. |
 | `--spec` | `-s` | string |  | Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches. |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
-| `--plain` |  | boolean |  | Print one tab-separated line per test context. |
+| `--plain` |  | boolean |  | Print one tab-separated line per test. |
 | `--no-exit-on-fail` |  | boolean |  | Exit `0` even when tests fail or nothing was tested, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run. |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |
 | `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported. |

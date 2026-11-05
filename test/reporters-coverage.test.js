@@ -133,7 +133,7 @@ describe("reporters/htmlReporter — direct coverage", function () {
 
     it("treats a non-.html path as a directory and generates a timestamped name", async function () {
       const result = await htmlReporter({}, tmpDir, makeResults());
-      // Structure, not exact timestamp: doc-detective-results-<digits>.html
+      // Structure, not exact timestamp: doc-detective-results-<ISO-style token>.html
       assert.match(path.basename(result), /^doc-detective-results-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
       assert.equal(path.dirname(result), path.resolve(tmpDir));
       assert.ok(fs.existsSync(result));
@@ -247,5 +247,30 @@ describe("reporters/htmlReporter — direct coverage", function () {
         logStub.restore();
       }
     });
+  });
+});
+
+describe("json reporter file names", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-json-name-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const write = async (results) => {
+    const { outputResults } = await import("../dist/utils.js");
+    await outputResults({ reporters: ["json"], logLevel: "silent" }, dir, results, { command: "runTests" });
+    return fs.readdirSync(dir);
+  };
+
+  it("uses the run's ID, so the name matches the run folder", async function () {
+    const files = await write({ summary: {}, specs: [], runId: "2026-11-05T01-02-03-004Z" });
+    assert.deepEqual(files, ["testResults-2026-11-05T01-02-03-004Z.json"]);
+  });
+
+  it("falls back to an ISO-style timestamp without a run ID", async function () {
+    const [file] = await write({ summary: {}, specs: [] });
+    assert.match(file, /^testResults-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/);
   });
 });

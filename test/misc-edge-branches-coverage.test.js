@@ -323,13 +323,13 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
 
   it("resolvePaths detects a spec object (not a config) and resolves spec paths", async function () {
     const dir = mkTmp("dd-edge-files-");
-    const spec = { specId: "s1", tests: [{ steps: [{ goTo: "https://x" }] }], file: "rel/file.md" };
+    const spec = { specId: "s1", tests: [{ steps: [{ goTo: "https://x" }] }], specPath: "rel/file.md" };
     const out = await resolvePaths({
       config: { relativePathBase: "file" },
       object: spec,
       filePath: path.join(dir, "spec.json"),
     });
-    assert.ok(path.isAbsolute(out.file), "spec `file` path should be absolutized");
+    assert.ok(path.isAbsolute(out.specPath), "`specPath` should be absolutized");
   });
 
   it("resolvePaths throws when neither config nor spec schema matches", async function () {

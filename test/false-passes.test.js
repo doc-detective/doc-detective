@@ -130,6 +130,13 @@ describe("false passes through the CLI", function () {
     assert.match(firstStep(r).resultDescription, /MY_VAR/);
   });
 
+  it("keeps the first error when a failed step also has a broken variable", function () {
+    write("a.spec.json", specWith({ runShell: "exit 3", variables: { MY_VAR: 'jq($$stdio, "@@@bad")' } }));
+    const r = run(["-i", "a.spec.json", "--json"]);
+    assert.equal(r.status, 1, r.stderr);
+    assert.match(firstStep(r).resultDescription, /exit code 3/);
+  });
+
   it("keeps a variable that references a missing value", function () {
     write("a.spec.json", specWith({ ...echo, variables: { MY_VAR: "$$absent" } }));
     assert.equal(run(["-i", "a.spec.json"]).status, 0);

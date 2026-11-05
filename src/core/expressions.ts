@@ -39,8 +39,8 @@ async function resolveExpression({ expression, context, allowOperators = false }
   try {
     return await resolveExpressionOrThrow({ expression, context, allowOperators });
   } catch (error: any) {
-    // Back-compat swallow for the STANDALONE path (step.variables and any direct
-    // caller): a malformed/failing expression degrades to its literal input text
+    // Back-compat swallow for direct callers. Conditions and step.variables call
+    // resolveExpressionOrThrow instead (ADR 01151). For the rest, a malformed/failing expression degrades to its literal input text
     // rather than crashing the step. Logged at "warning" (an intentional swallow,
     // not a surfaced failure). The embedded {{...}} loop does NOT rely on this —
     // it calls resolveExpressionOrThrow directly so it can preserve the author's
