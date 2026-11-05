@@ -286,7 +286,7 @@
     "annotate": {}
   },
   "additionalProperties": false,
-  "anyOf": [
+  "oneOf": [
     {
       "allOf": [
         {

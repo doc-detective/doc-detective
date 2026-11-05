@@ -1,0 +1,89 @@
+{
+  "specId": "cli-false-passes",
+  "description": "Checks that can't run don't pass (ADR 01151), through the real CLI.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-false-passes';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unset-variable.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',assertions:'$UNSET_VARIABLE_FOR_FIXTURE'}]}]}));fs.writeFileSync(d+'/report-assertions.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',assertions:[{statement:'$$exitCode == 1',source:'custom',result:'PASS'}]}]}]}));fs.writeFileSync(d+'/two-actions.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',runCode:{language:'python',code:'print(1)'}}]}]}));fs.writeFileSync(d+'/duplicate-ids.spec.json',JSON.stringify({tests:[{testId:'same',steps:[{runShell:'echo hi'}]},{testId:'same',steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/missing-before.spec.json',JSON.stringify({tests:[{before:'missing.spec.json',steps:[{runShell:'echo hi'}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "failed-checks-exit-1",
+      "description": "A check that can't run fails its step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-false-passes/unset-variable.spec.json --output-dir .tmp/fixture-false-passes/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-false-passes/report-assertions.spec.json --output-dir .tmp/fixture-false-passes/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "invalid-specs-exit-2",
+      "description": "A spec that can't mean what it says is invalid.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-false-passes/two-actions.spec.json --output-dir .tmp/fixture-false-passes/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-false-passes/duplicate-ids.spec.json --output-dir .tmp/fixture-false-passes/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-false-passes/missing-before.spec.json --output-dir .tmp/fixture-false-passes/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "conditions",
+      "description": "A jq comparison sees the query's result, and real conditions still work.",
+      "steps": [
+        {
+          "runShell": "echo hi",
+          "assertions": [
+            "$$outputs.exitCode == 0",
+            "jq($$outputs.stdio, \".stdout\") == \"hi\"",
+            "$$outputs.stdio.stdout contains \"h\""
+          ]
+        }
+      ]
+    }
+  ]
+}

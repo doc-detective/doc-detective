@@ -6,6 +6,8 @@ decision-makers: doc-detective maintainers
 
 # Expression error contract: preserve the original `{{…}}` on embedded-expression failure
 
+The condition path and `step.variables` are amended by [ADR 01151](01151-fix-false-passes.md).
+
 ## Context and Problem Statement
 
 `src/core/expressions.ts` resolves runtime expressions in three shapes that share one resolver

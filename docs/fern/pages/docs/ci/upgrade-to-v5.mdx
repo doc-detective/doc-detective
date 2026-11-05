@@ -56,6 +56,25 @@ tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
 
 Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
 
+## Checks that used to pass
+
+**What changed:** Some checks passed in version 4 without testing anything. These now fail or stop the run:
+
+| Version 4 | Version 5 |
+|---|---|
+| A condition with a broken `jq()` query, or one that finds nothing, was true. | It's false. |
+| A `jq()` comparison like `jq($$body, ".x") == 1` compared the wrong value. | It compares the query's result. |
+| A condition that's only text, such as an unset `$VARIABLE`, was true. | It's false, so an assertion fails and an `if` skips. |
+| A broken `jq()` query in step `variables` set the variable to the query's text. | The step fails. |
+| `assertions` written as objects, like the ones in a report, never ran. | The step fails. Write assertions as strings. |
+| A step with two actions ran only one of them. | The spec is invalid. Split it into two steps. |
+| Two tests with the same `testId` merged, or ran under one ID. | The spec is invalid. Give each test its own ID. |
+| A test whose `before` or `after` file was missing dropped the whole spec. | The spec is invalid. |
+
+**What to do:** Run your suite and fix what it reports. A newly red step was usually a check that wasn't working.
+
+A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
+
 ## Logs moved to stderr
 
 **What changed:** stdout carries results only. Logs, warnings, hints, and notices go to stderr. Logs also lose their level labels, such as `(INFO)`, unless you turn on debug output.

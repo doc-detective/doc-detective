@@ -1186,6 +1186,8 @@ function knownKeysAt(parts: string[]): string[] {
   return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
 }
 
+const ONE_ACTION_MESSAGE = "a step can only have one action.";
+
 // Turn AJV's error string into something a person can act on: one line per
 // problem, with `anyOf` branches collapsed, and the nearest real key named when
 // something is unknown. Raw errors stay available at debug level.
@@ -1194,6 +1196,10 @@ function summarizeSpecErrors(errors: string, object: any): string {
   const unknownByPath = new Map<string, string[]>();
   for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
     const [, instancePath = "", message, params = ""] = match;
+    if (/"passingSchemas":\[/.test(params)) {
+      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), ONE_ACTION_MESSAGE]);
+      continue;
+    }
     if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
     byPath.set(instancePath, byPath.get(instancePath) ?? []);
     const unknownKey = /"additionalProperty":"([^"]+)"/.exec(params)?.[1];
@@ -1212,6 +1218,11 @@ function summarizeSpecErrors(errors: string, object: any): string {
       .map((message) => /required property '([^']+)'/.exec(message)?.[1])
       .filter(Boolean) as string[];
     const unknownKeys = [...new Set(unknownByPath.get(instancePath) ?? [])];
+    // The other branches' "required" errors are only noise once two matched.
+    if (messages.includes(ONE_ACTION_MESSAGE)) {
+      lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
+      continue;
+    }
     if (/steps\/\d+$/.test(instancePath) && actions.length > 0 && actions.length === messages.length) {
       const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
       const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
@@ -2895,7 +2906,11 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // contract. CodeQL "unsafe shell command" here is acknowledged and dismissed
   // as won't-fix / by design.
   const runCommand = spawn(cmd, args, spawnOptions);
-  runCommand.on("error", (error) => {});
+  // A process that never started still closes, with a negative errno as its code.
+  let spawnError: Error | undefined;
+  runCommand.on("error", (error) => {
+    spawnError = error;
+  });
 
   // Set up exit code promise BEFORE consuming streams to avoid race condition
   const exitCodePromise = new Promise((resolve) => {
@@ -2925,7 +2940,7 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // Capture exit code
   const exitCode = await exitCodePromise;
 
-  return { stdout, stderr, exitCode };
+  return { stdout, stderr, exitCode, spawnError };
 }
 
 async function inContainer() {

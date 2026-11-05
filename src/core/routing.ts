@@ -229,6 +229,14 @@ async function evaluateCustomAssertions(args: {
   ) {
     statements = raw as string[];
   }
+  // The report's own shape validates, but it holds results, not checks. Passing
+  // it through would silently run nothing.
+  if (Array.isArray(raw) && raw.length > 0 && !statements) {
+    actionResult.status = "FAIL";
+    actionResult.description =
+      "Step assertions must be strings. This step's assertions are objects, so they can't run.";
+    return actionResult;
+  }
   if (!statements || statements.length === 0) return actionResult;
 
   const existing: ImplicitAssertionRecord[] = Array.isArray(

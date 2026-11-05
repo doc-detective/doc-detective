@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR 01151
 date: 2024-06-29
 decision-makers: doc-detective maintainers
 ---

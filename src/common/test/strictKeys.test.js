@@ -32,7 +32,7 @@ describe("unknown keys", function () {
 
     it("lists exactly the common keys and every action at the root", function () {
       const step = schemas.step_v3;
-      const actions = step.anyOf.flatMap((branch) =>
+      const actions = step.oneOf.flatMap((branch) =>
         branch.allOf.flatMap((part) => Object.keys(part.properties ?? {}))
       );
       const common = Object.keys(step.components.schemas.common.properties);

@@ -141,6 +141,11 @@ async function runShell({
     result.outputs.stdio.stdout = commandResult.stdout.replace(/\r$/, "");
     result.outputs.stdio.stderr = commandResult.stderr.replace(/\r$/, "");
     result.outputs.exitCode = commandResult.exitCode;
+    if (commandResult.spawnError) {
+      result.status = "FAIL";
+      result.description = `Couldn't start the command, so check that its shell and workingDirectory exist: ${commandResult.spawnError.message}`;
+      return result;
+    }
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;

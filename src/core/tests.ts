@@ -192,7 +192,7 @@ import {
 } from "./appiumReuse.js";
 import type { Server as AppiumServer } from "./appiumReuse.js";
 import { contentHash } from "../common/src/textUtils.js";
-import { resolveExpression } from "./expressions.js";
+import { resolveExpression, resolveExpressionOrThrow } from "./expressions.js";
 import {
   evaluateCustomAssertions,
   evaluateGuard,
@@ -6014,11 +6014,17 @@ async function runStep({
     await Promise.all(
       Object.keys(step.variables).map(async (key: string) => {
         const expression = step.variables[key];
-        const value = await resolveExpression({
-          expression: expression,
-          context: { ...metaValues, ...actionResult.outputs },
-        });
-        process.env[key] = value;
+        // Missing values stay literal, but a failed evaluation fails the step,
+        // so later steps don't run with expression text as a value.
+        try {
+          process.env[key] = await resolveExpressionOrThrow({
+            expression: expression,
+            context: { ...metaValues, ...actionResult.outputs },
+          });
+        } catch (error: any) {
+          actionResult.status = "FAIL";
+          actionResult.description = `Couldn't set variable ${key}: ${error.message}`;
+        }
       })
     );
   }

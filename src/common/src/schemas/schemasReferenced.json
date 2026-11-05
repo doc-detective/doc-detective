@@ -3035,7 +3035,7 @@
         "annotate": {}
       },
       "additionalProperties": false,
-      "anyOf": [
+      "oneOf": [
         {
           "allOf": [
             {
@@ -10566,7 +10566,7 @@
         "annotate": {}
       },
       "additionalProperties": false,
-      "anyOf": [
+      "oneOf": [
         {
           "allOf": [
             {

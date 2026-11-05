@@ -22,6 +22,10 @@ import jq from "jq-web";
  * token. This is acceptable: conditions use spaced comparison/word operators,
  * so a token-adjacent `-` is intended to be part of the id, not subtraction.
  */
+// What makes a condition more than plain text: a `$$` reference, an operator, or
+// a helper call.
+const CONDITION_SYNTAX = /\$\$|==|!=|<|>|&&|\|\||!|\b(?:contains|oneOf|matches|jq|extract)\b/;
+
 const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
 
 /**
@@ -405,6 +409,7 @@ const compiledEvaluatorCache = new Map<string, Function>();
  * @returns {*} - The result of the evaluation.
  */
 async function evaluateExpression(expression: string, context: any): Promise<any> {
+  const loadedJq: any = /\bjq\(/.test(expression) ? await jq : undefined;
   try {
     // Handle special operators that aren't valid JS syntax
     expression = preprocessExpression(expression);
@@ -457,32 +462,26 @@ async function evaluateExpression(expression: string, context: any): Promise<any
           return null;
         }
       },
-      // jq-web resolves to the module, then jq.json(...) does the query. A bad
-      // query REJECTS asynchronously, so a synchronous try/catch here could never
-      // catch it (it was dead code, #425). Let the rejection propagate: the
-      // awaiting resolveExpressionOrThrow surfaces it, so the embedded loop
-      // preserves the original {{...}}. (The condition path — evaluateAssertion —
-      // still calls the swallowing resolveExpression boundary, so a jq error
-      // there is unchanged by this PR; reconciling that path is out of scope.)
-      jq: (json: any, query: string) =>
-        jq.then((j: any) => {
-          // jq-web is an emscripten/WASM build of jq. On a jq COMPILE error
-          // (e.g. an invalid query) its runtime leaks jq's own exit code (3)
-          // into process.exitCode as a side effect — which would make the host
-          // process exit non-zero even though the rejection is handled and the
-          // original {{...}} is preserved (#423/#424). The clobber happens
-          // during the synchronous j.json() WASM call (as it throws), so snapshot
-          // and restore process.exitCode around it: a gracefully-handled bad
-          // jq() query must never redden the caller's exit code.
-          const prevExitCode = process.exitCode;
-          try {
-            return j.json(json, query);
-          } finally {
-            if (process.exitCode !== prevExitCode) {
-              process.exitCode = prevExitCode;
-            }
+      // jq-web loads asynchronously, so it's awaited above, and this runs
+      // synchronously: `jq(...) == 1` then compares the value, not a Promise. A
+      // bad query throws. It's marked so the catch below rethrows it, which lets
+      // the embedded loop preserve the original {{...}} and a condition be false.
+      jq: (json: any, query: string) => {
+        // jq-web is an emscripten/WASM build of jq. On a jq COMPILE error (e.g.
+        // an invalid query) its runtime leaks jq's own exit code (3) into
+        // process.exitCode as a side effect. A handled bad query must never
+        // redden the caller's exit code, so snapshot and restore it.
+        const prevExitCode = process.exitCode;
+        try {
+          return loadedJq.json(json, query);
+        } catch (error: any) {
+          throw Object.assign(error, { fromJq: true });
+        } finally {
+          if (process.exitCode !== prevExitCode) {
+            process.exitCode = prevExitCode;
           }
-        }),
+        }
+      },
     };
 
     // Use Function constructor for safer evaluation. The expression's string
@@ -511,6 +510,7 @@ async function evaluateExpression(expression: string, context: any): Promise<any
     }
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
+    if (error?.fromJq) throw error;
     log(
       `Error evaluating expression '${expression}': ${error.message}`,
       "error"
@@ -799,12 +799,12 @@ async function evaluateAssertion(assertion: any, context: any): Promise<boolean>
     ) {
       log(
         `Condition '${assertion}' has an unresolved meta value; treating as false.`,
-        "debug"
+        "warning"
       );
       return false;
     }
 
-    const resolvedAssertion = await resolveExpression(
+    const resolvedAssertion = await resolveExpressionOrThrow(
       {expression: assertion,
       context: context,
       allowOperators: true}
@@ -819,6 +819,15 @@ async function evaluateAssertion(assertion: any, context: any): Promise<boolean>
     if (resolvedAssertion === "true") return true;
     if (resolvedAssertion === "false") return false;
 
+    // Nothing found.
+    if (resolvedAssertion === null || resolvedAssertion === "null") return false;
+
+    // Text with nothing to evaluate, like an unset `$VAR`, isn't a check.
+    if (typeof assertion === "string" && !CONDITION_SYNTAX.test(assertion)) {
+      log(`Condition '${assertion}' has nothing to evaluate; treating as false.`, "warning");
+      return false;
+    }
+
     // Otherwise evaluate it
     return !!resolvedAssertion;
   } catch (error: any) {
@@ -827,4 +836,4 @@ async function evaluateAssertion(assertion: any, context: any): Promise<boolean>
   }
 }
 
-export { resolveExpression, evaluateAssertion, getMetaValue, replaceMetaValues };
+export { resolveExpression, resolveExpressionOrThrow, evaluateAssertion, getMetaValue, replaceMetaValues };

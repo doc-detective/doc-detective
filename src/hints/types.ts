@@ -92,7 +92,7 @@ export interface HintContext {
    * Set of v3 step-action keys seen at least once across the run.
    * Mirrors the `step_v3` schema's action discriminators — the
    * authoritative list is `STEP_ACTION_KEYS` in `context.ts`, kept in
-   * sync with `step_v3.schema.json`'s anyOf branches.
+   * sync with `step_v3.schema.json`'s oneOf branches.
    */
   usedStepTypes: Set<string>;
   /** Browser names seen across `results.specs[].tests[].contexts[]`. */

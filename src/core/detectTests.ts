@@ -192,9 +192,10 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
         if (!fs.existsSync(beforePath)) {
           log(
             config,
-            "debug",
+            "warning",
             `${beforePath} is specified to run before a test but isn't a valid file. Skipping ${source}.`
           );
+          noteInvalidSpec(config, source, `before: ${test.before} doesn't exist.`);
           return false;
         }
       }
@@ -208,9 +209,10 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
         if (!fs.existsSync(afterPath)) {
           log(
             config,
-            "debug",
+            "warning",
             `${afterPath} is specified to run after a test but isn't a valid file. Skipping ${source}.`
           );
+          noteInvalidSpec(config, source, `after: ${test.after} doesn't exist.`);
           return false;
         }
       }
@@ -599,11 +601,19 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // below, because spec_v3 rejects unknown keys.
       const specPhase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
       if (Array.isArray(content.tests)) {
-        const usedTestIds = new Set(
-          content.tests
-            .map((test: any) => test?.testId)
-            .filter((id: any) => id)
+        const authoredTestIds = content.tests
+          .map((test: any) => test?.testId)
+          .filter((id: any) => id);
+        const usedTestIds = new Set(authoredTestIds);
+        const duplicateTestId = authoredTestIds.find(
+          (id: any, index: number) => authoredTestIds.indexOf(id) !== index
         );
+        if (duplicateTestId) {
+          const reason = `duplicate test ID '${duplicateTestId}'.`;
+          log(config, "warning", `${file} has a ${reason} Skipping.`);
+          noteInvalidSpec(config, file, reason);
+          return null;
+        }
         for (const test of content.tests) {
           if (!test || typeof test !== "object" || test.testId) continue;
           // v2-shaped tests (`id`, `setup`/`cleanup`, action-keyed steps) are
@@ -910,7 +920,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         filePath: file,
         testIdBase: id,
         onInvalid: (reason: string) =>
-          noteInvalidSpec(config, file, summarizeSpecErrors(reason, {})),
+          noteInvalidSpec(config, file, summarizeSpecErrors(reason, {}) || reason),
       });
       spec.tests.push(...tests);
 
