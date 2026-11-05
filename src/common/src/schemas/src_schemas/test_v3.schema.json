@@ -121,6 +121,17 @@
         "$ref": "step_v3.schema.json#"
       }
     },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+      "description": "Outcome of this test. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
+    "resultDescription": {
+      "type": "string",
+      "description": "Why this test had its outcome. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
     "durationMs": {
       "type": "integer",
       "minimum": 0,
@@ -135,6 +146,17 @@
       "items": {
         "type": "object",
         "properties": {
+          "result": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+            "description": "Outcome of this context. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
+          },
+          "resultDescription": {
+            "type": "string",
+            "description": "Why this context had its outcome. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,
