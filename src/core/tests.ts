@@ -4978,7 +4978,7 @@ async function runContext({
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped because unsafe steps aren't allowed.",
+          resultDescription: "Skipped because unsafe steps aren't allowed. Pass --allow-unsafe to run them.",
         };
         pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the

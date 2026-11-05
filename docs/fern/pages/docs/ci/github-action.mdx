@@ -70,7 +70,7 @@ The action follows the exit code from the CLI:
 |---|---|
 | `0` | The job passes. |
 | `1` | At least one test failed. The job fails unless `exit_on_fail` is `false`. |
-| `2` | Nothing valid was tested, such as a mistyped `input` or an invalid config. The job always fails. |
+| `2` | Nothing valid was tested, such as a mistyped `input`, an invalid config, or every test skipping. The job always fails. |
 | Any other code | The run didn't finish, for example `130` after an interrupt. The job always fails. |
 
 The job also fails when the CLI writes no results file, whatever `exit_on_fail` says. The action treats that as a run that never happened, not as a failing test. For example, a network error while `npx` installs Doc Detective exits `1` with no results.

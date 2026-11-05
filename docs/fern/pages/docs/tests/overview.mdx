@@ -48,7 +48,7 @@ Doc Detective skips tests when:
 
 - **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
 - **Browser unavailable**: The context specifies a browser that isn't installed or available on your system after an automatic installation attempt (see [Automatic browser installation](#automatic-browser-installation)).
-- **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS).
+- **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS). If every spec in a run skips, the run exits `2`, because nothing was tested.
 - **Condition not met**: A spec, test, or step has an [`if` condition](#conditional-execution) that evaluates to false.
 
 When a test is skipped, the results show a SKIPPED status in the output JSON:
