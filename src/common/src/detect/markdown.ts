@@ -17,11 +17,11 @@ import type { Node } from "./selectors.js";
 
 const HTML_COMMENT = /<!--([\s\S]*?)-->/g;
 const EXPRESSION_COMMENT = /^\s*\/\*([\s\S]*?)\*\/\s*$/;
-const SCANNED_COMMENTS = [
-  /\{\/\*([\s\S]*?)\*\/\}/g,
-  /^[ \t]*\[comment\]:[ \t]*(?:#|<>)?[ \t]*(?:\(([^\n]*)\)|"([^\n]*)"|'([^\n]*)')[ \t]*$/gm,
-];
-const ATTRIBUTE_LIST = /^\{([^}]*)\}/;
+// MDX parses JSX expression comments itself, so it scans only for link-reference comments.
+const JSX_COMMENT = /\{\/\*([\s\S]*?)\*\/\}/g;
+const REFERENCE_COMMENT = /^[ \t]*\[comment\]:[ \t]*(?:#|<>)?[ \t]*(?:\(([^\n]*)\)|"([^\n]*)"|'([^\n]*)')[ \t]*$/gm;
+// Sticky, so it matches only where lastIndex points.
+const ATTRIBUTE_LIST = /\{([^}]*)\}/y;
 // One name branch with an optional value. Alternatives that share a prefix
 // backtrack polynomially on adversarial input.
 const ATTRIBUTE_TOKEN = /([.#][^\s{}]+)|([A-Za-z_][\w.:-]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\s{}]+)))?/g;
@@ -96,7 +96,8 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
 
   /** Extends a link or image over a trailing attribute list. */
   const withAttributes = (node: Omit<Node, "before">) => {
-    const m = ATTRIBUTE_LIST.exec(content.slice(node.endIndex, node.endIndex + 300));
+    ATTRIBUTE_LIST.lastIndex = node.endIndex;
+    const m = ATTRIBUTE_LIST.exec(content);
     const attributes = m && parseAttributeList(m[1]);
     if (attributes) {
       taken.push([node.endIndex, node.endIndex + m![0].length]);
@@ -134,6 +135,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     for (const n of parent.children) {
       const start = startOf(n);
       const end = endOf(n);
+      // Text isn't skipped here, because addText splits it around taken spans.
       if (isTaken(start, end) && n.type !== "text") continue;
       switch (n.type) {
         case "text":
@@ -183,7 +185,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
         case "paragraph":
         case "heading": {
           const source = content.slice(startOf(n), endOf(n));
-          for (const pattern of mdx ? SCANNED_COMMENTS.slice(1) : SCANNED_COMMENTS) {
+          for (const pattern of mdx ? [REFERENCE_COMMENT] : [JSX_COMMENT, REFERENCE_COMMENT]) {
             for (const m of source.matchAll(pattern)) {
               const at = startOf(n) + m.index!;
               taken.push([at, at + m[0].length]);
