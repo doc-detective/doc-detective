@@ -17,14 +17,14 @@ Each step is one PR into `feat/v5-rc`.
 | 1 | One default `fileTypes` table, in common (ADR 01153) | PR #801 |
 | 2 | `runCode` accepts `py` and `js` (ADR 01154) | PR #802 |
 | 3 | Selector engine, Markdown and MDX parsers, schema, `inlineStatements.in` (ADR 01155) | PR #803 |
-| 4 | The LSP reads statements through the shared collector, and drops its own regex scanning (ADR 01156) | This change |
-| 5 | Parsers for HTML and DITA (`htmlparser2`) and AsciiDoc (a line scanner). Markdown sends embedded HTML, and `.mdx` sends lowercase JSX tags, through the HTML mapping | |
-| 6 | The built-ins move to selectors, and the upgrade guide lists what they detect differently | |
+| 4 | The LSP reads statements through the shared collector, and drops its own regex scanning (ADR 01156) | PR #804 |
+| 5 | Parsers for HTML and DITA (`htmlparser2`) and AsciiDoc (a line scanner). Markdown sends embedded HTML, and `.mdx` sends lowercase JSX tags, through the HTML mapping (ADR 01157) | PR #805 |
+| 6 | The built-ins move to selectors, and the upgrade guide lists what they detect differently (ADR 01158) | This change |
 
 Steps 1 to 5 don't change what a default config detects, apart from step 1's `typeText` fix and step 2's `py` and `js`
 fences. Step 6 does, and can be reverted alone.
 
-## Decisions for step 6
+## Decisions for step 6 (ADR 01158)
 
 - **Every built-in detects the same eight intents:** goTo, checkLink, click, find, screenshot, type, httpRequest, and
   runCode. Markdown, AsciiDoc, and HTML share one list. DITA keeps its element rules, and adds the shared screenshot,
@@ -33,6 +33,8 @@ fences. Step 6 does, and can be reverted alone.
 - **`.md` and `.mdx` stay one built-in.** The extension picks the parser.
 - **`extends` inherits `inlineStatements.in`.** Built-ins gain `in`, so the merge in `setConfig` must carry it, as it
   carries the regex statement keys today.
+- **DITA's duplicate rules merge.** Two `goTo` rules and two `checkLink` rules matched the same external `<xref>`. Each
+  is one rule now.
 - **A parity test keeps the frozen regex tables,** and lists each intended difference by name, so any other difference
   fails.
 

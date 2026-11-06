@@ -105,6 +105,35 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 
 A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
 
+## Test detection reads document structure
+
+**What changed:** Doc Detective parses each file before it detects tests, so it reads structure instead of matching raw text. With step detection on, a default config detects different steps:
+
+- **Newly detected:**
+  - AsciiDoc and HTML files detect the same steps as Markdown. Before, they detected only inline statements, so pages in these formats can now produce tests that fail the run.
+  - DITA detects `screenshot` steps from `<image outputclass="screenshot">`, and `httpRequest` and `runCode` steps from `<codeblock>` elements. It also reads an `<xref>`'s attributes in any order, so `goTo` and `checkLink` steps come from an `<xref>` whose `href` isn't its first attribute, as in `<xref format="html" href="https://example.com">`.
+  - Markdown detects links, images, and bold text written as HTML, such as `<a href>` and `<strong>`, and lowercase JSX tags in `.mdx`. It also detects bold text written as `__text__`, and requests in code blocks inside list items.
+  - "Browse to" before a link becomes a `goTo` step in Markdown, AsciiDoc, and HTML, as it already did in DITA.
+  - A `test start` statement in a comment, as in `<!-- test start {"testId": "a"} -->`, opens a test.
+- **No longer detected:**
+  - Statements and steps inside code blocks, inline code, `<pre>`, `<script>`, `<codeblock>`, and AsciiDoc listings. A page that shows a sample test no longer runs it.
+  - A `runCode` step from a ` ```json ` code block. The pattern for `js` blocks also matched `json`, so every JSON sample became an unsafe JavaScript step.
+  - An AsciiDoc `// (step ...)` comment that doesn't start its line.
+  - A comment that only starts with "test", such as `<!-- testing notes: x -->`, which used to open a test.
+  - The DITA `<data name="step">{...}</data>` form. Use `<data name="doc-detective" value="step {...}"/>` instead.
+  - Duplicate DITA steps. An external `<xref>` after "Navigate to" produced two `goTo` steps and two `checkLink` steps, and now produces one of each.
+- **Captured differently:** a `find` or `click` step gets bold text as it renders, so `` **`Save`** `` finds `Save`.
+- **Invalid MDX:** an `.mdx` file that isn't valid MDX parses as Markdown, with a warning. Content inside its JSX components isn't detected.
+
+A test without its own `testId` gets a new generated ID when its steps change.
+
+**What to do:**
+
+1. Run your suite with `--dry-run` on version 4 and version 5, and compare the tests each detects.
+2. Point `--input` at source files, not generated HTML, where every link and bold phrase becomes a step.
+3. To turn off step detection, set `detectSteps: false`. Inline statements still work.
+4. If a custom file type extends a built-in with `regex` definitions, they still match raw text, code samples included. To limit one to prose, add `"text": {}` to it. See [Selectors](/docs/test-docs/input-formats/selectors).
+
 ## Capitalized typing instructions
 
 **What changed:** With step detection on, a Markdown instruction such as `Type "kittens"` or `Enter "admin"` becomes a `type` step whether or not its verb starts with a capital letter. Version 4 detected only lowercase verbs in Markdown, though the docs described both. A test without its own `testId` gets a new generated ID when it gains a step.
@@ -236,7 +265,7 @@ doc-detective install agents --agent claude --scope project --yes
 
 ## JavaScript API
 
-**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone.
+**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone. In `doc-detective-common`, the built-in `defaultFileTypes` hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none.
 
 **What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it.
 

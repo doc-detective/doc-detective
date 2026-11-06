@@ -9,6 +9,8 @@
 import { safeRegExp, getLineStarts, getLineNumber } from "../textUtils.js";
 import type { FileType } from "../fileTypes.js";
 import { parseMarkdown } from "./markdown.js";
+import { parseMarkup } from "./markup.js";
+import { parseAsciidoc } from "./asciidoc.js";
 
 export type Kind =
   | "comment"
@@ -167,12 +169,26 @@ function selectMatches(def: any, selector: Selector, nodes: Node[]): Match[] {
   return found;
 }
 
-const FORMAT_BY_EXTENSION: Record<string, string> = { md: "markdown", markdown: "markdown", mdx: "markdown" };
+const FORMAT_BY_EXTENSION: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "markdown",
+  html: "html",
+  htm: "html",
+  dita: "dita",
+  ditamap: "dita",
+  xml: "dita",
+  adoc: "asciidoc",
+  asciidoc: "asciidoc",
+  asc: "asciidoc",
+};
 
 /** Parses a file into nodes. The extension picks the parser, else the fileType's `extends` or `name`. */
 function parseFile(content: string, fileType: FileType, filePath: string, warn: (message: string) => void): Node[] {
   const ext = /\.([^./\\]+)$/.exec(filePath)?.[1].toLowerCase() ?? "";
   const format = FORMAT_BY_EXTENSION[ext] ?? fileType.extends ?? fileType.name;
+  if (format === "html" || format === "dita") return parseMarkup(content, format);
+  if (format === "asciidoc") return parseAsciidoc(content);
   if (format !== "markdown") {
     const name = fileType.name ? `"${fileType.name}"` : "A fileType";
     warn(`${filePath}: ${name} uses selectors, but no parser handles .${ext}. Set "extends" to a built-in, or use regex definitions.`);

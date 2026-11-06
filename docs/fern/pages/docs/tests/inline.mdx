@@ -38,6 +38,8 @@ Combine inline tests with [detected tests](/docs/test-docs/detected) to create c
 
 Doc Detective supports different comment patterns depending on your file type. For more information about input formats, see [Input formats](/docs/test-docs/input-formats/overview).
 
+Doc Detective reads statements from comments only. A statement inside a code block, inline code, or other code is part of the sample. A page can show how to write a test without running it. In AsciiDoc, a `//` comment must start its line.
+
 **Markdown files** (`.md`, `.markdown`, `.mdx`):
 
 - JSX-style comments: `{/* test { "testId": "my-test" } */}`
