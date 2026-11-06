@@ -88,7 +88,7 @@ function parseAttributes(list: string, shorthand = false): Attributes {
     }
     result.positional.push(head);
   }
-  if (result.named.role) result.roles.push(...result.named.role.split(/\s+/));
+  if (result.named.role) result.roles.push(...result.named.role.split(/\s+/).filter(Boolean));
   return result;
 }
 
