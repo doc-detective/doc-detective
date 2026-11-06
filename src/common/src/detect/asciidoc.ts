@@ -133,7 +133,8 @@ export function parseAsciidoc(content: string): Node[] {
       const fence = text.trim();
       const j = closing(i, (t) => t.trim() === fence);
       const closed = j > i && lines[j].text.trim() === fence;
-      const source = attributes?.positional[0]?.startsWith("source");
+      // The source style, alone or with %options, as in [source%linenums,bash].
+      const source = /^source(?:%|$)/.test(attributes?.positional[0] ?? "");
       nodes.push({
         kind: "codeBlock",
         startIndex: start,

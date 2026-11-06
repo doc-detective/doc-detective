@@ -191,6 +191,11 @@ describe("formats", function () {
       ]);
     });
 
+    it("reads a language only from the source style, with or without options", function () {
+      const blocks = pick(parseAsciidoc("[sourceCode,python]\n----\nx\n----\n\n[source%linenums,bash]\n----\ny\n----\n"), "codeBlock");
+      expect(blocks.map((b) => b.language)).to.deep.equal(["", "bash"]);
+    });
+
     it("reads images, with roles as classes", function () {
       expect(pick(nodes, "image").map((n) => [n.src, n.alt, n.attributes?.class])).to.deep.equal([
         ["a.png", "Alt A", "screenshot"],

@@ -84,6 +84,8 @@ export function parseMarkup(content: string, dialect: Dialect, from = 0, to = co
   const span = (): [number, number] => [from + parser.startIndex, from + parser.endIndex + 1];
 
   const flush = () => {
+    // Prose keeps raw source, entities included, so patterns match the file as written.
+    // Formatting nodes take decoded text instead, since that's what renders.
     if (run && content.slice(run[0], run[1]).trim()) {
       nodes.push({ kind: "text", startIndex: run[0], endIndex: run[1], text: content.slice(run[0], run[1]), before: before(run[0]) });
     }
@@ -149,6 +151,7 @@ export function parseMarkup(content: string, dialect: Dialect, from = 0, to = co
         if (name !== "?doc-detective" || inCode()) return;
         flush();
         const [start, end] = span();
+        // data is the whole instruction, "?doc-detective <statement>", so drop the name.
         nodes.push({ kind: "comment", startIndex: start, endIndex: end, content: data.slice(name.length).trim(), before: before(start) });
         lastEnd = end;
       },
