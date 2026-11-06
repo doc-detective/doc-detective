@@ -311,7 +311,7 @@ own).
 
 In `src/detect/selectors.ts`, a selector definition with `regex` gives each occurrence its own span
 only on `text` nodes, whose main text is raw source. On every other kind, the match spans the whole
-node, because the main text, such as a code block's content, isn't at a fixed offset in the source.
+node. That's because a main text such as a code block's content isn't at a fixed source offset.
 Anything that maps a detected step back to a range, such as a future LSP hover, gets the node's span.
 
 ### Error Handling
