@@ -6,7 +6,7 @@ import {
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { validate } from "../common/src/validate.js";
 import { parseObject } from "../common/src/detectTests.js";
-import { collectStatements } from "../common/src/detect/selectors.js";
+import { collectStatements, type Statement } from "../common/src/detect/selectors.js";
 import { defaultFileTypes, type FileType } from "../common/src/fileTypes.js";
 import { basenameFromUri } from "./gate.js";
 import { getRegistry } from "./registry.js";
@@ -51,9 +51,9 @@ interface InlineStatement {
 }
 
 /** Reads a collected statement's payload, and finds its span inside the statement. */
-function toInlineStatement(text: string, statement: any): InlineStatement {
-  // The runner parses the first value, else the whole match.
-  const raw: string = statement[1] || statement[0];
+function toInlineStatement(text: string, statement: Statement): InlineStatement {
+  // The runner parses the first value, else the whole match. It uses ||, so an empty first value falls back too.
+  const raw = statement[1] || statement[0];
   const payload = parseObject({ stringifiedObject: raw });
   const at = text.indexOf(raw, statement._startIndex);
   const range: OffsetRange =

@@ -3,7 +3,7 @@ import sinon from "sinon";
 import { detectTests } from "../dist/index.js";
 import { validate } from "../dist/validate.js";
 import { parseMarkdown, parseAttributeList } from "../dist/detect/markdown.js";
-import { parseStatementText, collectStatements } from "../dist/detect/selectors.js";
+import { parseStatementText, collectStatements, mainText } from "../dist/detect/selectors.js";
 
 // Validates a config holding one custom fileType.
 const check = (fileType) =>
@@ -84,6 +84,12 @@ describe("selectors", function () {
         expect(result.errors).to.include(message);
       });
     }
+  });
+
+  describe("main text", function () {
+    it("is empty for a node with no content, text, or alt", function () {
+      expect(mainText({ kind: "text", startIndex: 0, endIndex: 0, before: "" })).to.equal("");
+    });
   });
 
   describe("statement text", function () {
