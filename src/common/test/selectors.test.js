@@ -71,6 +71,7 @@ describe("selectors", function () {
       "an option another kind owns": [md({ markup: [{ strong: { url: "a" }, actions: ["find"] }] }), '"additionalProperty":"url"'],
       "a pattern that doesn't compile": [md({ markup: [{ link: { url: "(" }, actions: ["find"] }] }), 'must match format "regex"'],
       "a capture field that doesn't exist": [md({ markup: [{ link: {}, captures: ["href"], actions: ["find"] }] }), "captures/0 must match pattern"],
+      "a regex group capture without a regex": [md({ markup: [{ link: {}, captures: ["url", "match.1"], actions: ["find"] }] }), "must have required property 'regex'"],
       "a container with two kinds": [md({ inlineStatements: { in: [{ comment: {}, text: {} }] } }), "must match exactly one schema in oneOf"],
       "an unknown fileType key": [md({ markups: [] }), '"additionalProperty":"markups"'],
       "an unknown extends": [{ extends: "nope" }, "must be equal to one of the allowed values"],

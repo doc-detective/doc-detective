@@ -92,7 +92,7 @@ All options are optional. Patterns are regular expressions, run without flags.
 | `attributes` | Object of names to patterns or `true` | Picks nodes whose attribute matches. `true` only requires the attribute |
 | `precededBy` | Pattern | Picks nodes when the source from the start of their paragraph matches. End it with `$` to match the words right before the node |
 
-In Markdown, attributes come from an attribute list right after a link or image, as in `![Results](results.png){.screenshot}`. A class, such as `.screenshot`, sets `class`. In MDX, attributes are the component's props.
+In Markdown, attributes come from an attribute list right after a link or image, as in `![Results](results.png){.screenshot}`. A class, such as `.screenshot`, sets `class`. In MDX, attributes are the component's props. A prop set with an expression, such as `count={1 + 1}`, reads as its source text, `1 + 1`, because detection doesn't run code.
 
 ## Use node fields in actions
 
@@ -116,7 +116,7 @@ In Markdown, attributes come from an attribute list right after a link or image,
 | `src`, `alt` | An image's source and alt text |
 | `tag` | An element's tag name |
 | `attributes.<name>` | An attribute's value |
-| `match.<n>` | A group of the definition's `regex` |
+| `match.<n>` | A group of the definition's `regex`. The definition must have `regex` |
 | `precededBy.<n>` | A group of `precededBy` |
 
 A field a node doesn't have is an empty string. A regex group that didn't take part leaves out the action field that uses it, as in regex definitions.
