@@ -1,3 +1,10 @@
+# [5.0.0-v5-rc.7](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.6...v5.0.0-v5-rc.7) (2026-11-06)
+
+
+### Bug Fixes
+
+* **detection:** keep HTTP header values that contain spaces ([2f085a5](https://github.com/doc-detective/doc-detective/commit/2f085a54b871e5cafa9fec3dba57a6ed82c33b98))
+
 # [5.0.0-v5-rc.6](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.5...v5.0.0-v5-rc.6) (2026-11-06)
 
 
