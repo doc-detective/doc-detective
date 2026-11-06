@@ -1,3 +1,18 @@
+# [5.0.0-v5-rc.5](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.4...v5.0.0-v5-rc.5) (2026-11-06)
+
+
+* feat(runCode)!: accept py and js as languages ([6167609](https://github.com/doc-detective/doc-detective/commit/6167609eeb48ebddfb09b222967f46baf8e92d0b))
+
+
+### BREAKING CHANGES
+
+* with step detection on, a ```py or ```js fence in Markdown
+now becomes a runCode step. The step is still unsafe, so it runs only with
+allowUnsafeSteps. A test without its own testId gets a new generated ID when
+it gains the step.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.4](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.3...v5.0.0-v5-rc.4) (2026-11-06)
 
 
