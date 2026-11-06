@@ -81,7 +81,7 @@ function createTempScript(code: string, language: string) {
     case "bash":
       extension = ".sh";
       break;
-    // The runCode_v3 schema restricts `language` to python/bash/javascript, all
+    // The runCode_v3 schema restricts `language` to python/py/bash/javascript/js, all
     // handled above, so this default is unreachable through validated input
     // (ADR 01017).
     /* c8 ignore next 2 */

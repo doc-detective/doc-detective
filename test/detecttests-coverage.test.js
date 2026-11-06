@@ -49,6 +49,30 @@ describe("detectTests coverage", function () {
     });
   }
 
+  describe("default Markdown detection", function () {
+    it("turns typing instructions into type steps, whatever the verb's case", async function () {
+      const doc = write(
+        "typing.md",
+        [
+          'Type "kittens" into the box.',
+          "",
+          'Then type "puppies" into the box.',
+          "",
+          'Enter "bunnies" in the box.',
+          "",
+        ].join("\n")
+      );
+      const config = await makeConfig({ input: [doc], detectSteps: true });
+      const specs = await detectTests({ config });
+      const typed = specs
+        .flatMap((spec) => spec.tests)
+        .flatMap((test) => test.steps)
+        .filter((step) => step.type)
+        .map((step) => step.type.keys ?? step.type);
+      assert.deepEqual(typed, ["kittens", "puppies", "bunnies"]);
+    });
+  });
+
   describe("qualifyFiles", function () {
     it("returns [] and warns when no input sources are specified", async function () {
       // Build a valid config first, then blank out input so the
