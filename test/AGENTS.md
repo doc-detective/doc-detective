@@ -71,6 +71,10 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
 
+- **`--dry-run` prints no warnings.** A dry run forces the log level to `silent`, so stdout holds only
+  the test plan. A fixture that checks a warning has to run its steps instead. The detection fixtures
+  in [core-artifacts/detection/](core-artifacts/detection) use `runShell` steps, which need no browser.
+
 ## Fixture concurrency & the resource-aware scheduler
 
 The combined core fixture suite ([core-core.test.js](core-core.test.js), driven by

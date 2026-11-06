@@ -86,43 +86,22 @@ Here's a complete example of an HTML file with inline tests:
 
 ## Detected tests
 
-<Info>
+With step detection on, HTML files detect the steps listed in [What gets detected](overview#what-gets-detected), from HTML tags:
 
-HTML currently only supports inline test statements. Detected test patterns (automatic test generation from content) are not included in the default configuration.
+| Step | HTML that matches |
+|---|---|
+| `goTo` | `Go to <a href="https://example.com">the site</a>`, and the other navigation verbs |
+| `checkLink` | Any `<a href>` to an `http` or `https` URL |
+| `click` | `Click <strong>Search</strong>` or `Click <b>Search</b>`, and the other click verbs |
+| `find` | Any `<strong>` or `<b>` text |
+| `screenshot` | `<img src="results.png" class="screenshot">` |
+| `type` | `Type "kittens"` in prose |
+| `httpRequest` | A `<pre>` block tagged `language-http`, or with no language, that holds a request |
+| `runCode` | A `<pre>` block whose `<code>` has the class `language-bash`, `language-python`, `language-py`, `language-javascript`, or `language-js`. These steps are unsafe |
 
-</Info>
+Statements, tags, and text inside `<pre>`, `<code>`, `<script>`, and `<style>` aren't read. Prose is read as written in the source, so `Type &quot;kittens&quot;` doesn't match the `type` pattern. Write the quotes as `"`.
 
-To add detected test functionality to HTML files, you can define custom markup patterns in your configuration. See [custom inputs](custom) for examples.
-
-Example custom patterns for HTML:
-
-```json
-{
-  "fileTypes": [
-    {
-      "name": "html",
-      "extensions": ["html", "htm"],
-      "markup": [
-        {
-          "name": "checkHyperlink",
-          "regex": ["<a\\s+href=\"(https?:\\/\\/[^\"]+)\"[^>]*>"],
-          "actions": ["checkLink"]
-        },
-        {
-          "name": "clickOnscreenText",
-          "regex": ["\\b(?:[Cc]lick|[Tt]ap)\\b\\s+<(strong|b)>([^<]+)<\\/\\1>"],
-          "actions": [{ "click": "$2" }]
-        },
-        {
-          "name": "goToUrl",
-          "regex": ["\\b(?:[Gg]o\\s+to|[Nn]avigate\\s+to)\\b[^<]*<a\\s+href=\"(https?:\\/\\/[^\"]+)\""],
-          "actions": ["goTo"]
-        }
-      ]
-    }
-  ]
-}
-```
+For a generated site, point Doc Detective at your source files rather than the build output. Otherwise, every link and bold phrase on every page becomes a step. To change what's detected, see [Selectors](selectors) and [custom inputs](custom).
 
 ## JSON and YAML syntax
 

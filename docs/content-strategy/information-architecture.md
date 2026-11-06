@@ -187,6 +187,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
 | Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | Applies to every surface. |
+| Selectors (`input-formats/selectors`) | W3 | | Structure-aware `markup` definitions and `inlineStatements.in`; deep-links to the `fileTypes` reference. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
 | Heretto integration | W3 | | |
 | Self-healing for docs *(shared with A2)* | W2 | | |

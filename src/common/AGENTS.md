@@ -52,7 +52,9 @@ When `validate()` is called:
 - Property renames: `typeKeys.delay` → `type.inputDelay`, `maxVariation` (0-100) → (0-1), etc.
 
 **AJV configuration** (in `validate.js`):
-- `coerceTypes: true` - Auto-converts strings to numbers, etc.
+- `coerceTypes: true` - Auto-converts strings to numbers, etc. Inside an `anyOf`, Ajv coerces into the
+  first branch that can take the value, so `anyOf: [{ type: "string" }, { const: true }]` turns `true` into
+  `"true"`. List the untyped `const: true` branch first, as `selectorAttributes` in `config_v3` does.
 - `useDefaults: true` - Applies default values from schema
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`
@@ -304,6 +306,13 @@ Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` 
 consumer's validated objects. Keep shared schemas default-free unless every consumer wants the
 default (this is why `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its
 own).
+
+### Selector match spans
+
+In `src/detect/selectors.ts`, a selector definition with `regex` gives each occurrence its own span
+only on `text` nodes, whose main text is raw source. On every other kind, the match spans the whole
+node. That's because a main text such as a code block's content isn't at a fixed source offset.
+Anything that maps a detected step back to a range, such as a future LSP hover, gets the node's span.
 
 ### Error Handling
 

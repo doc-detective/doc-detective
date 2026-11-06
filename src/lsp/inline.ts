@@ -6,6 +6,7 @@ import {
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { validate } from "../common/src/validate.js";
 import { parseObject } from "../common/src/detectTests.js";
+import { collectStatements, type Statement } from "../common/src/detect/selectors.js";
 import { defaultFileTypes, type FileType } from "../common/src/fileTypes.js";
 import { basenameFromUri } from "./gate.js";
 import { getRegistry } from "./registry.js";
@@ -49,77 +50,18 @@ interface InlineStatement {
   range: OffsetRange;
 }
 
-/** Compile a pattern with the global + hasIndices flags, or null if invalid. */
-/* c8 ignore start - the runner's own patterns always compile; the catch guards malformed custom fileType patterns */
-function compilePattern(pattern: string): RegExp | null {
-  try {
-    return new RegExp(pattern, "gd");
-  } catch {
-    return null;
-  }
-}
-/* c8 ignore stop */
-
-/** Offset spans of `ignoreStart`…`ignoreEnd` regions, to skip statements in. */
-function ignoreRanges(text: string, fileType: FileType): OffsetRange[] {
-  const starts = collectMatchOffsets(text, fileType.inlineStatements?.ignoreStart);
-  const ends = collectMatchOffsets(text, fileType.inlineStatements?.ignoreEnd);
-  const ranges: OffsetRange[] = [];
-  for (const start of starts) {
-    // Pair each ignoreStart with the next ignoreEnd after it; if none, ignore to
-    // end of document.
-    const end = ends.find((e) => e >= start);
-    ranges.push({ start, end: end ?? text.length });
-  }
-  return ranges;
-}
-
-export function collectMatchOffsets(text: string, patterns?: string[]): number[] {
-  const offsets: number[] = [];
-  for (const pattern of patterns || []) {
-    const re = compilePattern(pattern);
-    /* c8 ignore next - compilePattern only returns null for an invalid custom pattern */
-    if (!re) continue;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text))) {
-      offsets.push(m.index);
-      // A zero-width match doesn't advance lastIndex; nudge it so a degenerate
-      // (empty-matching) custom pattern can't spin forever and hang the server.
-      if (m[0].length === 0) re.lastIndex++;
-    }
-  }
-  return offsets.sort((a, b) => a - b);
-}
-
-/** Extract statements of one kind (testStart / step) with payloads + spans. */
-export function extractStatements(
-  text: string,
-  patterns: string[] | undefined,
-  ignore: OffsetRange[],
-): InlineStatement[] {
-  const out: InlineStatement[] = [];
-  for (const pattern of patterns || []) {
-    const re = compilePattern(pattern);
-    /* c8 ignore next - compilePattern only returns null for an invalid custom pattern */
-    if (!re) continue;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text))) {
-      // A zero-width match doesn't advance lastIndex; nudge it so a degenerate
-      // (empty-matching) custom pattern can't spin forever and hang the server.
-      if (m[0].length === 0) re.lastIndex++;
-      if (ignore.some((r) => m!.index >= r.start && m!.index < r.end)) continue;
-      const group = (m as any).indices?.[1] as [number, number] | undefined;
-      const range: OffsetRange = group
-        ? { start: group[0], end: group[1] }
-        : /* c8 ignore next - hasIndices is always present under the 'd' flag */
-          { start: m.index, end: m.index + m[0].length };
-      /* c8 ignore next - capture group 1 is always present in the statement patterns */
-      const raw = m[1] ?? "";
-      const payload = parseObject({ stringifiedObject: raw });
-      out.push({ payload, parsed: payload !== null && typeof payload === "object", range });
-    }
-  }
-  return out;
+/** Reads a collected statement's payload, and finds its span inside the statement. */
+function toInlineStatement(text: string, statement: Statement): InlineStatement {
+  // The runner parses the first value, else the whole match. It uses ||, so an empty first value falls back too.
+  const raw = statement[1] || statement[0];
+  const payload = parseObject({ stringifiedObject: raw });
+  const at = text.indexOf(raw, statement._startIndex);
+  const range: OffsetRange =
+    at >= 0 && at + raw.length <= statement._endIndex
+      ? { start: at, end: at + raw.length }
+      : /* c8 ignore next - a payload read from an attribute value can be decoded, so it isn't in the source */
+        { start: statement._startIndex, end: statement._endIndex };
+  return { payload, parsed: payload !== null && typeof payload === "object", range };
 }
 
 /** Drop the "must have steps or contexts" errors so an open statement (which
@@ -234,15 +176,34 @@ export function computeInlineDiagnostics(
   fileType: FileType,
 ): Diagnostic[] {
   const text = doc.getText();
-  const ignore = ignoreRanges(text, fileType);
-  const statements = fileType.inlineStatements || {};
+  const statements = collectStatements({
+    content: text,
+    fileType,
+    filePath: basenameFromUri(doc.uri),
+    detectSteps: false,
+    warn: () => {},
+  });
 
+  // Walk statements in order, as parseContent does: an ignore block hides
+  // steps, and ends at `test ignore end` or `test end`.
   const diagnostics: Diagnostic[] = [];
-  for (const stmt of extractStatements(text, statements.testStart, ignore)) {
-    diagnostics.push(...diagnoseTestOpen(doc, stmt));
-  }
-  for (const stmt of extractStatements(text, statements.step, ignore)) {
-    diagnostics.push(...diagnoseStep(doc, stmt));
+  let ignore = false;
+  for (const statement of statements) {
+    switch (statement.type) {
+      case "ignoreStart":
+        ignore = true;
+        break;
+      case "ignoreEnd":
+      case "testEnd":
+        ignore = false;
+        break;
+      case "testStart":
+        diagnostics.push(...diagnoseTestOpen(doc, toInlineStatement(text, statement)));
+        break;
+      case "step":
+        if (!ignore) diagnostics.push(...diagnoseStep(doc, toInlineStatement(text, statement)));
+        break;
+    }
   }
   return diagnostics;
 }

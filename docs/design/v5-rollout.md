@@ -57,7 +57,7 @@ groundwork), Linux native apps, real devices, and cloud device farms.
    runs that repository's tests, like `npm test`. The trust boundary is who can trigger a run with
    secrets, and that belongs to the CI configuration.
 2. **Fenced code stays gated.** Default markup marks detected code fences `unsafe: true`
-   (`src/common/src/fileTypes.ts:277`) because nobody authored them as tests. That's unchanged by decision 1.
+   (the `runCode` definition in `src/common/src/fileTypes.ts`) because nobody authored them as tests. That's unchanged by decision 1.
 3. **An Action major pins a CLI major.** v1 uses `4`, v2 uses `5`. Users can still set `version`.
 4. **Schema names stay `_v3`.** Bumping the names would force a migration with no user benefit. Specs and
    steps now reject unknown keys, and reports declare `summary` and result fields. `output` rejects a
