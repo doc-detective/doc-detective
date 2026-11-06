@@ -48,7 +48,7 @@ describe("built-in fileTypes", function () {
     expect(defaultFileTypes.html.markup).to.not.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup[0]).to.not.equal(defaultFileTypes.markdown.markup[0]);
     // A fileType detected from content is a copy too.
-    for (const [content, name] of [["# Title", "markdown"], ["<!DOCTYPE html>", "html"], ["= Title", "asciidoc"], ['<?xml version="1.0"?><topic/>', "dita"]]) {
+    for (const [content, name] of [["# Title", "markdown"], ["<!DOCTYPE html>", "html"], ["= Title", "asciidoc"], ['<?xml version="1.0"?><topic>', "dita"]]) {
       const detected = detectFileTypeFromContent(content);
       expect(detected).to.deep.equal(defaultFileTypes[name]);
       expect(detected).to.not.equal(defaultFileTypes[name]);
