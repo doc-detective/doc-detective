@@ -188,6 +188,12 @@ describe("selectors", function () {
       expect(nodes.find((n) => n.kind === "emphasis")).to.include({ text: "see" });
     });
 
+    it("reads an attribute list of any length", function () {
+      const title = "t".repeat(400);
+      const [image] = parseMarkdown(`![A](i.png){.screenshot title="${title}"} after`).filter((n) => n.kind === "image");
+      expect(image.attributes).to.deep.equal({ class: "screenshot", title });
+    });
+
     it("gives strong text as it renders", function () {
       expect(parseMarkdown("**`x`**").find((n) => n.kind === "strong")).to.include({ text: "x" });
     });

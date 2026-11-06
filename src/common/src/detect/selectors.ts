@@ -24,7 +24,10 @@ export type Kind =
 
 export const KINDS: Kind[] = ["comment", "codeBlock", "link", "image", "strong", "emphasis", "text", "element"];
 
-/** A parsed node, with exact source offsets. */
+/**
+ * A parsed node, with exact source offsets. A parser must set `content`,
+ * `text`, or `alt` on every node, because that's the node's main text.
+ */
 export interface Node {
   kind: Kind;
   startIndex: number;
@@ -82,7 +85,7 @@ export function usesSelectors(fileType: FileType, detectSteps = true): boolean {
   return Boolean(fileType.inlineStatements?.in) || (detectSteps && (fileType.markup ?? []).some(selectorOf));
 }
 
-// Every node has one of these, since parsers always set an image's alt.
+// Every node has one of these. See Node.
 const mainText = (node: Node): string => (node.content ?? node.text ?? node.alt)!;
 const matches = (pattern: string, subject: string): boolean => safeRegExp(pattern, "")?.test(subject) ?? false;
 const patternsOf = (regex: string | string[]): string[] => [regex].flat();
@@ -121,7 +124,11 @@ function matchNode(node: Node, { kind, options: o }: Selector): Match | null {
   return { node, startIndex: node.startIndex, endIndex: node.endIndex, groups: null, preceded };
 }
 
-/** A capture field's value. A `regex` group that didn't take part is undefined, as in regex definitions. */
+/**
+ * A capture field's value. A `regex` or `precededBy` group that didn't take
+ * part is undefined, so the action drops the field, as in regex definitions.
+ * A node field or attribute the node doesn't have is "", so the field stays.
+ */
 export function resolveField(path: string, match: Match): string | undefined {
   const group = /^(match|precededBy)\.(\d+)$/.exec(path);
   if (group) return (group[1] === "match" ? match.groups : match.preceded)?.[Number(group[2])];

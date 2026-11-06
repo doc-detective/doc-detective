@@ -493,13 +493,14 @@ const mode = c.run ? ["--output", results] : ["--dry-run", "--json"];
 const run = spawnSync(
   process.execPath,
   [path.join(root, "bin", "doc-detective.js"), "run", doc, "--config", cfg, ...mode, "--no-env-file"],
-  { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+  { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 }
 );
 const fail = (message) => {
   console.error(`Case ${name}: ${message}`);
   console.error(`stderr: ${run.stderr}`);
   process.exit(1);
 };
+if (run.error) fail(`didn't finish: ${run.error.message}`);
 if (run.status !== (c.exit ?? 0)) fail(`exited ${run.status}, expected ${c.exit ?? 0}.`);
 if (c.stderr && !run.stderr.includes(c.stderr)) fail(`stderr doesn't include ${JSON.stringify(c.stderr)}.`);
 if (c.run) {
