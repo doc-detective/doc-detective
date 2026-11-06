@@ -56,6 +56,8 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     ? fromMarkdown(content, { extensions: [mdxjs()], mdastExtensions: [mdxFromMarkdown()] })
     : fromMarkdown(content);
   const nodes: Node[] = [];
+  // The parser positions every node it emits. No fallback, because a guessed
+  // offset would misplace a statement silently instead of failing.
   const startOf = (n: any): number => n.position.start.offset;
   const endOf = (n: any): number => n.position.end.offset;
 
@@ -185,6 +187,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
         case "paragraph":
         case "heading": {
           const source = content.slice(startOf(n), endOf(n));
+          // In .mdx, {/* */} is already an expression node, so only .md scans for it.
           for (const pattern of mdx ? [REFERENCE_COMMENT] : [JSX_COMMENT, REFERENCE_COMMENT]) {
             for (const m of source.matchAll(pattern)) {
               const at = startOf(n) + m.index!;
