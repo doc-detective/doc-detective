@@ -18629,9 +18629,9 @@ export interface RunCode {
 }
 export interface RunCodeDetailed {
   /**
-   * Language of the code to run.
+   * Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.
    */
-  language: "python" | "bash" | "javascript";
+  language: "python" | "py" | "bash" | "javascript" | "js";
   /**
    * Code to run.
    */
@@ -26997,9 +26997,9 @@ export interface RunCode2 {
 }
 export interface RunCodeDetailed1 {
   /**
-   * Language of the code to run.
+   * Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.
    */
-  language: "python" | "bash" | "javascript";
+  language: "python" | "py" | "bash" | "javascript" | "js";
   /**
    * Code to run.
    */

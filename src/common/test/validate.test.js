@@ -1048,6 +1048,30 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("runCode language", function () {
+      for (const language of ["python", "py", "bash", "javascript", "js"]) {
+        it(`accepts ${language}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runCode: { language, code: "x" } },
+          });
+          expect(result.valid, result.errors).to.be.true;
+          // Kept as written, so reports show what the author wrote.
+          expect(result.object.runCode.language).to.equal(language);
+        });
+      }
+
+      for (const language of ["node", "Python", "ruby"]) {
+        it(`rejects ${language}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runCode: { language, code: "x" } },
+          });
+          expect(result.valid).to.be.false;
+        });
+      }
+    });
+
     describe("runBrowserScript step", function () {
       it("should validate the simple string form", function () {
         const result = validate({
