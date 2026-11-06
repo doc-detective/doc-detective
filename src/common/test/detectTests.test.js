@@ -2512,6 +2512,22 @@ function readFixture(filename) {
         });
       });
 
+      describe("default Markdown runCode fences", function () {
+        for (const language of ["bash", "python", "py", "javascript", "js"]) {
+          it(`turns a ${language} fence into a runCode step`, async function () {
+            const result = await parseContent({
+              config: { detectSteps: true },
+              content: "```" + language + "\nx\n```\n",
+              filePath: "fence.md",
+              fileType: defaultFileTypes.markdown,
+            });
+            expect(result).to.have.lengthOf(1);
+            const languages = result[0].steps.filter((s) => s.runCode).map((s) => s.runCode.language);
+            expect(languages).to.deep.equal([language]);
+          });
+        }
+      });
+
       describe("dita-data-inline-tests.dita (DITA <data> element inline tests)", function () {
         it("should detect test with <data name='doc-detective' value='test ...'/> testStart", async function () {
           const content = readFixture("dita-data-inline-tests.dita");

@@ -1,0 +1,30 @@
+{
+  "specId": "runCode-aliases",
+  "description": "py runs as python, and js runs as javascript.",
+  "tests": [
+    {
+      "testId": "runCode-alias-py",
+      "steps": [
+        {
+          "runCode": {
+            "language": "py",
+            "code": "import sys; print('major', sys.version_info.major)",
+            "stdio": "major 3"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "runCode-alias-js",
+      "steps": [
+        {
+          "runCode": {
+            "language": "js",
+            "code": "console.log('node', typeof process.versions.node)",
+            "stdio": "node string"
+          }
+        }
+      ]
+    }
+  ]
+}

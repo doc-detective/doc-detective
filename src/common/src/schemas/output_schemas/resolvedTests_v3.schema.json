@@ -21705,11 +21705,13 @@
                                                         "properties": {
                                                           "language": {
                                                             "type": "string",
-                                                            "description": "Language of the code to run.",
+                                                            "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                             "enum": [
                                                               "python",
+                                                              "py",
                                                               "bash",
-                                                              "javascript"
+                                                              "javascript",
+                                                              "js"
                                                             ]
                                                           },
                                                           "code": {
@@ -21849,11 +21851,13 @@
                                                           "properties": {
                                                             "language": {
                                                               "type": "string",
-                                                              "description": "Language of the code to run.",
+                                                              "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                               "enum": [
                                                                 "python",
+                                                                "py",
                                                                 "bash",
-                                                                "javascript"
+                                                                "javascript",
+                                                                "js"
                                                               ]
                                                             },
                                                             "code": {
@@ -21987,6 +21991,10 @@
                                                       {
                                                         "language": "javascript",
                                                         "code": "console.log('Hello, ${process.env.USER}!');"
+                                                      },
+                                                      {
+                                                        "language": "py",
+                                                        "code": "print('Hello from Python')"
                                                       },
                                                       {
                                                         "language": "bash",
@@ -80411,11 +80419,13 @@
                                           "properties": {
                                             "language": {
                                               "type": "string",
-                                              "description": "Language of the code to run.",
+                                              "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                               "enum": [
                                                 "python",
+                                                "py",
                                                 "bash",
-                                                "javascript"
+                                                "javascript",
+                                                "js"
                                               ]
                                             },
                                             "code": {
@@ -80555,11 +80565,13 @@
                                             "properties": {
                                               "language": {
                                                 "type": "string",
-                                                "description": "Language of the code to run.",
+                                                "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                 "enum": [
                                                   "python",
+                                                  "py",
                                                   "bash",
-                                                  "javascript"
+                                                  "javascript",
+                                                  "js"
                                                 ]
                                               },
                                               "code": {
@@ -80693,6 +80705,10 @@
                                         {
                                           "language": "javascript",
                                           "code": "console.log('Hello, ${process.env.USER}!');"
+                                        },
+                                        {
+                                          "language": "py",
+                                          "code": "print('Hello from Python')"
                                         },
                                         {
                                           "language": "bash",
@@ -141425,11 +141441,13 @@
                                             "properties": {
                                               "language": {
                                                 "type": "string",
-                                                "description": "Language of the code to run.",
+                                                "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                 "enum": [
                                                   "python",
+                                                  "py",
                                                   "bash",
-                                                  "javascript"
+                                                  "javascript",
+                                                  "js"
                                                 ]
                                               },
                                               "code": {
@@ -141569,11 +141587,13 @@
                                               "properties": {
                                                 "language": {
                                                   "type": "string",
-                                                  "description": "Language of the code to run.",
+                                                  "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                   "enum": [
                                                     "python",
+                                                    "py",
                                                     "bash",
-                                                    "javascript"
+                                                    "javascript",
+                                                    "js"
                                                   ]
                                                 },
                                                 "code": {
@@ -141707,6 +141727,10 @@
                                           {
                                             "language": "javascript",
                                             "code": "console.log('Hello, ${process.env.USER}!');"
+                                          },
+                                          {
+                                            "language": "py",
+                                            "code": "print('Hello from Python')"
                                           },
                                           {
                                             "language": "bash",
@@ -198833,11 +198857,13 @@
                                                   "properties": {
                                                     "language": {
                                                       "type": "string",
-                                                      "description": "Language of the code to run.",
+                                                      "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                       "enum": [
                                                         "python",
+                                                        "py",
                                                         "bash",
-                                                        "javascript"
+                                                        "javascript",
+                                                        "js"
                                                       ]
                                                     },
                                                     "code": {
@@ -198977,11 +199003,13 @@
                                                     "properties": {
                                                       "language": {
                                                         "type": "string",
-                                                        "description": "Language of the code to run.",
+                                                        "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                                                         "enum": [
                                                           "python",
+                                                          "py",
                                                           "bash",
-                                                          "javascript"
+                                                          "javascript",
+                                                          "js"
                                                         ]
                                                       },
                                                       "code": {
@@ -199115,6 +199143,10 @@
                                                 {
                                                   "language": "javascript",
                                                   "code": "console.log('Hello, ${process.env.USER}!');"
+                                                },
+                                                {
+                                                  "language": "py",
+                                                  "code": "print('Hello from Python')"
                                                 },
                                                 {
                                                   "language": "bash",

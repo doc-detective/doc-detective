@@ -32,6 +32,15 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 ```json
 {
   "runCode": {
+    "language": "py",
+    "code": "print('Hello from Python')"
+  }
+}
+```
+
+```json
+{
+  "runCode": {
     "language": "bash",
     "code": "docker run hello-world",
     "timeout": 20000,

@@ -14,7 +14,7 @@ description: "Reference for the `Run code (detailed)` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-language | string | Required. Language of the code to run.<br/><br/>Accepted values: `python`, `bash`, `javascript` | —
+language | string | Required. Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.<br/><br/>Accepted values: `python`, `py`, `bash`, `javascript`, `js` | —
 code | string | Required. Code to run. | —
 args | array of string | Optional. Arguments for the command. | ``[]``
 workingDirectory | string | Optional. Working directory for the command. | `.`

@@ -105,6 +105,12 @@ A command that can't start, for example because its `workingDirectory` doesn't e
 
 **What to do:** Compare `--dry-run` output from version 4 and version 5 to find the new steps. To keep a sentence from becoming a step, put it between `<!-- test ignore start -->` and `<!-- test ignore end -->`, or set `detectSteps: false`.
 
+## `py` and `js` code fences
+
+**What changed:** `runCode` accepts `py` and `js` as languages, which run as `python` and `javascript`. With step detection on, a Markdown fence tagged ` ```py ` or ` ```js ` now becomes a `runCode` step. Version 4 dropped those steps, and a test whose only step was one of them disappeared. The steps are still unsafe, so they run only with `allowUnsafeSteps`. A test without its own `testId` gets a new generated ID when it gains a step.
+
+**What to do:** If you set `allowUnsafeSteps`, compare `--dry-run` output from version 4 and version 5 to find the new steps. To keep a fence from running, add `testIgnore` after its language, as in ` ```py testIgnore `.
+
 ## Logs moved to stderr
 
 **What changed:** stdout carries results only. Logs, warnings, hints, and notices go to stderr. Logs also lose their level labels, such as `(INFO)`, unless you turn on debug output.
