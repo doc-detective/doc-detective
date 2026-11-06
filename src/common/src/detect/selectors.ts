@@ -72,6 +72,7 @@ function selectorOf(def: any): Selector | null {
   for (const kind of KINDS) {
     const raw = def?.[kind];
     if (raw === undefined) continue;
+    // The schema allows a string only for codeBlock, a language, and element, a tag.
     if (typeof raw === "string") return { kind, options: kind === "codeBlock" ? { language: [raw] } : { tag: [raw] } };
     return { kind, options: raw };
   }
@@ -193,18 +194,29 @@ export interface CollectStatementsInput {
 }
 
 /**
- * Returns a file's statements in document order. Each has numbered values
- * (`0` is the matched source, `1` and up are `$1` and up), a `type`, and
- * `_startIndex`, `_endIndex`, and `_line`. Detected steps also carry their
- * `markup` definition.
+ * A statement or detected step, shaped like a regex match: `0` is the matched
+ * source, and `1` and up are `$1` and up.
  */
+export interface Statement {
+  [value: number]: string | undefined;
+  0: string;
+  type: StatementType | "detectedStep";
+  /** A detected step's markup definition. */
+  markup?: any;
+  _startIndex: number;
+  _endIndex: number;
+  _line: number;
+  sortIndex: number;
+}
+
+/** Returns a file's statements in document order. */
 export function collectStatements({
   content,
   fileType,
   filePath = "",
   detectSteps = true,
   warn,
-}: CollectStatementsInput): any[] {
+}: CollectStatementsInput): Statement[] {
   const lineStarts = getLineStarts(content);
   const statements: any[] = [];
   // Statements sort at their start plus the length of their first value, as
@@ -276,8 +288,9 @@ export function collectStatements({
   function addMatches(def: any, found: any[]) {
     if (found.length === 0) return;
     if (def.batchMatches) {
-      const startIndex = Math.min(...found.map((m) => m.index));
-      const endIndex = Math.max(...found.map((m) => m.end));
+      // reduce, because spreading a very large batch into Math.min overflows the stack.
+      const startIndex = found.reduce((min, m) => Math.min(min, m.index), Infinity);
+      const endIndex = found.reduce((max, m) => Math.max(max, m.end), 0);
       const statement: any = { 1: found.map((m) => m[1] || m[0]).join("\n"), type: "detectedStep", markup: def };
       add(statement, startIndex, endIndex);
       // A batch sorts at its start, whatever its first value.
