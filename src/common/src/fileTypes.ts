@@ -52,6 +52,7 @@ const CLICK_VERBS = "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc
 
 const clickOnscreenText: MarkupDefinition = { name: "clickOnscreenText", strong: { precededBy: CLICK_VERBS }, captures: ["text"], actions: ["click"] };
 const findOnscreenText: MarkupDefinition = { name: "findOnscreenText", strong: {}, captures: ["text"], actions: ["find"] };
+// With no captures, $1 is the regex's first group, the quoted text, and a bare "type" action takes $1.
 const typeText: MarkupDefinition = { name: "typeText", text: {}, regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'], actions: ["type"] };
 const screenshotImage: MarkupDefinition = {
   name: "screenshotImage",
@@ -111,6 +112,7 @@ const defaultFileTypesBase: Record<string, FileType> = {
         name: "typeIntoUiControl",
         element: {
           tag: ["uicontrol"],
+          // precededBy reads raw source, so the <userinput> tags are in the text it matches.
           precededBy: "(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+<userinput>([^<]+)<\\/userinput>\\s+(?:in|into)(?:\\s+the)?\\s+$",
         },
         // `content` is the control's name, and `precededBy.1` is precededBy's first group, the <userinput> text.

@@ -258,6 +258,8 @@ async function setConfig({ config, detectApps = true }: any) {
               extendedFileType?.inlineStatements?.[key] ||
               fileType?.inlineStatements?.[key]
             ) {
+              // Set drops repeated strings. A repeated `in` object stays, and
+              // collection drops the duplicate statements it finds.
               fileType.inlineStatements[key] = [
                 ...new Set([
                   ...(extendedFileType?.inlineStatements?.[key] || []),
