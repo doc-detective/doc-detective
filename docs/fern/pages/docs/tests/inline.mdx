@@ -49,6 +49,8 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 - Test end: `{/* test end */}`, `<!-- test end -->`, or `[comment]: # (test end)`
 - Ignore blocks: `{/* test ignore start */}` and `{/* test ignore end */}`
 
+> MDX doesn't support HTML comments. In `.mdx` files, use JSX-style or Markdown link comments for every statement, including test end.
+
 **HTML files** (`.html`, `.htm`):
 
 - Test comments: `<!-- test { "testId": "my-test-4" } -->`
