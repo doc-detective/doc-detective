@@ -43,6 +43,12 @@ describe("built-in fileTypes", function () {
   it("shares one definition list across Markdown, AsciiDoc, and HTML", function () {
     expect(defaultFileTypes.asciidoc.markup).to.deep.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup).to.deep.equal(defaultFileTypes.markdown.markup);
+    // Each format holds its own copy, so changing one can't change the others.
+    expect(defaultFileTypes.asciidoc.markup).to.not.equal(defaultFileTypes.markdown.markup);
+    expect(defaultFileTypes.html.markup).to.not.equal(defaultFileTypes.markdown.markup);
+    expect(defaultFileTypes.html.markup[0]).to.not.equal(defaultFileTypes.markdown.markup[0]);
+    const findDita = defaultFileTypes.dita.markup.find((d) => d.name === "screenshotImage");
+    expect(findDita).to.not.equal(defaultFileTypes.markdown.markup.find((d) => d.name === "screenshotImage"));
   });
 
   describe("code samples hold no tests", function () {

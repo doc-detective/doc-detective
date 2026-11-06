@@ -72,7 +72,7 @@ const runCode: MarkupDefinition = {
   actions: [{ unsafe: true, runCode: { language: "$1", code: "$2" } }],
 };
 
-/** Markdown, AsciiDoc, and HTML share these definitions. */
+/** Markdown, AsciiDoc, and HTML share these definitions. Each format takes its own copy. */
 const sharedMarkup: MarkupDefinition[] = [
   { name: "goToUrl", link: { url: "^https?://", precededBy: GO_TO_VERBS }, captures: ["url"], actions: ["goTo"] },
   { name: "checkHyperlink", link: { url: "^https?://" }, captures: ["url"], actions: ["checkLink"] },
@@ -92,7 +92,7 @@ const defaultFileTypesBase: Record<string, FileType> = {
     extensions: ["adoc", "asciidoc", "asc"],
     // AsciiDoc statements sit in parentheses: `// (step {...})`.
     inlineStatements: { in: [{ comment: {}, regex: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" }] },
-    markup: sharedMarkup,
+    markup: structuredClone(sharedMarkup),
   },
   dita_1_0: {
     name: "dita",
@@ -100,7 +100,7 @@ const defaultFileTypesBase: Record<string, FileType> = {
     inlineStatements: {
       in: ["comment", { element: { tag: ["data"], attributes: { name: "^doc-detective$" } }, value: "attributes.value" }],
     },
-    markup: [
+    markup: structuredClone([
       {
         name: "clickUiControl",
         element: { tag: ["uicontrol"], precededBy: "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?$" },
@@ -133,19 +133,19 @@ const defaultFileTypesBase: Record<string, FileType> = {
       screenshotImage,
       httpRequestFormat,
       runCode,
-    ],
+    ]),
   },
   html_1_0: {
     name: "html",
     extensions: ["html", "htm"],
     inlineStatements: { in: ["comment"] },
-    markup: sharedMarkup,
+    markup: structuredClone(sharedMarkup),
   },
   markdown_1_0: {
     name: "markdown",
     extensions: ["md", "markdown", "mdx"],
     inlineStatements: { in: ["comment"] },
-    markup: sharedMarkup,
+    markup: structuredClone(sharedMarkup),
   },
 };
 
