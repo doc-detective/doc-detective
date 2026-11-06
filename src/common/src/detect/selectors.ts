@@ -84,8 +84,8 @@ export function usesSelectors(fileType: FileType, detectSteps = true): boolean {
   return Boolean(fileType.inlineStatements?.in) || (detectSteps && (fileType.markup ?? []).some(selectorOf));
 }
 
-// Every node has one of these. See Node.
-const mainText = (node: Node): string => (node.content ?? node.text ?? node.alt)!;
+/** A node's main text. A node a parser left without one matches no `regex` or `excludes`. */
+export const mainText = (node: Node): string => node.content ?? node.text ?? node.alt ?? "";
 const matches = (pattern: string, subject: string): boolean => safeRegExp(pattern, "")?.test(subject) ?? false;
 const patternsOf = (regex: string | string[]): string[] => [regex].flat();
 
