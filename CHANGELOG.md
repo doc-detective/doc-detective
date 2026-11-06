@@ -1,3 +1,18 @@
+# [5.0.0-v5-rc.4](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.3...v5.0.0-v5-rc.4) (2026-11-06)
+
+
+* fix(core)!: use common's default fileTypes table in the runner ([c4d6231](https://github.com/doc-detective/doc-detective/commit/c4d6231bd5da57cce922c9b40521a0b9732d1fc4))
+
+
+### BREAKING CHANGES
+
+* with step detection on, a Markdown typing instruction
+with a capitalized verb, such as `Type "kittens"`, now becomes a type
+step. A test without its own testId gets a new generated ID when it
+gains a step.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.3](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.2...v5.0.0-v5-rc.3) (2026-11-05)
 
 
