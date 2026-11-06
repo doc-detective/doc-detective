@@ -287,7 +287,12 @@ export function collectStatements({
       // reduce, because spreading a very large batch into Math.min overflows the stack.
       const startIndex = found.reduce((min, m) => Math.min(min, m.index), Infinity);
       const endIndex = found.reduce((max, m) => Math.max(max, m.end), 0);
-      const statement: any = { 1: found.map((m) => m[1] || m[0]).join("\n"), type: "detectedStep", markup: def };
+      const statement: any = {
+        0: found.map((m) => m[0]).join("\n"),
+        1: found.map((m) => m[1] || m[0]).join("\n"),
+        type: "detectedStep",
+        markup: def,
+      };
       add(statement, startIndex, endIndex);
       // A batch sorts at its start, whatever its first value.
       statement.sortIndex = startIndex;
