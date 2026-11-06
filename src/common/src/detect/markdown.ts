@@ -20,8 +20,6 @@ const EXPRESSION_COMMENT = /^\s*\/\*([\s\S]*?)\*\/\s*$/;
 // MDX parses JSX expression comments itself, so it scans only for link-reference comments.
 const JSX_COMMENT = /\{\/\*([\s\S]*?)\*\/\}/g;
 const REFERENCE_COMMENT = /^[ \t]*\[comment\]:[ \t]*(?:#|<>)?[ \t]*(?:\(([^\n]*)\)|"([^\n]*)"|'([^\n]*)')[ \t]*$/gm;
-// Sticky, so it matches only where lastIndex points.
-const ATTRIBUTE_LIST = /\{([^}]*)\}/y;
 /** Lowercase JSX tags that read as HTML kinds in `.mdx`. */
 const JSX_KINDS: Record<string, Kind> = { a: "link", img: "image", strong: "strong", b: "strong", em: "emphasis", i: "emphasis" };
 // One name branch with an optional value. Alternatives that share a prefix
@@ -100,8 +98,10 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
 
   /** Extends a link or image over a trailing attribute list. */
   const withAttributes = (node: Omit<Node, "before">) => {
-    ATTRIBUTE_LIST.lastIndex = node.endIndex;
-    const m = ATTRIBUTE_LIST.exec(content);
+    // Sticky, so it matches only at the node's end. One per call, so no lastIndex is shared.
+    const attributeList = /\{([^}]*)\}/y;
+    attributeList.lastIndex = node.endIndex;
+    const m = attributeList.exec(content);
     const attributes = m && parseAttributeList(m[1]);
     if (attributes) {
       taken.push([node.endIndex, node.endIndex + m![0].length]);

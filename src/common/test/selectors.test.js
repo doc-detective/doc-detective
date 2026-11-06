@@ -3,7 +3,7 @@ import sinon from "sinon";
 import { detectTests } from "../dist/index.js";
 import { validate } from "../dist/validate.js";
 import { parseMarkdown, parseAttributeList } from "../dist/detect/markdown.js";
-import { parseStatementText, collectStatements, mainText } from "../dist/detect/selectors.js";
+import { parseStatementText, collectStatements, mainText, matches } from "../dist/detect/selectors.js";
 
 // Validates a config holding one custom fileType.
 const check = (fileType) =>
@@ -92,6 +92,13 @@ describe("selectors", function () {
     });
   });
 
+  describe("matching a field", function () {
+    it("reads a field the node lacks as empty, not as the text undefined", function () {
+      expect(matches("^$", undefined)).to.equal(true);
+      expect(matches("undefined", undefined)).to.equal(false);
+    });
+  });
+
   describe("statement text", function () {
     it("parses each keyword", function () {
       expect(parseStatementText('test {"testId": "a"}')).to.deep.equal({ type: "testStart", payload: '{"testId": "a"}' });
@@ -134,6 +141,8 @@ describe("selectors", function () {
         '{/* step {"find": "z"} */}',
         "",
         '[comment]: # (step {"runShell": "echo (x)"})',
+        "",
+        '[comment]: <> (step {"find": "w"})',
       ].join("\n");
       const comments = parseMarkdown(content).filter((n) => n.kind === "comment");
       expect(comments.map((c) => c.content)).to.deep.equal([
@@ -142,6 +151,7 @@ describe("selectors", function () {
         'step {"find": "y"}',
         'step {"find": "z"}',
         'step {"runShell": "echo (x)"}',
+        'step {"find": "w"}',
       ]);
       expect(content.slice(comments[0].startIndex, comments[0].endIndex)).to.equal('<!-- test {"testId": "a"} -->');
     });
@@ -376,6 +386,17 @@ describe("selectors", function () {
       const content = '<!-- step {"find": "a"} -->\n';
       const fileType = md({ inlineStatements: { in: ["comment"], step: ["<!--\\s*step\\s*([\\s\\S]*?)\\s*-->"] } });
       expect(strip((await detect(content, fileType)).steps)).to.deep.equal([{ find: "a" }]);
+    });
+
+    it("drops a regex statement inside a container's statement, whatever its span", async function () {
+      const content = '<!-- step {"find": "a"} -->\n\n<!-- step {"find": "b"} -->\n';
+      const fileType = md({ inlineStatements: { in: ["comment"], step: ["step\\s+(\\{[^}]*\\})"] } });
+      expect(strip((await detect(content, fileType)).steps)).to.deep.equal([{ find: "a" }, { find: "b" }]);
+    });
+
+    it("drops a statement two containers find", async function () {
+      const fileType = md({ inlineStatements: { in: ["comment", { comment: {} }] } });
+      expect(strip((await detect('<!-- step {"find": "a"} -->\n', fileType)).steps)).to.deep.equal([{ find: "a" }]);
     });
 
     it("parses .md files that extend markdown under another extension", async function () {

@@ -88,8 +88,10 @@ export function usesSelectors(fileType: FileType, detectSteps = true): boolean {
 
 /** A node's main text. A node a parser left without one matches no `regex` or `excludes`. */
 export const mainText = (node: Node): string => node.content ?? node.text ?? node.alt ?? "";
-const matches = (pattern: string, subject: string): boolean => safeRegExp(pattern, "")?.test(subject) ?? false;
-const patternsOf = (regex: string | string[]): string[] => [regex].flat();
+/** Tests a field against a pattern. A field the node lacks reads as "". */
+export const matches = (pattern: string, subject: string | undefined): boolean =>
+  safeRegExp(pattern, "")?.test(subject ?? "") ?? false;
+const patternsOf = (regex: string | string[]): string[] => (Array.isArray(regex) ? regex : [regex]);
 
 interface Match {
   node: Node;
@@ -109,10 +111,10 @@ function matchNode(node: Node, { kind, options: o }: Selector): Match | null {
   if (node.kind !== kind) return null;
   if (o.excludes && matches(o.excludes, mainText(node))) return null;
   if (o.language && !o.language.includes(node.language)) return null;
-  if (o.metaExcludes && matches(o.metaExcludes, node.meta!)) return null;
+  if (o.metaExcludes && matches(o.metaExcludes, node.meta)) return null;
   if (o.tag && !o.tag.includes(node.tag)) return null;
-  if (o.url && !matches(o.url, node.url!)) return null;
-  if (o.src && !matches(o.src, node.src!)) return null;
+  if (o.url && !matches(o.url, node.url)) return null;
+  if (o.src && !matches(o.src, node.src)) return null;
   for (const [name, want] of Object.entries(o.attributes ?? {})) {
     const value = node.attributes?.[name];
     if (value === undefined || (want !== true && !matches(want as string, String(value)))) return null;
@@ -234,7 +236,8 @@ export function collectStatements({
   warn,
 }: CollectStatementsInput): Statement[] {
   const lineStarts = getLineStarts(content);
-  const statements: any[] = [];
+  const statements: Statement[] = [];
+  const fromContainers = new Set<object>();
   // Statements sort at their start plus the length of their first value, as
   // regex statements always have. A capture can come from outside the node,
   // such as a `precededBy` group, so the sort point stays inside the match.
@@ -272,9 +275,26 @@ export function collectStatements({
       }
       const parsed = parseStatementText(text);
       if (!parsed) continue;
-      add({ 0: content.slice(node.startIndex, node.endIndex), 1: parsed.payload, type: parsed.type }, node.startIndex, node.endIndex);
+      const statement = { 0: content.slice(node.startIndex, node.endIndex), 1: parsed.payload, type: parsed.type };
+      add(statement, node.startIndex, node.endIndex);
+      fromContainers.add(statement);
     }
   }
+
+  const addMatches = (def: any, found: any[]) => {
+    if (found.length === 0) return;
+    if (def.batchMatches) {
+      // reduce, because spreading a very large batch into Math.min overflows the stack.
+      const startIndex = found.reduce((min, m) => Math.min(min, m.index), Infinity);
+      const endIndex = found.reduce((max, m) => Math.max(max, m.end), 0);
+      const statement: any = { 1: found.map((m) => m[1] || m[0]).join("\n"), type: "detectedStep", markup: def };
+      add(statement, startIndex, endIndex);
+      // A batch sorts at its start, whatever its first value.
+      statement.sortIndex = startIndex;
+      return;
+    }
+    for (const m of found) add(Object.assign(m, { type: "detectedStep", markup: def }), m.index, m.end);
+  };
 
   for (const def of markup) {
     const selector = selectorOf(def);
@@ -301,25 +321,16 @@ export function collectStatements({
     for (const found of batches) addMatches(def, found);
   }
 
-  function addMatches(def: any, found: any[]) {
-    if (found.length === 0) return;
-    if (def.batchMatches) {
-      // reduce, because spreading a very large batch into Math.min overflows the stack.
-      const startIndex = found.reduce((min, m) => Math.min(min, m.index), Infinity);
-      const endIndex = found.reduce((max, m) => Math.max(max, m.end), 0);
-      const statement: any = { 1: found.map((m) => m[1] || m[0]).join("\n"), type: "detectedStep", markup: def };
-      add(statement, startIndex, endIndex);
-      // A batch sorts at its start, whatever its first value.
-      statement.sortIndex = startIndex;
-      return;
-    }
-    for (const m of found) add(Object.assign(m, { type: "detectedStep", markup: def }), m.index, m.end);
-  }
-
-  // A regex and a container can find the same statement. Keep one.
+  // A regex and a container can find the same statement. Keep the container's,
+  // which spans the whole node, and drop a regex one of the same type inside it.
+  // ponytail: scans every container statement per regex statement; fine for one file.
+  const containers = statements.filter((s) => fromContainers.has(s));
+  const insideContainer = (s: Statement) =>
+    containers.some((c) => c.type === s.type && s._startIndex < c._endIndex && c._startIndex < s._endIndex);
   const seen = new Set<string>();
   const unique = statements.filter((s) => {
     if (s.type === "detectedStep") return true;
+    if (!fromContainers.has(s) && insideContainer(s)) return false;
     const key = `${s.type} ${s._startIndex} ${s._endIndex}`;
     if (seen.has(key)) return false;
     seen.add(key);
