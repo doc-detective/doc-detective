@@ -436,6 +436,7 @@ const cases = {
       '<p>Navigate to <xref href="https://example.com" scope="external">the site</xref>, then click <uicontrol>Search</uicontrol>.</p>',
       '<image href="results.png" outputclass="screenshot"/>',
       '<codeblock outputclass="language-http">GET https://example.com/api HTTP/1.1</codeblock>',
+      '<codeblock outputclass="language-bash">echo hi</codeblock>',
       `<codeblock><!-- step ${step("fenced")} --></codeblock>`,
       "</body></topic>",
     ].join("\n"),
@@ -447,6 +448,7 @@ const cases = {
       { find: "Search" },
       { screenshot: "results.png" },
       { httpRequest: { method: "GET", url: "https://example.com/api", request: {} } },
+      { unsafe: true, runCode: { language: "bash", code: "echo hi" } },
     ]],
   },
 

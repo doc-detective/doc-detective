@@ -94,7 +94,7 @@ describe("built-in fileTypes", function () {
   it("opens a test with `test start`, and not with a comment that starts with `testing`", async function () {
     const content = '<!-- testing notes: x -->\n\n<!-- test start {"testId": "a"} -->\n\n<!-- step {"find": "b"} -->\n';
     const tests = await detectTests({ content, filePath: "doc.md", config: {} });
-    expect(tests.map((t) => [t.testId, t.steps.map(({ location, ...s }) => s)])).to.deep.equal([["a", [{ find: "b" }]]]);
+    expect(tests.map((t) => [t.testId, t.steps.map(({ location, stepId, ...s }) => s)])).to.deep.equal([["a", [{ find: "b" }]]]);
   });
 
   it("detects the same steps in every format", async function () {
