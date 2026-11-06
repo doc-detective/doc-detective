@@ -47,7 +47,8 @@ const DIALECTS: Record<Dialect, DialectSpec> = {
   },
 };
 
-const FORMATTING = new Set<Kind>(["link", "strong", "emphasis"]);
+const FORMATTING = new Set<Kind | undefined>(["link", "strong", "emphasis"]);
+const LANGUAGE_CLASS = /(?:^|\s)language-(\S+)/;
 const collapse = (text: string) => text.replace(/\s+/g, " ").trim();
 
 interface Frame {
@@ -89,7 +90,7 @@ export function parseMarkup(content: string, dialect: Dialect, from = 0, to = co
     run = null;
   };
 
-  const languageOf = (attributes: Record<string, string>) => /(?:^|\s)language-(\S+)/.exec(attributes[spec.classAttribute] ?? "")?.[1];
+  const languageOf = (attributes: Record<string, string>) => LANGUAGE_CLASS.exec(attributes[spec.classAttribute] ?? "")?.[1];
 
   const parser = new Parser(
     {
@@ -116,7 +117,7 @@ export function parseMarkup(content: string, dialect: Dialect, from = 0, to = co
         const [start, end] = span();
         for (const frame of stack) frame.text += text;
         lastEnd = end;
-        if (stack.some((f) => f.code || FORMATTING.has(f.kind!))) return;
+        if (stack.some((f) => f.code || FORMATTING.has(f.kind))) return;
         // Entities arrive as separate events, so join runs that touch.
         if (run?.[1] === start) run[1] = end;
         else {
@@ -144,6 +145,7 @@ export function parseMarkup(content: string, dialect: Dialect, from = 0, to = co
       },
       onprocessinginstruction(name, data) {
         // DITA's <?doc-detective ...?> holds a statement, like a comment.
+        // htmlparser2 names a processing instruction with its leading "?".
         if (name !== "?doc-detective" || inCode()) return;
         flush();
         const [start, end] = span();
@@ -176,7 +178,7 @@ function toNode(frame: Frame, endIndex: number, spec: DialectSpec): Node | null 
     case "emphasis":
       return { ...base, kind: frame.kind, text: collapse(frame.text) };
     case "codeBlock": {
-      const language = /(?:^|\s)language-(\S+)/.exec(attributes.class ?? "")?.[1] ?? frame.language ?? "";
+      const language = LANGUAGE_CLASS.exec(attributes.class ?? "")?.[1] ?? frame.language ?? "";
       // HTML drops a newline right after <pre>.
       return { ...base, kind: "codeBlock", language, meta: "", content: frame.text.replace(/^\r?\n/, "") };
     }
