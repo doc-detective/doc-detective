@@ -97,7 +97,7 @@ Doc Detective includes default markup patterns for Markdown files that automatic
         },
         {
           "name": "typeText",
-          "regex": ["\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""],
+          "regex": ["\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+\"([^\"]+)\""],
           "actions": ["type"]
         },
         {
@@ -184,7 +184,7 @@ Detects typing instructions with quoted text and types the content.
 
 - **Pattern**: `Type "Hello World"`, `Enter "username"`, `Press "Submit"`
 - **Action**: Types the specified text into the active element
-- **Recognized verbs**: press, enter, type
+- **Recognized verbs**: press, enter, and type, with a capital or lowercase first letter
 
 #### httpRequestFormat
 

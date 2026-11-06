@@ -1,3 +1,62 @@
+# [5.0.0-v5-rc.4](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.3...v5.0.0-v5-rc.4) (2026-11-06)
+
+
+* fix(core)!: use common's default fileTypes table in the runner ([c4d6231](https://github.com/doc-detective/doc-detective/commit/c4d6231bd5da57cce922c9b40521a0b9732d1fc4))
+
+
+### BREAKING CHANGES
+
+* with step detection on, a Markdown typing instruction
+with a capitalized verb, such as `Type "kittens"`, now becomes a type
+step. A test without its own testId gets a new generated ID when it
+gains a step.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+# [5.0.0-v5-rc.3](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.2...v5.0.0-v5-rc.3) (2026-11-05)
+
+
+* feat(api)!: trim the JS exports, and name reports after the run ID ([81161a2](https://github.com/doc-detective/doc-detective/commit/81161a2a74377c618da1ae651bb9424fb394a0d7)), closes [#340](https://github.com/doc-detective/doc-detective/issues/340)
+* feat(cli)!: exit 2 when every spec skips ([fe20ec9](https://github.com/doc-detective/doc-detective/commit/fe20ec913b8f282099ca8dcaad816752cb2603ae))
+* feat(report)!: declare the report contract, and fix the --plain browser column ([de6c323](https://github.com/doc-detective/doc-detective/commit/de6c323aeba515049d6af24167d42a983ac24261))
+* feat(schemas)!: reject unknown keys on specs and steps ([1f33d00](https://github.com/doc-detective/doc-detective/commit/1f33d008f0d783bee44ea04f3286c1b65d2c2c1a))
+* fix(core)!: stop checks passing without testing anything ([4d2d800](https://github.com/doc-detective/doc-detective/commit/4d2d8000a86cb30fdcb115aa4ce8f2bd9b4dd661)), closes [#424](https://github.com/doc-detective/doc-detective/issues/424) [#216](https://github.com/doc-detective/doc-detective/issues/216) [#215](https://github.com/doc-detective/doc-detective/issues/215) [#720](https://github.com/doc-detective/doc-detective/issues/720) [#711](https://github.com/doc-detective/doc-detective/issues/711)
+
+
+### Bug Fixes
+
+* **cli:** name a spec-level reason when every spec skips ([1cd08dd](https://github.com/doc-detective/doc-detective/commit/1cd08ddd099ed5bbee3563ad0110e12637b092c0))
+* **core:** keep internal and v2 steps working under strict keys ([5ebd6b8](https://github.com/doc-detective/doc-detective/commit/5ebd6b83544c6535c9443c23fa3552d5e7a9a624))
+* **core:** only upgrade steps merged from before and after files ([ee091e9](https://github.com/doc-detective/doc-detective/commit/ee091e97e7ecc98ce159968a3c10880596b8e08e))
+* **report:** declare result fields on the step's common keys ([a78d3db](https://github.com/doc-detective/doc-detective/commit/a78d3dbf2b209680144b92e7a5415039aca2778d))
+* **schemas:** keep variables as strings, and regenerate the CLI reference ([9ef7e14](https://github.com/doc-detective/doc-detective/commit/9ef7e14e4556ac3afe366bbb238284953fc6e120))
+
+
+### BREAKING CHANGES
+
+* doc-detective no longer exports detectTests, detectAndResolveTests,
+resolveTests, readFile, or resolvePaths, and the doc-detective/cli path is gone. The
+json and html reporters' file suffix is now an ISO-style run ID.
+* a run where every spec is SKIPPED now exits 2 instead of 0. Limit
+platform-only jobs to their platform, or use --no-exit-on-fail.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* conditions with a broken or empty jq() query, or that are only
+text such as an unset $VAR, are now false. A step with two actions, a duplicate
+testId in a spec, and a missing before or after file now make the spec invalid, and
+exit 2. A failed evaluation in step variables and object-shaped assertions now fail
+the step.
+* an unknown key on a spec or step, or in a click, runCode, record,
+or dragAndDrop object, makes the spec invalid, so the run exits 2. So does an
+invalid inline step or an invalid step in a before or after file. Use
+--no-exit-on-fail to skip those specs while you fix them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* validating with report_v3 now requires `summary`. The fourth
+--plain column prints the browser's name instead of `[object Object]`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.2](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.1...v5.0.0-v5-rc.2) (2026-11-05)
 
 
