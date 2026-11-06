@@ -2718,13 +2718,13 @@ function readFixture(filename) {
       it("should detect DITA from <?xml declaration with DITA DOCTYPE", function () {
         const content = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">\n<topic id="test"><title>Test</title><body/></topic>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.dita);
+        expect(result).to.deep.equal(defaultFileTypes.dita);
       });
 
       it("should detect DITA from <!DOCTYPE topic> without xml declaration", function () {
         const content = `<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">\n<topic id="t"><title>T</title><body/></topic>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.dita);
+        expect(result).to.deep.equal(defaultFileTypes.dita);
       });
 
       it("should NOT detect DITA from bare <topic> root element without XML declaration or DOCTYPE (defaults to markdown)", function () {
@@ -2732,57 +2732,57 @@ function readFixture(filename) {
         // an XML declaration or DOCTYPE, to avoid false positives on generic XML.
         const content = `<topic id="test">\n  <title>My Topic</title>\n  <body><p>Content</p></body>\n</topic>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
 
       it("should NOT detect DITA from bare <map> root element without XML declaration or DOCTYPE (defaults to markdown)", function () {
         const content = `<map>\n  <title>My Map</title>\n  <topicref href="topic1.dita"/>\n</map>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
 
       it("should detect HTML from <!DOCTYPE html>", function () {
         const content = `<!DOCTYPE html>\n<html lang="en"><head><title>Test</title></head><body><p>Hello</p></body></html>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.html);
+        expect(result).to.deep.equal(defaultFileTypes.html);
       });
 
       it("should detect HTML from <html> tag (case-insensitive)", function () {
         const content = `<HTML>\n<HEAD><TITLE>Test</TITLE></HEAD>\n<BODY><p>Hello</p></BODY></HTML>`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.html);
+        expect(result).to.deep.equal(defaultFileTypes.html);
       });
 
       it("should detect AsciiDoc from = Document Title without # headings", function () {
         const content = `= Getting Started\n\nThis is an AsciiDoc document.\n\n== Section 1\n\nSome content.`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.asciidoc);
+        expect(result).to.deep.equal(defaultFileTypes.asciidoc);
       });
 
       it("should NOT detect AsciiDoc if = Title style appears alongside # headings", function () {
         const content = `= Title\n\n# Markdown heading\n\nSome content.`;
         const result = detectFileTypeFromContent(content);
         // Falls back to Markdown because # headings are present
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
 
       it("should default to Markdown for plain prose", function () {
         const content = `To search for kittens, go to [DuckDuckGo](https://www.duckduckgo.com) and type "kittens".`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
 
       it("should default to Markdown for content with # headings", function () {
         const content = `# My Document\n\nSome content with a [link](https://example.com).`;
         const result = detectFileTypeFromContent(content);
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
 
       it("should NOT treat generic XML as DITA if it has no DITA root elements", function () {
         const content = `<?xml version="1.0"?>\n<configuration>\n  <setting name="foo">bar</setting>\n</configuration>`;
         const result = detectFileTypeFromContent(content);
         // Not DITA — no DITA root elements — so falls through to Markdown
-        expect(result).to.equal(defaultFileTypes.markdown);
+        expect(result).to.deep.equal(defaultFileTypes.markdown);
       });
     });
 

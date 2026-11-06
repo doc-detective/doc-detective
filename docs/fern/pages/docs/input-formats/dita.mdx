@@ -108,124 +108,38 @@ DITA OT and other XML processors encode reserved characters in attribute values.
 
 Tests defined in your source files work correctly after DITA OT processing, even when the output contains encoded entities.
 
-## DITA semantic elements
+## Detected tests
 
-DITA task topics use semantic elements to structure procedural documentation. Doc Detective recognizes these elements and extracts the appropriate test actions:
+With step detection on, DITA files detect the steps listed in [What gets detected](overview#what-gets-detected), and use DITA's semantic elements for more:
 
-**UI Elements:**
-- `<uicontrol>` - UI controls like buttons, fields, menus, and options
-- `<wintitle>` - Window or dialog titles
-- `<menucascade>` - Menu sequences (like File > Save As)
+| Definition | DITA that matches | Step |
+|---|---|---|
+| `clickUiControl` | `Click the <uicontrol>Submit</uicontrol> button`, or after "Tap", "Select", "Press", or "Choose" | `click` |
+| `typeIntoUiControl` | `Type <userinput>testuser</userinput> into the <uicontrol>Username</uicontrol> field`, or after "Enter" or "Input" | `type` into the control |
+| `goToUrl` | `Navigate to <xref href="https://example.com">Example</xref>`, and the other navigation verbs | `goTo` |
+| `findUiControl` | Any `<uicontrol>` | `find` |
+| `verifyWindowTitle` | Any `<wintitle>` | `find` |
+| `checkHyperlink` | Any `<xref>` whose `href` is an `http` or `https` URL | `checkLink` |
+| `checkLinkElement` | Any `<link>` whose `href` is an `http` or `https` URL | `checkLink` |
+| `clickOnscreenText` | `Click <b>Save</b>`, and the other click verbs | `click` |
+| `findOnscreenText` | Any `<b>` text | `find` |
+| `typeText` | `Type "kittens"` in prose | `type` |
+| `screenshotImage` | `<image href="results.png" outputclass="screenshot"/>` | `screenshot` |
+| `httpRequestFormat` | A `<codeblock outputclass="language-http">`, or one with no language, that holds a request | `httpRequest` |
+| `runCode` | A `<codeblock>` whose `outputclass` is `language-bash`, `language-python`, `language-py`, `language-javascript`, or `language-js` | `runCode`, marked unsafe |
 
-**User Input:**
-- `<userinput>` - Text that users should type
-- `<shortcut>` - Keyboard keys (like Enter)
+A `<codeblock>` takes its language from a `language-x` value in `outputclass`, as DITA-OT's syntax highlighting does. Statements and tags inside `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>` aren't read.
 
-**System Output:**
-- `<systemoutput>` - Expected output from commands or system responses
-- `<msgph>` - Message text from the application
+The verb patterns match the source right before the element, inline tags included, from the start of its block, such as `<cmd>` or `<p>`. A `<uicontrol>` after "Click the" gets both a `click` and a `find` step. A `<uicontrol>` after a `Type <userinput>` phrase gets both a `type` and a `find` step.
 
-**Command Execution:**
-- `<cmdname>` - Command names to execute
-- `<codeblock>` - Code blocks with `outputclass` for language specification
+Best practices:
 
-**Navigation:**
-- `<xref>` - Cross-references and external links
+- Use semantic DITA elements, such as `<uicontrol>` and `<userinput>`, for accurate detection.
+- Structure procedures as DITA task topics, with `<steps>` and `<cmd>` elements.
+- Set `outputclass="language-x"` on `<codeblock>` elements to name their language.
+- Combine inline processing instructions with detected tests for full coverage.
 
-## Action verb patterns
-
-Doc Detective recognizes specific action verbs in `<cmd>` elements to determine which test action to generate:
-
-**Click actions** - Triggers `click`:
-- click, tap, select, press, choose
-
-**Type actions** - Triggers `type`:
-- type, enter, input
-
-**Navigation actions** - Triggers `goTo`:
-- navigate to, open, go to, visit, browse to
-
-**Verification actions** - Triggers `find`:
-- verify, check, confirm, ensure
-
-**Command execution** - Triggers `runShell`:
-- run, execute
-
-When these verbs appear with DITA semantic elements, Doc Detective automatically extracts the complete action. For example, `<cmd>Click the <uicontrol>Save</uicontrol> button</cmd>` generates `{ "click": "Save" }`.
-
-## Best practices
-
-- Use semantic DITA elements (`<uicontrol>`, `<userinput>`, etc.) for accurate test detection
-- Structure procedures as DITA task topics with `<steps>` and `<cmd>` elements
-- Use `scope="external"` on `<xref>` elements for external links
-- Add `outputclass` attributes to `<codeblock>` elements to specify language
-- Combine inline processing instructions with detected tests for comprehensive coverage
-- Use action verbs consistently (click, type, navigate, verify, etc.)
-
-## Default DITA patterns
-
-### Key patterns
-
-#### clickUiControl
-
-Detects click verbs with `<uicontrol>` elements in DITA `<cmd>` elements and clicks on that UI control.
-
-- **Pattern**: `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>`
-- **Action**: Clicks the "Submit" button using its text content
-- **Recognized verbs**: click, tap, select, press, choose
-
-#### typeIntoUiControl
-
-Detects type verbs with `<userinput>` and `<uicontrol>` elements and types text into the specified field.
-
-- **Pattern**: `<cmd>Type <userinput>testuser</userinput> into the <uicontrol>Username</uicontrol> field</cmd>`
-- **Action**: Types "testuser" into the field labeled "Username"
-- **Recognized verbs**: type, enter, input
-
-#### navigateToXref
-
-Detects navigation verbs with `<xref>` elements in `<cmd>` elements and opens the URL.
-
-- **Pattern**: `<cmd>Navigate to <xref href="https://example.com">Example Site</xref></cmd>`
-- **Action**: Opens https://example.com in the browser
-- **Recognized verbs**: navigate to, open, go to, visit, browse to
-
-#### runShellCmdWithCodeblock
-
-Detects run/execute commands followed by shell codeblocks in `<info>` elements.
-
-- **Pattern**: `<cmd>Run the following command</cmd>` followed by `<info><codeblock outputclass="shell">npm install</codeblock></info>`
-- **Action**: Executes "npm install" as a shell command
-- **Recognized verbs**: run, execute
-
-#### verifySystemOutput
-
-Detects verification verbs with `<systemoutput>` elements and checks for expected output.
-
-- **Pattern**: `<cmd>Verify the output shows <systemoutput>Success</systemoutput></cmd>`
-- **Action**: Searches for "Success" on the current page
-- **Recognized verbs**: verify, check, confirm, ensure
-
-#### checkExternalXref
-
-Detects `<xref>` elements with `scope="external"` and checks link accessibility.
-
-- **Pattern**: `<xref href="https://docs.example.com" scope="external">Documentation</xref>`
-- **Action**: Performs a GET request to verify the link returns a valid status code
-
-### Additional patterns
-
-Doc Detective also recognizes these DITA elements:
-
-- `<uicontrol>` standalone - generates `find` action
-- `<wintitle>` - generates `find` action for window titles
-- `<cmdname>` with execute/run verbs - generates `runShell` action
-- `<codeblock outputclass="bash">` - generates `runShell` action
-- `<codeblock outputclass="python|js">` - generates `runCode` action
-- `<codeblock outputclass="http">` - generates `httpRequest` action
-- `<image outputclass="screenshot">` - generates `screenshot` action
-
-For a complete list of patterns, see the [configuration reference](/reference/schemas/config).
+Other elements, such as `<menucascade>`, `<systemoutput>`, and `<cmdname>`, don't produce steps on their own. To detect them, add a [selector](selectors) for the element. For every option, see the [configuration reference](/reference/schemas/config).
 
 ## Example with detected tests
 
@@ -274,37 +188,22 @@ For a complete list of patterns, see the [configuration reference](/reference/sc
     {
       "testId": "user-account-test",
       "steps": [
-        {
-          "goTo": "https://app.example.com/login"
-        },
-        {
-          "click": "Sign In"
-        },
-        {
-          "type": {
-            "keys": "admin@example.com",
-            "selector": "Username"
-          }
-        },
-        {
-          "type": {
-            "keys": "password123",
-            "selector": "Password"
-          }
-        },
-        {
-          "type": {
-            "keys": "Enter"
-          }
-        },
-        {
-          "find": "Create User"
-        }
+        { "goTo": "https://app.example.com/login" },
+        { "checkLink": "https://app.example.com/login" },
+        { "click": "Sign In" },
+        { "find": "Sign In" },
+        { "type": { "keys": "admin@example.com", "selector": "Username" } },
+        { "find": "Username" },
+        { "type": { "keys": "password123", "selector": "Password" } },
+        { "find": "Password" },
+        { "find": "Create User" }
       ]
     }
   ]
 }
 ```
+
+The `Press <shortcut>Enter</shortcut>` step has no default definition. To type it, add an inline step, or a [selector](selectors) for `<shortcut>`.
 
 ## Loading DITA content from Heretto
 

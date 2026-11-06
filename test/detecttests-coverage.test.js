@@ -60,6 +60,8 @@ describe("detectTests coverage", function () {
           "",
           'Enter "bunnies" in the box.',
           "",
+          'Press "Enter".',
+          "",
         ].join("\n")
       );
       const config = await makeConfig({ input: [doc], detectSteps: true });
@@ -69,7 +71,7 @@ describe("detectTests coverage", function () {
         .flatMap((test) => test.steps)
         .filter((step) => step.type)
         .map((step) => step.type.keys ?? step.type);
-      assert.deepEqual(typed, ["kittens", "puppies", "bunnies"]);
+      assert.deepEqual(typed, ["kittens", "puppies", "bunnies", "Enter"]);
     });
   });
 

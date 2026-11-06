@@ -747,8 +747,24 @@ describe("config.ts — setConfig", function () {
       },
     });
     const ft = config.fileTypes[0];
+    // The built-in's "comment" container and this one, once each.
     assert.deepEqual(ft.inlineStatements.in, ["comment", container]);
     assert.deepEqual(ft.markup[0], selector);
+  });
+
+  it("inherits the built-in's statement containers through extends", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [{ extends: "dita", inlineStatements: { step: ["STEP (.*)"] } }],
+      },
+    });
+    const ft = config.fileTypes[0];
+    assert.equal(ft.inlineStatements.in[0], "comment");
+    assert.equal(ft.inlineStatements.in[1].element.tag[0], "data");
+    assert.deepEqual(ft.inlineStatements.step, ["STEP (.*)"]);
   });
 
   it("extends a default definition when the extending fileType omits inlineStatements and markup", async function () {
@@ -765,8 +781,7 @@ describe("config.ts — setConfig", function () {
     const ft = config.fileTypes[0];
     assert.equal(ft.name, "markdown");
     // inlineStatements were initialized and populated from the parent.
-    assert.ok(Array.isArray(ft.inlineStatements.testStart));
-    assert.ok(ft.inlineStatements.testStart.length > 0);
+    assert.deepEqual(ft.inlineStatements.in, ["comment"]);
     // markup array initialized and populated from the parent.
     assert.ok(Array.isArray(ft.markup));
     assert.ok(ft.markup.some((m) => m.name === "findOnscreenText"));
