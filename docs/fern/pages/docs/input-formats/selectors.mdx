@@ -49,6 +49,8 @@ A markup definition needs `regex`, one selector kind, or both:
 
 A node's main text is its `content`, else its `text`, else its `alt`.
 
+In HTML and DITA, a `text` node holds prose as written, so a pattern sees entities such as `&quot;` and `&amp;` rather than the characters they stand for. Bold, italic, and link text is decoded, as it renders.
+
 A kind with `regex` limits an existing pattern to the right place. This definition finds version numbers in prose, but not in code blocks, inline code, or links:
 
 ```json
