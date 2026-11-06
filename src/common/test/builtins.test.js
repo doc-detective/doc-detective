@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { detectTests } from "../dist/index.js";
-import { defaultFileTypes } from "../dist/fileTypes.js";
+import { defaultFileTypes, detectFileTypeFromContent } from "../dist/fileTypes.js";
 import { validate } from "../dist/validate.js";
 import { REGEX_FILE_TYPES } from "./fixtures/regex-fileTypes.js";
 
@@ -47,6 +47,12 @@ describe("built-in fileTypes", function () {
     expect(defaultFileTypes.asciidoc.markup).to.not.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup).to.not.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup[0]).to.not.equal(defaultFileTypes.markdown.markup[0]);
+    // A fileType detected from content is a copy too.
+    for (const [content, name] of [["# Title", "markdown"], ["<!DOCTYPE html>", "html"], ["= Title", "asciidoc"], ['<?xml version="1.0"?><topic/>', "dita"]]) {
+      const detected = detectFileTypeFromContent(content);
+      expect(detected).to.deep.equal(defaultFileTypes[name]);
+      expect(detected).to.not.equal(defaultFileTypes[name]);
+    }
     const findDita = defaultFileTypes.dita.markup.find((d) => d.name === "screenshotImage");
     expect(findDita).to.not.equal(defaultFileTypes.markdown.markup.find((d) => d.name === "screenshotImage"));
   });
@@ -64,6 +70,11 @@ describe("built-in fileTypes", function () {
         expect(await steps(content, undefined, file)).to.deep.equal([[{ runShell: "echo prose" }]]);
       });
     }
+  });
+
+  it("reads DITA's data statements only with name doc-detective", async function () {
+    const content = `<topic><body><data name="step">{"find": "old"}</data><data name="doc-detective" value='step {"find": "new"}'/></body></topic>`;
+    expect(await steps(content, undefined, "doc.dita")).to.deep.equal([[{ find: "new" }]]);
   });
 
   it("opens a test with `test start`, and not with a comment that starts with `testing`", async function () {

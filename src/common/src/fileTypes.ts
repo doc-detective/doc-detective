@@ -85,7 +85,7 @@ const sharedMarkup: MarkupDefinition[] = [
   runCode,
 ];
 
-const xref = (precededBy?: string) => ({ tag: ["xref"], attributes: { href: "^https?://" }, ...(precededBy && { precededBy }) });
+const xrefSelector = (precededBy?: string) => ({ tag: ["xref"], attributes: { href: "^https?://" }, ...(precededBy && { precededBy }) });
 
 const defaultFileTypesBase: Record<string, FileType> = {
   asciidoc_1_0: {
@@ -120,10 +120,10 @@ const defaultFileTypesBase: Record<string, FileType> = {
         captures: ["content", "precededBy.1"],
         actions: [{ type: { keys: "$2", selector: "$1" } }],
       },
-      { name: "goToUrl", element: xref(GO_TO_VERBS), captures: ["attributes.href"], actions: ["goTo"] },
+      { name: "goToUrl", element: xrefSelector(GO_TO_VERBS), captures: ["attributes.href"], actions: ["goTo"] },
       { name: "findUiControl", element: "uicontrol", captures: ["content"], actions: ["find"] },
       { name: "verifyWindowTitle", element: "wintitle", captures: ["content"], actions: ["find"] },
-      { name: "checkHyperlink", element: xref(), captures: ["attributes.href"], actions: ["checkLink"] },
+      { name: "checkHyperlink", element: xrefSelector(), captures: ["attributes.href"], actions: ["checkLink"] },
       {
         name: "checkLinkElement",
         element: { tag: ["link"], attributes: { href: "^https?://" } },
@@ -175,20 +175,20 @@ export function detectFileTypeFromContent(content: string): FileType {
   // DITA: XML declaration or DOCTYPE with DITA-specific root elements
   if (trimmed.startsWith("<?xml") || trimmed.startsWith("<!DOCTYPE")) {
     if (/<!DOCTYPE\s+(?:topic|map|concept|task|reference|dita|bookmap)\b|<(?:dita|topic|map|concept|task|reference|bookmap)[\s>]/i.test(content)) {
-      return defaultFileTypes.dita;
+      return structuredClone(defaultFileTypes.dita);
     }
   }
 
   // HTML: DOCTYPE html or <html> tag
   if (/<!DOCTYPE\s+html\b/i.test(trimmed) || /<html[\s>]/i.test(trimmed)) {
-    return defaultFileTypes.html;
+    return structuredClone(defaultFileTypes.html);
   }
 
   // AsciiDoc: = Document Title or :attribute: entries, without Markdown # headings
   if (/^= \S/m.test(content) && !/^#{1,6} /m.test(content)) {
-    return defaultFileTypes.asciidoc;
+    return structuredClone(defaultFileTypes.asciidoc);
   }
 
   // Default to Markdown
-  return defaultFileTypes.markdown;
+  return structuredClone(defaultFileTypes.markdown);
 }
