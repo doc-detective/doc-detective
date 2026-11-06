@@ -10912,6 +10912,25 @@
                             ]
                           }
                         ],
+                        "if": {
+                          "required": [
+                            "captures"
+                          ],
+                          "properties": {
+                            "captures": {
+                              "type": "array",
+                              "contains": {
+                                "type": "string",
+                                "pattern": "^match\\."
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "regex"
+                          ]
+                        },
                         "properties": {
                           "name": {
                             "description": "Name of the markup definition",
@@ -11173,7 +11192,7 @@
                             ]
                           },
                           "captures": {
-                            "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text.",
+                            "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
                             "type": "array",
                             "minItems": 1,
                             "items": {
@@ -12953,6 +12972,25 @@
               ]
             }
           ],
+          "if": {
+            "required": [
+              "captures"
+            ],
+            "properties": {
+              "captures": {
+                "type": "array",
+                "contains": {
+                  "type": "string",
+                  "pattern": "^match\\."
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "regex"
+            ]
+          },
           "properties": {
             "name": {
               "description": "Name of the markup definition",
@@ -13214,7 +13252,7 @@
               ]
             },
             "captures": {
-              "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text.",
+              "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
               "type": "array",
               "minItems": 1,
               "items": {
@@ -29572,6 +29610,25 @@
                                 ]
                               }
                             ],
+                            "if": {
+                              "required": [
+                                "captures"
+                              ],
+                              "properties": {
+                                "captures": {
+                                  "type": "array",
+                                  "contains": {
+                                    "type": "string",
+                                    "pattern": "^match\\."
+                                  }
+                                }
+                              }
+                            },
+                            "then": {
+                              "required": [
+                                "regex"
+                              ]
+                            },
                             "properties": {
                               "name": {
                                 "description": "Name of the markup definition",
@@ -29833,7 +29890,7 @@
                                 ]
                               },
                               "captures": {
-                                "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text.",
+                                "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
                                 "type": "array",
                                 "minItems": 1,
                                 "items": {
@@ -31613,6 +31670,25 @@
                   ]
                 }
               ],
+              "if": {
+                "required": [
+                  "captures"
+                ],
+                "properties": {
+                  "captures": {
+                    "type": "array",
+                    "contains": {
+                      "type": "string",
+                      "pattern": "^match\\."
+                    }
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "regex"
+                ]
+              },
               "properties": {
                 "name": {
                   "description": "Name of the markup definition",
@@ -31874,7 +31950,7 @@
                   ]
                 },
                 "captures": {
-                  "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text.",
+                  "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
                   "type": "array",
                   "minItems": 1,
                   "items": {

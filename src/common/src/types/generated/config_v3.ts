@@ -514,7 +514,7 @@ export type MarkupDefinition = (
         excludes?: string;
       };
   /**
-   * Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text.
+   * Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.
    *
    * @minItems 1
    *
