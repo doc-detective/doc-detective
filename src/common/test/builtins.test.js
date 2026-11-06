@@ -73,6 +73,19 @@ describe("built-in fileTypes", function () {
     }
   });
 
+  it("reads DITA xref attributes in any order", async function () {
+    const content = '<topic><body><p>Access <xref format="html" href="https://a.com">a</xref>.</p></body></topic>';
+    expect(await steps(content, undefined, "doc.dita")).to.deep.equal([[{ goTo: "https://a.com" }, { checkLink: "https://a.com" }]]);
+  });
+
+  it("reads a repeated DITA data container once", async function () {
+    // An extends merge keeps a repeated `in` object, so collection must drop the duplicate statement.
+    const { in: containers } = defaultFileTypes.dita.inlineStatements;
+    const fileType = { ...defaultFileTypes.dita, inlineStatements: { in: [...containers, structuredClone(containers[1])] } };
+    const content = `<topic><body><data name="doc-detective" value='step {"find": "a"}'/></body></topic>`;
+    expect(await steps(content, fileType, "doc.dita")).to.deep.equal([[{ find: "a" }]]);
+  });
+
   it("reads DITA's data statements only with name doc-detective", async function () {
     const content = `<topic><body><data name="step">{"find": "old"}</data><data name="doc-detective" value='step {"find": "new"}'/></body></topic>`;
     expect(await steps(content, undefined, "doc.dita")).to.deep.equal([[{ find: "new" }]]);

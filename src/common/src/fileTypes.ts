@@ -52,7 +52,8 @@ const CLICK_VERBS = "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc
 
 const clickOnscreenText: MarkupDefinition = { name: "clickOnscreenText", strong: { precededBy: CLICK_VERBS }, captures: ["text"], actions: ["click"] };
 const findOnscreenText: MarkupDefinition = { name: "findOnscreenText", strong: {}, captures: ["text"], actions: ["find"] };
-// With no `captures` key, $1 is the regex's first group, the quoted text, and the bare "type" action takes $1.
+// `text: {}` keeps matching to prose, and the regex runs on each prose run. With no `captures` key,
+// $1 is the regex's first group, the quoted text, and the bare "type" action takes $1.
 const typeText: MarkupDefinition = { name: "typeText", text: {}, regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'], actions: ["type"] };
 const screenshotImage: MarkupDefinition = {
   name: "screenshotImage",

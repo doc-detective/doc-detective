@@ -59,6 +59,8 @@ This is a breaking change. The upgrade guide lists what's newly detected, what i
 
 - Good: statements, links, and bold text inside code samples stop running, in every format.
 - Good: AsciiDoc and HTML pages detect steps, and DITA gains screenshots, requests, and code blocks.
+- Good: DITA reads an `<xref>`'s attributes in any order. The regex rules needed `href` first, unless the
+  `<xref>` had `scope="external"`, so other `<xref>` elements gain `goTo` and `checkLink` steps.
 - Good: the JSON-as-JavaScript and duplicate-DITA bugs are gone.
 - Bad: suites gain and lose steps. On this repo's docs, with step detection on, 176 of 206 pages change, and the steps
   drop from 2,137 to 1,481. Most of the drop is 379 `runCode` steps from JSON samples. With the docs job's own config,
