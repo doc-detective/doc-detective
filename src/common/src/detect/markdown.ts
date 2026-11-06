@@ -185,6 +185,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
         case "paragraph":
         case "heading": {
           const source = content.slice(startOf(n), endOf(n));
+          // In .mdx, {/* */} is already an expression node, so only .md scans for it.
           for (const pattern of mdx ? [REFERENCE_COMMENT] : [JSX_COMMENT, REFERENCE_COMMENT]) {
             for (const m of source.matchAll(pattern)) {
               const at = startOf(n) + m.index!;

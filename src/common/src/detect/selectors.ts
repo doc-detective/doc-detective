@@ -170,7 +170,7 @@ const FORMAT_BY_EXTENSION: Record<string, string> = { md: "markdown", markdown: 
 /** Parses a file into nodes. The extension picks the parser, else the fileType's `extends` or `name`. */
 function parseFile(content: string, fileType: FileType, filePath: string, warn: (message: string) => void): Node[] {
   const ext = /\.([^./\\]+)$/.exec(filePath)?.[1].toLowerCase() ?? "";
-  const format = FORMAT_BY_EXTENSION[ext] ?? (fileType as any).extends ?? fileType.name;
+  const format = FORMAT_BY_EXTENSION[ext] ?? fileType.extends ?? fileType.name;
   if (format !== "markdown") {
     const name = fileType.name ? `"${fileType.name}"` : "A fileType";
     warn(`${filePath}: ${name} uses selectors, but no parser handles .${ext}. Set "extends" to a built-in, or use regex definitions.`);
@@ -271,7 +271,12 @@ export function collectStatements({
       // reduce, because spreading a very large batch into Math.min overflows the stack.
       const startIndex = found.reduce((min, m) => Math.min(min, m.index), Infinity);
       const endIndex = found.reduce((max, m) => Math.max(max, m.end), 0);
-      const statement: any = { 1: found.map((m) => m[1] || m[0]).join("\n"), type: "detectedStep", markup: def };
+      const statement: any = {
+        0: found.map((m) => m[0]).join("\n"),
+        1: found.map((m) => m[1] || m[0]).join("\n"),
+        type: "detectedStep",
+        markup: def,
+      };
       add(statement, startIndex, endIndex);
       // A batch sorts at its start, whatever its first value.
       statement.sortIndex = startIndex;
