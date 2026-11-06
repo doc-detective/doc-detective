@@ -127,8 +127,10 @@ async function setConfig({ config, detectApps = true }: any) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
 
-  // Load environment variables for `config`
-  config = replaceEnvs(config);
+  // Load environment variables for `config`. replaceEnvs rewrites in place, so
+  // work on a copy: the caller's object stays unchanged across runs. JSON, not
+  // structuredClone, to match the clone validate() applies just below.
+  config = replaceEnvs(JSON.parse(JSON.stringify(config)));
 
   // Apply config overrides from DOC_DETECTIVE environment variable
   if (process.env.DOC_DETECTIVE) {
