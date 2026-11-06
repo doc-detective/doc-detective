@@ -627,6 +627,28 @@ describe("config.ts — setConfig", function () {
     assert.equal(JSON.stringify(defaultFileTypes.markdown), before);
   });
 
+  it("leaves the caller's config and fileType objects unchanged", async function () {
+    const fileType = {
+      extends: "markdown",
+      extensions: ["mdextra"],
+      inlineStatements: { in: ["comment"], step: "CUSTOMSTEP" },
+      markup: [{ name: "brandNew", regex: "X", actions: ["find"] }],
+    };
+    const varName = "DD_COV_UNMUTATED_" + Date.now();
+    process.env[varName] = "./README.md";
+    const input = { logLevel: "silent", dryRun: true, input: [`$${varName}`], beforeAny: "", fileTypes: [fileType] };
+    const snapshot = structuredClone(input);
+    try {
+      const first = await setConfig({ config: input });
+      assert.deepEqual(first.input, ["./README.md"]);
+      assert.deepEqual(input, snapshot);
+      const second = await setConfig({ config: input });
+      assert.deepEqual(second.fileTypes, first.fileTypes);
+    } finally {
+      delete process.env[varName];
+    }
+  });
+
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
     // AJV's config_v3 enum guard fires before setConfig's own
     // defaultFileTypes[fileType] undefined check, so an unknown fileType
