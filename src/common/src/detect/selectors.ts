@@ -155,7 +155,9 @@ function selectMatches(def: any, selector: Selector, nodes: Node[]): Match[] {
       const re = safeRegExp(pattern, "g");
       if (!re) continue;
       for (const m of mainText(node).matchAll(re)) {
-        // A text run holds raw source, so its occurrences have their own spans.
+        // A text run holds raw source, so its occurrences have their own spans. Other
+        // kinds' main text, such as a code block's content, has no fixed source offset,
+        // so their matches span the node.
         const at = node.startIndex + m.index!;
         const span = node.kind === "text" ? { startIndex: at, endIndex: at + m[0].length } : {};
         found.push({ ...match, ...span, groups: m });
@@ -247,6 +249,7 @@ export function collectStatements({
 
   for (const entry of inline.in ?? []) {
     const container = entry === "comment" ? { comment: {} } : entry;
+    // The schema requires exactly one kind on an `in` container, so it always has a selector.
     const selector = selectorOf(container)!;
     for (const node of nodes) {
       const match = matchNode(node, selector);

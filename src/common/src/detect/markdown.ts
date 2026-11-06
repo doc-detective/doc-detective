@@ -7,7 +7,8 @@
  * and `{/* *\/}`. Plain Markdown has no `{/* *\/}` syntax, and a
  * `[comment]: #` whose text holds parentheses isn't a valid definition, so
  * paragraphs are also scanned for both. Docusaurus treats `.md` as MDX, so
- * those pages use them.
+ * those pages use them. The `#` or `<>` after `[comment]:` is optional, as
+ * in a link reference definition, so `[comment]: (text)` is a comment too.
  */
 
 import { fromMarkdown } from "mdast-util-from-markdown";
