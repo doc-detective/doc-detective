@@ -370,6 +370,9 @@ const cases = {
       fence("md", `<!-- step ${step("fenced")} -->\n**fenced**`),
       "",
       '`Type "code"` stays code.',
+      "",
+      // A header value runs to the end of its line, spaces and all.
+      fence("http", 'POST https://example.com/api HTTP/1.1\nContent-Type: application/json; charset=utf-8\n\n{"a": 1}'),
     ].join("\n"),
     expect: [[
       shell("comment"),
@@ -380,6 +383,13 @@ const cases = {
       { type: "kittens" },
       { checkLink: "https://example.com/html" },
       { screenshot: "results.png" },
+      {
+        httpRequest: {
+          method: "POST",
+          url: "https://example.com/api",
+          request: { headers: { "Content-Type": "application/json; charset=utf-8" }, body: { a: 1 } },
+        },
+      },
     ]],
   },
   "builtin-html": {

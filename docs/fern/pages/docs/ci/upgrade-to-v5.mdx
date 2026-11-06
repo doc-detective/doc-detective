@@ -113,6 +113,7 @@ A command that can't start, for example because its `workingDirectory` doesn't e
   - AsciiDoc and HTML files detect the same steps as Markdown. Before, they detected only inline statements, so pages in these formats can now produce tests that fail the run.
   - DITA detects `screenshot` steps from `<image outputclass="screenshot">`, and `httpRequest` and `runCode` steps from `<codeblock>` elements. It also reads an `<xref>`'s attributes in any order, so `goTo` and `checkLink` steps come from an `<xref>` whose `href` isn't its first attribute, as in `<xref format="html" href="https://example.com">`.
   - Markdown detects links, images, and bold text written as HTML, such as `<a href>` and `<strong>`, and lowercase JSX tags in `.mdx`. It also detects bold text written as `__text__`, and requests in code blocks inside list items.
+  - A request header whose value has spaces, such as `Content-Type: application/json; charset=utf-8`, in an HTTP request code block. Before, a value with a space ended the headers, so that header and the lines after it became part of the body.
   - "Browse to" before a link becomes a `goTo` step in Markdown, AsciiDoc, and HTML, as it already did in DITA.
   - A `test start` statement in a comment, as in `<!-- test start {"testId": "a"} -->`, opens a test.
 - **No longer detected:**

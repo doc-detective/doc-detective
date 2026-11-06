@@ -64,7 +64,7 @@ const screenshotImage: MarkupDefinition = {
 const httpRequestFormat: MarkupDefinition = {
   name: "httpRequestFormat",
   codeBlock: { language: ["http", ""] },
-  regex: ["^([A-Z]+)[ \\t]+(\\S+)(?:[ \\t]+HTTP\\/[\\d.]+)?[ \\t]*(?:\\r?\\n((?:\\S+:[ \\t]+\\S+(?:\\r?\\n|$))+))?(?:\\s+([\\s\\S]+?))?\\s*$"],
+  regex: ["^([A-Z]+)[ \\t]+(\\S+)(?:[ \\t]+HTTP\\/[\\d.]+)?[ \\t]*(?:\\r?\\n((?:\\S+:[ \\t]+[^\\r\\n]+(?:\\r?\\n|$))+))?(?:\\s+([\\s\\S]+?))?\\s*$"],
   actions: [{ httpRequest: { method: "$1", url: "$2", request: { headers: "$3", body: "$4" } } }],
 };
 const runCode: MarkupDefinition = {

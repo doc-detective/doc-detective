@@ -124,6 +124,34 @@ describe("built-in fileTypes", function () {
     }
   });
 
+  it("keeps HTTP header values that contain spaces in every format", async function () {
+    const formats = {
+      "doc.md": (code) => "```http\n" + code + "\n```\n",
+      "doc.html": (code) => `<pre><code class="language-http">${code}</code></pre>\n`,
+      "doc.adoc": (code) => "[source,http]\n----\n" + code + "\n----\n",
+      "doc.dita": (code) => `<topic><body><codeblock outputclass="language-http">${code}</codeblock></body></topic>`,
+    };
+    const cases = [
+      {
+        code: 'POST https://example.com/api HTTP/1.1\nContent-Type: application/json; charset=utf-8\nX-Note: two words\n\n{"a": 1}',
+        request: { headers: { "Content-Type": "application/json; charset=utf-8", "X-Note": "two words" }, body: { a: 1 } },
+      },
+      // No body: the headers run to the end of the block.
+      {
+        code: "GET https://example.com/api HTTP/1.1\nAccept: text/html, application/json",
+        request: { headers: { Accept: "text/html, application/json" } },
+      },
+      // No headers: the body follows the blank line.
+      { code: 'POST https://example.com/api\n\n{"a": 1}', request: { body: { a: 1 } } },
+    ];
+    for (const [file, wrap] of Object.entries(formats)) {
+      for (const { code, request } of cases) {
+        const [[step]] = await steps(wrap(code), undefined, file);
+        expect(step.httpRequest.request, `${file}: ${code}`).to.deep.equal(request);
+      }
+    }
+  });
+
   // Each fixture detects the same steps as the frozen regex tables, except
   // the differences listed here, each on purpose.
   describe("parity with the regex tables", function () {
