@@ -1,3 +1,49 @@
+# [5.0.0-v5-rc.6](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.5...v5.0.0-v5-rc.6) (2026-11-06)
+
+
+* feat(detection)!: detect tests with selectors ([0ce2539](https://github.com/doc-detective/doc-detective/commit/0ce2539299c1ba3d42e554b1a420415fccc40b3a))
+* feat(detection)!: move the built-in fileTypes to selectors ([9071338](https://github.com/doc-detective/doc-detective/commit/9071338a561b0e1f1fe11ff3303aea951d5c8d3e))
+
+
+### Bug Fixes
+
+* **detection:** drop a regex statement that a container already found ([35283c2](https://github.com/doc-detective/doc-detective/commit/35283c2d4d38c055b35cd03b67e11269da866f33))
+* **detection:** give each built-in its own copy of the shared definitions ([ad89131](https://github.com/doc-detective/doc-detective/commit/ad891312fb175c7f7e0969c8835b41546bcef8d9))
+* **detection:** keep selector statements in document order ([ec91a47](https://github.com/doc-detective/doc-detective/commit/ec91a47d0c0891517de47d7f5a61f4123bf58871))
+* **detection:** read a Markdown attribute list of any length ([ebb76cb](https://github.com/doc-detective/doc-detective/commit/ebb76cb6b4580873684944b7e19c2a53875a4af2))
+* **detection:** read an AsciiDoc language only from the source style ([dc0c547](https://github.com/doc-detective/doc-detective/commit/dc0c547f631ee1b204276b839124f0aae9647e9f))
+* **detection:** reject a match capture on a definition without regex ([bb2b826](https://github.com/doc-detective/doc-detective/commit/bb2b826d8b28e5f3dcc1991131a3ba07a6ef9555))
+* **detection:** return a copy from detectFileTypeFromContent ([27a6973](https://github.com/doc-detective/doc-detective/commit/27a6973b54800b271e8a9d6ca786e46f15c82bf6))
+* **detection:** treat a node with no main text as empty ([0a5157b](https://github.com/doc-detective/doc-detective/commit/0a5157bcceac8e515a45421834977f9da5c80dd4))
+
+
+### Features
+
+* **detection:** parse HTML, DITA, and AsciiDoc for selectors ([730dd7a](https://github.com/doc-detective/doc-detective/commit/730dd7a8e8fc9bdf1ac2c61b2bff9c0d2b2c25f7))
+* **lsp:** read inline statements the way the runner does ([b864537](https://github.com/doc-detective/doc-detective/commit/b8645376836b98909894edf8c32fb8487617d1a0))
+
+
+### BREAKING CHANGES
+
+* with step detection on, a default config detects
+different steps. AsciiDoc and HTML now detect steps, and DITA detects
+screenshots, requests, and code blocks. Statements and steps inside code
+samples no longer run, json code blocks no longer become runCode steps,
+and bold text is captured as it renders. The DITA <data name="step"> form
+is gone. Tests without a testId get new generated IDs when their steps
+change. The upgrade guide lists every difference.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* custom and executable file types, their
+inlineStatements, and their markup definitions reject unknown keys. Before,
+any object with extensions passed as an executable file type, so these
+keys were never checked. A markup definition needs regex or exactly one
+selector kind, string actions must be action names, and an executable
+file type can't have markup. Action objects are now checked as steps only
+after $n replacement, as detection already did.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.5](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.4...v5.0.0-v5-rc.5) (2026-11-06)
 
 
