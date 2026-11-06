@@ -206,6 +206,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
             for (const m of source.matchAll(pattern)) {
               const at = startOf(n) + m.index!;
               taken.push([at, at + m[0].length]);
+              // The pattern's alternatives each hold one group, so one of them matched.
               addComment(at, at + m[0].length, (m[1] ?? m[2] ?? m[3])!);
             }
           }

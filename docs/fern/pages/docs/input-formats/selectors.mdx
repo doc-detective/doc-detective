@@ -109,7 +109,7 @@ All options are optional. Patterns are regular expressions, run without flags.
 | `attributes` | Object of names to patterns or `true` | Picks nodes whose attribute matches. `true` only requires the attribute |
 | `precededBy` | Pattern | Picks nodes when the source from the start of their block, such as a paragraph, matches. End it with `$` to match the words right before the node. In HTML and DITA, the source includes inline tags |
 
-Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image.
+Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. A prop set with an expression, such as `count={1 + 1}`, reads as its source text, `1 + 1`, because detection doesn't run code. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image.
 
 ## Use node fields in actions
 
@@ -133,7 +133,7 @@ Each format sets attributes its own way, and each can set `class`. In Markdown, 
 | `src`, `alt` | An image's source and alt text |
 | `tag` | An element's tag name |
 | `attributes.<name>` | An attribute's value |
-| `match.<n>` | A group of the definition's `regex` |
+| `match.<n>` | A group of the definition's `regex`. The definition must have `regex` |
 | `precededBy.<n>` | A group of `precededBy` |
 
 A field a node doesn't have is an empty string. A regex group that didn't take part leaves out the action field that uses it, as in regex definitions.

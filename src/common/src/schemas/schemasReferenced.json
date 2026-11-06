@@ -7774,6 +7774,25 @@
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/oneSelectorKind"
               }
             ],
+            "if": {
+              "required": [
+                "captures"
+              ],
+              "properties": {
+                "captures": {
+                  "type": "array",
+                  "contains": {
+                    "type": "string",
+                    "pattern": "^match\\."
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "regex"
+              ]
+            },
             "properties": {
               "name": {
                 "type": "string"
@@ -15585,6 +15604,25 @@
                 "$ref": "config_v3.nodefaults.schema.json#/components/schemas/oneSelectorKind"
               }
             ],
+            "if": {
+              "required": [
+                "captures"
+              ],
+              "properties": {
+                "captures": {
+                  "type": "array",
+                  "contains": {
+                    "type": "string",
+                    "pattern": "^match\\."
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "regex"
+              ]
+            },
             "properties": {
               "name": {
                 "type": "string"
