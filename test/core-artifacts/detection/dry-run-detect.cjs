@@ -194,6 +194,264 @@ const cases = {
     expect: [[shell("statement")]],
   },
 
+  // Every kind HTML produces. Statements and markup in <pre> and <script> stay code.
+  "html-kinds": {
+    file: "doc.html",
+    config: {
+      fileTypes: [
+        {
+          name: "web",
+          extensions: ["html"],
+          inlineStatements: { in: ["comment"] },
+          markup: [
+            { link: { url: "^https://", precededBy: "[Gg]o to\\s+$" }, captures: ["url"], actions: ["goTo"] },
+            { strong: { precededBy: "[Cc]lick\\s+$" }, actions: ["click"] },
+            { emphasis: {}, actions: ["find"] },
+            { image: { attributes: { class: "(^|\\s)screenshot" } }, captures: ["src"], actions: ["screenshot"] },
+            { codeBlock: "bash", actions: [{ runShell: "$1" }] },
+            { element: { tag: ["button"], attributes: { "data-step": true } }, captures: ["content"], actions: ["click"] },
+            { text: {}, regex: '\\b[Tt]ype\\s+&quot;([^&]+)&quot;', actions: ["type"] },
+          ],
+        },
+      ],
+    },
+    content: [
+      "<html><body>",
+      `<!-- step ${step("comment")} -->`,
+      '<p>Go to <a href="https://example.com">the site</a>, click <b>Search</b>, and see <em>Results</em>.</p>',
+      "<p>Type &quot;kittens&quot;, then <button data-step>Submit</button>.</p>",
+      '<img src="shot.png" class="screenshot">',
+      '<pre><code class="language-bash">echo html</code></pre>',
+      `<pre><!-- step ${step("pre")} --><b>not bold</b></pre>`,
+      `<script>var s = '<!-- step ${step("script")} -->';</script>`,
+      "</body></html>",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { click: "Search" },
+      { find: "Results" },
+      { type: "kittens" },
+      { click: "Submit" },
+      { screenshot: "shot.png" },
+      { runShell: "echo html" },
+    ]],
+  },
+
+  // DITA: elements by tag and attributes, the doc-detective processing instruction, and a <data> container.
+  "dita-kinds": {
+    file: "doc.dita",
+    config: {
+      fileTypes: [
+        {
+          name: "docs",
+          extensions: ["dita"],
+          inlineStatements: { in: ["comment", { element: { tag: ["data"], attributes: { name: "^doc-detective$" } }, value: "attributes.value" }] },
+          markup: [
+            { element: { tag: ["uicontrol"], precededBy: "\\b[Tt]ype\\s+<userinput>([^<]+)<\\/userinput>\\s+into\\s+the\\s+$" }, captures: ["content", "precededBy.1"], actions: [{ type: { keys: "$2", selector: "$1" } }] },
+            { element: { tag: ["xref"], attributes: { scope: "external" } }, captures: ["attributes.href"], actions: ["checkLink"] },
+            { strong: {}, actions: ["find"] },
+            { image: { attributes: { class: "screenshot" } }, captures: ["src"], actions: ["screenshot"] },
+            { codeBlock: "bash", actions: [{ runShell: "$1" }] },
+          ],
+        },
+      ],
+    },
+    content: [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<task id="t"><title>T</title><taskbody>',
+      `<?doc-detective step ${step("pi")} ?>`,
+      `<data name="doc-detective" value='step ${step("data")}'/>`,
+      "<steps><step><cmd>Type <userinput>kittens</userinput> into the <uicontrol>Search</uicontrol> box, then find <b>Results</b>.</cmd></step></steps>",
+      '<p>See <xref href="https://example.com" scope="external">the site</xref>.</p>',
+      '<image href="shot.png" outputclass="screenshot"><alt>Shot</alt></image>',
+      '<codeblock outputclass="language-bash">echo dita</codeblock>',
+      "</taskbody></task>",
+    ].join("\n"),
+    expect: [[
+      shell("pi"),
+      shell("data"),
+      { type: { keys: "kittens", selector: "Search" } },
+      { find: "Results" },
+      { checkLink: "https://example.com" },
+      { screenshot: "shot.png" },
+      { runShell: "echo dita" },
+    ]],
+  },
+
+  // AsciiDoc: comments, links, formatting, images with roles, and listings. Nothing from inside a listing.
+  "asciidoc-kinds": {
+    file: "doc.adoc",
+    config: {
+      fileTypes: [
+        {
+          name: "docs",
+          extensions: ["adoc"],
+          inlineStatements: { in: [{ comment: {}, regex: "^\\(\\s*([\\s\\S]*?)\\s*\\)$" }] },
+          markup: [
+            { link: { url: "^https://", precededBy: "[Gg]o to\\s+$" }, captures: ["url"], actions: ["goTo"] },
+            { strong: { precededBy: "[Cc]lick\\s+$" }, actions: ["click"] },
+            { emphasis: {}, actions: ["find"] },
+            { image: { attributes: { class: "(^|\\s)screenshot" } }, captures: ["src"], actions: ["screenshot"] },
+            { codeBlock: { language: ["bash"], metaExcludes: "testIgnore" }, actions: [{ runShell: "$1" }] },
+          ],
+        },
+      ],
+    },
+    content: [
+      "= Guide",
+      "",
+      `// (step ${step("comment")})`,
+      "Go to https://example.com[the site], click *Search*, and see _Results_.",
+      "",
+      "[.screenshot]",
+      "image::shot.png[Shot]",
+      "",
+      "[source,bash]",
+      "----",
+      `// (step ${step("listing")})`,
+      "echo adoc",
+      "----",
+      "",
+      "[source,bash,testIgnore]",
+      "----",
+      "echo skipped",
+      "----",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { click: "Search" },
+      { find: "Results" },
+      { screenshot: "shot.png" },
+      { runShell: `// (step ${step("listing")})\necho adoc` },
+    ]],
+  },
+
+  // HTML inside Markdown reads as HTML kinds, and lowercase JSX tags in .mdx do too.
+  "embedded-html": {
+    file: "doc.md",
+    config: {
+      fileTypes: [md({ markup: [{ link: {}, captures: ["url"], actions: ["checkLink"] }, { strong: {}, actions: ["find"] }, { element: "kbd", actions: [{ runShell: "echo $1" }] }] })],
+    },
+    content: 'Open <a href="https://example.com">the site</a>, press <kbd>Enter</kbd>.\n\n<div>\n<p>Find <b>Results</b>.</p>\n</div>\n',
+    expect: [[{ checkLink: "https://example.com" }, { runShell: "echo Enter" }, { find: "Results" }]],
+  },
+  "mdx-lowercase-jsx": {
+    file: "doc.mdx",
+    config: {
+      fileTypes: [
+        {
+          name: "docs",
+          extensions: ["mdx"],
+          markup: [{ image: { attributes: { class: "screenshot" } }, captures: ["src"], actions: ["screenshot"] }, { strong: {}, actions: ["find"] }],
+        },
+      ],
+    },
+    content: 'See <strong>Results</strong>.\n\n<img src="shot.png" className="screenshot" />\n',
+    expect: [[{ find: "Results" }, { screenshot: "shot.png" }]],
+  },
+
+  // The built-ins, with no fileTypes in the config (ADR 01158). Each format
+  // detects the same steps, and nothing from inside code.
+  "builtin-markdown": {
+    file: "doc.md",
+    config: {},
+    content: [
+      `<!-- step ${step("comment")} -->`,
+      "",
+      // __Search__ on purpose: the built-in reads __bold__, which the regex built-in didn't.
+      "Go to [the site](https://example.com), click __Search__, and type \"kittens\".",
+      "",
+      'See <a href="https://example.com/html">the HTML link</a>.',
+      "",
+      "![Results](results.png){.screenshot}",
+      "",
+      fence("md", `<!-- step ${step("fenced")} -->\n**fenced**`),
+      "",
+      '`Type "code"` stays code.',
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { type: "kittens" },
+      { checkLink: "https://example.com/html" },
+      { screenshot: "results.png" },
+    ]],
+  },
+  "builtin-html": {
+    file: "doc.html",
+    config: {},
+    content: [
+      `<html><body><!-- step ${step("comment")} -->`,
+      '<p>Go to <a href="https://example.com">the site</a>, click <b>Search</b>, and type "kittens".</p>',
+      '<img src="results.png" class="screenshot">',
+      `<pre><!-- step ${step("fenced")} --><b>fenced</b></pre>`,
+      "</body></html>",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { type: "kittens" },
+      { screenshot: "results.png" },
+    ]],
+  },
+  "builtin-asciidoc": {
+    file: "doc.adoc",
+    config: {},
+    content: [
+      `// (step ${step("comment")})`,
+      'Go to https://example.com[the site], click *Search*, and type "kittens".',
+      "",
+      "[.screenshot]",
+      "image::results.png[Results]",
+      "",
+      "----",
+      `// (step ${step("fenced")})`,
+      "*fenced*",
+      "----",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { type: "kittens" },
+      { screenshot: "results.png" },
+    ]],
+  },
+  "builtin-dita": {
+    file: "doc.dita",
+    config: {},
+    content: [
+      '<topic id="t"><title>T</title><body>',
+      `<?doc-detective step ${step("pi")} ?>`,
+      '<p>Navigate to <xref href="https://example.com" scope="external">the site</xref>, then click <uicontrol>Search</uicontrol>.</p>',
+      '<image href="results.png" outputclass="screenshot"/>',
+      '<codeblock outputclass="language-http">GET https://example.com/api HTTP/1.1</codeblock>',
+      '<codeblock outputclass="language-bash">echo hi</codeblock>',
+      `<codeblock><!-- step ${step("fenced")} --></codeblock>`,
+      "</body></topic>",
+    ].join("\n"),
+    expect: [[
+      shell("pi"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { screenshot: "results.png" },
+      { httpRequest: { method: "GET", url: "https://example.com/api", request: {} } },
+      { unsafe: true, runCode: { language: "bash", code: "echo hi" } },
+    ]],
+  },
+
   // Configs the CLI must reject: exit 2, and nothing runs.
   "reject-two-kinds": {
     file: "doc.md",

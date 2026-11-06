@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<!-- test {"testId": "html-inline"} -->
+<p>Run the first command.</p>
+<!-- step {"runShell": "echo one"} -->
+<!-- test ignore start -->
+<!-- step {"runShell": "echo ignored"} -->
+<!-- test ignore end -->
+<p>Then the second.</p>
+<!-- step {"runShell": "echo two"} -->
+<!-- test end -->
+<!-- test {"testId": "html-second"} -->
+<!-- step {"runShell": "echo three"} -->
+<!-- test end -->
+</body>
+</html>

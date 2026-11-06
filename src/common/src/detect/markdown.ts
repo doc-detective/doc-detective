@@ -14,13 +14,15 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { mdxjs } from "micromark-extension-mdxjs";
 import { mdxFromMarkdown } from "mdast-util-mdx";
-import type { Node } from "./selectors.js";
+import type { Kind, Node } from "./selectors.js";
+import { parseMarkup } from "./markup.js";
 
-const HTML_COMMENT = /<!--([\s\S]*?)-->/g;
 const EXPRESSION_COMMENT = /^\s*\/\*([\s\S]*?)\*\/\s*$/;
 // MDX parses JSX expression comments itself, so it scans only for link-reference comments.
 const JSX_COMMENT = /\{\/\*([\s\S]*?)\*\/\}/g;
 const REFERENCE_COMMENT = /^[ \t]*\[comment\]:[ \t]*(?:#|<>)?[ \t]*(?:\(([^\n]*)\)|"([^\n]*)"|'([^\n]*)')[ \t]*$/gm;
+/** Lowercase JSX tags that read as HTML kinds in `.mdx`. */
+const JSX_KINDS: Record<string, Kind> = { a: "link", img: "image", strong: "strong", b: "strong", em: "emphasis", i: "emphasis" };
 // One name branch with an optional value. Alternatives that share a prefix
 // backtrack polynomially on adversarial input.
 const ATTRIBUTE_TOKEN = /([.#][^\s{}]+)|([A-Za-z_][\w.:-]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\s{}]+)))?/g;
@@ -64,6 +66,8 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
 
   // Spans inside the current block that belong to a comment or an attribute list.
   let taken: Array<[number, number]> = [];
+  // The span from a paragraph's first raw-HTML node to its last.
+  let html: [number, number] | null = null;
   let blockStart = 0;
   const isTaken = (start: number, end: number) => taken.some(([s, e]) => start < e && end > s);
 
@@ -110,16 +114,24 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     return node;
   };
 
+  /** Adds a JSX element. Lowercase tags with an HTML kind, such as `<a>`, become that kind. */
   const addElement = (n: any) => {
     if (!n.name) return; // a fragment
-    const element: Omit<Node, "before"> = { kind: "element", startIndex: startOf(n), endIndex: endOf(n), tag: n.name, content: inlineText(n) };
+    const lowercase = /^[a-z]/.test(n.name);
+    let attributes: Record<string, string | true> | undefined;
     for (const attribute of n.attributes) {
       if (attribute.type !== "mdxJsxAttribute") continue; // a spread
       const value = attribute.value;
-      element.attributes ??= {};
-      element.attributes[attribute.name] = value == null ? true : typeof value === "string" ? value : String(value.value);
+      attributes ??= {};
+      attributes[lowercase && attribute.name === "className" ? "class" : attribute.name] =
+        value == null ? true : typeof value === "string" ? value : String(value.value);
     }
-    add(element);
+    const base = { startIndex: startOf(n), endIndex: endOf(n), ...(attributes && { attributes }) };
+    const kind = lowercase ? JSX_KINDS[n.name] : undefined;
+    if (kind === "link" && typeof attributes?.href === "string") add({ ...base, kind, url: attributes.href, text: inlineText(n) });
+    else if (kind === "image") add({ ...base, kind, src: String(attributes?.src ?? ""), alt: String(attributes?.alt ?? "") });
+    else if (kind === "strong" || kind === "emphasis") add({ startIndex: base.startIndex, endIndex: base.endIndex, kind, text: inlineText(n) });
+    else add({ ...base, kind: "element", tag: n.name, content: inlineText(n) });
   };
 
   const addExpressionComment = (n: any) => {
@@ -127,9 +139,10 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     if (m) addComment(startOf(n), endOf(n), m[1]);
   };
 
-  const addHtmlComments = (n: any) => {
-    for (const m of content.slice(startOf(n), endOf(n)).matchAll(HTML_COMMENT)) {
-      addComment(startOf(n) + m.index!, startOf(n) + m.index! + m[0].length, m[1]);
+  /** Adds the nodes of embedded HTML. Inline HTML leaves its prose to Markdown, which already reads it. */
+  const addHtml = (from: number, to: number, inline: boolean) => {
+    for (const node of parseMarkup(content, "html", from, to, blockStart)) {
+      if (!(inline && node.kind === "text") && !isTaken(node.startIndex, node.endIndex)) nodes.push(node);
     }
   };
 
@@ -162,7 +175,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
           walkInline(n, true);
           break;
         case "html":
-          addHtmlComments(n);
+          html = [html?.[0] ?? start, end];
           break;
         case "mdxTextExpression":
           addExpressionComment(n);
@@ -184,6 +197,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     for (const n of parent.children) {
       blockStart = startOf(n);
       taken = [];
+      html = null;
       switch (n.type) {
         case "paragraph":
         case "heading": {
@@ -198,6 +212,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
             }
           }
           walkInline(n, false);
+          if (html) addHtml(html[0], html[1], true);
           break;
         }
         case "code":
@@ -214,7 +229,7 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
           });
           break;
         case "html":
-          addHtmlComments(n);
+          addHtml(startOf(n), endOf(n), false);
           break;
         case "definition":
           if (n.identifier === "comment") addComment(startOf(n), endOf(n), n.title ?? "");

@@ -78,38 +78,20 @@ Submit the form:
 
 ## Detected tests
 
-<Info>
+With step detection on, AsciiDoc files detect the steps listed in [What gets detected](overview#what-gets-detected), from AsciiDoc syntax:
 
-AsciiDoc currently only supports inline test statements. Detected test patterns (automatic test generation from content) are not included in the default configuration.
+| Step | AsciiDoc that matches |
+|---|---|
+| `goTo` | `Go to https://example.com[the site]` or `Go to link:https://example.com[the site]`, and the other navigation verbs |
+| `checkLink` | Any `https://...[text]` or `link:https://...[text]` link |
+| `click` | `Click *Search*` or `Click **Search**`, and the other click verbs |
+| `find` | Any `*bold*` or `**bold**` text |
+| `screenshot` | `image::results.png[Results, role=screenshot]`, or an image under a `[.screenshot]` line |
+| `type` | `Type "kittens"` in prose |
+| `httpRequest` | A `[source,http]` listing, or a listing with no language, that holds a request |
+| `runCode` | A `[source,bash]` listing, or one in `python`, `py`, `javascript`, or `js`, unless `testIgnore` follows the language, as in `[source,bash,testIgnore]`. These steps are unsafe |
 
-</Info>
-
-To add detected test functionality to AsciiDoc files, you can define custom markup patterns in your configuration. See [custom inputs](custom) for examples.
-
-Example custom pattern for AsciiDoc:
-
-```json
-{
-  "fileTypes": [
-    {
-      "name": "asciidoc",
-      "extensions": ["adoc", "asciidoc", "asc"],
-      "markup": [
-        {
-          "name": "clickOnscreenText",
-          "regex": ["\\b(?:[Cc]lick|[Tt]ap)\\b\\s+\\*(.+?)\\*"],
-          "actions": ["click"]
-        },
-        {
-          "name": "goToUrl",
-          "regex": ["\\b(?:[Gg]o\\s+to|[Nn]avigate\\s+to)\\b\\s+link:(https?:\\/\\/[^\\[]+)\\["],
-          "actions": ["goTo"]
-        }
-      ]
-    }
-  ]
-}
-```
+Comments, links, and formatting inside listings, literal blocks, and passthrough blocks aren't read, and neither are indented literal paragraphs. A `//` comment counts only at the start of a line. To change what's detected, see [Selectors](selectors) and [custom inputs](custom).
 
 ## JSON and YAML syntax
 
