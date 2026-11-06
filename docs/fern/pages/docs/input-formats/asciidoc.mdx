@@ -4,7 +4,7 @@ sidebar-title: AsciiDoc
 description: Use Doc Detective with AsciiDoc files.
 ---
 
-AsciiDoc is a lightweight markup language popular in technical documentation. Doc Detective supports inline tests in AsciiDoc files.
+AsciiDoc is a lightweight markup language popular in technical documentation. Doc Detective reads inline tests from AsciiDoc comments and detects steps from AsciiDoc syntax.
 
 ## File extensions
 
@@ -116,7 +116,7 @@ Both formats work identically. Choose the format that's most readable for your t
 - Use parentheses in comments to distinguish test statements from regular comments
 - Keep test comments on a single line
 - Use descriptive test IDs to identify tests in results
-- Combine inline tests with custom markup patterns for comprehensive coverage
+- Combine inline tests with [detected tests](#detected-tests) so links, bold text, and listings become steps without extra comments
 - Use YAML syntax for simpler, more readable inline tests
 
 ## Integration with AsciiDoc toolchains

@@ -4,7 +4,7 @@ sidebar-title: HTML
 description: Use Doc Detective with HTML files.
 ---
 
-HTML is the standard format for web pages. Doc Detective supports inline tests in HTML files using HTML comment syntax.
+HTML is the standard format for web pages. Doc Detective reads inline tests from HTML comments and detects steps from HTML tags.
 
 ## File extensions
 
@@ -126,7 +126,7 @@ Both formats work identically. Choose the format that's most readable for your t
 - Keep test comments on a single line
 - Place test comments near the content they validate
 - Use descriptive test IDs to identify tests in results
-- Consider using custom markup patterns for automatic test detection
+- Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments
 - Validate your HTML to ensure comments don't break document structure
 
 ## Integration with HTML toolchains
