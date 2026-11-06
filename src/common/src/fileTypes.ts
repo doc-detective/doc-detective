@@ -113,7 +113,8 @@ const defaultFileTypesBase: Record<string, FileType> = {
           tag: ["uicontrol"],
           precededBy: "(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+<userinput>([^<]+)<\\/userinput>\\s+(?:in|into)(?:\\s+the)?\\s+$",
         },
-        // The control's name comes first, so this sorts before findUiControl's step for the same control.
+        // `content` is the control's name, and `precededBy.1` is precededBy's first group, the <userinput> text.
+        // The name comes first, so this sorts before findUiControl's step for the same control.
         captures: ["content", "precededBy.1"],
         actions: [{ type: { keys: "$2", selector: "$1" } }],
       },

@@ -360,6 +360,7 @@ const cases = {
     content: [
       `<!-- step ${step("comment")} -->`,
       "",
+      // __Search__ on purpose: the built-in reads __bold__, which the regex built-in didn't.
       "Go to [the site](https://example.com), click __Search__, and type \"kittens\".",
       "",
       'See <a href="https://example.com/html">the HTML link</a>.',
