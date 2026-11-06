@@ -56,6 +56,8 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     ? fromMarkdown(content, { extensions: [mdxjs()], mdastExtensions: [mdxFromMarkdown()] })
     : fromMarkdown(content);
   const nodes: Node[] = [];
+  // The parser positions every node it emits. No fallback, because a guessed
+  // offset would misplace a statement silently instead of failing.
   const startOf = (n: any): number => n.position.start.offset;
   const endOf = (n: any): number => n.position.end.offset;
 
