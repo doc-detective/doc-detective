@@ -5237,8 +5237,10 @@
                 "type": "string",
                 "enum": [
                   "python",
+                  "py",
                   "bash",
-                  "javascript"
+                  "javascript",
+                  "js"
                 ]
               },
               "code": {
@@ -13174,8 +13176,10 @@
                 "type": "string",
                 "enum": [
                   "python",
+                  "py",
                   "bash",
-                  "javascript"
+                  "javascript",
+                  "js"
                 ]
               },
               "code": {
