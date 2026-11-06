@@ -13,8 +13,8 @@ const KINDS = ["comment", "codeBlock", "link", "image", "strong", "emphasis", "t
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
 const actionNames = (def) => def.actions.map((a) => (typeof a === "string" ? a : Object.keys(a).find((k) => k !== "unsafe")));
-const steps = async (content, fileType, filePath) => {
-  const tests = await detectTests({ content, filePath, fileType, config: { detectSteps: true } });
+const steps = async (content, fileType, filePath, detectSteps = true) => {
+  const tests = await detectTests({ content, filePath, fileType, config: { detectSteps } });
   // v2 steps get random stepIds.
   return tests.map((t) => t.steps.map(({ location, stepId, ...s }) => s));
 };
@@ -30,7 +30,8 @@ describe("built-in fileTypes", function () {
 
       it("uses selectors, not regex alone", function () {
         for (const def of fileType.markup) expect(KINDS.some((k) => k in def), def.name).to.equal(true);
-        expect(Object.keys(fileType.inlineStatements)).to.deep.equal(["in"]);
+        // `in` is the only statement key, so no regex statement pattern is left.
+        expect(fileType.inlineStatements).to.have.all.keys("in");
       });
 
       it("is a valid custom fileType", function () {
@@ -141,8 +142,11 @@ describe("built-in fileTypes", function () {
         const content = readFileSync(join(fixtures, file), "utf8");
         const ext = file.split(".").pop();
         const name = { md: "markdown", dita: "dita", adoc: "asciidoc", html: "html" }[ext];
-        const before = await steps(content, REGEX_FILE_TYPES[name], file);
-        const after = await steps(content, defaultFileTypes[name], file);
+        // The regex AsciiDoc and HTML built-ins had no markup, so they compare statements only.
+        const detect = ext === "md" || ext === "dita";
+        const before = await steps(content, REGEX_FILE_TYPES[name], file, detect);
+        const after = await steps(content, defaultFileTypes[name], file, detect);
+        if (!detect) expect(after.flat(), "the fixture has statement steps").to.not.be.empty;
         if (INTENDED[file]) INTENDED[file](before, after);
         else expect(after).to.deep.equal(before);
       });
