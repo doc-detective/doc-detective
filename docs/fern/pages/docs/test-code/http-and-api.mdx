@@ -65,7 +65,7 @@ To use a method other than `GET`, or to send headers, query parameters, or a bod
 
 A request that returns a response isn't necessarily a request that returned the *right* response. Tighten the step with response expectations.
 
-- Set `statusCodes` to the codes you accept. The step fails if the response code isn't in the list. The default is `[200]`, so set it explicitly when you expect something else, such as `201` for a created resource.
+- Set `statusCodes` to the code you accept, or to an array of codes. The step fails if the response code isn't one of them. The default is `[200, 201]`. Set it when you expect another code, such as `204` for a deleted resource, or to accept only one code. The example below sets `[201]`, so a `200` fails the step.
 - Set `response.body` to assert specific values.
 - Set `response.required` to assert that fields exist without pinning their values. That suits timestamps, IDs, and tokens that change every run.
 
