@@ -132,6 +132,7 @@ import {
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -214,9 +215,6 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Idle browser-pool Appium servers kept between runs in this process, only
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
@@ -6121,7 +6119,7 @@ async function spawnAppiumServer(
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
       env,
     }
   );
@@ -6553,7 +6551,7 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
