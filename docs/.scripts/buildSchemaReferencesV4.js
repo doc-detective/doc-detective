@@ -517,6 +517,12 @@ function getTypeString(schema) {
     return `\`${JSON.stringify(schema.const)}\``;
   }
 
+  // A type-less `enum: [true, false]` is a boolean branch that Ajv can't coerce
+  // (ADR 01161).
+  if (!schema.type && schema.enum?.every((v) => typeof v === "boolean")) {
+    return "boolean";
+  }
+
   // Direct type
   if (schema.type) {
     let type = schema.type;

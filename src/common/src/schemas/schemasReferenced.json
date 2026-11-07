@@ -1923,16 +1923,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -1979,13 +1973,13 @@
       "default": 5000,
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "number",
+            "boolean"
+          ]
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -2091,16 +2085,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -3696,16 +3684,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -4205,16 +4187,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -4590,13 +4566,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -4877,13 +4853,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/path"
         },
         {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -5055,16 +5031,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -5928,16 +5898,10 @@
                           "elementAttribute": {
                             "type": "object",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -6145,16 +6109,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -6219,13 +6177,16 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "enum": [
+            true,
+            false
+          ]
+        },
+        {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -6337,16 +6298,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -9906,16 +9861,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -9961,13 +9910,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "number",
+            "boolean"
+          ]
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -10071,16 +10020,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -11657,16 +11600,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -12160,16 +12097,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -12538,13 +12469,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -12821,13 +12752,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/path"
         },
         {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -12997,16 +12928,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -13830,16 +13755,10 @@
                           "elementAttribute": {
                             "type": "object",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -14047,16 +13966,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -14119,13 +14032,16 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "enum": [
+            true,
+            false
+          ]
+        },
+        {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -14236,16 +14152,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },

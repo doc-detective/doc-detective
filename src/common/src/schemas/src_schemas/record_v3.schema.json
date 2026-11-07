@@ -4,15 +4,16 @@
   "description": "Start recording. A later `stopRecord` step stops it, and Doc Detective stops any recording still running when the test context ends. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions, in any case: `.mp4`, `.webm`, and `.gif`.",
   "anyOf": [
     {
+      "type": "boolean",
+      "title": "Record (boolean)",
+      "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+      "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
+    },
+    {
       "$ref": "#/components/schemas/string"
     },
     {
       "$ref": "#/components/schemas/object"
-    },
-    {
-      "type": "boolean",
-      "title": "Record (boolean)",
-      "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
     }
   ],
   "components": {

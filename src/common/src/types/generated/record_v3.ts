@@ -7,7 +7,11 @@
 /**
  * Start recording. A later `stopRecord` step stops it, and Doc Detective stops any recording still running when the test context ends. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions, in any case: `.mp4`, `.webm`, and `.gif`.
  */
-export type Record = RecordSimple | RecordDetailed | RecordBoolean;
+export type Record = RecordBoolean | RecordSimple | RecordDetailed;
+/**
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean = boolean;
 /**
  * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.
  */
@@ -69,10 +73,6 @@ export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckp
  * If `true`, enables checkpoints with default settings.
  */
 export type RecordingCheckpointsBoolean = boolean;
-/**
- * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean = boolean;
 
 export interface RecordDetailed {
   /**
