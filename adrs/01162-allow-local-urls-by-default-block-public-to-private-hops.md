@@ -133,8 +133,9 @@ caller words its own message.
   mode. Each request gets fresh agents, so no pooled socket skips the lookup. Direct local URLs in
   default mode get no refusing lookup. Turning off the parser's `safeUrlResolver` dropped its own
   pinning, and this replaces it.
-* Neutral: a guarded external `$ref` after a public document costs two DNS lookups, the
-  pre-connect check and the connect-time lookup. The OS resolver cache usually serves the second.
+* Neutral: a guarded external `$ref` after a public document costs two DNS lookups in default
+  mode, the pre-connect check and the connect-time lookup, and three in strict mode, which adds the
+  guarded fetch's own pre-connect check. The OS resolver cache usually serves the later ones.
 * Bad: through a proxy, only the pre-connect check applies. When `HTTP_PROXY`, `HTTPS_PROXY` or
   `ALL_PROXY` is set, a lookup of another name than the request's host is the proxy's. It's
   neither refused nor counted. Refusing it would break proxies on private addresses, which most
