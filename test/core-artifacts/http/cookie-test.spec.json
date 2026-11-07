@@ -69,9 +69,10 @@
           "find": "/.*?test_value.*?/"
         },
         {
+          "description": "Remove the cookie file from outputDir, the artifacts root in both fixture configs.",
           "runShell": {
             "command": "rm -f test-cookie.txt",
-            "workingDirectory": "."
+            "workingDirectory": ".."
           }
         },
         {

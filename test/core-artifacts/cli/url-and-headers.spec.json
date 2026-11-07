@@ -1,0 +1,69 @@
+{
+  "specId": "cli-url-and-headers",
+  "description": "The URL and request-header rules that break v4 specs (ADR 01174), through the real CLI: each invalid shape exits 2, and an httpRequest path joins the config's origin. No browser: httpRequest only, against the 8092 test server.",
+  "tests": [
+    {
+      "testId": "url-and-headers",
+      "description": "Writes the specs, then runs each one. One test, so its steps run in order.",
+      "steps": [
+        {
+          "description": "Write the specs and the origin config.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-url-headers';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(f,steps)=>fs.writeFileSync(d+'/'+f,JSON.stringify({tests:[{steps}]}));w('goto-contains-variable.spec.json',[{goTo:'foo \\$X'}]);w('http-contains-variable.spec.json',[{httpRequest:'foo \\$X'}]);w('header-object-value.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',request:{headers:{a:{}}}}}]);w('path.spec.json',[{httpRequest:{url:'/api/users',statusCodes:200}}]);fs.writeFileSync(d+'/origin.json',JSON.stringify({origin:'http://localhost:8092',telemetry:{send:false}}));\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "description": "A goTo URL that only contains a variable exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/goto-contains-variable.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "An httpRequest URL that only contains a variable exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/http-contains-variable.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A request header whose value is an object exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/header-object-value.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "An httpRequest path joins the config's origin and passes.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/path.spec.json --config .tmp/fixture-url-headers/origin.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "description": "Without an origin, the same path fails the run.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/path.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
