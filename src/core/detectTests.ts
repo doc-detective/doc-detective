@@ -936,9 +936,11 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         filePath: file,
         testIdBase: id,
         onInvalid: (reason: string, details?: { schemaKey: string; object: any; errorObjects?: any[] }) => {
-          const summary =
-            (details && summarizeSchemaErrors(details.errorObjects, details.object, details.schemaKey)) || reason;
-          noteInvalidSpec(config, file, details ? `${JSON.stringify(details.object)}: ${summary}` : summary);
+          const summary = details && summarizeSchemaErrors(details.errorObjects, details.object, details.schemaKey);
+          // `reason` stands in when there's nothing to summarize: a drop with no
+          // schema behind it (a duplicate test ID), or a caller that passes no
+          // errorObjects. It's AJV's raw text, so the object isn't prepended.
+          noteInvalidSpec(config, file, summary ? `${JSON.stringify(details?.object)}: ${summary}` : reason);
         },
       });
       spec.tests.push(...tests);

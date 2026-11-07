@@ -92,7 +92,7 @@ const platformMap: any = {
  */
 // A fileType entry as an object: a built-in name becomes a copy of its
 // definition, and an object passes through. The schema already limits names;
-// this names one should the schema and the table ever drift apart.
+// this throws a named error if the schema and the table ever drift apart.
 function fileTypeObject(fileType: any) {
   if (typeof fileType === "object") return fileType;
   if (!defaultFileTypes[fileType]) {
