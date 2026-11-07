@@ -89,7 +89,7 @@ describe("summarizeSpecErrors", function () {
     ],
     [
       { find: { selector: "#a", type: { keys: "x", selector: "#b" } } },
-      "tests[0].steps[0].find.type: must not set its own locator, such as selector or elementText (find already locates the element).",
+      "tests[0].steps[0].find.type: must not set `selector` (`find` already locates the element).",
     ],
   ]) {
     it(`keeps the schema's message for ${JSON.stringify(step)}`, function () {

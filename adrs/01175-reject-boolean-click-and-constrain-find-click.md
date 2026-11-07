@@ -55,9 +55,9 @@ Chosen option: **1**.
   comes first as a plain `type: boolean`, which is safe because the next branch is an enum (ADR 01161).
   Any other string is invalid: `must be equal to one of the allowed values`, which the shared error
   format prints as `must be one of left, right, middle (got "Submit").`
-- **`find.type` can't set a locator.** The guard is `not: {type: object, anyOf: [one required per
-  locator]}`. Its `errorMessage` reads
-  `must not set its own locator, such as selector or elementText (find already locates the element)`.
+- **`find.type` can't set a locator.** Each of the seven locator keys has its own guard,
+  `not: {type: object, required: [key]}`, so its `errorMessage` names the key, for example
+  ``must not set `selector` (`find` already locates the element)``.
 - **Bounds.** Every timeout, duration, and delay in `click`, `find`, `type`, `dragAndDrop`, `swipe`,
   and annotations has `minimum: 0`, or `minimum: 1` where it already had one. Names and units don't
   change, and each description says "milliseconds". `annotation.transition.durationMs` keeps its name.

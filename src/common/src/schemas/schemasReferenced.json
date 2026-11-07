@@ -6180,46 +6180,78 @@
                   {
                     "not": {
                       "type": "object",
-                      "anyOf": [
-                        {
-                          "required": [
-                            "selector"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementText"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementTestId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementClass"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAttribute"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAria"
-                          ]
-                        }
+                      "required": [
+                        "selector"
                       ]
                     },
                     "errorMessage": {
-                      "not": "must not set its own locator, such as selector or elementText (find already locates the element)"
+                      "not": "must not set `selector` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementText"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementText` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementTestId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementTestId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementClass"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementClass` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAttribute"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAttribute` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAria"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAria` (`find` already locates the element)"
                     }
                   }
                 ]
@@ -14103,46 +14135,78 @@
                   {
                     "not": {
                       "type": "object",
-                      "anyOf": [
-                        {
-                          "required": [
-                            "selector"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementText"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementTestId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementClass"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAttribute"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAria"
-                          ]
-                        }
+                      "required": [
+                        "selector"
                       ]
                     },
                     "errorMessage": {
-                      "not": "must not set its own locator, such as selector or elementText (find already locates the element)"
+                      "not": "must not set `selector` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementText"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementText` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementTestId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementTestId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementClass"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementClass` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAttribute"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAttribute` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAria"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAria` (`find` already locates the element)"
                     }
                   }
                 ]

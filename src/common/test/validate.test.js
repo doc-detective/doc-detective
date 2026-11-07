@@ -2478,13 +2478,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
 
       for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria"]) {
-        it(`rejects find.type with its own ${locator}`, function () {
+        it(`rejects find.type with its own ${locator}, and names it`, function () {
           const value = locator === "elementAttribute" ? { a: "b" } : "x";
-          const result = check({ find: { selector: "#a", type: { keys: "x", [locator]: value } } });
+          const object = { find: { selector: "#a", type: { keys: "x", [locator]: value } } };
+          const result = validate({ schemaKey: "step_v3", object, structuredErrors: true });
           expect(result.valid).to.be.false;
-          expect(result.errors).to.include(
-            "/find/type must not set its own locator, such as selector or elementText (find already locates the element)"
-          );
+          expect(result.errorObjects.filter((error) => error.instancePath === "/find/type").map((error) => error.message)).to.deep.equal([
+            `must not set \`${locator}\` (\`find\` already locates the element)`,
+          ]);
         });
       }
 
