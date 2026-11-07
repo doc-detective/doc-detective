@@ -374,6 +374,24 @@ async function captureScreenshot({
     result.status = status;
     return result;
   };
+
+  // Validate step payload
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    return result;
+  }
+  // The effective step (ADR 01167): an object with its defaults filled, and a
+  // `path` (ADR 01173). `false` is the one other value, and it disables the
+  // step, before the image libraries load.
+  step = isValidStep.object;
+  if (step.screenshot === false) {
+    result.status = "SKIPPED";
+    result.description = "Skipped: `screenshot` is `false`.";
+    return result;
+  }
+
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads
   // through so a user-overridden cacheDir resolves from the same location
@@ -392,22 +410,6 @@ async function captureScreenshot({
   } catch (error: any) {
     result.status = "FAIL";
     result.description = `Couldn't load screenshot runtime dependencies. ${error?.message ?? error}`;
-    return result;
-  }
-
-  // Validate step payload
-  const isValidStep = validate({ schemaKey: "step_v3", object: step });
-  if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
-  }
-  // The effective step (ADR 01167): an object with its defaults filled, and a
-  // `path` (ADR 01173). `false` is the one other value, and it disables the step.
-  step = isValidStep.object;
-  if (step.screenshot === false) {
-    result.status = "SKIPPED";
-    result.description = "Skipped: `screenshot` is `false`.";
     return result;
   }
 

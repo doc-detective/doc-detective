@@ -7,6 +7,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
@@ -79,6 +80,21 @@ describe("capture paths", function () {
       driver: fakeDriver(await png()),
     });
     assert.equal(result.outputs.screenshotPath, path.join(tmp, "shots", "shot.png"));
+  });
+
+  // A fresh process, because this one may have loaded them already. sharp and
+  // pngjs are CommonJS, so loading them leaves them in require.cache.
+  it("skips screenshot: false without loading the image libraries", function () {
+    const script = [
+      `const { saveScreenshot } = await import(${JSON.stringify(new URL("../dist/core/tests/saveScreenshot.js", import.meta.url).href)});`,
+      `const result = await saveScreenshot({ config: {}, step: { stepId: "s", screenshot: false }, driver: {} });`,
+      `const { createRequire } = await import("node:module");`,
+      `const loaded = Object.keys(createRequire(process.cwd() + "/").cache).filter((file) => /[\\\\/]node_modules[\\\\/](sharp|pngjs|pixelmatch)[\\\\/]/.test(file));`,
+      `console.log(JSON.stringify({ status: result.status, loaded }));`,
+    ].join("\n");
+    const child = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8" });
+    assert.equal(child.status, 0, child.stderr);
+    assert.deepEqual(JSON.parse(child.stdout.trim().split("\n").pop()), { status: "SKIPPED", loaded: [] });
   });
 
   it("skips screenshot: false", async function () {
