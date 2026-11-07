@@ -22,7 +22,7 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `-r terminal html` | Takes one comma-separated value, like `-r terminal,html` |
 | `-t` or `-s` given twice, which 4.x ignores | A usage error. Use one comma-separated value, like `-t a,b` |
 | A `config` object in the `DOC_DETECTIVE` env var | Deprecated, and it merges below `DOC_DETECTIVE_CONFIG` and flags. Use `DOC_DETECTIVE_CONFIG` |
-| A `container` key in the `DOC_DETECTIVE` env var allows unsafe steps | It doesn't. Use `allowUnsafeSteps: true` |
+| A `container` key in the `DOC_DETECTIVE` env var of your own Docker image allows unsafe steps | It doesn't. Use `allowUnsafeSteps: true`. The official images handle this for you |
 | Each boolean `DOC_DETECTIVE_*` env var reads values its own way | All of them read `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, `off`, or empty as off |
 | Browsers load from a `browser-snapshots` folder if one exists | Doc Detective ignores that folder, and browsers install into `<cacheDir>/browsers` |
 | `beforeAny` | Renamed `beforeAll`. `beforeAny` still works, with a warning |

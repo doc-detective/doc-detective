@@ -62,10 +62,9 @@ Each warning goes to stderr once per process, and links
 | The `doc-detective-lsp` bin | Removed. Only this bin warns, because hosted images are the only callers of `doc-detective-runner` |
 | `-r` with several values, or `-t` or `-s` given twice | One comma-separated value; a repeat is a usage error |
 | A `config` object in `DOC_DETECTIVE` | Deprecated; use `DOC_DETECTIVE_CONFIG` |
-| A `container` key in `DOC_DETECTIVE`, and `allowUnsafeSteps` unset | Doesn't allow unsafe steps |
+| A `container` key in `DOC_DETECTIVE` outside the official images, and `allowUnsafeSteps` unset | Doesn't allow unsafe steps |
 | A boolean `DOC_DETECTIVE_*` env var whose meaning flips, or that 5.0 doesn't accept | One grammar for every boolean env var |
 | Browsers load from a `browser-snapshots` folder | Ignored |
-| `beforeAny` | Renamed `beforeAll` |
 | A `reporters` name that isn't exact | Exits `2` |
 | Spec content that 5.0 rejects or reads differently | Exits `2`, fails the step, or skips it |
 
@@ -80,8 +79,12 @@ the spec file, not the line. They read resolved steps, which keep the values as 
 Every check is a key lookup on a step, a test, or its routing entries, plus one scan for negative
 `timeout`, `duration`, `delay`, and `wait` values. No row runs another schema validation.
 
-The `container` row fires on every run in the 4.x Docker images, which set `DOC_DETECTIVE`, until the
-user sets `allowUnsafeSteps` either way.
+The official images set `DOC_DETECTIVE` themselves, with a `container` value that starts with
+`docdetective/docdetective:`. The `container` row skips that value, because the 5.0 images allow unsafe
+steps in their own config. A test checks that the Dockerfiles still set it.
+
+There's no row for `beforeAny`. 4.x rejects `beforeAll`, so a user can't act on it, and 5.0 still reads
+`beforeAny` with its own warning. The upgrade page lists the rename.
 
 Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_interface` is
 `github-actions`, because Action v1.7 has its own notice. The runner sets neither, so the

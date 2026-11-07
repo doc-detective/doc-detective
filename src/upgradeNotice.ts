@@ -145,7 +145,10 @@ export function envWarnings(env: Record<string, string | undefined>, config: { a
       "`DOC_DETECTIVE` is deprecated in Doc Detective 5.0, and its `config` object merges below `DOC_DETECTIVE_CONFIG` and flags instead of above them. Move it to `DOC_DETECTIVE_CONFIG`, which works today."
     );
   }
-  if (legacy?.container && config.allowUnsafeSteps === undefined) {
+  // The official images set this value themselves, and their 5.0 builds allow
+  // unsafe steps in config, so only other images need to act.
+  const officialImage = /^docdetective\/docdetective:/.test(String(legacy?.container));
+  if (legacy?.container && !officialImage && config.allowUnsafeSteps === undefined) {
     messages.push(
       "`DOC_DETECTIVE` has a `container` key, which allows unsafe steps today but not in Doc Detective 5.0. To keep running them, set `allowUnsafeSteps: true` in your config, which works today."
     );
@@ -176,14 +179,9 @@ export function browsersDirWarnings(dir: string): string[] {
 
 const REPORTERS = ["terminal", "json", "html", "runFolder", "junit", "markdown"];
 
-/** Config keys 5.0 renames or validates more strictly. */
+/** Config values 5.0 validates more strictly. */
 export function configWarnings(config: any): string[] {
   const messages: string[] = [];
-  if (config.beforeAny !== undefined) {
-    messages.push(
-      "`beforeAny` is renamed `beforeAll` in Doc Detective 5.0, which still reads `beforeAny` with a warning. Rename it to `beforeAll` when you upgrade."
-    );
-  }
   for (const name of Array.isArray(config.reporters) ? config.reporters : []) {
     if (typeof name === "string" && !REPORTERS.includes(name)) {
       messages.push(

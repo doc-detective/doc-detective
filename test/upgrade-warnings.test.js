@@ -225,11 +225,24 @@ describe("upgrade warnings", function () {
       expect(envWarnings({ DOC_DETECTIVE: "not json" }, {})).to.deep.equal([]);
     });
 
-    it("DOC_DETECTIVE container, unless allowUnsafeSteps is set", function () {
-      const env = { DOC_DETECTIVE: '{"container":"docdetective/docdetective:linux"}' };
+    it("DOC_DETECTIVE container outside the official images, unless allowUnsafeSteps is set", function () {
+      const env = { DOC_DETECTIVE: '{"container":"acme/docs-ci"}' };
       expect(envWarnings(env, {})[0]).to.include("`allowUnsafeSteps: true`");
+      expect(envWarnings({ DOC_DETECTIVE: '{"container":true}' }, {})).to.have.length(1);
       expect(envWarnings(env, { allowUnsafeSteps: false })).to.deep.equal([]);
       expect(envWarnings(env, { allowUnsafeSteps: true })).to.deep.equal([]);
+      // The official images set this value themselves, and their 5.0 builds allow unsafe steps in config.
+      for (const os of ["linux", "windows"]) {
+        const official = { DOC_DETECTIVE: `{"container":"docdetective/docdetective:${os}","version":"4.41.5"}` };
+        expect(envWarnings(official, {})).to.deep.equal([]);
+      }
+    });
+
+    it("the official images' DOC_DETECTIVE value matches what the Dockerfiles set", function () {
+      for (const os of ["linux", "windows"]) {
+        const dockerfile = fs.readFileSync(path.resolve("src", "container", `${os}.Dockerfile`), "utf8");
+        expect(dockerfile).to.include(`DOC_DETECTIVE='{"container": "docdetective/docdetective:${os}"`);
+      }
     });
 
     it("browsers from a legacy browser-snapshots folder", function () {
@@ -269,25 +282,22 @@ describe("upgrade warnings", function () {
       expect(envWarnings(same, {})).to.deep.equal([]);
     });
 
-    it("beforeAny in config", function () {
-      expect(configWarnings({ beforeAny: "setup.spec.json" })[0]).to.include("`beforeAll`");
-      expect(configWarnings({ afterAll: "teardown.spec.json" })).to.deep.equal([]);
-    });
-
     it("reporters that aren't exact public names", function () {
       expect(configWarnings({ reporters: ["JSON", "terminal"] })[0]).to.include("'JSON'");
       expect(configWarnings({ reporters: ["plainReporter"] })[0]).to.include("'plainReporter'");
       expect(configWarnings({ reporters: ["terminal", "json", "html", "runFolder", "junit", "markdown"] })).to.deep.equal([]);
+      // 4.x can't use beforeAll, and 5.0 still reads beforeAny.
+      expect(configWarnings({ beforeAny: "setup.spec.json" })).to.deep.equal([]);
     });
 
     it("prints them from the CLI", function () {
-      const config = spec("config.json", { beforeAny: spec("setup.spec.json", PASSING_SPEC), reporters: ["JSON"] });
+      const config = spec("config.json", { reporters: ["JSON"] });
       const r = runCli(
         ["--config", config, "--input", spec("p.spec.json", PASSING_SPEC), "--dry-run", "-t", "a", "-t", "b"],
         { env: { DOC_DETECTIVE: '{"config":{}}', DOC_DETECTIVE_SKIP_AUTO_UPDATE: "no" } }
       );
       expect(r.status).to.equal(0);
-      for (const text of ["`DOC_DETECTIVE_CONFIG`", "`DOC_DETECTIVE_SKIP_AUTO_UPDATE`", "`--test a,b`", "`beforeAll`", "'JSON'"]) {
+      for (const text of ["`DOC_DETECTIVE_CONFIG`", "`DOC_DETECTIVE_SKIP_AUTO_UPDATE`", "`--test a,b`", "'JSON'"]) {
         expect(r.stderr).to.include(text);
       }
       expect(() => JSON.parse(r.stdout)).to.not.throw();
