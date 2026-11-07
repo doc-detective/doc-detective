@@ -39,7 +39,15 @@ The `reporters` list replaces the defaults, so name every reporter you want. Thi
 
 On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
 
-On GitLab, add `junit` to the `reporters` list in your config, like `["terminal", "json", "html", "junit"]`, and point the test summary at the `junit.xml` file:
+On GitLab, add `junit` to the `reporters` list in your config:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "junit"]
+}
+```
+
+Then point the test summary at the `junit.xml` file:
 
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
@@ -51,7 +59,15 @@ doc-tests:
       junit: reports/junit.xml
 ```
 
-On GitHub Actions, add `markdown` to the `reporters` list in your config, like `["terminal", "json", "html", "markdown"]`, and append the Markdown summary to the job summary:
+On GitHub Actions, add `markdown` to the `reporters` list in your config:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "markdown"]
+}
+```
+
+Then append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
 # Reporters come from the reporters list in .doc-detective.json
