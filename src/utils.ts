@@ -393,7 +393,7 @@ async function setConfig({
       throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
     }
     assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
-    anchorPaths(config, configFileBase(config, configPath));
+    config = anchorPaths(config, configFileBase(config, configPath));
   }
 
   // Lowest first: the user config, the project config, the deprecated

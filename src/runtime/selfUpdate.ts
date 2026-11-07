@@ -22,9 +22,9 @@ export interface SelfUpdateDeps {
 // logLevel; this in-module fallback is only for direct test or
 // programmatic use that calls `checkForUpdate` / `selfUpdate` without
 // passing `deps.logger`.
-const RUNTIME_DEBUG = isDebugRequested();
+// Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
-  if (level === "debug" && !RUNTIME_DEBUG) return;
+  if (level === "debug" && !isDebugRequested()) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

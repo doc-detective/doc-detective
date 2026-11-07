@@ -1,4 +1,7 @@
 // ADR 01165: one boolean grammar for every DOC_DETECTIVE_* variable.
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect } from "chai";
 import {
   checkEnvAliases,
@@ -93,5 +96,29 @@ describe("DOC_DETECTIVE_RUNTIME_DEBUG, the old name of DOC_DETECTIVE_DEBUG", fun
         "set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both."
       );
     }
+  });
+});
+
+describe("importing the runtime modules", function () {
+  this.timeout(30000);
+  // A fresh process, so no earlier import already read the environment.
+  it("reads no environment flag, so it queues no warning", function () {
+    const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "dist");
+    const url = (file) => pathToFileURL(path.join(dist, file)).href;
+    const script = [
+      ...["runtime/browsers.js", "runtime/installer.js", "runtime/loader.js", "runtime/selfUpdate.js"].map(
+        (file) => `await import(${JSON.stringify(url(file))});`
+      ),
+      `const { setEnvWarningSink } = await import(${JSON.stringify(url("envFlag.js"))});`,
+      "const queued = [];",
+      "setEnvWarningSink((message) => queued.push(message));",
+      "process.stdout.write(JSON.stringify(queued));",
+    ].join("\n");
+    const r = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+      env: { ...process.env, DOC_DETECTIVE_DEBUG: "maybe" },
+    });
+    expect(r.status, r.stderr).to.equal(0);
+    expect(JSON.parse(r.stdout)).to.deep.equal([]);
   });
 });
