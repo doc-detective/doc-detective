@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 import * as heavyDeps from "../dist/runtime/heavyDeps.js";
 
 const require = createRequire(import.meta.url);
@@ -71,6 +72,35 @@ describe("doc-detective's own package", function () {
     it("writes package.json's version into a verified-by entry", async function () {
       const { page } = await runPage();
       assert.match(fs.readFileSync(page, "utf8"), new RegExp(`\\n {4}version: ${version.replace(/\./g, "\\.")}\\n`));
+    });
+
+    it("starts the PTY probe worker", async function () {
+      // The probe only runs for a Windows `tty` process, so reach the bundled
+      // probePtyAllocation directly: evaluate dist/index.cjs in the wrapper
+      // Node's CommonJS loader uses, and hand back the two functions.
+      const bundle = path.join(repoRoot, "dist", "index.cjs");
+      const load = vm.runInThisContext(
+        `(function (exports, require, module, __filename, __dirname) {${fs.readFileSync(bundle, "utf8")}\n` +
+          "return { init_ptyWatchdog, probePtyAllocation }; })",
+        { filename: bundle }
+      );
+      const { init_ptyWatchdog, probePtyAllocation } = load(
+        {},
+        createRequire(bundle),
+        { exports: {} },
+        bundle,
+        path.dirname(bundle)
+      );
+      init_ptyWatchdog();
+      // A missing backend makes the worker's own import fail, and that error
+      // names the path. A worker that never started reports no path.
+      const marker = `dd-no-such-pty-backend-${process.pid}`;
+      const res = await probePtyAllocation({
+        ptyModulePath: path.join(tmpDir, `${marker}.mjs`),
+        timeoutMs: 15000,
+      });
+      assert.equal(res.outcome, "inconclusive");
+      assert.match(res.detail, new RegExp(marker));
     });
   });
 });
