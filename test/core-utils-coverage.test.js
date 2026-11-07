@@ -324,6 +324,10 @@ describe("core/utils coverage", function () {
       "64:ff9b::a9fe:a9fe", // NAT64 169.254.169.254
       "64:ff9b::10.0.0.1", // NAT64, dotted
       "64:ff9b::7f00:1", // NAT64 127.0.0.1
+      "::ffff:0:a00:1", // IPv4-translated (::ffff:0:0/96) 10.0.0.1
+      "2002:a00:1::1", // 6to4 (2002::/16) 10.0.0.1
+      "2002:a9fe:a9fe::1", // 6to4 169.254.169.254
+      "fec0::1", // site-local fec0::/10 (deprecated, still internal)
       // IPv4-mapped IPv6 private addresses are asserted in the mappedPrivate
       // set below (the #427 fix); historically they bypassed the guard.
     ];
@@ -340,8 +344,10 @@ describe("core/utils coverage", function () {
       "::ffff:8.8.8.8", // dotted public mapped (parser normalizes to hex)
       "::ffff:808:808", // hex public mapped form (8.8.8.8) stays allowed
       "::ffff:1", // a normal IPv6 address, not IPv4-mapped → not private
-      "fec0::1", // just past fe80::/10
+      "ff02::1", // multicast: not a unicast destination
       "::808:808", // IPv4-compatible 8.8.8.8
+      "::ffff:0:808:808", // IPv4-translated 8.8.8.8
+      "2002:808:808::1", // 6to4 8.8.8.8
       "64:ff9b::808:808", // NAT64 8.8.8.8
       "64:ff9b:1::a00:1", // outside 64:ff9b::/96
     ];

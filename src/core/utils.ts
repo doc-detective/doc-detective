@@ -1404,6 +1404,15 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     const v4 = `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
     if ((g[0] & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
     if ((g[0] & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+    if ((g[0] & 0xffc0) === 0xfec0) return true; // site-local fec0::/10 (deprecated)
+    // 6to4 2002::/16 carries an IPv4 address in its second and third groups.
+    if (g[0] === 0x2002) {
+      return isPrivateOrLoopbackAddress(
+        `${g[1] >> 8}.${g[1] & 0xff}.${g[2] >> 8}.${g[2] & 0xff}`
+      );
+    }
+    // IPv4-translated ::ffff:0:a.b.c.d.
+    if (zero(0, 4) && g[4] === 0xffff && g[5] === 0) return isPrivateOrLoopbackAddress(v4);
     // IPv4-compatible ::a.b.c.d (also covers :: and ::1, which embed 0.0.0.x).
     if (zero(0, 6)) return isPrivateOrLoopbackAddress(v4);
     // IPv4-mapped ::ffff:a.b.c.d. ADR 01010: the URL parser emits these as hex.
