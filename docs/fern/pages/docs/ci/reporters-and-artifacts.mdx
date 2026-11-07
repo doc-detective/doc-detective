@@ -44,6 +44,7 @@ On GitLab, add `junit` to the `reporters` list in your config, like `["terminal"
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
   script:
+    # Reporters come from the reporters list in .doc-detective.json
     - doc-detective --input ./docs --output ./reports
   artifacts:
     reports:
@@ -53,6 +54,7 @@ doc-tests:
 On GitHub Actions, add `markdown` to the `reporters` list in your config, like `["terminal", "json", "html", "markdown"]`, and append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
+# Reporters come from the reporters list in .doc-detective.json
 - run: doc-detective --input ./docs --output ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"

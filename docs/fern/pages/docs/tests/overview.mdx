@@ -383,7 +383,7 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects the `spec` and `run` scopes on a step, so move them to a test-level handler now.
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` doesn't propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects the `spec` and `run` scopes on a step, so move them to a test-level handler now.
 
 ### Retry a step
 
