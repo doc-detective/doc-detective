@@ -193,10 +193,10 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // extractBeforeAnySharedSetup (advanced)
+  // extractBeforeAllSharedSetup (advanced)
   // ------------------------------------------------------------------
   {
-    id: "extractBeforeAnySharedSetup",
+    id: "extractBeforeAllSharedSetup",
     priority: 20,
     markdown: [
       "Repeating the same setup across specs? Move it into a `beforeAll` spec — it runs once before the rest of the input:",
