@@ -33,6 +33,7 @@ The `dragAndDrop` action requires an object with the following properties:
 
 - `source`: (Required) The element to drag from. Can be a string (element text or selector) or a detailed object.
 - `target`: (Required) The element to drop onto. Can be a string (element text or selector) or a detailed object.
+- `duration`: (Optional) Duration of the drag in milliseconds. `0` or more. Default is `1000`. A `0` drags instantly.
 - `surface`: (Optional) The browser (session, window, or tab) the source and target elements live in, for example `{ "browser": "chrome", "tab": "board" }`. Omit to act on the active tab. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 ### Source and target element properties
@@ -41,7 +42,7 @@ When using detailed objects for `source` or `target`, you can specify:
 
 - `elementText`: (Optional) Display text of the element. If combined with `selector`, the element must match both the text and the selector.
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element. If combined with `elementText`, the element must match both the text and the selector.
-- `timeout`: (Optional) Maximum duration in milliseconds to wait for this specific element to exist.
+- `timeout`: (Optional) Maximum duration in milliseconds to wait for this specific element to exist. `0` or more. Default is `5000`.
 
 **Outputs:** the action exposes `outputs.sourceFound` and `outputs.targetFound`, booleans indicating whether the source and target elements were located. To capture them for later steps, use the step-level `variables` object with the expressions `$$sourceFound` and `$$targetFound`.
 

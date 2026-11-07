@@ -8,7 +8,6 @@ description: "Reference for the `Click element (detailed)` schema."
 
 ## Referenced In
 
-- [Find element (detailed)](/reference/schemas/find-element-detailed)
 - [click](/reference/schemas/click)
 
 ## Fields
@@ -17,8 +16,8 @@ Validation applies the defaults shown here.
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-timeout | integer | Optional. Max duration in milliseconds to wait for the element to exist. | `5000`
-button | string | Optional. Kind of click to perform.<br/><br/>Accepted values: `left`, `right`, `middle` | —
+timeout | integer | Optional. Max duration in milliseconds to wait for the element to exist.<br/><br/>Minimum: 0 | `5000`
+button | string | Optional. Kind of click to perform.<br/><br/>Accepted values: `left`, `right`, `middle` | `left`
 duration | integer | Optional. How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.<br/><br/>Minimum: 1 | —
 surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form (&#123; "app": … &#125;). | —
 elementText | string | Optional. Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria. | —

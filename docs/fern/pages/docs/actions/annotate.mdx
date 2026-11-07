@@ -33,8 +33,8 @@ The [screenshot annotations](/docs/actions/screenshot#annotations) page covers t
 
 - `id`: A handle, so a later step can update or clear this annotation.
 - `track`: Follow the element as the page scrolls or the layout shifts.
-- `transition`: How the annotation enters and leaves. `enter` accepts `none`, `fade`, `pop`, or `draw`. `exit` accepts `none` or `fade`. `durationMs` sets the length.
-- `duration`: Milliseconds to stay up before clearing itself, with no paired `clear` step.
+- `transition`: How the annotation enters and leaves. `enter` accepts `none`, `fade`, `pop`, or `draw`. `exit` accepts `none` or `fade`. `durationMs` sets the length in milliseconds, `0` or more.
+- `duration`: Milliseconds to stay up before clearing itself, with no paired `clear` step. `0` or more.
 
 <Warning>
 Set `"transition": { "enter": "none" }` on a `blur` you're using to redact. An annotation that fades in leaves the content underneath readable for the length of the animation, and every frame of that is in the recording.
@@ -58,7 +58,7 @@ An element target waits up to 5000 milliseconds for its element to appear, then 
 }
 ```
 
-This is [`find`](/docs/actions/find)'s `timeout`, on the annotation's target. Two things follow from that. It needs the object form of the target, since the string shorthand has nowhere to put it. It's also per-target, so one slow element in a payload doesn't make the others wait.
+This is [`find`](/docs/actions/find)'s `timeout`, in milliseconds, on the annotation's target. Two things follow from that. It needs the object form of the target, since the string shorthand has nowhere to put it. It's also per-target, so one slow element in a payload doesn't make the others wait. A negative `timeout` makes the spec invalid.
 
 `update` re-resolves its target, so give it a `timeout` too when you point an annotation at something that isn't on the page yet.
 
