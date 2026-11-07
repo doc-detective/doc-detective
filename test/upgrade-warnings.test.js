@@ -13,6 +13,7 @@ import {
   legacyEnv,
   flagWarnings,
   namesFolder,
+  outputWarnings,
   runResultWarnings,
   specWarnings,
 } from "../dist/upgradeNotice.js";
@@ -523,6 +524,12 @@ registerHooks({ load(url, ctx, next) {
       expect(namesFolder("results.json", path.resolve("results.json"))).to.equal(false);
       expect(namesFolder("junit.xml", path.resolve("junit.xml"))).to.equal(false);
       expect(namesFolder(undefined, path.resolve("."))).to.equal(false);
+    });
+
+    it("outputWarnings leads with what to do, then why it fired", function () {
+      expect(outputWarnings("results", path.resolve("results"))).to.deep.equal([
+        "In Doc Detective 5.0, `--output` and `output` name the results file. Use `--output-dir` for a folder when you upgrade. Your output path ('results') names a folder, and 4.x treats a path without a file extension as a folder.",
+      ]);
     });
 
     it("commandWarnings doesn't take a flag's value for a command", function () {

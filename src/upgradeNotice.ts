@@ -79,7 +79,7 @@ export function namesFolder(raw: unknown, resolved: string): boolean {
 export function outputWarnings(raw: unknown, resolved: string): string[] {
   return namesFolder(raw, resolved)
     ? [
-        `\`output\` names a folder ('${raw}'): 4.x treats a path without a file extension as a folder. In Doc Detective 5.0, \`--output\` and \`output\` name the results file, and a folder needs \`--output-dir\`.`,
+        `In Doc Detective 5.0, \`--output\` and \`output\` name the results file. Use \`--output-dir\` for a folder when you upgrade. Your output path ('${raw}') names a folder, and 4.x treats a path without a file extension as a folder.`,
       ]
     : [];
 }
