@@ -608,7 +608,7 @@ async function matchImageOnce({
   // the sweep can't stop early, but redacting every copy depends on it.
   all?: boolean;
   cacheDir?: string;
-}): Promise<{ match: Candidate | null; matches: Candidate[]; best: Candidate | null; threshold: number }> {
+}): Promise<{ match: Candidate | null; matches: Candidate[]; best: Candidate | null }> {
   const ctx = { cacheDir };
   const ref = reference ?? (await loadImageReference(elementImage, ctx));
   const cv = await loadOpenCv(ctx);
@@ -659,7 +659,6 @@ async function matchImageOnce({
       match: first ? toCss(first, scale) : null,
       matches: kept.map((c) => toCss(c, scale)),
       best: closest ? toCss(closest, scale) : null,
-      threshold: ref.threshold,
     };
   } finally {
     grayMat.delete();
