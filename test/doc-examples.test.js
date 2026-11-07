@@ -65,6 +65,7 @@ function checkDocExamples() {
 describe("doc examples", function () {
   it("classifies a two-action step as a step, so validation rejects it", function () {
     assert.equal(classify({ goTo: "https://example.com", find: "Welcome" }), "step_v3");
+    // null: `elementText` isn't a step-level key, so the every-key-is-a-step-key guard fails.
     assert.equal(classify({ elementText: "Welcome", click: true }), null);
   });
 

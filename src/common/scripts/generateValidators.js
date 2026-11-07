@@ -2,12 +2,13 @@
 // plus one published <name>_v3.schema.json per v3 schema (the `$schema` URLs).
 // Runs after tsc (it needs dist/ajv.js, and `clean` wipes dist/) and before the
 // CJS bundle. ADR 01138.
-import { readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import path from "path";
 import { standaloneValidatorFiles } from "../dist/ajv.js";
 
 const outDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "dist", "schemas");
+await mkdir(outDir, { recursive: true });
 
 for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
   await writeFile(path.join(outDir, file), code);

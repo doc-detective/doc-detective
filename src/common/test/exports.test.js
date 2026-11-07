@@ -21,6 +21,7 @@ describe("stepActions", function () {
   it("matches step_v3's properties minus the common step keys", function () {
     // Independent of the oneOf walk: a step's properties are its actions plus the shared keys.
     const step = schemas.step_v3;
+    expect(step).to.have.nested.property("components.schemas.common.properties");
     const actions = Object.keys(step.properties)
       .filter((k) => !(k in step.components.schemas.common.properties))
       .sort();
