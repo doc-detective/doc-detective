@@ -377,6 +377,13 @@ describe("normalization", function () {
       expect(output).to.not.equal(list);
     });
 
+    it("copies a type key list, never keeping the authored one", function () {
+      const keys = ["a", "b"];
+      const output = normalizers.type(keys, "type", false, {});
+      expect(output.keys).to.deep.equal(keys);
+      expect(output.keys).to.not.equal(keys);
+    });
+
     it("fills each startSurface descriptor's defaults, by kind", function () {
       const process = { process: "node server.js", name: "api" };
       expect(effective({ startSurface: process }).object.startSurface).to.deep.equal({

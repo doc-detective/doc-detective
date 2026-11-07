@@ -73,6 +73,7 @@ export const normalizers: Record<string, (value: any, path: string, literal: boo
 // even an object. After substitution, `literal` normalizes one that's left (an
 // unset variable) as text.
 function normalizeStep(step: any, path: string, literal: boolean) {
+  // Only validated steps get here, and a valid step has exactly one action.
   const action = Object.keys(normalizers).find((name) => name in step)!;
   if (!literal && isWholeVariable(step[action])) return;
   step[action] = normalizers[action](step[action], path + action, literal, step);
