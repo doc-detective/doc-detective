@@ -58,7 +58,7 @@ An element target waits up to 5000 milliseconds for its element to appear, then 
 }
 ```
 
-This is [`find`](/docs/actions/find)'s `timeout`, in milliseconds, on the annotation's target. Two things follow from that. It needs the object form of the target, since the string shorthand has nowhere to put it. It's also per-target, so one slow element in a payload doesn't make the others wait. A negative `timeout` makes the spec invalid.
+This is [`find`](/docs/actions/find)'s `timeout`, in milliseconds, on the annotation's target. Two things follow from that. It needs the object form of the target, since the string shorthand has nowhere to put it. It's also per-target, so one slow element in a payload doesn't make the others wait. `0` checks once, and a negative `timeout` makes the spec invalid.
 
 `update` re-resolves its target, so give it a `timeout` too when you point an annotation at something that isn't on the page yet.
 

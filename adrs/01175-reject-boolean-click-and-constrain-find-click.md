@@ -58,9 +58,13 @@ Chosen option: **1**.
 - **`find.type` can't set a locator.** Each of the seven locator keys has its own guard,
   `not: {type: object, required: [key]}`, so its `errorMessage` names the key, for example
   ``must not set `selector` (`find` already locates the element)``.
-- **Bounds.** Every timeout, duration, and delay in `click`, `find`, `type`, `dragAndDrop`, `swipe`,
-  and annotations has `minimum: 0`, or `minimum: 1` where it already had one. Names and units don't
-  change, and each description says "milliseconds". `annotation.transition.durationMs` keeps its name.
+- **Bounds** follow ADR 01171's rule, as #832 amends it. These actions' timeouts all bound a wait
+  for something to appear: the element of `click`, `find`, a `dragAndDrop` source or target, or an
+  annotation target, and a `type` step's `waitUntil`. So they take `minimum: 0`, and `0` checks once
+  ([ADR 01090](01090-non-destructive-surface-bookkeeping-and-zero-timeout.md)). `type.inputDelay`,
+  `dragAndDrop.duration`, and the annotation durations take `minimum: 0` too. `click.duration` and
+  `swipe.duration` keep the `minimum: 1` they had. Names and units don't change, and each description
+  says "milliseconds". `annotation.transition.durationMs` keeps its name.
 - **`elementAttribute` values are one `type` array**, `["boolean", "number", "string"]`, in `click`,
   `find`, `type`, `dragAndDrop`, and annotations, as ADR 01161 does on 4.x.
 - **The effective step.** Each action's normalizer, in `src/common/src/normalize/`:

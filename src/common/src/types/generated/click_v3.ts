@@ -16,7 +16,7 @@ export type ClickElementDetailed = {
   [k: string]: unknown;
 } & {
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
   /**

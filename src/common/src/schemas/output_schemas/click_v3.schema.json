@@ -67,7 +67,7 @@
             "timeout": {
               "type": "integer",
               "minimum": 0,
-              "description": "Max duration in milliseconds to wait for the element to exist.",
+              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
               "default": 5000
             },
             "button": {
@@ -422,7 +422,7 @@
           "timeout": {
             "type": "integer",
             "minimum": 0,
-            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
             "default": 5000
           },
           "button": {

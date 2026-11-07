@@ -924,7 +924,7 @@
               "type": "integer",
               "minimum": 0,
               "default": 5000,
-              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
             },
             "selector": {
               "type": "string",
@@ -2416,7 +2416,7 @@
                 "type": "integer",
                 "minimum": 0,
                 "default": 5000,
-                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
               },
               "selector": {
                 "type": "string",

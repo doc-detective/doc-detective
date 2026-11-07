@@ -7934,7 +7934,7 @@
                                                   "timeout": {
                                                     "type": "integer",
                                                     "minimum": 0,
-                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                     "default": 5000
                                                   },
                                                   "button": {
@@ -8289,7 +8289,7 @@
                                                 "timeout": {
                                                   "type": "integer",
                                                   "minimum": 0,
-                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                   "default": 5000
                                                 },
                                                 "button": {
@@ -9879,7 +9879,7 @@
                                               "timeout": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                 "default": 5000
                                               },
                                               "moveTo": {
@@ -10858,7 +10858,7 @@
                                                                 "type": "integer",
                                                                 "minimum": 0,
                                                                 "default": 5000,
-                                                                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                               },
                                                               "selector": {
                                                                 "type": "string",
@@ -12350,7 +12350,7 @@
                                                                   "type": "integer",
                                                                   "minimum": 0,
                                                                   "default": 5000,
-                                                                  "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                  "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                 },
                                                                 "selector": {
                                                                   "type": "string",
@@ -13383,7 +13383,7 @@
                                                 "timeout": {
                                                   "type": "integer",
                                                   "minimum": 0,
-                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                   "default": 5000
                                                 },
                                                 "moveTo": {
@@ -14362,7 +14362,7 @@
                                                                   "type": "integer",
                                                                   "minimum": 0,
                                                                   "default": 5000,
-                                                                  "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                  "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                 },
                                                                 "selector": {
                                                                   "type": "string",
@@ -15854,7 +15854,7 @@
                                                                     "type": "integer",
                                                                     "minimum": 0,
                                                                     "default": 5000,
-                                                                    "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                    "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                   },
                                                                   "selector": {
                                                                     "type": "string",
@@ -26738,7 +26738,7 @@
                                                     "type": "integer",
                                                     "minimum": 0,
                                                     "default": 5000,
-                                                    "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                    "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                   },
                                                   "selector": {
                                                     "type": "string",
@@ -28230,7 +28230,7 @@
                                                       "type": "integer",
                                                       "minimum": 0,
                                                       "default": 5000,
-                                                      "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                      "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                     },
                                                     "selector": {
                                                       "type": "string",
@@ -30329,7 +30329,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -30506,7 +30506,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -30683,7 +30683,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -30860,7 +30860,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -31037,7 +31037,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -31214,7 +31214,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -31624,7 +31624,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -31793,7 +31793,7 @@
                                                                   "timeout": {
                                                                     "type": "integer",
                                                                     "minimum": 0,
-                                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                     "default": 5000,
                                                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                   }
@@ -31951,7 +31951,7 @@
                                                               "timeout": {
                                                                 "type": "integer",
                                                                 "minimum": 0,
-                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                 "default": 5000,
                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                               }
@@ -32896,7 +32896,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -33073,7 +33073,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -33250,7 +33250,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -33427,7 +33427,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -33604,7 +33604,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -33781,7 +33781,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -34191,7 +34191,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -34360,7 +34360,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -34518,7 +34518,7 @@
                                                                 "timeout": {
                                                                   "type": "integer",
                                                                   "minimum": 0,
-                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                   "default": 5000,
                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                 }
@@ -35442,7 +35442,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -35619,7 +35619,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -35796,7 +35796,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -35973,7 +35973,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -36150,7 +36150,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -36327,7 +36327,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -36737,7 +36737,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -36906,7 +36906,7 @@
                                                                 "timeout": {
                                                                   "type": "integer",
                                                                   "minimum": 0,
-                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                   "default": 5000,
                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                 }
@@ -37064,7 +37064,7 @@
                                                             "timeout": {
                                                               "type": "integer",
                                                               "minimum": 0,
-                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                               "default": 5000,
                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                             }
@@ -48524,7 +48524,7 @@
                                                   "timeout": {
                                                     "type": "integer",
                                                     "minimum": 0,
-                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                     "default": 5000
                                                   }
                                                 }
@@ -48629,7 +48629,7 @@
                                                   "timeout": {
                                                     "type": "integer",
                                                     "minimum": 0,
-                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                     "default": 5000
                                                   }
                                                 }
@@ -48896,7 +48896,7 @@
                                                     "timeout": {
                                                       "type": "integer",
                                                       "minimum": 0,
-                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                       "default": 5000
                                                     }
                                                   }
@@ -48998,7 +48998,7 @@
                                                 "timeout": {
                                                   "type": "integer",
                                                   "minimum": 0,
-                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                   "default": 5000
                                                 }
                                               }
@@ -54662,7 +54662,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -54839,7 +54839,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -55016,7 +55016,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -55193,7 +55193,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -55370,7 +55370,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -55547,7 +55547,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -55957,7 +55957,7 @@
                                                                   "timeout": {
                                                                     "type": "integer",
                                                                     "minimum": 0,
-                                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                     "default": 5000,
                                                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                   }
@@ -56126,7 +56126,7 @@
                                                               "timeout": {
                                                                 "type": "integer",
                                                                 "minimum": 0,
-                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                 "default": 5000,
                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                               }
@@ -56284,7 +56284,7 @@
                                                           "timeout": {
                                                             "type": "integer",
                                                             "minimum": 0,
-                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                             "default": 5000,
                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                           }
@@ -56735,7 +56735,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -56912,7 +56912,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -57089,7 +57089,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -57266,7 +57266,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -57443,7 +57443,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -57620,7 +57620,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -58030,7 +58030,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -58199,7 +58199,7 @@
                                                                   "timeout": {
                                                                     "type": "integer",
                                                                     "minimum": 0,
-                                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                     "default": 5000,
                                                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                   }
@@ -58357,7 +58357,7 @@
                                                               "timeout": {
                                                                 "type": "integer",
                                                                 "minimum": 0,
-                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                 "default": 5000,
                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                               }
@@ -63783,7 +63783,7 @@
                                                         "timeout": {
                                                           "type": "integer",
                                                           "minimum": 0,
-                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                           "default": 5000
                                                         },
                                                         "button": {
@@ -64138,7 +64138,7 @@
                                                       "timeout": {
                                                         "type": "integer",
                                                         "minimum": 0,
-                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                         "default": 5000
                                                       },
                                                       "button": {
@@ -65728,7 +65728,7 @@
                                                     "timeout": {
                                                       "type": "integer",
                                                       "minimum": 0,
-                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                       "default": 5000
                                                     },
                                                     "moveTo": {
@@ -66707,7 +66707,7 @@
                                                                       "type": "integer",
                                                                       "minimum": 0,
                                                                       "default": 5000,
-                                                                      "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                      "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                     },
                                                                     "selector": {
                                                                       "type": "string",
@@ -68199,7 +68199,7 @@
                                                                         "type": "integer",
                                                                         "minimum": 0,
                                                                         "default": 5000,
-                                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                       },
                                                                       "selector": {
                                                                         "type": "string",
@@ -69232,7 +69232,7 @@
                                                       "timeout": {
                                                         "type": "integer",
                                                         "minimum": 0,
-                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                         "default": 5000
                                                       },
                                                       "moveTo": {
@@ -70211,7 +70211,7 @@
                                                                         "type": "integer",
                                                                         "minimum": 0,
                                                                         "default": 5000,
-                                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                       },
                                                                       "selector": {
                                                                         "type": "string",
@@ -71703,7 +71703,7 @@
                                                                           "type": "integer",
                                                                           "minimum": 0,
                                                                           "default": 5000,
-                                                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                                         },
                                                                         "selector": {
                                                                           "type": "string",
@@ -82587,7 +82587,7 @@
                                                           "type": "integer",
                                                           "minimum": 0,
                                                           "default": 5000,
-                                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                         },
                                                         "selector": {
                                                           "type": "string",
@@ -84079,7 +84079,7 @@
                                                             "type": "integer",
                                                             "minimum": 0,
                                                             "default": 5000,
-                                                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                                                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                                                           },
                                                           "selector": {
                                                             "type": "string",
@@ -86178,7 +86178,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -86355,7 +86355,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -86532,7 +86532,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -86709,7 +86709,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -86886,7 +86886,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -87063,7 +87063,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -87473,7 +87473,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -87642,7 +87642,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -87800,7 +87800,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -88745,7 +88745,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -88922,7 +88922,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -89099,7 +89099,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -89276,7 +89276,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -89453,7 +89453,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -89630,7 +89630,7 @@
                                                                                 "timeout": {
                                                                                   "type": "integer",
                                                                                   "minimum": 0,
-                                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                   "default": 5000,
                                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                                 }
@@ -90040,7 +90040,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -90209,7 +90209,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -90367,7 +90367,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -91291,7 +91291,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -91468,7 +91468,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -91645,7 +91645,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -91822,7 +91822,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -91999,7 +91999,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -92176,7 +92176,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -92586,7 +92586,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -92755,7 +92755,7 @@
                                                                       "timeout": {
                                                                         "type": "integer",
                                                                         "minimum": 0,
-                                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                         "default": 5000,
                                                                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                       }
@@ -92913,7 +92913,7 @@
                                                                   "timeout": {
                                                                     "type": "integer",
                                                                     "minimum": 0,
-                                                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                     "default": 5000,
                                                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                   }
@@ -104373,7 +104373,7 @@
                                                         "timeout": {
                                                           "type": "integer",
                                                           "minimum": 0,
-                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                           "default": 5000
                                                         }
                                                       }
@@ -104478,7 +104478,7 @@
                                                         "timeout": {
                                                           "type": "integer",
                                                           "minimum": 0,
-                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                           "default": 5000
                                                         }
                                                       }
@@ -104745,7 +104745,7 @@
                                                           "timeout": {
                                                             "type": "integer",
                                                             "minimum": 0,
-                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                             "default": 5000
                                                           }
                                                         }
@@ -104847,7 +104847,7 @@
                                                       "timeout": {
                                                         "type": "integer",
                                                         "minimum": 0,
-                                                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                         "default": 5000
                                                       }
                                                     }
@@ -110511,7 +110511,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -110688,7 +110688,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -110865,7 +110865,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -111042,7 +111042,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -111219,7 +111219,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -111396,7 +111396,7 @@
                                                                           "timeout": {
                                                                             "type": "integer",
                                                                             "minimum": 0,
-                                                                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                             "default": 5000,
                                                                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                           }
@@ -111806,7 +111806,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -111975,7 +111975,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
@@ -112133,7 +112133,7 @@
                                                                 "timeout": {
                                                                   "type": "integer",
                                                                   "minimum": 0,
-                                                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                   "default": 5000,
                                                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                 }
@@ -112584,7 +112584,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -112761,7 +112761,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -112938,7 +112938,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -113115,7 +113115,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -113292,7 +113292,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -113469,7 +113469,7 @@
                                                                               "timeout": {
                                                                                 "type": "integer",
                                                                                 "minimum": 0,
-                                                                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                                 "default": 5000,
                                                                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                               }
@@ -113879,7 +113879,7 @@
                                                                             "timeout": {
                                                                               "type": "integer",
                                                                               "minimum": 0,
-                                                                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                               "default": 5000,
                                                                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                             }
@@ -114048,7 +114048,7 @@
                                                                         "timeout": {
                                                                           "type": "integer",
                                                                           "minimum": 0,
-                                                                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                           "default": 5000,
                                                                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                         }
@@ -114206,7 +114206,7 @@
                                                                     "timeout": {
                                                                       "type": "integer",
                                                                       "minimum": 0,
-                                                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                                                       "default": 5000,
                                                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                                                     }
