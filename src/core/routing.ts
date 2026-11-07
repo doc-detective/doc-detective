@@ -435,8 +435,7 @@ type RoutingDecision =
   | { action: "goToTest"; testId: string };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
-// action. Each scope allows only the actions it performs (ADR 01168), and a
-// step's onSkip also rejects `retry`.
+// action. Each scope allows only the actions it performs (ADR 01168).
 interface StepRoutingEntry {
   if?: GuardCondition;
   continue?: true;

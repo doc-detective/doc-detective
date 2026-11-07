@@ -42,13 +42,15 @@ Chosen option: **A**. Each routing entry takes exactly one of the actions its ha
 
 | Handler | Accepts |
 |---|---|
-| A step's `onPass`, `onFail`, or `onWarning` | `continue: true`, `stop: "test"`, `retry: {limit, delay?, backoff?}`, or `goToStep` |
-| A step's `onSkip` | `continue: true`, `stop: "test"`, or `goToStep` |
+| A step's `onPass`, `onFail`, `onWarning`, or `onSkip` | `continue: true`, `stop: "test"`, `retry: {limit, delay?, backoff?}`, or `goToStep` |
 | A test's `onPass`, `onFail`, `onWarning`, or `onSkip` | `continue: true`, `stop: "test"` or `"spec"`, or `goToTest` |
 
-- `routing_v3` gains `components.schemas.step` and `components.schemas.stepSkip`, which `step_v3`'s handlers
-  reference. The root of `routing_v3` is the test entry.
-- A step's `onSkip` rejects `retry` because a step that never ran has nothing to re-run.
+- `routing_v3` gains `components.schemas.step`, which `step_v3`'s handlers reference. The root of `routing_v3` is
+  the test entry.
+- `retry` stays valid in a step's `onSkip`, because the runner performs it there. It re-runs a step whose action
+  ran and reported SKIPPED, such as `wait: false`. A step skipped before it ran, because its `if` was false or it's
+  an unsafe step that isn't allowed, can't be re-run. For that step the runner passes over `retry` entries, and
+  the next matching entry applies. A step skipped because an earlier step stopped the test fires no handler.
 - A spec that uses anything else fails validation, so the CLI exits 2 through the existing invalid-spec path. The
   error names the key path, for example `tests[0].steps[0].onFail[0].stop` or
   `tests[0].onFail[0]: unknown key 'retry'.`
@@ -68,11 +70,13 @@ Chosen option: **A**. Each routing entry takes exactly one of the actions its ha
 ### Confirmation
 
 - `src/common/test/validate.test.js` ("routing scopes") rejects step `stop: "spec"`, `stop: "run"`, and
-  `goToTest`, `retry` in a step's `onSkip`, and test `stop: "run"`, `retry`, and `goToStep`. It accepts every
-  allowed action at each scope.
-- `test/routing-scope.test.js` runs the real CLI. The seven rejected shapes exit 2 and name the key path, and a
-  test-level `stop: "spec"` exits 0.
-- `test/core-artifacts/cli/routing-scope.spec.json` runs the same eight permutations as a fixture.
+  `goToTest`, and test `stop: "run"`, `retry`, and `goToStep`. It accepts every allowed action at each scope,
+  including `retry` in a step's `onSkip`.
+- `test/routing-scope.test.js` runs the real CLI. The six rejected shapes exit 2 and name the key path. A
+  test-level `stop: "spec"` and a step-level `onSkip` `retry` exit 0.
+- `test/core-core.test.js` pins `onSkip` `retry`: a `wait: false` step with `retry: {limit: 2}` runs 3 times, and a
+  guard-skipped step's `retry` entry is passed over for the next entry.
+- `test/core-artifacts/cli/routing-scope.spec.json` runs the same permutations as a fixture.
 
 ## Pros and Cons of the Options
 

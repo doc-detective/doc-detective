@@ -2893,7 +2893,7 @@
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#/components/schemas/stepSkip"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -6573,41 +6573,6 @@
               {
                 "required": [
                   "retry"
-                ]
-              },
-              {
-                "required": [
-                  "goToStep"
-                ]
-              }
-            ]
-          },
-          "stepSkip": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "if": {
-                "$ref": "#/components/schemas/condition"
-              },
-              "continue": {
-                "$ref": "#/components/schemas/step/properties/continue"
-              },
-              "stop": {
-                "$ref": "#/components/schemas/step/properties/stop"
-              },
-              "goToStep": {
-                "$ref": "#/components/schemas/step/properties/goToStep"
-              }
-            },
-            "oneOf": [
-              {
-                "required": [
-                  "continue"
-                ]
-              },
-              {
-                "required": [
-                  "stop"
                 ]
               },
               {
@@ -10950,7 +10915,7 @@
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/stepSkip"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -14554,41 +14519,6 @@
               {
                 "required": [
                   "retry"
-                ]
-              },
-              {
-                "required": [
-                  "goToStep"
-                ]
-              }
-            ]
-          },
-          "stepSkip": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "if": {
-                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/condition"
-              },
-              "continue": {
-                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/continue"
-              },
-              "stop": {
-                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/stop"
-              },
-              "goToStep": {
-                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/goToStep"
-              }
-            },
-            "oneOf": [
-              {
-                "required": [
-                  "continue"
-                ]
-              },
-              {
-                "required": [
-                  "stop"
                 ]
               },
               {

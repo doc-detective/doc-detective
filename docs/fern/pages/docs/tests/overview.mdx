@@ -316,7 +316,7 @@ Routing entries support these actions:
 
 - **`continue`**: Run the next step. Set `continue` to `true`.
 - **`stop`**: Stop the test. Set `stop` to `test`, the only scope a step can stop.
-- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. An `onSkip` handler can't use `retry`, because a skipped step never ran. See [Retry a step](#retry-a-step).
+- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. In an `onSkip` handler, `retry` re-runs only a step whose action ran and reported SKIPPED. See [Retry a step](#retry-a-step).
 - **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
 
 The following step keeps the test running after a failure instead of stopping it:
@@ -341,8 +341,8 @@ The following step keeps the test running after a failure instead of stopping it
 
 The handler that fires depends on the step's result:
 
-- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result.
-- A step that's reached but skipped fires `onSkip`. That happens when it's an unsafe step that isn't allowed, or when its [`if` condition](#conditional-execution) is false.
+- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result. If its action reports SKIPPED, as `wait: false` does, it fires `onSkip`.
+- A step that's reached but skipped before it runs fires `onSkip`. That happens when it's an unsafe step that isn't allowed, or when its [`if` condition](#conditional-execution) is false.
 - A step that's never reached, because an earlier step stopped the test, fires no handler.
 
 ### Routing controls flow, not the verdict
@@ -398,6 +398,8 @@ Set `retry` to an object with a `limit`, plus an optional `delay` and `backoff`:
 - **`backoff`**: How the delay grows between retries. Use `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`. No matter how many retries you allow, the computed wait never exceeds the one-hour maximum.
 
 When the result matches, Doc Detective re-runs the whole step (including its assertions) up to `limit` times, waiting `delay` between attempts. It stops as soon as the result no longer matches the handler. If a retry passes, the step passes.
+
+In an `onSkip` handler, `retry` re-runs a step whose action ran and reported SKIPPED, such as `wait: false`. A step skipped before it ran can't be re-run. That covers a step whose `if` was false and an unsafe step that isn't allowed. For that step, Doc Detective passes over `retry` entries and applies the next matching entry.
 
 The following step retries a flaky command up to three times, waiting one second between attempts:
 

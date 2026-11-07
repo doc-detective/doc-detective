@@ -115,36 +115,6 @@
           { "retry": { "limit": 3, "delay": 1000, "backoff": "exponential" } },
           { "retry": { "limit": 1 } }
         ]
-      },
-      "stepSkip": {
-        "title": "Step skip routing",
-        "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "if": {
-            "$ref": "#/components/schemas/condition"
-          },
-          "continue": {
-            "$ref": "#/components/schemas/step/properties/continue"
-          },
-          "stop": {
-            "$ref": "#/components/schemas/step/properties/stop"
-          },
-          "goToStep": {
-            "$ref": "#/components/schemas/step/properties/goToStep"
-          }
-        },
-        "oneOf": [
-          { "required": ["continue"] },
-          { "required": ["stop"] },
-          { "required": ["goToStep"] }
-        ],
-        "examples": [
-          { "continue": true },
-          { "stop": "test" },
-          { "if": "$$platform == windows", "goToStep": "cleanup" }
-        ]
       }
     }
   },

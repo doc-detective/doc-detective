@@ -3588,19 +3588,13 @@ import { schemas } from "../dist/index.js";
         });
       }
 
-      // A skipped step never ran, so there's nothing to retry.
-      for (const handler of [{ continue: true }, { stop: "test" }, { goToStep: "s" }]) {
+      // retry re-runs a step whose own action returned SKIPPED.
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
         it(`accepts ${JSON.stringify(handler)} in a step's onSkip`, function () {
           const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [handler] });
           expect(result.valid, result.errors).to.be.true;
         });
       }
-
-      it("rejects retry in a step's onSkip as an unknown key", function () {
-        const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [{ retry: { limit: 1 } }] });
-        expect(result.valid).to.be.false;
-        expect(result.errors).to.include('/onSkip/0 must NOT have additional properties ({"additionalProperty":"retry"})');
-      });
 
       for (const handler of [{ continue: true }, { stop: "test" }, { stop: "spec" }, { goToTest: "t" }]) {
         it(`accepts ${JSON.stringify(handler)} on a test`, function () {

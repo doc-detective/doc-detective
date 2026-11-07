@@ -2195,6 +2195,52 @@ describe("getRunner() function", function () {
 
   // --- Routing: retry action ---
 
+  it("onSkip retry re-runs a step whose own action returned SKIPPED", async () => {
+    // `wait: false` runs and reports SKIPPED, so onSkip's retry re-runs it:
+    // 1 initial run + 2 retries.
+    const t = { tests: [{ steps: [{ wait: false, onSkip: [{ retry: { limit: 2 } }] }] }] };
+    const tempFilePath = path.resolve("./test/temp-routing-onskip-retry.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "SKIPPED");
+      assert.equal(step.attempts, 3);
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("onSkip retry doesn't re-run a step skipped before it ran", async () => {
+    // A guard-`if`-false step never ran, so its retry entry is passed over and
+    // the next entry (stop) applies.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nowhere",
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ retry: { limit: 2 } }, { stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-routing-onskip-guard-retry.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const [guarded, next] = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(guarded.result, "SKIPPED");
+      assert.equal(guarded.attempts, undefined);
+      assert.equal(next.result, "SKIPPED");
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("onFail retry recovers a transient failure (fails once, passes on retry)", async () => {
     // A counter-file step exits 1 on its first run and 0 on the second.
     // onFail:[{retry:{limit:2}}] re-runs it; the retry passes, so the step is
