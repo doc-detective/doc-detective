@@ -7,7 +7,6 @@
 /**
  * Pause (in milliseconds) before performing the next action.
  */
-export type Wait = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
-export type WaitSimple = number;
+export type Wait = WaitSimple | WaitEnvironmentVariable;
+export type WaitSimple = boolean | number;
 export type WaitEnvironmentVariable = string;
-export type WaitBoolean = boolean;
