@@ -1,7 +1,14 @@
 import { schemas } from "../schemas/index.js";
 
-/** An error that makes `validate()` report the object as invalid. */
-export class NormalizeError extends Error {}
+/** An error that makes `validate()` report the object as invalid. `path` is dotted, like `tests[0].steps[1].goTo`. */
+export class NormalizeError extends Error {
+  constructor(
+    readonly path: string,
+    readonly detail: string,
+  ) {
+    super(`${path}: ${detail}`);
+  }
+}
 
 /** The normalizer for an action whose normalization still lives in its handler. */
 export function passthrough(value: any): any {
@@ -17,7 +24,7 @@ const warned = new Set<string>();
 export function renameAliases(value: any, aliases: Record<string, string>, path: string): any {
   for (const [old, key] of Object.entries(aliases)) {
     if (!(old in value)) continue;
-    if (key in value) throw new NormalizeError(`${path}: set \`${key}\` or \`${old}\`, not both.`);
+    if (key in value) throw new NormalizeError(path, `set \`${key}\` or \`${old}\`, not both.`);
     value[key] = value[old];
     delete value[old];
     const warning = `Warning: \`${old}\` is deprecated. Rename it to \`${key}\`.`;

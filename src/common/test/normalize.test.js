@@ -116,6 +116,21 @@ describe("normalization", function () {
       expect(result.valid, result.errors).to.equal(true);
       expect(result.object.goTo).to.deep.equal(GO_TO);
     });
+
+    // Detection validates with addDefaults: false and hashes generated IDs from
+    // what comes back, so a v2 upgrade must keep the authored steps.
+    it("upgrades v2 objects without normalizing them when addDefaults is false", function () {
+      const step = validate({ schemaKey: "step_v3", object: { action: "goTo", url: "https://example.com" }, addDefaults: false });
+      expect(step.valid, step.errors).to.equal(true);
+      expect(step.object.goTo).to.deep.equal({ url: "https://example.com" });
+      const spec = validate({
+        schemaKey: "spec_v3",
+        object: { id: "s", tests: [{ id: "t", steps: [{ action: "goTo", url: "https://example.com" }] }] },
+        addDefaults: false,
+      });
+      expect(spec.valid, spec.errors).to.equal(true);
+      expect(spec.object.tests[0].steps[0].goTo).to.deep.equal({ url: "https://example.com" });
+    });
   });
 
   describe("process and surface actions", function () {
@@ -337,13 +352,29 @@ describe("normalization", function () {
       it(`makes the object invalid with addDefaults: ${addDefaults}`, function () {
         normalizers.goTo = (value, at) => renameAliases({ ...value, newKey: 1, oldKey: 2 }, { oldKey: "newKey" }, at);
         const object = { tests: [{ steps: [{ wait: 1 }, { goTo: { url: "https://x.com" } }] }] };
-        const result = validate({ schemaKey: "spec_v3", object, addDefaults, structuredErrors: true });
+        const result = validate({ schemaKey: "spec_v3", object, addDefaults });
         expect(result.valid).to.equal(false);
         expect(result.errors).to.equal("tests[0].steps[1].goTo: set `newKey` or `oldKey`, not both.");
-        expect(result.errorObjects).to.deep.equal([]);
+        expect(result).to.not.have.property("errorObjects");
         expect(result.object).to.equal(object);
       });
     }
+
+    // The language server maps errorObjects to source ranges.
+    it("reports a structured error at the action's path", function () {
+      normalizers.goTo = (value, at) => renameAliases({ ...value, newKey: 1, oldKey: 2 }, { oldKey: "newKey" }, at);
+      const object = { tests: [{ steps: [{ wait: 1 }, { goTo: { url: "https://x.com" } }] }] };
+      const result = validate({ schemaKey: "spec_v3", object, addDefaults: false, structuredErrors: true });
+      expect(result.errorObjects).to.deep.equal([
+        {
+          instancePath: "/tests/0/steps/1/goTo",
+          schemaPath: "#",
+          keyword: "normalize",
+          params: {},
+          message: "set `newKey` or `oldKey`, not both.",
+        },
+      ]);
+    });
 
     it("passes other errors through", function () {
       normalizers.goTo = () => {
