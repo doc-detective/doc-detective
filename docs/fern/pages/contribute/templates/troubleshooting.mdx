@@ -287,18 +287,12 @@ If one browser doesn't work, try another:
 { "runOn": [{ "browsers": ["firefox"] }] }
 ```
 
-### Option 2: Specify browser path manually
+### Option 2: Reinstall the browser
 
-If the browser is installed in a non-standard location:
+If the managed browser or its driver is missing or broken, install it again:
 
-```json
-{
-  "runOn": [
-    {
-      "browsers": [{ "name": "chrome", "executablePath": "/custom/path/to/chrome" }]
-    }
-  ]
-}
+```bash
+npx doc-detective install browsers chrome chromedriver --force
 ```
 
 ### Option 3: Run in headless mode

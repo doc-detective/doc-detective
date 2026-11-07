@@ -12,6 +12,7 @@ import os from "node:os";
 import sinon from "sinon";
 
 import { htmlReporter, buildHtml } from "../dist/reporters/htmlReporter.js";
+import { stepActions } from "../dist/common/src/index.js";
 
 function makeResults(overrides = {}) {
   return {
@@ -90,6 +91,12 @@ describe("reporters/htmlReporter — direct coverage", function () {
       assert.ok(!html.includes("</script><script>alert(1)"));
       // It is encoded as < / > instead.
       assert.ok(html.includes("\\u003c/script\\u003e"));
+    });
+
+    it("labels steps from common's stepActions, so annotate steps get their key", function () {
+      const html = buildHtml(makeResults());
+      const actions = JSON.parse(html.match(/var ACTIONS = (\[[^\]]*\]);/)[1]);
+      assert.deepEqual(actions, [...stepActions]);
     });
 
     it("escapes U+2028 and U+2029 line separators", function () {

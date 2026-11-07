@@ -19,8 +19,6 @@ async function dereferenceSchemas() {
   fs.mkdirSync(buildDir, { recursive: true });
   const outputDir = path.resolve(`${__dirname}/output_schemas`);
   fs.mkdirSync(outputDir, { recursive: true });
-  const distDir = path.resolve(__dirname, `../../dist/schemas`);
-  fs.mkdirSync(distDir, { recursive: true });
 
   // List of schema files to process
   // These files should be present in the input directory
@@ -166,27 +164,8 @@ async function dereferenceSchemas() {
   //   if (err) throw err;
   // });
 
-  // Publish v3 schemas to distribution directory
-  const publishedSchemas = files.filter(file => file.includes('_v3.schema.json'));
-
-  console.log("Publishing schemas to dist/schemas directory...");
-  publishedSchemas.forEach((file) => {
-    try {
-      console.log(`Publishing file: ${file}`);
-      const srcPath = path.resolve(`${outputDir}/${file}`);
-      const destPath = path.resolve(`${distDir}/${file}`);
-
-      // Verify source file exists before copying
-      if (!fs.existsSync(srcPath)) {
-        throw new Error(`Source file not found: ${srcPath}`);
-      }
-
-      fs.copyFileSync(srcPath, destPath);
-    } catch (err) {
-      console.error(`Error publishing ${file}:`, err);
-      process.exitCode = 1;
-    }
-  });
+  // The per-schema dist/schemas/*_v3.schema.json files are written after tsc by
+  // scripts/generateValidators.js, because `compile` cleans dist/ first.
 }
 
 /**

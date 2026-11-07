@@ -3,11 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 
-// `build:ci` is `build` minus the type generator. The generated types are
-// type-only (erased at compile), so skipping them leaves the compiled JS that
-// tests and fixtures run unchanged. These checks keep the two scripts from
-// drifting apart, and keep a REQUIRED job running the full build so a stale
-// committed type still fails the gate.
+// `build:ci` is `build` minus the type generator, which rewrites committed
+// files: the type-only `types/generated/` and the runtime `stepActions.ts`.
+// build:ci compiles the committed copies, so the JS that tests and fixtures
+// run is unchanged while they're current. A stale `stepActions.ts` fails
+// src/common's exports test. These checks keep the two scripts from drifting
+// apart, and keep a REQUIRED job running the full build so a stale committed
+// file still fails the gate.
 const readJson = (...p) => JSON.parse(fs.readFileSync(path.join(process.cwd(), ...p), "utf8"));
 const readYaml = (...p) => parseYaml(fs.readFileSync(path.join(process.cwd(), ...p), "utf8"));
 
