@@ -479,6 +479,8 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
+  // Always sets both switches, so every test that uses it, help and version
+  // included, runs with the conflict.
   const runCli = (args) =>
     spawnSync(process.execPath, [path.resolve("bin/doc-detective.js"), ...args], {
       cwd: tmpDir,
