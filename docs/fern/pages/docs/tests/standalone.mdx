@@ -58,8 +58,16 @@ Editors that read JSON Schema, such as VS Code, offer completion and validation.
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json",
-  "tests": []
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "steps": [
+        {
+          "wait": 1
+        }
+      ]
+    }
+  ]
 }
 ```
 
