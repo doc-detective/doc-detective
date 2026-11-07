@@ -82,6 +82,19 @@ describe("runSpecs Heretto upload gate (uploadOnChange)", function () {
     assert.equal(report.uploadResults, undefined);
   });
 
+  it("reaches the uploader when a non-Heretto integration sets uploadOnChange: true", async function () {
+    const resolved = resolvedTests([integration]);
+    resolved.config.integrations.otherCms = [{ name: "cms", uploadOnChange: true }];
+    const report = await runSpecs({ resolvedTests: resolved });
+    assert.deepEqual(report.uploadResults, {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+    });
+  });
+
   it("uploads when an integration sets uploadOnChange: true", async function () {
     const report = await runSpecs({
       resolvedTests: resolvedTests([

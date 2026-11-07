@@ -2424,10 +2424,14 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   }
 
   // Upload changed files back to source integrations (best-effort). Opt-in:
-  // only when an integration sets `uploadOnChange: true` (schema default
-  // false); uploadChangedFiles then skips files from integrations that didn't.
-  const herettoConfigs = config?.integrations?.heretto || [];
-  if (herettoConfigs.some((h: any) => h.uploadOnChange === true)) {
+  // only when some integration, of any type, sets `uploadOnChange: true`
+  // (schema default false); uploadChangedFiles then skips files from
+  // integrations that didn't. An absent `report.uploadResults` means no
+  // integration opted in, so no upload was attempted.
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
     try {
       const uploadResults = await uploadChangedFiles({ config, report, log });
       report.uploadResults = uploadResults;
