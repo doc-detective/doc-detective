@@ -43,10 +43,13 @@ Chosen option: **A**.
   `before` and `after` files arrive through the same calls. A test's resolved `contexts`, configs (including
   markup templates), and reports aren't walked.
 - `addDefaults: true`, the default, returns the effective object. `addDefaults: false` returns the caller's object
-  unchanged when it's valid, except that a v2 object still comes back upgraded to v3. The caller's object is never
-  changed in either mode.
+  unchanged when it's valid, except that a v2 object still comes back upgraded to v3. The upgrade isn't
+  normalized, so the IDs detection hashes from it don't change. The caller's object is never changed in either
+  mode.
 - Normalization runs in both modes, so validity doesn't depend on `addDefaults`. An error it raises, such as
-  setting both a key and its deprecated alias, makes the object invalid in both.
+  setting both a key and its deprecated alias, makes the object invalid in both. With `structuredErrors`, the
+  error is an `errorObjects` entry with the keyword `normalize` at the action's path, so the language server can
+  place it.
 - Each action has one normalizer, `src/common/src/normalize/<action>.ts`, registered in `normalize/index.ts`. In
   order, it expands shorthand to the object form, renames deprecated aliases, canonicalizes scalars, and applies
   defaults. Plain defaults come from the schema's object branch. Conditional ones are coded. It's idempotent. It
