@@ -1620,6 +1620,7 @@ async function getGuarded(
     }
     const location = response.headers?.location;
     if (!location || hops >= 5) {
+      // Names the original URL on purpose: it's the one the spec named.
       throw new Error(
         `Couldn't fetch ${redactUrlForOutput(url)}: ${
           location ? "it redirects more than 5 times" : `the ${response.status} redirect has no Location header`

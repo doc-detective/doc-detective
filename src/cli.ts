@@ -41,6 +41,16 @@ main(processArgv).catch((err) => {
 });
 
 async function main(argv: string[]) {
+  // Conflicting local-URL switches are a usage error for every command
+  // (ADR 01162). The library throws; the CLI reports it and exits 2.
+  try {
+    localUrlPolicy();
+  } catch (error: any) {
+    log(`Error: ${error.message}`, "error");
+    process.exitCode = 2;
+    return;
+  }
+
   await buildYargs(argv)
     .command({
       command: "$0",
@@ -74,15 +84,6 @@ async function main(argv: string[]) {
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
-  // Conflicting local-URL switches are a usage error (ADR 01162).
-  try {
-    localUrlPolicy();
-  } catch (error: any) {
-    log(`Error: ${error.message}`, "error");
-    process.exitCode = 2;
-    return;
-  }
-
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");

@@ -456,21 +456,25 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
-  it("exits 2 when both switches are set", function () {
-    this.timeout(60000);
-    const run = spawnSync(process.execPath, [path.resolve("bin/doc-detective.js")], {
-      cwd: tmpDir,
-      env: { ...process.env, [ALLOW]: "1", [BLOCK]: "1", DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
-      encoding: "utf8",
+  // Every command, not just a test run: `install browsers --help` would
+  // otherwise print help and exit 0 without fetching anything.
+  for (const args of [[], ["install", "browsers", "--help"]]) {
+    it(`exits 2 when both switches are set (${["doc-detective", ...args].join(" ")})`, function () {
+      this.timeout(60000);
+      const run = spawnSync(process.execPath, [path.resolve("bin/doc-detective.js"), ...args], {
+        cwd: tmpDir,
+        env: { ...process.env, [ALLOW]: "1", [BLOCK]: "1", DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
+        encoding: "utf8",
+      });
+      assert.equal(run.status, 2, run.stderr);
+      assert.ok(
+        run.stderr.includes(
+          "Error: DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
+        ),
+        run.stderr
+      );
     });
-    assert.equal(run.status, 2, run.stderr);
-    assert.ok(
-      run.stderr.includes(
-        "Error: DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
-      ),
-      run.stderr
-    );
-  });
+  }
 
   it("loads a local OpenAPI description with a local $ref", async function () {
     const file = path.join(tmpDir, "openapi.yaml");
