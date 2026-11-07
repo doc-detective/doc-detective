@@ -195,6 +195,10 @@ describe("normalization", function () {
         expect(value, action).to.deep.equal({ directory: "d" });
         expect(output, action).to.include({ directory: "d" }).and.have.property("path");
       }
+      const stop = { name: "demo" };
+      const output = normalizers.stopRecord(stop, "stopRecord", {});
+      expect(output).to.deep.equal(stop);
+      expect(output).to.not.equal(stop);
     });
 
     it("keeps stopRecord: false through type coercion", function () {
