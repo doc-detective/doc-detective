@@ -12,15 +12,19 @@ const STEALS = {
   boolean: ["number", "integer", "string"],
 };
 // A string branch steals only free-form text: one with a `pattern`, `enum`, or
-// `const` never wanted "true" or "false" (record_v3, screenshot_v3).
+// `const` never wanted "true" or "false" (record_v3, screenshot_v3). An allOf
+// member's constraint applies to the whole branch.
+const constrained = (s) => Boolean(s.pattern || s.enum || "const" in s);
 function freeString(schema) {
   if (!schema || typeof schema !== "object") return false;
-  if ([].concat(schema.type ?? []).includes("string") &&
-      !schema.pattern && !schema.enum && !("const" in schema)) return true;
-  return ["anyOf", "oneOf"].some((k) => (schema[k] ?? []).some(freeString));
+  const parts = [schema, ...(schema.allOf ?? [])];
+  if (!parts.some(constrained) &&
+      parts.some((p) => [].concat(p.type ?? []).includes("string"))) return true;
+  return parts.some((p) => ["anyOf", "oneOf"].some((k) => (p[k] ?? []).some(freeString)));
 }
 // Types a branch names in `type` (Ajv coerces only through `type`), plus, with
-// `withValues`, the types of its enum/const values. Nested unions count too.
+// `withValues`, the types of its enum/const values. Nested unions and allOf
+// members count too.
 function branchTypes(schema, withValues) {
   const out = new Set();
   if (!schema || typeof schema !== "object") return out;
@@ -28,7 +32,7 @@ function branchTypes(schema, withValues) {
   else if (withValues)
     [].concat(schema.enum ?? [], "const" in schema ? [schema.const] : [])
       .forEach((v) => out.add(typeof v));
-  for (const key of ["anyOf", "oneOf"])
+  for (const key of ["anyOf", "oneOf", "allOf"])
     for (const b of schema[key] ?? []) branchTypes(b, withValues).forEach((t) => out.add(t));
   if (out.has("number")) out.add("integer");
   return out;
@@ -61,6 +65,20 @@ describe("anyOf/oneOf branch order under coerceTypes", function () {
       [],
       "Use a `type` array or a boolean-first order; see src/common/AGENTS.md."
     );
+  });
+
+  it("sees branches wrapped in allOf", function () {
+    const wrapped = (s) => ({ allOf: [s, { description: "x" }] });
+    // A string branch wrapped in allOf still coerces false into "false".
+    assert.notDeepEqual(
+      coercionHazards({ anyOf: [wrapped({ type: "string" }), { type: "boolean" }] }, "t"), []);
+    // A boolean branch still steals "true" from an allOf-wrapped free string.
+    assert.notDeepEqual(
+      coercionHazards({ anyOf: [{ type: "boolean" }, wrapped({ type: "string" })] }, "t"), []);
+    // A pattern in a sibling allOf member makes the string branch constrained.
+    assert.deepEqual(coercionHazards({
+      anyOf: [{ type: "boolean" }, { allOf: [{ type: "string" }, { pattern: "\\.png$" }] }],
+    }, "t"), []);
   });
 });
 
