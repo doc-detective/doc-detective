@@ -1189,6 +1189,15 @@ function allSchemas() {
 // if's then and else. The bundled schemas are dereferenced, so there's no $ref
 // left to follow. `root` is a bundled schema's key, or a schema itself.
 function schemasAt(parts: string[], root: string | object): any[] {
+  // A pattern that doesn't compile matches nothing: the formatter must never
+  // throw and hide the error it's describing.
+  const matches = (pattern: string, key: string) => {
+    try {
+      return new RegExp(pattern, "u").test(key);
+    } catch {
+      return false;
+    }
+  };
   const expand = (node: any): any[] =>
     node && typeof node === "object"
       ? [
@@ -1204,7 +1213,7 @@ function schemasAt(parts: string[], root: string | object): any[] {
         : [
             node.properties?.[part],
             ...Object.entries(node.patternProperties ?? {})
-              .filter(([pattern]) => new RegExp(pattern, "u").test(part))
+              .filter(([pattern]) => matches(pattern, part))
               .map(([, schema]) => schema),
           ].flatMap(expand)
     );
@@ -1226,8 +1235,9 @@ const orList = (items: unknown[]) => disjunction.format(items.map(String));
 
 // A value as JSON, cut to 40 characters. The cut counts the encoded text and
 // never splits an escape such as `\n` or `é`. A string keeps both quotes.
-// Only a JS API caller can pass what JSON can't show: a function is named, and
-// undefined, a symbol, a bigint, or a cycle falls back to String().
+// Only a JS API caller can pass what JSON can't show: a function or an object
+// JSON can't encode (a cycle, a nested bigint) is named, and undefined, a
+// symbol, or a bigint falls back to String().
 function shortJson(value: unknown): string {
   let shown: string | undefined;
   if (typeof value === "function") shown = "a function";
@@ -1235,7 +1245,7 @@ function shortJson(value: unknown): string {
     try {
       shown = JSON.stringify(value);
     } catch {
-      // A bigint or a cycle: String() below.
+      if (typeof value === "object") shown = "an object that can't be shown";
     }
   }
   shown ??= String(value);
@@ -1283,7 +1293,9 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
       lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
       continue;
     }
-    // anyOf, oneOf, and if only summarize the errors around them.
+    // anyOf, oneOf, and if only summarize the errors around them. AJV reports a
+    // failed then or else under keyword "if" (`must match "then" schema`), with
+    // the branch in params.failingKeyword, so "if" covers both.
     const rest = errors.filter(
       (error) => !["required", "additionalProperties", "anyOf", "oneOf", "if"].includes(error.keyword)
     );

@@ -200,7 +200,29 @@ describe("summarizeSchemaErrors", function () {
     expect(line(10n)).to.equal("output: must be string (got 10).");
     const cycle = {};
     cycle.self = cycle;
-    expect(line(cycle)).to.equal("output: must be string (got [object Object]).");
+    expect(line(cycle)).to.equal("output: must be string (got an object that can't be shown).");
+    expect(line({ big: 1n })).to.equal("output: must be string (got an object that can't be shown).");
+  });
+
+  it("drops AJV's if summary for a failed then or else", function () {
+    // AJV 8's own output for { if: { required: ["kind"] }, then: { required: ["x"] }, else: ... }:
+    // a failed then or else reports keyword "if", with the branch in failingKeyword.
+    for (const [branch, key] of [
+      ["then", "x"],
+      ["else", "y"],
+    ]) {
+      const errorObjects = [
+        {
+          instancePath: "",
+          schemaPath: `#/${branch}/required`,
+          keyword: "required",
+          params: { missingProperty: key },
+          message: `must have required property '${key}'`,
+        },
+        { instancePath: "", schemaPath: "#/if", keyword: "if", params: { failingKeyword: branch }, message: `must match "${branch}" schema` },
+      ];
+      expect(summarizeSchemaErrors(errorObjects, { kind: "a" }, "config_v3")).to.equal(`missing required key '${key}'.`);
+    }
   });
 
   it("finds keys under a key that patternProperties matches", function () {
@@ -212,6 +234,11 @@ describe("summarizeSchemaErrors", function () {
     expect(knownKeysAt(["x-custom"], schema)).to.deep.equal(["inner"]);
     expect(knownKeysAt(["other"], schema)).to.deep.equal([]);
     expect(knownKeysAt([], schema)).to.deep.equal(["plain"]);
+  });
+
+  it("treats a patternProperties pattern it can't compile as no match", function () {
+    const schema = { type: "object", patternProperties: { "(": { properties: { inner: {} } } }, properties: { plain: {} } };
+    expect(knownKeysAt(["x"], schema)).to.deep.equal([]);
   });
 
   it("finds keys a conditional branch defines", function () {
