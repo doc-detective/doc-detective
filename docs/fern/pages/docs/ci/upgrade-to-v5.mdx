@@ -207,6 +207,27 @@ Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with
 
 **What to do:** To keep a cookie file beside its spec, add `"directory": "."`.
 
+## `click`, `find`, and other browser steps
+
+**What changed:** These browser steps make a spec invalid, so the run exits `2`:
+
+| Version 4 | Version 5 |
+|---|---|
+| `"click": true` or `"click": false` clicked the element whose text is "true" or "false", or failed the step in later 4.x releases. | Invalid. To click that text, quote it: `"click": "true"`. |
+| A `find.click` string other than `left`, `right`, or `middle`, such as `"click": "Submit"`, left-clicked. | Invalid. Use `true`, `false`, a button name, or `{ "button": "right" }`. A `click` action's string still names the element. |
+| A `find.click` object took any `click` field, such as `{ "selector": "#b" }` or `{ "button": "right", "timeout": 100 }`. A whole variable, such as `"click": "$BUTTON"`, also stood in for it. | Invalid. The object takes only `button` and `duration`. Put locators and `timeout` on `find` itself. Write the button name, or `true`, instead of a variable. |
+| A `find.type` with its own `selector`, `elementText`, or other locator ignored it. | Invalid. `find` already locates the element, so remove the locator from `type`. |
+| A negative `timeout` on `click`, on `find`, on a `dragAndDrop` source or target, or on an annotation target was accepted. So was a negative `type.inputDelay`. | Invalid. Use `0` or more. A `timeout` of `0` checks once. |
+
+Two behaviors changed too:
+
+- A `dragAndDrop` with `duration: 0` drags instantly. Version 4 replaced `0` with the 1000-millisecond default.
+- A `find` with `"click": false` finds without clicking. Earlier 4.x releases clicked anyway.
+
+The results show these steps' effective forms. A `find.click` appears as the click that ran, such as `{ "button": "left" }` for `true`. A `type` step's `keys` is always a list. A `swipe` direction appears as `{ "direction": "up", "distance": 0.5, "duration": 500 }`.
+
+**What to do:** Run your suite, then fix each step the error names. If a script reads `find.click` from the results, read `find.click.button`.
+
 ## `--output` is a results file
 
 **What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.

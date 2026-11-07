@@ -341,7 +341,7 @@ of the listed types. So make the first branches non-coercing
   value kind, so list the usual one first.
 - **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
   with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
-  `click_v3` does this.
+  `click_v3` did this on 4.x. Version 5 rejects a boolean `click` with the `allOf` guard below.
 - **A plain `type: boolean` first is fine** when no later branch accepts `"true"`, `"false"`,
   `0`, or `1`, such as a string branch with a file-extension `pattern` (`record_v3`,
   `screenshot_v3`).
@@ -355,6 +355,16 @@ Also, a shared/`$ref`'d schema's `default:` values reach every consumer. Outside
 `useDefaults: true` injects them. Inside a step, `applyDefaults` reads them from the action's object
 branch. Keep shared schemas default-free unless every consumer wants the default (this is why
 `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its own).
+
+Sometimes a value that a later branch would coerce must be rejected, such as a boolean `click`. Make
+the root an `allOf`. Its first member is a `not: {enum: [true, false]}` guard, and its second is the
+union. `allOf` checks its members in order, so the guard sees the authored value. Give the guard an
+ajv-errors `errorMessage` that says how to fix it. In that member, `${0}` renders the authored
+value, JSON-encoded. A guard beside the union instead renders after `anyOf` has coerced the value, so
+`${0}` shows `"true"`, not `true`
+([ADR 01175](../../adrs/01175-reject-boolean-click-and-constrain-find-click.md)). Leave the
+trailing period off an `errorMessage`: the error summary adds it, and `src/core/utils.ts` keeps
+`errorMessage` text whole.
 
 ### Selector match spans
 

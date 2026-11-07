@@ -44,6 +44,20 @@ export function renameAliases(value: any, aliases: Record<string, string>, path:
   return value;
 }
 
+/**
+ * `value` as a list: one string is shorthand for a list of one. Before `$VAR`
+ * substitution (`literal` false), a whole variable stays: it can hold the list.
+ */
+export function asList(value: any, literal: boolean): any {
+  return typeof value === "string" && (literal || !isWholeVariable(value)) ? [value] : value;
+}
+
+/** A locator's `elementClass` as a list (asList). */
+export function listClasses(locator: any, literal: boolean): any {
+  if (locator.elementClass !== undefined) locator.elementClass = asList(locator.elementClass, literal);
+  return locator;
+}
+
 // Every plain default in a schema node's properties, as [dotted path, value].
 // Defaults under anyOf/oneOf, or in nested objects with required keys, depend on
 // the rest of the step, so the action's normalizer codes them by hand.
@@ -66,7 +80,15 @@ const cache = new Map<string, [string, any][]>();
  */
 export function applyDefaults(value: any, action: string, skip: string[] = []): any {
   if (!cache.has(action)) {
-    const branch = (schemas as any)[`${action}_v3`].anyOf.find((part: any) => part.properties || part.allOf);
+    // Where the action's object form lives, in the order the schemas use:
+    // - the object branch of a root `anyOf` (goTo, find, type, swipe, …);
+    // - the schema itself, when the action is always an object (dragAndDrop);
+    // - its `object` component, when the root wraps the union in an `allOf`
+    //   guard (click, ADR 01175).
+    const schema = (schemas as any)[`${action}_v3`];
+    const branch =
+      schema.anyOf?.find((part: any) => part.properties || part.allOf) ??
+      (schema.properties ? schema : schema.components.schemas.object);
     cache.set(action, plainDefaults(branch));
   }
   for (const [path, fallback] of cache.get(action)!) {

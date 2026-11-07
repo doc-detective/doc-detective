@@ -7,16 +7,16 @@
 /**
  * Click or tap an element.
  */
-export type Click = (true | false) | ClickElementSimple | ClickElementDetailed;
+export type Click = ClickElementSimple | ClickElementDetailed;
 /**
- * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
+ * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID. The string always names the element, so `"click": "right"` clicks the element whose text is "right". To pick the mouse button, use the object form's `button`, or `find` with `click`.
  */
 export type ClickElementSimple = string;
 export type ClickElementDetailed = {
   [k: string]: unknown;
 } & {
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
   /**

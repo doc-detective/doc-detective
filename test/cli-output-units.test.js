@@ -7,6 +7,7 @@ import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
 import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/validate.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
 import { checkForUpdate } from "../dist/runtime/selfUpdate.js";
@@ -77,6 +78,36 @@ describe("summarizeSpecErrors", function () {
   it("handles a step with no recognizable key", function () {
     const errors = required("goTo");
     expect(summarizeSpecErrors(errors, { tests: [{ steps: [{}] }] })).to.include("tests[0].steps[0]: no action");
+  });
+
+  // A schema's own errorMessage stays whole, commas and parentheses included
+  // (ADR 01175).
+  for (const [step, line] of [
+    [
+      { click: true },
+      'tests[0].steps[0].click: must be string or object (got true). To click an element whose text is "true", quote it: "click": "true".',
+    ],
+    [
+      { find: { selector: "#a", type: { keys: "x", selector: "#b" } } },
+      "tests[0].steps[0].find.type: must not set `selector` (`find` already locates the element).",
+    ],
+  ]) {
+    it(`keeps the schema's message for ${JSON.stringify(step)}`, function () {
+      const object = { tests: [{ steps: [step] }] };
+      const { errors } = validate({ schemaKey: "spec_v3", object });
+      expect(summarizeSpecErrors(errors, object).split("\n")).to.include(line);
+    });
+  }
+
+  it("keeps the next error whole after a schema's message that comes first", function () {
+    const errors = [
+      `/tests/0/steps/0/click must be string or object (got true) ({"errors":[{"keyword":"not","message":"must NOT be valid","emUsed":true}]})`,
+      ` must have required property 'tests' ({"missingProperty":"tests"})`,
+    ].join(", ");
+    expect(summarizeSpecErrors(errors, {}).split("\n")).to.deep.equal([
+      "tests[0].steps[0].click: must be string or object (got true).",
+      "must have required property 'tests'",
+    ]);
   });
 
   it("falls back to the message for a root error", function () {
