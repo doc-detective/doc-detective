@@ -4181,8 +4181,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -4203,8 +4202,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -4540,8 +4538,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -4562,8 +4559,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -5851,8 +5847,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -5873,8 +5868,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -6207,8 +6201,7 @@
                                         "chrome",
                                         "firefox",
                                         "safari",
-                                        "webkit",
-                                        "edge"
+                                        "webkit"
                                       ],
                                       "transform": [
                                         "trim"
@@ -6229,8 +6222,7 @@
                                             "chrome",
                                             "firefox",
                                             "safari",
-                                            "webkit",
-                                            "edge"
+                                            "webkit"
                                           ],
                                           "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                         },
@@ -6566,8 +6558,7 @@
                                           "chrome",
                                           "firefox",
                                           "safari",
-                                          "webkit",
-                                          "edge"
+                                          "webkit"
                                         ],
                                         "transform": [
                                           "trim"
@@ -6588,8 +6579,7 @@
                                               "chrome",
                                               "firefox",
                                               "safari",
-                                              "webkit",
-                                              "edge"
+                                              "webkit"
                                             ],
                                             "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                           },
@@ -6938,7 +6928,7 @@
                                           "transform": [
                                             "trim"
                                           ],
-                                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                         },
                                         {
                                           "title": "Process surface",
@@ -6973,8 +6963,7 @@
                                                 "chrome",
                                                 "firefox",
                                                 "safari",
-                                                "webkit",
-                                                "edge"
+                                                "webkit"
                                               ],
                                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
@@ -7170,7 +7159,7 @@
                                             "transform": [
                                               "trim"
                                             ],
-                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                           },
                                           "byEngineName": {
                                             "title": "Surface (by browser engine)",
@@ -7179,8 +7168,7 @@
                                               "chrome",
                                               "firefox",
                                               "safari",
-                                              "webkit",
-                                              "edge"
+                                              "webkit"
                                             ],
                                             "transform": [
                                               "trim"
@@ -7220,8 +7208,7 @@
                                                   "chrome",
                                                   "firefox",
                                                   "safari",
-                                                  "webkit",
-                                                  "edge"
+                                                  "webkit"
                                                 ],
                                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
@@ -7563,7 +7550,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             }
                                           }
                                         },
@@ -7690,7 +7677,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             },
                                             "find": {
                                               "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -7957,7 +7944,7 @@
                                           "delayMs": {
                                             "type": "integer",
                                             "minimum": 0,
-                                            "description": "Fixed delay (ms)."
+                                            "description": "Wait at least this many milliseconds."
                                           }
                                         }
                                       }
@@ -8126,7 +8113,7 @@
                                           "delayMs": {
                                             "type": "integer",
                                             "minimum": 0,
-                                            "description": "Fixed delay (ms)."
+                                            "description": "Wait at least this many milliseconds."
                                           },
                                           "find": {
                                             "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -8243,8 +8230,7 @@
                                           "chrome",
                                           "firefox",
                                           "safari",
-                                          "webkit",
-                                          "edge"
+                                          "webkit"
                                         ]
                                       }
                                     }
@@ -8435,7 +8421,7 @@
                                             "transform": [
                                               "trim"
                                             ],
-                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                           },
                                           {
                                             "title": "Process surface",
@@ -8470,8 +8456,7 @@
                                                   "chrome",
                                                   "firefox",
                                                   "safari",
-                                                  "webkit",
-                                                  "edge"
+                                                  "webkit"
                                                 ],
                                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
@@ -8667,7 +8652,7 @@
                                               "transform": [
                                                 "trim"
                                               ],
-                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                             },
                                             "byEngineName": {
                                               "title": "Surface (by browser engine)",
@@ -8676,8 +8661,7 @@
                                                 "chrome",
                                                 "firefox",
                                                 "safari",
-                                                "webkit",
-                                                "edge"
+                                                "webkit"
                                               ],
                                               "transform": [
                                                 "trim"
@@ -8717,8 +8701,7 @@
                                                     "chrome",
                                                     "firefox",
                                                     "safari",
-                                                    "webkit",
-                                                    "edge"
+                                                    "webkit"
                                                   ],
                                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
@@ -9060,7 +9043,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               }
                                             }
                                           },
@@ -9187,7 +9170,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               },
                                               "find": {
                                                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -9454,7 +9437,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             }
                                           }
                                         }
@@ -9623,7 +9606,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             },
                                             "find": {
                                               "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -9740,8 +9723,7 @@
                                             "chrome",
                                             "firefox",
                                             "safari",
-                                            "webkit",
-                                            "edge"
+                                            "webkit"
                                           ]
                                         }
                                       }
@@ -10011,8 +9993,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -10033,8 +10014,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -10367,8 +10347,7 @@
                                           "chrome",
                                           "firefox",
                                           "safari",
-                                          "webkit",
-                                          "edge"
+                                          "webkit"
                                         ],
                                         "transform": [
                                           "trim"
@@ -10389,8 +10368,7 @@
                                               "chrome",
                                               "firefox",
                                               "safari",
-                                              "webkit",
-                                              "edge"
+                                              "webkit"
                                             ],
                                             "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                           },
@@ -10726,8 +10704,7 @@
                                             "chrome",
                                             "firefox",
                                             "safari",
-                                            "webkit",
-                                            "edge"
+                                            "webkit"
                                           ],
                                           "transform": [
                                             "trim"
@@ -10748,8 +10725,7 @@
                                                 "chrome",
                                                 "firefox",
                                                 "safari",
-                                                "webkit",
-                                                "edge"
+                                                "webkit"
                                               ],
                                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
@@ -11098,7 +11074,7 @@
                                             "transform": [
                                               "trim"
                                             ],
-                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                           },
                                           {
                                             "title": "Process surface",
@@ -11133,8 +11109,7 @@
                                                   "chrome",
                                                   "firefox",
                                                   "safari",
-                                                  "webkit",
-                                                  "edge"
+                                                  "webkit"
                                                 ],
                                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
@@ -11330,7 +11305,7 @@
                                               "transform": [
                                                 "trim"
                                               ],
-                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                             },
                                             "byEngineName": {
                                               "title": "Surface (by browser engine)",
@@ -11339,8 +11314,7 @@
                                                 "chrome",
                                                 "firefox",
                                                 "safari",
-                                                "webkit",
-                                                "edge"
+                                                "webkit"
                                               ],
                                               "transform": [
                                                 "trim"
@@ -11380,8 +11354,7 @@
                                                     "chrome",
                                                     "firefox",
                                                     "safari",
-                                                    "webkit",
-                                                    "edge"
+                                                    "webkit"
                                                   ],
                                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
@@ -11723,7 +11696,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               }
                                             }
                                           },
@@ -11850,7 +11823,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               },
                                               "find": {
                                                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -12117,7 +12090,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             }
                                           }
                                         }
@@ -12286,7 +12259,7 @@
                                             "delayMs": {
                                               "type": "integer",
                                               "minimum": 0,
-                                              "description": "Fixed delay (ms)."
+                                              "description": "Wait at least this many milliseconds."
                                             },
                                             "find": {
                                               "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -12403,8 +12376,7 @@
                                             "chrome",
                                             "firefox",
                                             "safari",
-                                            "webkit",
-                                            "edge"
+                                            "webkit"
                                           ]
                                         }
                                       }
@@ -12595,7 +12567,7 @@
                                               "transform": [
                                                 "trim"
                                               ],
-                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                             },
                                             {
                                               "title": "Process surface",
@@ -12630,8 +12602,7 @@
                                                     "chrome",
                                                     "firefox",
                                                     "safari",
-                                                    "webkit",
-                                                    "edge"
+                                                    "webkit"
                                                   ],
                                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
@@ -12827,7 +12798,7 @@
                                                 "transform": [
                                                   "trim"
                                                 ],
-                                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                               },
                                               "byEngineName": {
                                                 "title": "Surface (by browser engine)",
@@ -12836,8 +12807,7 @@
                                                   "chrome",
                                                   "firefox",
                                                   "safari",
-                                                  "webkit",
-                                                  "edge"
+                                                  "webkit"
                                                 ],
                                                 "transform": [
                                                   "trim"
@@ -12877,8 +12847,7 @@
                                                       "chrome",
                                                       "firefox",
                                                       "safari",
-                                                      "webkit",
-                                                      "edge"
+                                                      "webkit"
                                                     ],
                                                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
@@ -13220,7 +13189,7 @@
                                                 "delayMs": {
                                                   "type": "integer",
                                                   "minimum": 0,
-                                                  "description": "Fixed delay (ms)."
+                                                  "description": "Wait at least this many milliseconds."
                                                 }
                                               }
                                             },
@@ -13347,7 +13316,7 @@
                                                 "delayMs": {
                                                   "type": "integer",
                                                   "minimum": 0,
-                                                  "description": "Fixed delay (ms)."
+                                                  "description": "Wait at least this many milliseconds."
                                                 },
                                                 "find": {
                                                   "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -13614,7 +13583,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               }
                                             }
                                           }
@@ -13783,7 +13752,7 @@
                                               "delayMs": {
                                                 "type": "integer",
                                                 "minimum": 0,
-                                                "description": "Fixed delay (ms)."
+                                                "description": "Wait at least this many milliseconds."
                                               },
                                               "find": {
                                                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -13900,8 +13869,7 @@
                                               "chrome",
                                               "firefox",
                                               "safari",
-                                              "webkit",
-                                              "edge"
+                                              "webkit"
                                             ]
                                           }
                                         }
@@ -15164,8 +15132,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "transform": [
                                 "trim"
@@ -15186,8 +15153,7 @@
                                     "chrome",
                                     "firefox",
                                     "safari",
-                                    "webkit",
-                                    "edge"
+                                    "webkit"
                                   ],
                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                 },
@@ -15696,8 +15662,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "transform": [
                                   "trim"
@@ -15718,8 +15683,7 @@
                                       "chrome",
                                       "firefox",
                                       "safari",
-                                      "webkit",
-                                      "edge"
+                                      "webkit"
                                     ],
                                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
@@ -19277,8 +19241,7 @@
                     },
                     "workingDirectory": {
                       "type": "string",
-                      "description": "Working directory for the command.",
-                      "default": "."
+                      "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                     },
                     "exitCodes": {
                       "type": "array",
@@ -19304,7 +19267,7 @@
                     },
                     "directory": {
                       "type": "string",
-                      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                     },
                     "maxVariation": {
                       "type": "number",
@@ -19326,6 +19289,7 @@
                     "timeout": {
                       "type": "integer",
                       "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                      "minimum": 0,
                       "default": 60000
                     },
                     "background": {
@@ -19428,8 +19392,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "description": "Working directory for the command.",
-                        "default": "."
+                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                       },
                       "exitCodes": {
                         "type": "array",
@@ -19455,7 +19418,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -19477,6 +19440,7 @@
                       "timeout": {
                         "type": "integer",
                         "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                        "minimum": 0,
                         "default": 60000
                       },
                       "background": {
@@ -20629,8 +20593,7 @@
                     },
                     "workingDirectory": {
                       "type": "string",
-                      "description": "Working directory for the command.",
-                      "default": "."
+                      "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                     },
                     "exitCodes": {
                       "type": "array",
@@ -20656,7 +20619,7 @@
                     },
                     "directory": {
                       "type": "string",
-                      "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                     },
                     "maxVariation": {
                       "type": "number",
@@ -20678,6 +20641,7 @@
                     "timeout": {
                       "type": "integer",
                       "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                      "minimum": 0,
                       "default": 60000
                     },
                     "background": {
@@ -20775,8 +20739,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "description": "Working directory for the command.",
-                        "default": "."
+                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                       },
                       "exitCodes": {
                         "type": "array",
@@ -20802,7 +20765,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -20824,6 +20787,7 @@
                       "timeout": {
                         "type": "integer",
                         "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                        "minimum": 0,
                         "default": 60000
                       },
                       "background": {
@@ -20887,7 +20851,7 @@
               "examples": [
                 {
                   "language": "javascript",
-                  "code": "console.log('Hello, ${process.env.USER}!');"
+                  "code": "console.log(`Hello, ${require('os').userInfo().username}!`);"
                 },
                 {
                   "language": "py",
@@ -20895,23 +20859,23 @@
                 },
                 {
                   "language": "bash",
-                  "code": "docker run hello-world",
+                  "code": "echo \"Hello from Bash!\"",
                   "timeout": 20000,
                   "exitCodes": [
                     0
                   ],
-                  "stdio": "Hello from Docker!"
+                  "stdio": "Hello from Bash!"
                 },
                 {
                   "language": "javascript",
-                  "code": "return false",
+                  "code": "process.exit(1);",
                   "exitCodes": [
                     1
                   ]
                 },
                 {
                   "language": "python",
-                  "code": "print('Hello from Python')",
+                  "code": "print('Hello from Python!')",
                   "workingDirectory": ".",
                   "exitCodes": [
                     0
@@ -21935,8 +21899,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -21957,8 +21920,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -22099,7 +22061,7 @@
                     },
                     "directory": {
                       "type": "string",
-                      "description": "Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                     },
                     "maxVariation": {
                       "type": "number",
@@ -22155,8 +22117,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -22177,8 +22138,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -22319,7 +22279,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -23421,7 +23381,7 @@
                               "transform": [
                                 "trim"
                               ],
-                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                             },
                             {
                               "title": "Process surface",
@@ -23456,8 +23416,7 @@
                                     "chrome",
                                     "firefox",
                                     "safari",
-                                    "webkit",
-                                    "edge"
+                                    "webkit"
                                   ],
                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                 },
@@ -23653,7 +23612,7 @@
                                 "transform": [
                                   "trim"
                                 ],
-                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                               },
                               "byEngineName": {
                                 "title": "Surface (by browser engine)",
@@ -23662,8 +23621,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "transform": [
                                   "trim"
@@ -23703,8 +23661,7 @@
                                       "chrome",
                                       "firefox",
                                       "safari",
-                                      "webkit",
-                                      "edge"
+                                      "webkit"
                                     ],
                                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
@@ -24046,7 +24003,7 @@
                                 "delayMs": {
                                   "type": "integer",
                                   "minimum": 0,
-                                  "description": "Fixed delay (ms)."
+                                  "description": "Wait at least this many milliseconds."
                                 }
                               }
                             },
@@ -24173,7 +24130,7 @@
                                 "delayMs": {
                                   "type": "integer",
                                   "minimum": 0,
-                                  "description": "Fixed delay (ms)."
+                                  "description": "Wait at least this many milliseconds."
                                 },
                                 "find": {
                                   "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -24440,7 +24397,7 @@
                               "delayMs": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "description": "Fixed delay (ms)."
+                                "description": "Wait at least this many milliseconds."
                               }
                             }
                           }
@@ -24609,7 +24566,7 @@
                               "delayMs": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "description": "Fixed delay (ms)."
+                                "description": "Wait at least this many milliseconds."
                               },
                               "find": {
                                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -24726,8 +24683,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ]
                           }
                         }
@@ -24918,7 +24874,7 @@
                                 "transform": [
                                   "trim"
                                 ],
-                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                               },
                               {
                                 "title": "Process surface",
@@ -24953,8 +24909,7 @@
                                       "chrome",
                                       "firefox",
                                       "safari",
-                                      "webkit",
-                                      "edge"
+                                      "webkit"
                                     ],
                                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
@@ -25150,7 +25105,7 @@
                                   "transform": [
                                     "trim"
                                   ],
-                                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                                 },
                                 "byEngineName": {
                                   "title": "Surface (by browser engine)",
@@ -25159,8 +25114,7 @@
                                     "chrome",
                                     "firefox",
                                     "safari",
-                                    "webkit",
-                                    "edge"
+                                    "webkit"
                                   ],
                                   "transform": [
                                     "trim"
@@ -25200,8 +25154,7 @@
                                         "chrome",
                                         "firefox",
                                         "safari",
-                                        "webkit",
-                                        "edge"
+                                        "webkit"
                                       ],
                                       "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                     },
@@ -25543,7 +25496,7 @@
                                   "delayMs": {
                                     "type": "integer",
                                     "minimum": 0,
-                                    "description": "Fixed delay (ms)."
+                                    "description": "Wait at least this many milliseconds."
                                   }
                                 }
                               },
@@ -25670,7 +25623,7 @@
                                   "delayMs": {
                                     "type": "integer",
                                     "minimum": 0,
-                                    "description": "Fixed delay (ms)."
+                                    "description": "Wait at least this many milliseconds."
                                   },
                                   "find": {
                                     "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -25937,7 +25890,7 @@
                                 "delayMs": {
                                   "type": "integer",
                                   "minimum": 0,
-                                  "description": "Fixed delay (ms)."
+                                  "description": "Wait at least this many milliseconds."
                                 }
                               }
                             }
@@ -26106,7 +26059,7 @@
                                 "delayMs": {
                                   "type": "integer",
                                   "minimum": 0,
-                                  "description": "Fixed delay (ms)."
+                                  "description": "Wait at least this many milliseconds."
                                 },
                                 "find": {
                                   "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -26223,8 +26176,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ]
                             }
                           }
@@ -27417,8 +27369,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "transform": [
                                 "trim"
@@ -27439,8 +27390,7 @@
                                     "chrome",
                                     "firefox",
                                     "safari",
-                                    "webkit",
-                                    "edge"
+                                    "webkit"
                                   ],
                                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                 },
@@ -30029,8 +29979,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "transform": [
                                   "trim"
@@ -30051,8 +30000,7 @@
                                       "chrome",
                                       "firefox",
                                       "safari",
-                                      "webkit",
-                                      "edge"
+                                      "webkit"
                                     ],
                                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                   },
@@ -32620,8 +32568,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -32642,8 +32589,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -37605,8 +37551,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -37627,8 +37572,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -38011,8 +37955,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -38033,8 +37976,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -40494,7 +40436,7 @@
                       "transform": [
                         "trim"
                       ],
-                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                     },
                     {
                       "title": "Process surface",
@@ -40529,8 +40471,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                         },
@@ -40726,7 +40667,7 @@
                         "transform": [
                           "trim"
                         ],
-                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                       },
                       "byEngineName": {
                         "title": "Surface (by browser engine)",
@@ -40735,8 +40676,7 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
                         "transform": [
                           "trim"
@@ -40776,8 +40716,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                           },
@@ -41118,7 +41057,7 @@
                         "transform": [
                           "trim"
                         ],
-                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                        "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                       },
                       {
                         "title": "Process surface",
@@ -41153,8 +41092,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                           },
@@ -41350,7 +41288,7 @@
                           "transform": [
                             "trim"
                           ],
-                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                         },
                         "byEngineName": {
                           "title": "Surface (by browser engine)",
@@ -41359,8 +41297,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -41400,8 +41337,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -42776,8 +42712,7 @@
                     "workingDirectory": {
                       "type": "string",
                       "minLength": 1,
-                      "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-                      "default": "."
+                      "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
                     },
                     "env": {
                       "type": "object",
@@ -42848,23 +42783,6 @@
                                 "headless": {
                                   "type": "boolean",
                                   "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                                },
-                                "orientation": {
-                                  "type": "string",
-                                  "enum": [
-                                    "portrait",
-                                    "landscape"
-                                  ],
-                                  "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                                },
-                                "udid": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                                },
-                                "provider": {
-                                  "type": "object",
-                                  "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                                 }
                               }
                             },
@@ -42891,7 +42809,7 @@
                         "delayMs": {
                           "type": "integer",
                           "minimum": 0,
-                          "description": "Fixed delay (ms)."
+                          "description": "Wait at least this many milliseconds."
                         },
                         "find": {
                           "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -43013,10 +42931,9 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ],
-                      "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+                      "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
                     },
                     "name": {
                       "type": "string",
@@ -43106,8 +43023,7 @@
                     },
                     "workingDirectory": {
                       "type": "string",
-                      "default": ".",
-                      "description": "Working directory for the process."
+                      "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                     },
                     "tty": {
                       "type": "boolean",
@@ -43193,8 +43109,7 @@
                           "workingDirectory": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-                            "default": "."
+                            "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
                           },
                           "env": {
                             "type": "object",
@@ -43265,23 +43180,6 @@
                                       "headless": {
                                         "type": "boolean",
                                         "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                                      },
-                                      "orientation": {
-                                        "type": "string",
-                                        "enum": [
-                                          "portrait",
-                                          "landscape"
-                                        ],
-                                        "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                                      },
-                                      "udid": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                                      },
-                                      "provider": {
-                                        "type": "object",
-                                        "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                                       }
                                     }
                                   },
@@ -43308,7 +43206,7 @@
                               "delayMs": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "description": "Fixed delay (ms)."
+                                "description": "Wait at least this many milliseconds."
                               },
                               "find": {
                                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -43430,10 +43328,9 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
-                            "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+                            "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
                           },
                           "name": {
                             "type": "string",
@@ -43523,8 +43420,7 @@
                           },
                           "workingDirectory": {
                             "type": "string",
-                            "default": ".",
-                            "description": "Working directory for the process."
+                            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                           },
                           "tty": {
                             "type": "boolean",
@@ -43589,10 +43485,9 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
-                        "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+                        "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
                       },
                       "name": {
                         "type": "string",
@@ -43682,8 +43577,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "default": ".",
-                        "description": "Working directory for the process."
+                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
                       },
                       "tty": {
                         "type": "boolean",
@@ -43792,8 +43686,7 @@
                       "workingDirectory": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-                        "default": "."
+                        "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
                       },
                       "env": {
                         "type": "object",
@@ -43864,23 +43757,6 @@
                                   "headless": {
                                     "type": "boolean",
                                     "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                                  },
-                                  "orientation": {
-                                    "type": "string",
-                                    "enum": [
-                                      "portrait",
-                                      "landscape"
-                                    ],
-                                    "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                                  },
-                                  "udid": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                                  },
-                                  "provider": {
-                                    "type": "object",
-                                    "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                                   }
                                 }
                               },
@@ -43907,7 +43783,7 @@
                           "delayMs": {
                             "type": "integer",
                             "minimum": 0,
-                            "description": "Fixed delay (ms)."
+                            "description": "Wait at least this many milliseconds."
                           },
                           "find": {
                             "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -44053,23 +43929,6 @@
                       "headless": {
                         "type": "boolean",
                         "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                      },
-                      "orientation": {
-                        "type": "string",
-                        "enum": [
-                          "portrait",
-                          "landscape"
-                        ],
-                        "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                      },
-                      "udid": {
-                        "type": "string",
-                        "minLength": 1,
-                        "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                      },
-                      "provider": {
-                        "type": "object",
-                        "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                       }
                     }
                   }
@@ -46349,8 +46208,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ],
                       "transform": [
                         "trim"
@@ -46371,8 +46229,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                         },
@@ -48983,8 +48840,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -49005,8 +48861,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -49264,8 +49119,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "transform": [
                             "trim"
@@ -49286,8 +49140,7 @@
                                 "chrome",
                                 "firefox",
                                 "safari",
-                                "webkit",
-                                "edge"
+                                "webkit"
                               ],
                               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                             },
@@ -49528,8 +49381,7 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
                         "transform": [
                           "trim"
@@ -49550,8 +49402,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                           },
@@ -49780,8 +49631,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -49802,8 +49652,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -50061,8 +49910,7 @@
                               "chrome",
                               "firefox",
                               "safari",
-                              "webkit",
-                              "edge"
+                              "webkit"
                             ],
                             "transform": [
                               "trim"
@@ -50083,8 +49931,7 @@
                                   "chrome",
                                   "firefox",
                                   "safari",
-                                  "webkit",
-                                  "edge"
+                                  "webkit"
                                 ],
                                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                               },
@@ -51270,12 +51117,17 @@
             "wait": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "wait",
-              "description": "Pause (in milliseconds) before performing the next action.",
+              "description": "Pause before the next action, in milliseconds. `true` pauses for 5000 milliseconds, and `false` skips the step.",
               "default": 5000,
               "anyOf": [
                 {
-                  "type": "number",
-                  "title": "Wait (simple)"
+                  "type": [
+                    "boolean",
+                    "number"
+                  ],
+                  "title": "Wait (simple)",
+                  "$comment": "One type array, boolean first: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so true stays true and 1 stays 1. As separate branches, a leading number branch turned true into 1, and a leading boolean branch would turn 1 into true. Strings still coerce: \"5000\" becomes 5000 and \"true\" becomes true. See ADR 01161.",
+                  "minimum": 0
                 },
                 {
                   "title": "Wait (environment variable)",
@@ -51284,10 +51136,6 @@
                   "transform": [
                     "trim"
                   ]
-                },
-                {
-                  "type": "boolean",
-                  "title": "Wait (boolean)"
                 }
               ],
               "components": {

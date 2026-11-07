@@ -281,8 +281,7 @@
                     "chrome",
                     "firefox",
                     "safari",
-                    "webkit",
-                    "edge"
+                    "webkit"
                   ]
                 }
               }

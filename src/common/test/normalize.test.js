@@ -118,8 +118,94 @@ describe("normalization", function () {
     });
   });
 
+  describe("process and surface actions", function () {
+    const OUTPUT = { args: [], exitCodes: [0], maxVariation: 0, overwrite: "aboveVariation", timeout: 60000 };
+
+    it("expands the runShell shorthand and fills its defaults, but not workingDirectory", function () {
+      const result = effective({ runShell: "echo hi" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.runShell).to.deep.equal({ command: "echo hi", ...OUTPUT });
+    });
+
+    it("keeps an authored runShell timeout of 0", function () {
+      expect(effective({ runShell: { command: "x", timeout: 0 } }).object.runShell.timeout).to.equal(0);
+    });
+
+    it("fills tty only for a background process", function () {
+      const background = effective({ runShell: { command: "x", background: { name: "web" } } }).object.runShell;
+      expect(background.background).to.deep.equal({ name: "web", tty: false });
+      const code = effective({ runCode: { language: "js", code: "1", background: { name: "api", tty: true } } }).object;
+      expect(code.runCode.background.tty).to.equal(true);
+    });
+
+    it("fills runCode's defaults", function () {
+      const result = effective({ runCode: { language: "python", code: "print(1)" } });
+      expect(result.object.runCode).to.deep.equal({ language: "python", code: "print(1)", ...OUTPUT });
+    });
+
+    it("expands the runBrowserScript shorthand and fills its defaults", function () {
+      const result = effective({ runBrowserScript: "return 1;" });
+      expect(result.object.runBrowserScript).to.deep.equal({
+        script: "return 1;",
+        args: [],
+        maxVariation: 0,
+        overwrite: "aboveVariation",
+        timeout: 60000,
+      });
+    });
+
+    for (const [authored, value] of [
+      [true, 5000],
+      ["true", 5000],
+      [false, false],
+      [0, 0],
+      [1, 1],
+      ["250", 250],
+      ["$WAIT", "$WAIT"],
+    ]) {
+      it(`makes wait: ${JSON.stringify(authored)} wait: ${JSON.stringify(value)}`, function () {
+        const result = effective({ wait: authored });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.wait).to.equal(value);
+      });
+    }
+
+    it("wraps one closeSurface reference in a list", function () {
+      expect(effective({ closeSurface: "web" }).object.closeSurface).to.deep.equal(["web"]);
+      expect(effective({ closeSurface: { process: "web" } }).object.closeSurface).to.deep.equal([{ process: "web" }]);
+      expect(effective({ closeSurface: ["web", "chrome"] }).object.closeSurface).to.deep.equal(["web", "chrome"]);
+    });
+
+    it("fills each startSurface descriptor's defaults, by kind", function () {
+      const process = { process: "node server.js", name: "api" };
+      expect(effective({ startSurface: process }).object.startSurface).to.deep.equal({
+        ...process,
+        args: [],
+        tty: false,
+        timeout: 60000,
+      });
+      expect(effective({ startSurface: { app: "notepad" } }).object.startSurface).to.deep.equal({
+        app: "notepad",
+        timeout: 60000,
+      });
+      expect(effective({ startSurface: { browser: "firefox" } }).object.startSurface).to.deep.equal({ browser: "firefox" });
+      const array = effective({ startSurface: [{ browser: "chrome", name: "web" }, process] }).object.startSurface;
+      expect(array).to.deep.equal([{ browser: "chrome", name: "web" }, { ...process, args: [], tty: false, timeout: 60000 }]);
+    });
+
+    it("leaves loadVariables as authored", function () {
+      expect(effective({ loadVariables: ".env" }).object).to.deep.equal({ loadVariables: ".env" });
+    });
+  });
+
   describe("idempotence", function () {
     for (const [name, step] of [
+      ["runShell shorthand", { runShell: "echo hi" }],
+      ["runCode in the background", { runCode: { language: "js", code: "1", background: { name: "api" } } }],
+      ["runBrowserScript shorthand", { runBrowserScript: "return 1;" }],
+      ["wait: true", { wait: true }],
+      ["one closeSurface reference", { closeSurface: "web" }],
+      ["startSurface array", { startSurface: [{ app: "notepad" }, { process: "x", name: "p" }] }],
       ["goTo shorthand", { goTo: "https://example.com" }],
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
@@ -166,26 +252,45 @@ describe("normalization", function () {
     // default in its schema's object branch. Defaults under anyOf/oneOf are
     // conditional and coded by hand. Add your action's minimal step as you
     // move its normalization out of the handler.
+    // An action whose object form isn't `components.schemas.object` names the
+    // component its minimal step belongs to.
     const MINIMAL = {
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
+      runShell: { command: "echo hi" },
+      runCode: { language: "python", code: "print(1)" },
+      runBrowserScript: { script: "return 1;" },
+      startSurface: [
+        ["processDescriptor", { process: "node server.js", name: "api" }],
+        ["appDescriptor", { app: "notepad" }],
+      ],
     };
+    // Plain defaults only: not under anyOf/oneOf, and not inside a nested
+    // object with required keys, whose defaults the normalizer codes by hand.
+    function plainDefaultsOf(component) {
+      const defaults = [];
+      (function walk(node, trail) {
+        if (!node || typeof node !== "object") return;
+        if (trail[trail.length - 2] === "properties" && Array.isArray(node.required)) return;
+        if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
+          defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
+        }
+        for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
+      })(component, []);
+      return defaults;
+    }
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
-        if (normalizers[action] === passthrough) this.skip();
+        if (normalizers[action] === passthrough || !MINIMAL[action]) this.skip();
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
-        const defaults = [];
-        (function walk(node, trail) {
-          if (!node || typeof node !== "object") return;
-          if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
-            defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
+        const cases = Array.isArray(MINIMAL[action]) ? MINIMAL[action] : [["object", MINIMAL[action]]];
+        for (const [component, minimal] of cases) {
+          const defaults = plainDefaultsOf(schema.components.schemas[component]);
+          expect(defaults, `no defaults found in ${component}`).to.not.be.empty;
+          const output = normalizers[action](structuredClone(minimal), action);
+          for (const [keys, value] of defaults) {
+            expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
           }
-          for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
-        })(schema.components.schemas.object, []);
-        expect(defaults, "no defaults found").to.not.be.empty;
-        const output = normalizers[action](structuredClone(MINIMAL[action]), action);
-        for (const [keys, value] of defaults) {
-          expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
         }
       });
     }

@@ -96,6 +96,18 @@ describe("Tier-2 core guard/error paths", function () {
       assert.match(result.description, /pause boom/);
     });
 
+    it("pauses 5000 ms for wait: true", async function () {
+      let paused = -1;
+      const result = await wait({ step: { wait: true }, driver: { pause: async (ms) => (paused = ms) } });
+      assert.equal(result.status, "PASS");
+      assert.equal(paused, 5000);
+    });
+
+    it("skips wait: false", async function () {
+      const result = await wait({ step: { wait: false }, driver: undefined });
+      assert.equal(result.status, "SKIPPED");
+    });
+
     it("PASSes via driver.pause when a driver is present", async function () {
       let paused = -1;
       const driver = {

@@ -131,7 +131,7 @@
         "delayMs": {
           "type": "integer",
           "minimum": 0,
-          "description": "Fixed delay (ms)."
+          "description": "Wait at least this many milliseconds."
         }
       }
     },
@@ -144,7 +144,7 @@
         "delayMs": {
           "type": "integer",
           "minimum": 0,
-          "description": "Fixed delay (ms)."
+          "description": "Wait at least this many milliseconds."
         },
         "find": {
           "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -466,7 +466,7 @@
           "delayMs": {
             "type": "integer",
             "minimum": 0,
-            "description": "Fixed delay (ms)."
+            "description": "Wait at least this many milliseconds."
           },
           "find": {
             "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -580,7 +580,7 @@
           "delayMs": {
             "type": "integer",
             "minimum": 0,
-            "description": "Fixed delay (ms)."
+            "description": "Wait at least this many milliseconds."
           }
         }
       }

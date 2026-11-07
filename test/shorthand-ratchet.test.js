@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import { normalizers } from "../dist/common/src/normalize/index.js";
 
-const CEILING = 15;
+const CEILING = 11;
 const HANDLERS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "core", "tests");
 
 describe("shorthand ratchet", function () {

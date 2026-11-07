@@ -1979,13 +1979,14 @@
       "default": 5000,
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "boolean",
+            "number"
+          ],
+          "minimum": 0
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -2263,8 +2264,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ]
                     }
                   }
@@ -2315,8 +2315,7 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
             "transform": [
               "trim"
@@ -2352,8 +2351,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -4281,8 +4279,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -4357,8 +4354,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "tty": {
                 "type": "boolean",
@@ -4428,8 +4424,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "minLength": 1,
-                "default": "."
+                "minLength": 1
               },
               "env": {
                 "type": "object",
@@ -4514,20 +4509,6 @@
               },
               "headless": {
                 "type": "boolean"
-              },
-              "orientation": {
-                "type": "string",
-                "enum": [
-                  "portrait",
-                  "landscape"
-                ]
-              },
-              "udid": {
-                "type": "string",
-                "minLength": 1
-              },
-              "provider": {
-                "type": "object"
               }
             }
           }
@@ -5258,8 +5239,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "exitCodes": {
                 "type": "array",
@@ -5300,6 +5280,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 60000
               },
               "background": {
@@ -5401,8 +5382,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "exitCodes": {
                 "type": "array",
@@ -5443,6 +5423,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 60000
               },
               "background": {
@@ -9960,13 +9941,14 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "boolean",
+            "number"
+          ],
+          "minimum": 0
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -10242,8 +10224,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ]
                     }
                   }
@@ -10294,8 +10275,7 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
             "transform": [
               "trim"
@@ -10331,8 +10311,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -12234,8 +12213,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -12461,20 +12439,6 @@
               },
               "headless": {
                 "type": "boolean"
-              },
-              "orientation": {
-                "type": "string",
-                "enum": [
-                  "portrait",
-                  "landscape"
-                ]
-              },
-              "udid": {
-                "type": "string",
-                "minLength": 1
-              },
-              "provider": {
-                "type": "object"
               }
             }
           }
@@ -13230,7 +13194,8 @@
                 ]
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "background": {
                 "type": "object",
@@ -13364,7 +13329,8 @@
                 ]
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "background": {
                 "type": "object",
