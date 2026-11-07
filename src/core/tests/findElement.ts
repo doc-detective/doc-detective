@@ -29,6 +29,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { RECORDING_PACE_MS } from "./timing.js";
 
 export { findElement };
 
@@ -282,7 +283,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
         }
       }
       if (isRecordingActive(driver)) {
-        await wait({ config: config, step: { wait: 2000 }, driver: driver });
+        await wait({ config: config, step: { wait: RECORDING_PACE_MS }, driver: driver });
       }
       return result;
     } else {
@@ -433,7 +434,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
 
   // If recording, wait until page is loaded and instantiate cursor
   if (isRecordingActive(driver)) {
-    await wait({ config: config, step: { wait: 2000 }, driver: driver });
+    await wait({ config: config, step: { wait: RECORDING_PACE_MS }, driver: driver });
   }
   // PASS
   return result;

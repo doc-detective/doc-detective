@@ -375,6 +375,21 @@ async function loadDescriptions(config: any) {
   }
 }
 
+// doc-detective's own version. Walks up rather than using a fixed
+// `../../package.json`: this module runs from dist/core/ (ESM) and from the
+// dist/index.cjs bundle, one level shallower.
+let cachedOwnVersion: string | undefined;
+function ownVersion(): string | undefined {
+  for (let dir = __dirname; !cachedOwnVersion; dir = path.dirname(dir)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+      if (pkg.name === "doc-detective") cachedOwnVersion = pkg.version;
+    } catch {}
+    if (path.dirname(dir) === dir) break;
+  }
+  return cachedOwnVersion;
+}
+
 // Detect aspects of the environment running Doc Detective.
 function getEnvironment() {
   const environment: any = {};
@@ -382,6 +397,10 @@ function getEnvironment() {
   environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
+  // Versions that fingerprint a run in its report (ADR 01163).
+  environment.docDetectiveVersion = ownVersion();
+  environment.nodeVersion = process.versions.node;
+  environment.osRelease = os.release();
   return environment;
 }
 
