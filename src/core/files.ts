@@ -252,7 +252,9 @@ async function resolvePaths({
             property === "path" &&
             object.directory &&
             path.isAbsolute(object.directory)
-              ? resolve(relativePathBase, item, object.directory + path.sep)
+              ? // Append sep so resolve() treats it as a folder even if it doesn't
+                // exist yet or has a dot in its name (ADR 01173).
+                resolve(relativePathBase, item, object.directory + path.sep)
               : resolve(relativePathBase, item, filePath);
           object[property][i] = resolved;
         }

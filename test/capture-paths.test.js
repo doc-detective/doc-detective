@@ -49,6 +49,7 @@ describe("capture paths", function () {
   });
 
   // The step a handler gets from the runner: effective, with its capture placed.
+  // It mirrors what runContext does to each step before runStep dispatches it.
   const runnerStep = (step, config) => {
     useEffectiveStep(step);
     placeCapturePaths(step, config);

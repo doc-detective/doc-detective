@@ -93,6 +93,8 @@ async function startRecording({
   // then lives entirely in that session.
   let appRef: { entry?: any; window?: any; error?: string } | null = null;
   let appWindowTarget: any = null;
+  // `step.record` is always an object here: validate() normalized it, and the
+  // `false` guard above returned.
   if (step.record.surface !== undefined) {
     appRef = resolveAppSurfaceRef(step.record.surface, appSession);
     if (appRef) {
