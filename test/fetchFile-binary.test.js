@@ -537,7 +537,7 @@ describe("local URL guard (ADR 01162)", function () {
     const error = await refusalOf(`http://public.example.test:${port}/openapi.yaml`);
     assert.equal(
       error.message,
-      `Couldn't resolve $ref http://127.0.0.1:${port}/schema.json in http://public.example.test:${port}/openapi.yaml: a public document can't refer to a private address.\n` +
+      `Couldn't resolve $ref http://127.0.0.1:${port}/schema.json in http://public.example.test:${port}/openapi.yaml: a public document can't refer to 127.0.0.1, a private address.\n` +
         "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
     process.env[ALLOW] = "1";
@@ -546,7 +546,7 @@ describe("local URL guard (ADR 01162)", function () {
   });
 
   const refMessage = (ref, doc) =>
-    `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to a private address.\n` +
+    `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${new URL(ref).hostname}, a private address.\n` +
     "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.";
 
   it("refuses a private $ref reached through a public document in a local description", async function () {
@@ -576,7 +576,7 @@ describe("local URL guard (ADR 01162)", function () {
         message: new RegExp(
           `^${escapeRegExp(`Couldn't resolve $ref http://127.0.0.1:${port}/schema.json`)}\\S* ` +
             escapeRegExp(
-              `in http://public.example.test:${port}/${doc}: a public document can't refer to a private address.\n`
+              `in http://public.example.test:${port}/${doc}: a public document can't refer to 127.0.0.1, a private address.\n`
             )
         ),
       });

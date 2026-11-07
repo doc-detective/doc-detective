@@ -97,7 +97,7 @@ A refused fetch fails the screenshot step, or the OpenAPI load, with a redacted 
 Couldn't follow the redirect from https://img.example.com/ref.png: it leads to 169.254.169.254, a private address, from a public one.
 Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1.
 
-Couldn't resolve $ref http://10.0.0.5/schema.json in https://api.example.com/openapi.yaml: a public document can't refer to a private address.
+Couldn't resolve $ref http://10.0.0.5/schema.json in https://api.example.com/openapi.yaml: a public document can't refer to 10.0.0.5, a private address.
 Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.
 
 Couldn't resolve $ref /home/runner/work/app/secrets.json in https://api.example.com/openapi.yaml: a public document can't refer to a local file.

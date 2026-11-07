@@ -132,7 +132,7 @@ async function loadDescription(descriptionPath: string = "") {
                 `Couldn't resolve $ref ${ref} in ${doc}: couldn't resolve host ${error.host} (${error.code}).`
               );
             }
-            if (address) throw refused(ref, doc, "a private address");
+            if (address) throw refused(ref, doc, `${address}, a private address`);
           }
           // After a public document, the connection must not land on a
           // private address either (DNS rebinding).
