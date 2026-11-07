@@ -173,8 +173,9 @@ async function getConfigFromEnv() {
       );
     }
 
-    // Both beforeAll and beforeAny gets a config file's error, not AJV's `not`.
-    // A copy, so the real rename (and its warning) still happens in setConfig.
+    // Before AJV runs, give an env config that sets both beforeAll and beforeAny
+    // the same both-set error a config file gets. It checks a copy, so envConfig
+    // is unchanged and setConfig still does the real rename and its warning.
     renameDeprecatedConfigKeys([{ ...envConfig }], () => {});
 
     // Validate the environment variable config
