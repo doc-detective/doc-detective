@@ -1,0 +1,79 @@
+{
+  "specId": "cli-process-tightening",
+  "description": "Negative durations (ADR 01171), the edge browser alias (ADR 01172), and the removed device fields make a spec invalid, through the real CLI: exit 2.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-process-tightening',w=(n,s)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({tests:[{steps:[s]}]}));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});w('negative-wait',{wait:-5});w('negative-timeout',{runShell:{command:'echo hi',timeout:-1}});w('edge-surface',{startSurface:{browser:'edge'}});w('device-orientation',{startSurface:{app:'com.example.app',device:{platform:'android',name:'Pixel_7',orientation:'landscape'}}});w('wait-zero',{wait:0});\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "invalid-exit-2",
+      "description": "Each removed or out-of-range shape exits 2 before anything runs.",
+      "steps": [
+        {
+          "description": "A negative wait.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-wait.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A negative runShell timeout.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A startSurface browser named edge.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/edge-surface.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A device with the removed orientation field.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/device-orientation.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "zero-wait-passes",
+      "description": "The bound is 0, so a zero wait still runs and passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/wait-zero.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
