@@ -316,6 +316,14 @@ describe("core/utils coverage", function () {
       "fc00::1", // unique local fc
       "fd00::1", // unique local fd
       "fe80::1", // IPv6 link-local
+      "fe90::1", // link-local is fe80::/10, so fe80 through febf
+      "febf::1",
+      "::a9fe:a9fe", // IPv4-compatible 169.254.169.254
+      "::169.254.169.254", // same, dotted (the parser normalizes it to hex)
+      "::a00:1", // IPv4-compatible 10.0.0.1
+      "64:ff9b::a9fe:a9fe", // NAT64 169.254.169.254
+      "64:ff9b::10.0.0.1", // NAT64, dotted
+      "64:ff9b::7f00:1", // NAT64 127.0.0.1
       // IPv4-mapped IPv6 private addresses are asserted in the mappedPrivate
       // set below (the #427 fix); historically they bypassed the guard.
     ];
@@ -332,6 +340,10 @@ describe("core/utils coverage", function () {
       "::ffff:8.8.8.8", // dotted public mapped (parser normalizes to hex)
       "::ffff:808:808", // hex public mapped form (8.8.8.8) stays allowed
       "::ffff:1", // a normal IPv6 address, not IPv4-mapped → not private
+      "fec0::1", // just past fe80::/10
+      "::808:808", // IPv4-compatible 8.8.8.8
+      "64:ff9b::808:808", // NAT64 8.8.8.8
+      "64:ff9b:1::a00:1", // outside 64:ff9b::/96
     ];
     for (const ip of publicLiterals) {
       it(`allows public literal ${ip}`, async function () {
@@ -353,6 +365,15 @@ describe("core/utils coverage", function () {
     for (const ip of mappedPrivate) {
       it(`flags IPv4-mapped private literal [${ip}]`, async function () {
         assert.equal(await privateAddressOf(`http://[${ip}]/x`), ip);
+      });
+    }
+
+    // DNS answers aren't URL-normalized, so embedded IPv4 can arrive dotted.
+    for (const answer of ["::ffff:10.0.0.1", "::169.254.169.254", "64:ff9b::127.0.0.1", "febf::1"]) {
+      it(`flags the DNS answer ${answer}`, async function () {
+        sandbox = sinon.createSandbox();
+        sandbox.stub(dnsPromises, "lookup").resolves([{ address: answer }]);
+        assert.equal(await privateAddressOf("https://rebind.test/x"), answer);
       });
     }
   });

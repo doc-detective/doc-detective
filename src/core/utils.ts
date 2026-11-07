@@ -1397,43 +1397,44 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     return false;
   }
   if (net.isIPv6(ip)) {
-    const normalized = ip.toLowerCase();
-    if (normalized === "::1") return true;
-    if (normalized === "::") return true;
-    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
-    if (normalized.startsWith("fe80:")) return true; // link-local
-    if (normalized.startsWith("::ffff:")) {
-      // IPv4-mapped IPv6. The WHATWG URL parser normalizes the embedded v4 to
-      // hex (::ffff:10.0.0.1 → ::ffff:a00:1, and ::ffff:0.0.0.1 → ::ffff:0:1),
-      // so reconstruct the dotted v4 from the two hex groups and apply the v4
-      // ranges above; otherwise a mapped private address (e.g.
-      // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
-      const tail = normalized.slice("::ffff:".length);
-      // Defensive: a dotted-decimal tail (::ffff:10.0.0.1) is a valid IPv6
-      // literal but current callers pass URL-normalized hosts (always hex), so
-      // this path is unreachable in practice. Handle it anyway — fail CLOSED by
-      // classifying the embedded v4 rather than slipping past as "public".
-      /* c8 ignore start - URL normalization always yields the hex form below */
-      if (net.isIPv4(tail)) {
-        return isPrivateOrLoopbackAddress(tail);
-      }
-      /* c8 ignore stop */
-      // The genuine IPv4-mapped form the URL parser emits is two hex groups
-      // (::ffff:HHHH:LLLL = the embedded 32-bit v4); reconstruct and re-check.
-      const hexMatch = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
-      if (hexMatch) {
-        const hi = parseInt(hexMatch[1], 16);
-        const lo = parseInt(hexMatch[2], 16);
-        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-        return isPrivateOrLoopbackAddress(dotted);
-      }
-      // Any other ::ffff: form (e.g. ::ffff:1) is a normal IPv6 address, not an
-      // IPv4-mapped one, and matches none of the private prefixes above → public.
-      return false;
+    const g = ipv6Groups(ip);
+    const zero = (from: number, to: number) => g.slice(from, to).every((x) => x === 0);
+    // The IPv4 address in the low 32 bits, for forms that embed one.
+    const v4 = `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
+    if ((g[0] & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
+    if ((g[0] & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+    // IPv4-compatible ::a.b.c.d (also covers :: and ::1, which embed 0.0.0.x).
+    if (zero(0, 6)) return isPrivateOrLoopbackAddress(v4);
+    // IPv4-mapped ::ffff:a.b.c.d. ADR 01010: the URL parser emits these as hex.
+    if (zero(0, 5) && g[5] === 0xffff) return isPrivateOrLoopbackAddress(v4);
+    // NAT64 64:ff9b::/96.
+    if (g[0] === 0x64 && g[1] === 0xff9b && zero(2, 6)) {
+      return isPrivateOrLoopbackAddress(v4);
     }
     return false;
   }
   return false;
+}
+
+// The eight 16-bit groups of a valid IPv6 address. Expands `::`, reads a
+// dotted IPv4 tail (DNS answers aren't URL-normalized), and drops a zone id.
+function ipv6Groups(ip: string): number[] {
+  let text = ip.toLowerCase().split("%")[0];
+  const dotted = text.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(1).map(Number);
+    text =
+      text.slice(0, dotted.index) +
+      `${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups =
+    tail === undefined
+      ? left
+      : [...left, ...Array(8 - left.length - right.length).fill("0"), ...right];
+  return groups.map((group) => parseInt(group, 16));
 }
 
 // On/off switches in the environment: 1, true, yes or on, in any case.
