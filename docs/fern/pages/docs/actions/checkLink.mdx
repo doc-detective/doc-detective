@@ -8,7 +8,7 @@ The `checkLink` action checks if a URL returns an acceptable status code. It pri
 
 You can specify the target URL directly as a string, or use an object for more options:
 
-- `url`: (Required in object format) The URL to check. Can be a full URL or a path. If a path is provided, an `origin` must be specified either in the step or in the configuration file.
+- `url`: (Required in object format) The URL to check. Use an absolute URL, a path that starts with `/`, or a value that starts with a variable, such as `$BASE_URL/docs`. A path needs an `origin`, in the step or in the configuration file.
 - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. If omitted and `url` is a path, the global `origin` from the configuration file is used.
 - `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
 - `headers`: (Optional) Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string. Useful for sites that allowlist specific headers or bypass tokens. Defaults to `{}`.

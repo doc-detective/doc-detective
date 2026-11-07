@@ -14,7 +14,7 @@ export type CheckLinkSimple = string;
  */
 export type TargetURL = string;
 /**
- * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+ * Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
  */
 export type RequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;

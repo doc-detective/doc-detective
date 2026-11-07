@@ -1331,7 +1331,7 @@
                 "default": ""
               },
               "headers": {
-                "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                 "title": "OpenAPI request headers",
                 "anyOf": [
                   {
@@ -5154,7 +5154,7 @@
                             ]
                           },
                           "headers": {
-                            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                            "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                             "default": {},
                             "title": "Request headers",
                             "anyOf": [
@@ -5244,7 +5244,7 @@
                               ]
                             },
                             "headers": {
-                              "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                              "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                               "default": {},
                               "title": "Request headers",
                               "anyOf": [
@@ -19579,7 +19579,7 @@
                                         "default": ""
                                       },
                                       "headers": {
-                                        "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                        "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                                         "title": "OpenAPI request headers",
                                         "anyOf": [
                                           {
@@ -19733,7 +19733,7 @@
                             "additionalProperties": false,
                             "properties": {
                               "headers": {
-                                "description": "Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.",
+                                "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                 "default": {},
                                 "title": "Request headers",
                                 "anyOf": [
@@ -20015,7 +20015,7 @@
                                           "default": ""
                                         },
                                         "headers": {
-                                          "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                          "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                                           "title": "OpenAPI request headers",
                                           "anyOf": [
                                             {
@@ -20169,7 +20169,7 @@
                               "additionalProperties": false,
                               "properties": {
                                 "headers": {
-                                  "description": "Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.",
+                                  "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                   "default": {},
                                   "title": "Request headers",
                                   "anyOf": [
@@ -59541,7 +59541,7 @@
                       "default": ""
                     },
                     "headers": {
-                      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                      "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                       "title": "OpenAPI request headers",
                       "anyOf": [
                         {
@@ -62652,7 +62652,7 @@
                                   ]
                                 },
                                 "headers": {
-                                  "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                  "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                   "default": {},
                                   "title": "Request headers",
                                   "anyOf": [
@@ -62742,7 +62742,7 @@
                                     ]
                                   },
                                   "headers": {
-                                    "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                    "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                     "default": {},
                                     "title": "Request headers",
                                     "anyOf": [
@@ -77077,7 +77077,7 @@
                                               "default": ""
                                             },
                                             "headers": {
-                                              "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                              "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                                               "title": "OpenAPI request headers",
                                               "anyOf": [
                                                 {
@@ -77231,7 +77231,7 @@
                                   "additionalProperties": false,
                                   "properties": {
                                     "headers": {
-                                      "description": "Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.",
+                                      "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                       "default": {},
                                       "title": "Request headers",
                                       "anyOf": [
@@ -77513,7 +77513,7 @@
                                                 "default": ""
                                               },
                                               "headers": {
-                                                "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                                "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                                                 "title": "OpenAPI request headers",
                                                 "anyOf": [
                                                   {
@@ -77667,7 +77667,7 @@
                                     "additionalProperties": false,
                                     "properties": {
                                       "headers": {
-                                        "description": "Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.",
+                                        "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                         "default": {},
                                         "title": "Request headers",
                                         "anyOf": [
@@ -116942,7 +116942,7 @@
                   "default": ""
                 },
                 "headers": {
-                  "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                  "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
                   "title": "OpenAPI request headers",
                   "anyOf": [
                     {

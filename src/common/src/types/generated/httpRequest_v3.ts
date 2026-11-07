@@ -103,12 +103,12 @@ export type OpenApi = {
   headers?: OpenAPIRequestHeaders;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;
 /**
- * Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.
+ * Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.
  */
 export type RequestHeaders = RequestHeadersObject1 | RequestHeadersString1;
 export type RequestHeadersString1 = string;

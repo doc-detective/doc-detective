@@ -8,9 +8,9 @@ The `goTo` action navigates the browser to a specified URL. This is typically us
 
 You can specify the target URL directly as a string, or use an object for more options:
 
-- **String Shorthand:** Provide the full URL, a path (starting with `/`), or a variable reference directly as the value for the `goTo` key. If a path is provided, it navigates relative to the current URL or the global `origin` if set in the configuration.
+- **String Shorthand:** Provide the URL directly as the value for the `goTo` key. Use an absolute URL, a path that starts with `/`, or a value that starts with a variable, such as `$BASE_URL/docs`. Doc Detective joins a path to the global `origin` from the configuration.
 - **Object Format:** Use an object with the following properties:
-  - `url`: (Required) The URL to navigate to. Can be a full URL, a path, or a variable reference.
+  - `url`: (Required) The URL to navigate to, in the same three forms.
   - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. Overrides the global `origin` if set.
   - `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`.
   - `surface`: (Optional) The browser (session, window, or tab) to navigate. Omit to navigate the active tab. Naming a browser that isn't open yet opens it. To open a browser with explicit launch options (headless, window size, viewport) before navigating, use [`startSurface`](startsurface).
@@ -47,7 +47,7 @@ Here are a few ways you might use the `goTo` action:
 
 ### Navigate to a relative path (string shorthand)
 
-Assumes the browser is currently at `https://example.com` or a global `origin` is set.
+Assumes a global `origin`, such as `https://example.com`, is set in the configuration. Without an `origin`, the step fails.
 
 ```json
 {

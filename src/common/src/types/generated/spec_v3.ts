@@ -55,7 +55,7 @@ export type OpenApi = {
   headers?: OpenAPIRequestHeaders;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;
@@ -219,7 +219,7 @@ export type OpenApi1 = (
   headers?: OpenAPIRequestHeaders1;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders1 = RequestHeadersObject1 | RequestHeadersString1;
 export type RequestHeadersString1 = string;
@@ -721,7 +721,7 @@ export type CheckLinkSimple = string;
  */
 export type TargetURL = string;
 /**
- * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+ * Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
  */
 export type RequestHeaders = RequestHeadersObject2 | RequestHeadersString2;
 export type RequestHeadersString2 = string;
@@ -2294,12 +2294,12 @@ export type OpenApi2 = (
   headers?: OpenAPIRequestHeaders2;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders2 = RequestHeadersObject3 | RequestHeadersString3;
 export type RequestHeadersString3 = string;
 /**
- * Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.
+ * Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.
  */
 export type RequestHeaders1 = RequestHeadersObject4 | RequestHeadersString4;
 export type RequestHeadersString4 = string;
@@ -7040,7 +7040,7 @@ export type OpenApi3 = (
   headers?: OpenAPIRequestHeaders3;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders3 = RequestHeadersObject5 | RequestHeadersString5;
 export type RequestHeadersString5 = string;
@@ -7366,7 +7366,7 @@ export type CheckLinkSimple1 = string;
  */
 export type TargetURL3 = string;
 /**
- * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+ * Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
  */
 export type RequestHeaders2 = RequestHeadersObject6 | RequestHeadersString6;
 export type RequestHeadersString6 = string;
@@ -8939,12 +8939,12 @@ export type OpenApi4 = (
   headers?: OpenAPIRequestHeaders4;
 };
 /**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
 export type OpenAPIRequestHeaders4 = RequestHeadersObject7 | RequestHeadersString7;
 export type RequestHeadersString7 = string;
 /**
- * Headers to include in the HTTP request. With `openApi`, these override the OpenAPI `headers` with the same name.
+ * Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.
  */
 export type RequestHeaders3 = RequestHeadersObject8 | RequestHeadersString8;
 export type RequestHeadersString8 = string;

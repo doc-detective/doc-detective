@@ -192,6 +192,20 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 **What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
 
+## URLs and request headers
+
+**What changed:** `goTo`, `checkLink`, and `httpRequest` accept the same three URL forms: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A URL that only contains a variable, such as `"see $BASE_URL"`, makes the spec invalid. Version 4 accepted it on `goTo` and `httpRequest`. `checkLink` now accepts `$BASE_URL/docs`, and an `httpRequest` path joins the `origin` from your config.
+
+Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with string values, or a string with one `Name: value` header per line. A header value that's an object or an array makes the spec invalid.
+
+**What to do:** Start each URL with the variable, `http://`, `https://`, or `/`. Give each header a string value.
+
+## Cookie file locations
+
+**What changed:** A `saveCookie` or `loadCookie` object with a `path` and no `directory` reads and writes the file in `outputDir`, like the string form `"session.txt"`. Version 4 used the spec's folder. A spec that saves a cookie and a spec in another folder that loads it now use the same file.
+
+**What to do:** To keep a cookie file beside its spec, add `"directory": "."`.
+
 ## `--output` is a results file
 
 **What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.
