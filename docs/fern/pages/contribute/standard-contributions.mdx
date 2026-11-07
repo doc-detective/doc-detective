@@ -195,11 +195,11 @@ Highlight important information with admonitions. Make sure you use the appropri
 
 ### Run automated checks locally (optional)
 
-If you're working locally, run these commands from the repository root before submitting. To set up Vale and the `mdx2vast` parser it needs for `.mdx` files, see [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
+If you're working locally, run these commands from the repository root before submitting. Each command runs in `docs/` through a subshell, so your shell stays in the root. Both need the docs dependencies from [Install dependencies](/contribute/contribute/local-development#install-dependencies). To set up Vale and the `mdx2vast` parser it needs for `.mdx` files, see [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
 
 ```bash
-# Build the documentation
-npm run build
+# Validate the Fern configuration and pages
+(cd docs && npx fern check)
 
 # Run style checks (if Vale is installed) from the docs/ directory.
 # The glob skips the generated schema reference pages, which CI also skips.
