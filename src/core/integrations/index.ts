@@ -84,7 +84,8 @@ function collectChangedFiles(report: any) {
  *   - total: Total number of changed files found
  *   - successful: Number of files successfully uploaded
  *   - failed: Number of files that failed to upload
- *   - skipped: Number of files skipped (no uploader or config found)
+ *   - skipped: Number of files skipped (no uploader for the integration type, no matching
+ *     integration config, or the integration doesn't set `uploadOnChange: true`)
  *   - details: Array of per-file results with localPath, status (PASS/FAIL/SKIPPED), and description or reason
  */
 async function uploadChangedFiles({ config, report, log }: { config: any; report: any; log: any }) {
@@ -149,10 +150,14 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     }
 
     if (integrationConfig.uploadOnChange !== true) {
-      const reason = `uploadOnChange isn't enabled for integration: ${file.sourceIntegration.integrationName}`;
-      log(config, "debug", `Skipping ${file.localPath}: ${reason}`);
+      const name = file.sourceIntegration.integrationName;
+      log(config, "debug", `Skipping ${file.localPath}: uploadOnChange isn't enabled for integration: ${name}`);
       results.skipped++;
-      results.details.push({ localPath: file.localPath, status: "SKIPPED", reason });
+      results.details.push({
+        localPath: file.localPath,
+        status: "SKIPPED",
+        reason: `Skipped: \`uploadOnChange\` isn't enabled for integration ${name}.`,
+      });
       continue;
     }
 

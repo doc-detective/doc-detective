@@ -258,7 +258,7 @@ describe("integrations/index — uploadChangedFiles orchestration", function () 
       assert.deepEqual(results.details[0], {
         localPath: "/tmp/unset.png",
         status: "SKIPPED",
-        reason: "uploadOnChange isn't enabled for integration: unset",
+        reason: "Skipped: `uploadOnChange` isn't enabled for integration unset.",
       });
     });
   });
