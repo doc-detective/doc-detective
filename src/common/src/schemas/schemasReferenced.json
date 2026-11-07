@@ -4560,7 +4560,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -5338,7 +5338,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -12481,7 +12481,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -13249,7 +13249,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]

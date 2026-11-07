@@ -242,6 +242,8 @@ describe("normalization", function () {
       ["saveCookie file", { saveCookie: "./cookies/session.txt" }],
       ["saveCookie name", { saveCookie: "__Secure-next-auth.session-token" }],
       ["loadCookie file", { loadCookie: "session.txt" }],
+      ["loadCookie dotted file", { loadCookie: "dir/a.b.txt" }],
+      ["saveCookie dot-only file name", { saveCookie: "..txt" }],
       ["loadCookie name", { loadCookie: "session_token" }],
     ]) {
       it(`changes nothing the second time: ${name}`, function () {

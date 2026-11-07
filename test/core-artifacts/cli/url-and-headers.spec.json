@@ -1,6 +1,6 @@
 {
   "specId": "cli-url-and-headers",
-  "description": "The URL and request-header rules that break v4 specs (ADR 01174), through the real CLI: each invalid shape exits 2, and an httpRequest path joins the config's origin. No browser: httpRequest only, against the 8092 test server.",
+  "description": "The URL, request-header, cookie-string, and timeout rules that break v4 specs (ADR 01174), through the real CLI: each invalid shape exits 2, and an httpRequest path joins the config's origin. No browser: the invalid specs never start, and the valid one is httpRequest only, against the 8092 test server.",
   "tests": [
     {
       "testId": "url-and-headers",
@@ -9,7 +9,7 @@
         {
           "description": "Write the specs and the origin config.",
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-url-headers';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(f,steps)=>fs.writeFileSync(d+'/'+f,JSON.stringify({tests:[{steps}]}));w('goto-contains-variable.spec.json',[{goTo:'foo \\$X'}]);w('http-contains-variable.spec.json',[{httpRequest:'foo \\$X'}]);w('header-object-value.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',request:{headers:{a:{}}}}}]);w('path.spec.json',[{httpRequest:{url:'/api/users',statusCodes:200}}]);fs.writeFileSync(d+'/origin.json',JSON.stringify({origin:'http://localhost:8092',telemetry:{send:false}}));\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-url-headers';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(f,steps)=>fs.writeFileSync(d+'/'+f,JSON.stringify({tests:[{steps}]}));w('goto-contains-variable.spec.json',[{goTo:'foo \\$X'}]);w('http-contains-variable.spec.json',[{httpRequest:'foo \\$X'}]);w('header-object-value.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',request:{headers:{a:{}}}}}]);w('path.spec.json',[{httpRequest:{url:'/api/users',statusCodes:200}}]);w('cookie-dir-without-txt.spec.json',[{saveCookie:'dir/session'}]);fs.writeFileSync(d+'/origin.json',JSON.stringify({origin:'http://localhost:8092',telemetry:{send:false}}));\"",
             "workingDirectory": "../../.."
           }
         },
@@ -37,6 +37,16 @@
           "description": "A request header whose value is an object exits 2.",
           "runShell": {
             "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/header-object-value.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A cookie string with a folder but no .txt file name exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/cookie-dir-without-txt.spec.json --output-dir .tmp/fixture-url-headers/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2

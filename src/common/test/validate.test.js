@@ -1495,6 +1495,26 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01174: every cookie string the schema accepts expands to a valid
+    // { name, path } or { name, variable }.
+    describe("cookie string shorthand", function () {
+      for (const action of ["saveCookie", "loadCookie"]) {
+        it(`${action} accepts cookie names and .txt paths`, function () {
+          for (const value of ["session", "__Secure-next-auth.session-token", "1P_JAR", "session.txt", "./dir/a.b.txt", "..txt"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${value}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects a string with no valid object form`, function () {
+          for (const value of ["dir/session", ".txt", "dir/.txt", "session/"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${value}`).to.be.false;
+          }
+        });
+      }
+    });
+
     describe("annotations", function () {
       const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
 
