@@ -24,6 +24,7 @@ import {
   verifyAppDrivers,
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
+  renameDeprecatedConfigKeys,
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 import { schemas } from "../dist/common/src/schemas/index.js";
@@ -737,6 +738,14 @@ describe("config.ts — setConfig", function () {
       assert.equal(warnings.length, 1);
     });
   }
+
+  it("treats a null beforeAny as absent", function () {
+    const warn = sinon.spy();
+    const source = { beforeAny: null };
+    renameDeprecatedConfigKeys([source, { beforeAll: "./a.json", beforeAny: null }], warn);
+    assert.equal("beforeAll" in source, false);
+    assert.equal(warn.callCount, 0);
+  });
 
   it("doesn't warn about beforeAny when a DOC_DETECTIVE override is silent", async function () {
     const saved = process.env.DOC_DETECTIVE;

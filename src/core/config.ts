@@ -27,7 +27,7 @@ function renameDeprecatedConfigKeys(
 ) {
   let renamed = false;
   for (const config of sources) {
-    if (config?.beforeAny === undefined) continue;
+    if (config?.beforeAny == null) continue;
     if (config.beforeAll !== undefined) {
       throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
     }

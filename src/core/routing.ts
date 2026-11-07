@@ -548,6 +548,7 @@ async function resolveStepRouting(args: {
     if (typeof entry.goToStep === "string" && entry.goToStep.trim() !== "") {
       // Return the trimmed id so `goToStep: "target "` matches the step `target`
       // rather than failing as an unknown target on incidental whitespace.
+      // Safe because the schema's `\S` pattern rules out whitespace-only ids.
       return { action: "goToStep", stepId: entry.goToStep.trim() };
     }
   }
