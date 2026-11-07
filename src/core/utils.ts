@@ -1697,7 +1697,7 @@ async function getGuarded(
         const address = await privateAddressOf(next);
         if (address) throw redirectError(current, address);
         const from = current;
-        refuse = (address: string) => redirectError(from, address);
+        refuse = (connectAddress: string) => redirectError(from, connectAddress);
       }
     }
     current = next;

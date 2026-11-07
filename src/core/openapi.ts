@@ -139,7 +139,9 @@ async function loadDescription(descriptionPath: string = "") {
           const { data, url, reachedPublic } = await getGuarded(
             file.url,
             FETCH_TEXT_DEFAULTS,
-            doc ? (address) => refused(ref, doc, `${address}, a private address`) : undefined
+            doc
+              ? (connectAddress) => refused(ref, doc, `${connectAddress}, a private address`)
+              : undefined
           );
           if (guard && reachedPublic) lastPublic = docName(file.url, url);
           return data;
