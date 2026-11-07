@@ -60,10 +60,39 @@ Each warning goes to stderr once per process, and links
 | `install --silent` | Removed; use `--quiet` |
 | `--concurrent-runners` with no value | Removed; use `--concurrent-runners true` |
 | The `doc-detective-lsp` bin | Removed. Only this bin warns, because hosted images are the only callers of `doc-detective-runner` |
+| `-r` with several values, or `-t` or `-s` given twice | One comma-separated value; a repeat is a usage error |
+| A `config` object in `DOC_DETECTIVE` | Deprecated; use `DOC_DETECTIVE_CONFIG` |
+| A `container` key in `DOC_DETECTIVE` outside the official images, and `allowUnsafeSteps` unset | Doesn't allow unsafe steps |
+| A boolean `DOC_DETECTIVE_*` env var whose meaning flips, or that 5.0 doesn't accept | One grammar for every boolean env var |
+| Browsers load from a `browser-snapshots` folder | Ignored |
+| A `reporters` name that isn't exact | Exits `2` |
+| Spec content that 5.0 rejects or reads differently | Exits `2`, fails the step, or skips it |
 
 An output path names a folder when it ends in a slash, is an existing directory, or has no file
 extension. 4.x itself treats that last case as a folder. It's stricter than 5.0's check, so
 a first run to a new `--output results` warns too.
+
+Spec rows come from `runTests` right after it resolves tests, so they print before any step runs,
+in a dry run too. That makes them the only rows a programmatic `runTests` call can print. Each names
+the spec file, not the line, and a file gets one warning per row. A row about a value, such as a URL,
+names the first one and counts the rest. The once-per-process rule matches exact messages. A later
+`runTests` call in the same process warns about a new file, but not again about the same file. They
+read resolved steps, which keep the values as written, so a `"click": true` still reads as a boolean.
+Inline steps in Markdown get the same checks.
+Every check is a key lookup on a step, a test, or its routing entries, plus one scan for negative
+`timeout`, `duration`, `delay`, and `wait` values. That scan skips user data, such as request bodies
+and element attributes. No row runs another schema validation.
+
+Spec rows print at the effective log level, after the `DOC_DETECTIVE` override applies. A dry run
+forces silent for stdout's sake, so there they use the caller's level unless that override sets one.
+A check that throws logs at debug level and never fails the run.
+
+The official images set `DOC_DETECTIVE` themselves, with a `container` value that starts with
+`docdetective/docdetective:`. The `container` row skips that value, because the 5.0 images allow unsafe
+steps in their own config. A test checks that the Dockerfiles still set it.
+
+There's no row for `beforeAny`. 4.x rejects `beforeAll`, so a user can't act on it, and 5.0 still reads
+`beforeAny` with its own warning. The upgrade page lists the rename.
 
 Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_interface` is
 `github-actions`, because Action v1.7 has its own notice. The runner sets neither, so the
