@@ -93,8 +93,9 @@ export function concurrentRunnersWarnings(value: unknown): string[] {
 export function flagWarnings(args: Record<string, unknown>): string[] {
   const messages: string[] = [];
   if (Array.isArray(args.reporters) && args.reporters.length > 1) {
+    // 4.x reads `-r terminal,html` as one unknown reporter, so that form has to wait.
     messages.push(
-      "`--reporters` takes one comma-separated value in Doc Detective 5.0, like `-r terminal,html`. Set `reporters` in your config file, which works today."
+      "`--reporters` takes one comma-separated value in Doc Detective 5.0, like `-r terminal,html`, which 4.x doesn't read. Switch when you upgrade, or set `reporters` in your config file, which works on both."
     );
   }
   for (const flag of ["test", "spec"]) {
@@ -127,28 +128,33 @@ const BOOLEAN_ENV: Record<string, { v4: (v: string) => boolean; on?: string; off
 function readsAs5(value: string): boolean | undefined {
   const v = value.trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(v)) return true;
-  if (["0", "false", "no", "off"].includes(v)) return false;
+  if (["", "0", "false", "no", "off"].includes(v)) return false;
   return undefined;
+}
+
+/** The legacy `DOC_DETECTIVE` env var as an object, or `{}` when it's unset or not JSON. */
+export function legacyEnv(env: Record<string, string | undefined>): any {
+  try {
+    const parsed = JSON.parse(env.DOC_DETECTIVE || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 /** The legacy `DOC_DETECTIVE` env var, and boolean env vars 5.0 reads differently. */
 export function envWarnings(env: Record<string, string | undefined>, config: { allowUnsafeSteps?: boolean }): string[] {
   const messages: string[] = [];
-  let legacy: any;
-  try {
-    legacy = JSON.parse(env.DOC_DETECTIVE || "{}");
-  } catch {
-    legacy = {};
-  }
-  if (legacy?.config && typeof legacy.config === "object") {
+  const legacy = legacyEnv(env);
+  if (legacy.config && typeof legacy.config === "object") {
     messages.push(
       "`DOC_DETECTIVE` is deprecated in Doc Detective 5.0, and its `config` object merges below `DOC_DETECTIVE_CONFIG` and flags instead of above them. Move it to `DOC_DETECTIVE_CONFIG`, which works today."
     );
   }
   // The official images set this value themselves, and their 5.0 builds allow
   // unsafe steps in config, so only other images need to act.
-  const officialImage = /^docdetective\/docdetective:/.test(String(legacy?.container));
-  if (legacy?.container && !officialImage && config.allowUnsafeSteps === undefined) {
+  const officialImage = /^docdetective\/docdetective:/.test(String(legacy.container));
+  if (legacy.container && !officialImage && config.allowUnsafeSteps === undefined) {
     messages.push(
       "`DOC_DETECTIVE` has a `container` key, which allows unsafe steps today but not in Doc Detective 5.0. To keep running them, set `allowUnsafeSteps: true` in your config, which works today."
     );
@@ -182,8 +188,12 @@ const REPORTERS = ["terminal", "json", "html", "runFolder", "junit", "markdown"]
 /** Config values 5.0 validates more strictly. */
 export function configWarnings(config: any): string[] {
   const messages: string[] = [];
-  for (const name of Array.isArray(config.reporters) ? config.reporters : []) {
-    if (typeof name === "string" && !REPORTERS.includes(name)) {
+  // `-r terminal,html` arrives comma-joined, and 5.0 splits it.
+  const names = (Array.isArray(config.reporters) ? config.reporters : [])
+    .flatMap((name: unknown) => (typeof name === "string" ? name.split(",").map((part) => part.trim()) : []))
+    .filter(Boolean);
+  for (const name of names) {
+    if (!REPORTERS.includes(name)) {
       messages.push(
         `\`reporters\` has '${name}'. Doc Detective 5.0 exits 2 unless each name is exactly \`terminal\`, \`json\`, \`html\`, \`runFolder\`, \`junit\`, or \`markdown\`, which work today.`
       );
@@ -212,10 +222,28 @@ function testWarnings(test: any, where: string): string[] {
   ]);
 }
 
-// Keys 5.0 checks for a negative number anywhere in a step.
+// Subtrees that hold the user's own data, where a `timeout` key isn't one of ours.
+const FREE_FORM = new Set([
+  "request",
+  "response",
+  "headers",
+  "body",
+  "params",
+  "parameters",
+  "elementAttribute",
+  "variables",
+  "outputs",
+  "env",
+  "driverOptions",
+  "openApi",
+]);
+
+// Negative `wait`, `*timeout`, `*duration`, and `*delay` numbers in a step,
+// which 5.0 rejects anywhere.
 function negatives(value: any, found: Set<string> = new Set()): Set<string> {
   if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
+      if (FREE_FORM.has(key)) continue;
       if (typeof child === "number" && child < 0 && (key === "wait" || /(timeout|duration|delay)$/i.test(key))) found.add(key);
       negatives(child, found);
     }
@@ -223,7 +251,15 @@ function negatives(value: any, found: Set<string> = new Set()): Set<string> {
   return found;
 }
 
-function stepWarnings(step: any, where: string): string[] {
+// Rows that name a value. A file gets one warning per row, naming the first value.
+type Offenders = Map<string, { values: Set<string>; message: (first: string) => string }>;
+
+function offend(offenders: Offenders, row: string, value: string, message: (first: string) => string): void {
+  if (!offenders.has(row)) offenders.set(row, { values: new Set(), message });
+  offenders.get(row)!.values.add(value);
+}
+
+function stepWarnings(step: any, where: string, offenders: Offenders): string[] {
   const messages: string[] = [];
   for (const route of routes(step)) {
     if (route.stop === "spec" || route.stop === "run") {
@@ -246,7 +282,9 @@ function stepWarnings(step: any, where: string): string[] {
   }
   const starts = objects(step.startSurface);
   for (const surface of starts) {
-    const removed = ["orientation", "udid", "provider"].filter((key) => surface.device && key in surface.device);
+    // A string device names a device, so only an object can hold these keys.
+    const device = surface.device && typeof surface.device === "object" ? surface.device : {};
+    const removed = ["orientation", "udid", "provider"].filter((key) => key in device);
     if (removed.length) {
       messages.push(
         `A \`startSurface\` device in ${where} sets ${removed.map((key) => `\`${key}\``).join(", ")}, which Doc Detective 5.0 removes. Remove ${removed.length > 1 ? "them" : "it"}, which works today.`
@@ -257,12 +295,12 @@ function stepWarnings(step: any, where: string): string[] {
     }
   }
   const zeroTimeouts = [
-    ...["runShell", "runCode", "goTo", "httpRequest"].filter((action) => step[action]?.timeout === 0),
+    ...["runShell", "runCode", "goTo", "httpRequest", "checkLink"].filter((action) => step[action]?.timeout === 0),
     ...(starts.some((s) => s.timeout === 0) ? ["startSurface"] : []),
   ];
   for (const action of zeroTimeouts) {
     messages.push(
-      `A \`${action}\` step in ${where} sets \`timeout: 0\`, ${EXIT_2}. Remove \`timeout\` for the default, or set it to 1 or more, which works today.`
+      `A \`${action}\` step in ${where} sets \`timeout: 0\`, ${EXIT_2} on \`runShell\`, \`runCode\`, \`goTo\`, \`httpRequest\`, \`checkLink\`, and \`startSurface\` processes and apps. Remove \`timeout\` for the default, or set it to 1 or more, which works today. Locator and wait timeouts can still be 0.`
     );
   }
   for (const key of negatives(step)) {
@@ -289,16 +327,24 @@ function stepWarnings(step: any, where: string): string[] {
   for (const action of ["goTo", "httpRequest"]) {
     const url = typeof step[action] === "string" ? step[action] : step[action]?.url;
     if (typeof url === "string" && !/^(https?:\/\/|\/)/.test(url) && !/^\$[A-Za-z0-9_]+$/.test(url)) {
-      messages.push(
-        `A \`${action}\` URL in ${where} ('${url}') doesn't start with \`http://\`, \`https://\`, or \`/\`, and isn't a whole \`$VAR\`, ${EXIT_2}. Put the whole URL in one variable, which works today.`
+      offend(
+        offenders,
+        `${action} URL`,
+        url,
+        (first) =>
+          `A \`${action}\` URL in ${where} (${first}) doesn't start with \`http://\`, \`https://\`, or \`/\`, and isn't a whole \`$VAR\`, ${EXIT_2}. Put the whole URL in one variable, which works today.`
       );
     }
   }
   for (const action of ["saveCookie", "loadCookie"]) {
     const value = step[action];
     if (typeof value === "string" && value.includes("/") && !value.endsWith(".txt")) {
-      messages.push(
-        `A \`${action}\` in ${where} ('${value}') has a \`/\` but doesn't end in \`.txt\`, ${EXIT_2}. End a file path in \`.txt\`, which works today.`
+      offend(
+        offenders,
+        action,
+        value,
+        (first) =>
+          `A \`${action}\` in ${where} (${first}) has a \`/\` but doesn't end in \`.txt\`, ${EXIT_2}. End a file path in \`.txt\`, which works today.`
       );
     }
   }
@@ -312,11 +358,16 @@ export function specWarnings(resolvedTests: any): string[] {
     const file = spec.contentPath;
     const where =
       typeof file === "string" ? `'${path.isAbsolute(file) ? path.relative(process.cwd(), file) : file}'` : "a spec";
+    const offenders: Offenders = new Map();
     for (const test of spec.tests ?? []) {
       messages.push(...testWarnings(test, where));
       for (const context of test.contexts ?? []) {
-        for (const step of context.steps ?? []) messages.push(...stepWarnings(step, where));
+        for (const step of context.steps ?? []) messages.push(...stepWarnings(step, where, offenders));
       }
+    }
+    for (const { values, message } of offenders.values()) {
+      const [first] = values;
+      messages.push(message(values.size > 1 ? `\`${first}\` and ${values.size - 1} more` : `\`${first}\``));
     }
   }
   return [...new Set(messages)];

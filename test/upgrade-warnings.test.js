@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { pathToFileURL } from "node:url";
 import {
   browsersDirWarnings,
   commandWarnings,
@@ -23,10 +24,10 @@ before(async function () {
 const URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 const ACTION_META = JSON.stringify({ dist_interface: "github-actions" });
 
-function run(script, args, { env = {}, cwd, timeout = 60000, unset = [] } = {}) {
+function run(script, args, { env = {}, cwd, timeout = 60000, unset = [], nodeArgs = [] } = {}) {
   const { DOC_DETECTIVE, DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
   for (const key of unset) delete hostEnv[key];
-  return spawnSync(process.execPath, [path.resolve(script), ...args], {
+  return spawnSync(process.execPath, [...nodeArgs, path.resolve(script), ...args], {
     env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", ...env },
     encoding: "utf8",
     cwd,
@@ -251,7 +252,10 @@ describe("upgrade warnings", function () {
     });
 
     it("more than one reporter after -r, or a repeated -r", function () {
-      expect(flagWarnings({ reporters: ["terminal", "html"] })[0]).to.include("`-r terminal,html`");
+      // 4.x reads `-r terminal,html` as one unknown reporter, so the comma form waits for 5.0.
+      const [message] = flagWarnings({ reporters: ["terminal", "html"] });
+      expect(message).to.include("`-r terminal,html`").and.include("when you upgrade").and.include("`reporters`");
+      expect(message).to.not.include("which works today");
       expect(flagWarnings({ reporters: ["terminal"] })).to.deep.equal([]);
     });
 
@@ -269,6 +273,8 @@ describe("upgrade warnings", function () {
       expect(envWarnings({ DOC_DETECTIVE_DEBUG: "maybe" }, {})[0]).to.include("doesn't accept");
       expect(envWarnings({ DOC_DETECTIVE_ALLOW_LOCAL_URLS: "1" }, {})[0]).to.include("`true` for on");
       expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("`0` for off");
+      // 5.0 trims a blank value to empty, which is off.
+      expect(envWarnings({ DOC_DETECTIVE_SKIP_AUTO_UPDATE: " " }, {})[0]).to.include("on today and off in Doc Detective 5.0");
       const same = {
         DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
         DOC_DETECTIVE_DEBUG: "0",
@@ -286,6 +292,9 @@ describe("upgrade warnings", function () {
       expect(configWarnings({ reporters: ["JSON", "terminal"] })[0]).to.include("'JSON'");
       expect(configWarnings({ reporters: ["plainReporter"] })[0]).to.include("'plainReporter'");
       expect(configWarnings({ reporters: ["terminal", "json", "html", "runFolder", "junit", "markdown"] })).to.deep.equal([]);
+      // `-r terminal,html` lands here comma-joined, and it's the form 5.0 wants.
+      expect(configWarnings({ reporters: ["terminal,html"] })).to.deep.equal([]);
+      expect(configWarnings({ reporters: ["terminal,JSON"] })[0]).to.include("'JSON'");
       // 4.x can't use beforeAll, and 5.0 still reads beforeAny.
       expect(configWarnings({ beforeAny: "setup.spec.json" })).to.deep.equal([]);
     });
@@ -349,15 +358,28 @@ describe("upgrade warnings", function () {
       const device = { app: "com.example", device: { platform: "android", orientation: "landscape" } };
       expect(warns([{ startSurface: device }])[0]).to.include("`orientation`");
       expect(warns([{ startSurface: { browser: "chrome" } }, { closeSurface: "main" }])).to.deep.equal([]);
+      // A string names a device.
+      expect(warns([{ startSurface: { app: "com.example", device: "Pixel 7" } }])).to.deep.equal([]);
     });
 
     it("timeout 0 on operations, and negative durations", function () {
-      expect(warns([{ runShell: { command: "echo", timeout: 0 } }])[0]).to.include("`timeout: 0`");
+      const [zero] = warns([{ runShell: { command: "echo", timeout: 0 } }]);
+      expect(zero).to.include("`timeout: 0`").and.include("Locator and wait timeouts can still be 0");
       expect(warns([{ startSurface: { process: "npm", name: "p", timeout: 0 } }])).to.have.length(1);
       expect(warns([{ wait: -1 }])[0]).to.include("negative `wait`");
       expect(warns([{ type: { keys: "a", inputDelay: -5 } }])[0]).to.include("negative `inputDelay`");
       expect(
         warns([{ runShell: { command: "echo", timeout: 1 } }, { find: { selector: "#a", timeout: 0 } }, { wait: 0 }])
+      ).to.deep.equal([]);
+    });
+
+    it("doesn't read user data as durations", function () {
+      expect(
+        warns([
+          { httpRequest: { url: "https://a.b", request: { body: { timeout: -1 } } } },
+          { httpRequest: { url: "https://a.b", response: { body: { wait: -1 } } } },
+          { find: { elementAttribute: { "data-delay": -100 } } },
+        ])
       ).to.deep.equal([]);
     });
 
@@ -383,7 +405,10 @@ describe("upgrade warnings", function () {
     });
 
     it("goTo and httpRequest URLs 5.0 won't accept", function () {
-      expect(warns([{ goTo: "$URL/docs" }])[0]).to.include("'$URL/docs'");
+      expect(warns([{ goTo: "$URL/docs" }])[0]).to.include("`$URL/docs`");
+      const five = warns([0, 1, 2, 3, 4].map((n) => ({ goTo: `$BASE/p${n}` })));
+      expect(five).to.have.length(1);
+      expect(five[0]).to.include("`$BASE/p0` and 4 more");
       expect(warns([{ httpRequest: { url: "$API/users" } }])).to.have.length(1);
       expect(
         warns([{ goTo: "$URL" }, { goTo: "/docs" }, { goTo: { url: "https://example.com" } }, { httpRequest: "http://a.b" }])
@@ -393,6 +418,7 @@ describe("upgrade warnings", function () {
     it("a cookie path with a slash that doesn't end in .txt", function () {
       expect(warns([{ saveCookie: "auth/session" }])[0]).to.include("`.txt`");
       expect(warns([{ loadCookie: "auth/session.json" }])).to.have.length(1);
+      expect(warns([{ saveCookie: "a/one" }, { saveCookie: "a/two" }])[0]).to.include("`a/one` and 1 more");
       expect(warns([{ saveCookie: "auth/session.txt" }, { loadCookie: "session" }])).to.deep.equal([]);
     });
 
@@ -406,6 +432,51 @@ describe("upgrade warnings", function () {
       const r = runCli(["--input", file, "--dry-run"]);
       expect(r.stderr).to.include("`screenshot: true`").and.include("s.spec.json").and.include(URL);
       expect(() => JSON.parse(r.stdout)).to.not.throw();
+    });
+
+    it("doesn't fail a run on a string device", function () {
+      const file = spec("d.spec.json", { tests: [{ steps: [{ startSurface: { app: "com.example", device: "Pixel 7" } }] }] });
+      const r = runCli(["--input", file, "--dry-run"]);
+      expect(r.status).to.equal(0);
+      expect(() => JSON.parse(r.stdout)).to.not.throw();
+    });
+
+    it("doesn't fail a run when a check throws", function () {
+      // Rewrite the built specWarnings to throw, through a module load hook.
+      const hook = path.join(dir, "hook.mjs");
+      fs.writeFileSync(
+        hook,
+        `import { registerHooks } from "node:module";
+registerHooks({ load(url, ctx, next) {
+  const result = next(url, ctx);
+  if (!url.endsWith("/dist/upgradeNotice.js")) return result;
+  const source = String(result.source).replace(
+    "export function specWarnings(resolvedTests) {",
+    'export function specWarnings(resolvedTests) { throw new Error("check failed");'
+  );
+  return { ...result, source };
+} });
+`
+      );
+      const file = spec("p.spec.json", PASSING_SPEC);
+      const r = run("bin/doc-detective.js", ["--input", file, "--output", out(), "--logLevel", "debug"], {
+        nodeArgs: ["--import", pathToFileURL(hook).href],
+      });
+      expect(r.status).to.equal(0);
+      expect(r.stdout + r.stderr).to.include("check failed");
+      expect(JSON.parse(fs.readFileSync(out(), "utf8")).summary.specs.pass).to.equal(1);
+    });
+
+    it("stays quiet when DOC_DETECTIVE sets logLevel silent", function () {
+      const file = spec("s.spec.json", { tests: [{ steps: [{ wait: -1 }] }] });
+      const env = { DOC_DETECTIVE: '{"config":{"logLevel":"silent"}}' };
+      for (const flags of [["--output", out()], ["--dry-run"]]) {
+        const r = runCli(["--input", file, ...flags], { env });
+        expect(r.status).to.equal(0);
+        expect(r.stderr).to.not.include("negative `wait`");
+      }
+      // The same spec warns without the override.
+      expect(runCli(["--input", file, "--dry-run"]).stderr).to.include("negative `wait`");
     });
   });
 

@@ -19,7 +19,7 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `--concurrent-runners` with no value | Needs a value. Use `--concurrent-runners true` |
 | The `doc-detective-lsp` bin | Removed. Use `doc-detective lsp --stdio` |
 | The `doc-detective-runner` bin | Replaced by a `doc-detective runner` command |
-| `-r terminal html` | Takes one comma-separated value, like `-r terminal,html`, which 4.x reports as an unknown reporter. Use `reporters` in your config file |
+| `-r terminal html` | Takes one comma-separated value, like `-r terminal,html`, which 4.x reports as an unknown reporter. Until you upgrade, set `reporters` in your config |
 | `-t` or `-s` given twice, which 4.x ignores | A usage error. Use one comma-separated value, like `-t a,b` |
 | A `config` object in the `DOC_DETECTIVE` env var | Deprecated, and it merges below `DOC_DETECTIVE_CONFIG` and flags. Use `DOC_DETECTIVE_CONFIG` |
 | A `container` key in the `DOC_DETECTIVE` env var of your own Docker image allows unsafe steps | It doesn't. Use `allowUnsafeSteps: true`. The official images handle this for you |
@@ -31,7 +31,7 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `stop: "run"`, `retry`, or `goToStep` in a test's routing | Exits `2`. Use `stop: "spec"`, which is what 4.x does, and remove `retry` and `goToStep` or move them to a step |
 | `"click": true` clicks the text `true` | Exits `2`. Use `"click": "true"` for that text |
 | `browser: "edge"` on a surface, and a device's `orientation`, `udid`, and `provider` | Removed. Use another `browser`, such as `chrome`, and remove the device keys |
-| `timeout: 0` on an operation, and negative durations, delays, and timeouts | Exits `2`. Remove `timeout` for the default, or set it to `1` millisecond or more, and use positive values |
+| `timeout: 0` on `runShell`, `runCode`, `goTo`, `httpRequest`, `checkLink`, or a `startSurface` process or app, and negative durations, delays, and timeouts anywhere | Exits `2`. Remove `timeout` for the default, or set it to `1` millisecond or more, and use positive values. Locator and wait timeouts can still be `0` |
 | `screenshot: false` takes a screenshot | Skips the step. Use `screenshot: true` for a screenshot |
 | `find.click` set to text other than `left`, `right`, or `middle`, or to an object with keys other than `button` and `duration` | Exits `2`. Use `click: true` to click the found element, or a separate `click` step |
 | A locator such as `selector` inside `find.type` | Exits `2`. Use a separate `type` step |
