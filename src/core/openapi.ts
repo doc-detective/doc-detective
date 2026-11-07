@@ -55,6 +55,8 @@ async function loadDescription(descriptionPath: string = "") {
   // sibling sets `lastPublic`, and that's intended, since local descriptions
   // are trusted. And `lastPublic` can name a sibling rather than the document
   // that asked, which only changes the message.
+  // `guard` decides lastPublic tracking; getGuarded re-reads the policy for
+  // its own refusals. Both read the environment, so they agree.
   const guard = localUrlPolicy() !== "allow";
   // Redacted, for messages: the URL the description or $ref gave, then where
   // its redirects led when that's elsewhere.
