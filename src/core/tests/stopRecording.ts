@@ -66,7 +66,7 @@ async function stopRecording({
   // `stopRecord: false` is an explicit no-op (mirrors `record: false`): it must
   // not stop anything. Runtime dispatch keys on property presence, so guard the
   // value here rather than in the schema (the boolean form stays valid).
-  if (!stopRecord) {
+  if (stopRecord === false) {
     result.status = "SKIPPED";
     result.description = "Recording stop is disabled (stopRecord: false).";
     return result;

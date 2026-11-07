@@ -80,7 +80,7 @@ async function startRecording({
   // The effective step (ADR 01167): an object with its defaults filled, and a
   // `path` (ADR 01173). `false` is the one other value, and it disables the step.
   step = isValidStep.object;
-  if (!step.record) {
+  if (step.record === false) {
     result.status = "SKIPPED";
     result.description = "Recording is disabled (record: false).";
     return result;

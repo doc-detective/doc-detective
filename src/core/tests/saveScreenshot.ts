@@ -405,7 +405,7 @@ async function captureScreenshot({
   // The effective step (ADR 01167): an object with its defaults filled, and a
   // `path` (ADR 01173). `false` is the one other value, and it disables the step.
   step = isValidStep.object;
-  if (!step.screenshot) {
+  if (step.screenshot === false) {
     result.status = "SKIPPED";
     result.description = "Skipped: `screenshot` is `false`.";
     return result;
