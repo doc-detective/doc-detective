@@ -29,7 +29,9 @@ export function setEnvWarningSink(next: (message: string) => void) {
   queued.forEach((message) => next(message));
 }
 
-// Drop warnings queued but never sent. Keeps what was warned, so none repeats.
+// Drop warnings queued but never sent, by a run that failed before it wired a
+// sink. Keeps what was warned, so none repeats: this discards a failed run's
+// leftovers, it doesn't reset per-run state.
 export function clearPendingEnvWarnings() {
   pending = [];
 }

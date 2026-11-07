@@ -254,7 +254,7 @@ function resolveResultsFile(output: string, base = process.cwd()): string {
 // A run that found no tests writes its empty report, so `--output` always
 // gets a file.
 function writeResultsFile(outputFile: string | undefined, results: any) {
-  if (!outputFile || !results) return;
+  if (!outputFile) return;
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
   fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
 }

@@ -238,7 +238,7 @@ export function rewriteRootError(message: string, commandNames: string[], argv: 
   // A list option's bad choice: name the first bad item, not the whole list.
   const choice = /^(error: option '[^']+' argument )'([^']*,[^']*)'( is invalid\. Allowed choices are (.*)\.\s*)$/s.exec(message);
   if (choice) {
-    const allowed = choice[4].split(", ");
+    const allowed = choice[4].split(/,\s*/);
     const bad = choice[2].split(",").map((item) => item.trim()).find((item) => item && !allowed.includes(item));
     if (bad) return `${choice[1]}'${bad}'${choice[3]}`;
   }
