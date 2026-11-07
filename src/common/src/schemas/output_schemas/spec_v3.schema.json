@@ -20968,11 +20968,7 @@
                                         {
                                           "type": "array",
                                           "items": {
-                                            "anyOf": [
-                                              {
-                                                "type": "integer"
-                                              }
-                                            ]
+                                            "type": "integer"
                                           }
                                         }
                                       ],
@@ -21374,11 +21370,7 @@
                                           {
                                             "type": "array",
                                             "items": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "integer"
-                                                }
-                                              ]
+                                              "type": "integer"
                                             }
                                           }
                                         ],
@@ -78240,11 +78232,7 @@
                                               {
                                                 "type": "array",
                                                 "items": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "integer"
-                                                    }
-                                                  ]
+                                                  "type": "integer"
                                                 }
                                               }
                                             ],
@@ -78646,11 +78634,7 @@
                                                 {
                                                   "type": "array",
                                                   "items": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "integer"
-                                                      }
-                                                    ]
+                                                    "type": "integer"
                                                   }
                                                 }
                                               ],
