@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import dns from "node:dns";
 import dnsPromises from "node:dns/promises";
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import sinon from "sinon";
 import axios from "axios";
 
@@ -174,6 +175,7 @@ describe("local URL guard (ADR 01162)", function () {
   let httpRequest;
   let saved;
   let tmpDir;
+  let localFileUrl;
 
   before(async function () {
     ({ fetchFile } = await import("../dist/core/utils.js"));
@@ -214,6 +216,13 @@ describe("local URL guard (ADR 01162)", function () {
             properties: { item: { $ref: `http://127.0.0.1:${port}/schema.json` } },
           })
         );
+      } else if (req.url === "/openapi-file.yaml") {
+        // Relative refs resolve against the working directory.
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end(openApiYaml("./local-secret.json"));
+      } else if (req.url === "/public-file-ref.json") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ properties: { x: { $ref: localFileUrl } } }));
       } else if (req.url === "/plain.json") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ type: "string" }));
@@ -225,6 +234,9 @@ describe("local URL guard (ADR 01162)", function () {
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     port = server.address().port;
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-local-urls-"));
+    const localFile = path.join(tmpDir, "local.json");
+    fs.writeFileSync(localFile, JSON.stringify({ type: "boolean" }));
+    localFileUrl = pathToFileURL(localFile).href;
   });
 
   after(function () {
@@ -446,6 +458,40 @@ describe("local URL guard (ADR 01162)", function () {
       definition.paths["/items"].get.responses["200"].content["application/json"].schema;
     assert.equal(schema.properties.p0.type, "string");
     assert.equal(schema.properties.p1.properties.id.type, "integer");
+  });
+
+  const fileRefMessage = (doc) =>
+    new RegExp(
+      `^Couldn't resolve \\$ref \\S*local(-secret)?\\.json in ${doc.replace(/[.]/g, "\\.")}: a public document can't refer to a local file\\.\\n` +
+        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy\\.$"
+    );
+
+  it("refuses a public description's $ref to a local file, in default and strict mode", async function () {
+    const doc = `http://public.example.test:${port}/openapi-file.yaml`;
+    for (const block of [undefined, "1"]) {
+      sinon.restore();
+      fakePublicHost();
+      if (block) process.env[BLOCK] = block;
+      await assert.rejects(() => loadDescription(doc), { message: fileRefMessage(doc) });
+    }
+  });
+
+  it("refuses a local file $ref reached through a public document", async function () {
+    fakePublicHost();
+    const file = path.join(tmpDir, "openapi-file-via-public.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/public-file-ref.json`));
+    await assert.rejects(() => loadDescription(file), {
+      message: fileRefMessage(`http://public.example.test:${port}/public-file-ref.json`),
+    });
+  });
+
+  it("lets a local description $ref a local file", async function () {
+    const file = path.join(tmpDir, "openapi-local-file.yaml");
+    fs.writeFileSync(file, openApiYaml(localFileUrl));
+    const definition = await loadDescription(file);
+    const schema =
+      definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+    assert.equal(schema.type, "boolean");
   });
 
   it("refuses a private $ref two documents deep under a public description", async function () {

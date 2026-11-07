@@ -44,37 +44,49 @@ async function loadDescription(descriptionPath: string = "") {
   // Load the definition from the URL or local file path
   const definition = await readFile({ fileURLOrPath: descriptionPath });
 
-  // A public document may not $ref a private address (ADR 01162). That covers
-  // a public root, and any public document that a $ref reaches.
-  const guardHops = localUrlPolicy() === "hops";
-  const fromPublic =
-    guardHops &&
+  // A public document may not $ref a private address or a local file (ADR
+  // 01162). That covers a public root, and any public document a $ref reaches.
+  const guard = localUrlPolicy() !== "allow";
+  const rootPublic =
+    guard &&
     /^https?:\/\//i.test(descriptionPath) &&
     !(await privateAddressOf(descriptionPath));
   // URL (no fragment) → the public document that $refs it.
   const publicReferrers = new Map<string, string>();
+  const publicReferrerOf = (url: string) =>
+    publicReferrers.get(url) ?? (rootPublic ? descriptionPath : undefined);
+  const refused = (ref: string, referrer: string, target: string) =>
+    new Error(
+      `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(referrer)}: a public document can't refer to ${target}.\n` +
+        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
+    );
 
   // Dereference the definition (ref parser imported lazily — see top of file)
-  const parser = (await import("@apidevtools/json-schema-ref-parser")).default;
+  const { default: parser, FileResolver } = await import(
+    "@apidevtools/json-schema-ref-parser"
+  );
   const dereferencedDefinition = await parser.dereference(definition as any, {
     resolve: {
+      file: {
+        async read(file: { url: string }) {
+          const referrer = publicReferrerOf(withoutHash(file.url));
+          if (referrer) throw refused(withoutHash(file.url), referrer, "a local file");
+          return (FileResolver.read as (file: unknown) => Promise<Buffer>)(file);
+        },
+      },
       http: {
         // The parser's own guard refuses every private address, even from a
         // local description. getGuarded applies Doc Detective's policy instead.
         safeUrlResolver: false,
         async read(file: { url: string }) {
           const url = withoutHash(file.url);
-          const isPrivate = guardHops && !!(await privateAddressOf(url));
-          const referrer =
-            publicReferrers.get(url) ?? (fromPublic ? descriptionPath : undefined);
+          const isPrivate = guard && !!(await privateAddressOf(url));
+          const referrer = publicReferrerOf(url);
           if (isPrivate && referrer) {
-            throw new Error(
-              `Couldn't resolve $ref ${redactUrlForOutput(file.url)} in ${redactUrlForOutput(referrer)}: a public document can't refer to a private address.\n` +
-                "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
-            );
+            throw refused(redactUrlForOutput(file.url), referrer, "a private address");
           }
           const data = Buffer.from((await getGuarded(file.url)).data);
-          if (guardHops && !isPrivate) {
+          if (guard && !isPrivate) {
             // Remember what this public document refers to, so a private
             // target is refused when the parser reads it next.
             // Fragment-only refs map back to this document, which is public,

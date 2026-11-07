@@ -60,6 +60,9 @@ from a public address to a private one:
   After it reads a public document, it records the `$ref`s inside it. A private read that one of
   those `$ref`s asked for is refused, and the message names that public document. A local
   description can still `$ref` a public document and a private one side by side.
+* a local file `$ref` in a public OpenAPI document, by the same rule, in default and strict mode.
+  That covers `file://` refs, and relative refs in a public root, which resolve against the working
+  directory. A local description can still `$ref` local files.
 
 A local document that redirects or refers to local addresses is fine. Step requests stay unguarded.
 
@@ -83,6 +86,9 @@ Couldn't follow the redirect from https://img.example.com/ref.png: it leads to 1
 Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1.
 
 Couldn't resolve $ref http://10.0.0.5/schema.json in https://api.example.com/openapi.yaml: a public document can't refer to a private address.
+Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.
+
+Couldn't resolve $ref /home/runner/work/app/secrets.json in https://api.example.com/openapi.yaml: a public document can't refer to a local file.
 Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.
 
 Couldn't fetch http://localhost:8080/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.
@@ -120,6 +126,8 @@ answers so `public.example.test` looks public to the guard but connects locally.
   message;
 * a private `$ref` reached through a public document fails and names that document. A local
   description's sibling public and private `$ref`s still load;
+* a local file `$ref` fails from a public description, in default and strict mode, and through a
+  public document. It loads from a local description;
 * `BLOCK=1` refuses a direct local image, the switch grammar, and the both-set error and exit 2;
 * `checkLink` and `httpRequest` to `127.0.0.1:8092` still pass, even with `BLOCK=1`.
 

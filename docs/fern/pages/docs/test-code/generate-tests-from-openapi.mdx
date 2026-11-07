@@ -245,9 +245,9 @@ Each step that resolved its operation, sent the request (or returned a mock), an
 
 **Solution:** Confirm the response matches the schema, or set `validateAgainstSchema` to `request` or `none` to narrow the check when the description is stricter than the live API.
 
-### The description fails to load with "a public document can't refer to a private address"
+### The description fails to load with "a public document can't refer to…"
 
-**Cause:** `descriptionPath` is a URL on a public host, and a `$ref` in it points at a private, loopback, or link-local address. Doc Detective refuses that `$ref` to guard against server-side request forgery (SSRF).
+**Cause:** A public document, such as a `descriptionPath` URL on a public host, has a `$ref` to a local file or a private address. Private addresses include loopback and link-local ones. Doc Detective refuses that `$ref` to guard against server-side request forgery (SSRF).
 
 **Solution:** Download the description and point `descriptionPath` at the local copy. If you trust the description, set the `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` environment variable.
 
