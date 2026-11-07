@@ -289,7 +289,7 @@ When using the object format, you can configure:
 - `waitUntil`: (Optional) Object specifying conditions to wait for:
   - `networkIdleTime`: (Optional) Wait for network activity to be idle, meaning no new requests, for this duration in milliseconds. This check always runs and you can't skip it. Set it to `0` to treat the page as network-idle as soon as the first check completes, rather than waiting for a quiet period. Defaults to `500`.
   - `domIdleTime`: (Optional) Wait for DOM mutations to stop for this duration in milliseconds. This check always runs; you can't skip it. Set it to `0` to treat the DOM as stable as soon as the first check completes rather than waiting for a quiet period (default: 1000).
-- `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector` or `elementText` must be specified.
+- `find`: (Optional) Wait for a specific element to be present in the DOM. At least one of `selector`, `elementText`, or `elementImage` must be specified. See [Find elements by image](/docs/test-docs/find-elements-by-image).
   - `selector`: (Optional) CSS selector for the element to wait for.
   - `elementText`: (Optional) Display text of the element to wait for. Doc Detective matches this against the element's full visible text with whitespace normalized, so text that a framework splits across several nodes still matches. To match a substring with a regular expression instead of the whole text, wrap the value in slashes (`/pattern/`). See [How text matching works](/docs/actions/find#how-text-matching-works).
 

@@ -105,6 +105,9 @@
                   "type": ["boolean", "number", "string"]
                 }
               },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
+              },
               "elementAria": {
                 "type": "string",
                 "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
@@ -179,6 +182,11 @@
                   {
                     "required": [
                       "elementAria"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "elementImage"
                     ]
                   }
                 ]

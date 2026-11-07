@@ -59,6 +59,7 @@ export function inferRuntimeNeeds(
   let sawScreenshotStep = false;
   let sawRecordingStep = false;
   let sawBashShellStep = false;
+  let sawElementImage = false;
 
   for (const spec of specs) {
     collectBrowserNamesFromRunOn(spec?.runOn, browsers);
@@ -78,6 +79,7 @@ export function inferRuntimeNeeds(
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
           if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
+          if (namesElementImage(step)) sawElementImage = true;
           collectStartSurfaceEngines(step, browsers);
         }
       }
@@ -90,6 +92,7 @@ export function inferRuntimeNeeds(
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
         if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
+        if (namesElementImage(step)) sawElementImage = true;
         collectStartSurfaceEngines(step, browsers);
       }
     }
@@ -119,8 +122,23 @@ export function inferRuntimeNeeds(
   if (sawRecordingStep) {
     npmPackages.add("@ffmpeg-installer/ffmpeg");
   }
+  if (sawElementImage) {
+    npmPackages.add("@appium/opencv");
+    npmPackages.add("opencv-bindings");
+    npmPackages.add("sharp");
+  }
 
   return { browsers, npmPackages, windowsBash: sawBashShellStep };
+}
+
+// `elementImage` sits wherever element criteria do, which is several levels deep
+// in a step: a drag's source, a readiness wait, an annotation's target.
+function namesElementImage(value: any): boolean {
+  if (Array.isArray(value)) return value.some(namesElementImage);
+  if (!value || typeof value !== "object") return false;
+  return (
+    "elementImage" in value || Object.values(value).some(namesElementImage)
+  );
 }
 
 // Whether a step's shell-based execution resolves to bash. runShell honors

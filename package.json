@@ -102,6 +102,7 @@
     "yargs": "^18.2.0"
   },
   "ddRuntimeDependencies": {
+    "@appium/opencv": "^5.0.2",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.14.1",
     "appium": "^3.8.0",
     "appium-chromium-driver": "^3.1.2",
@@ -110,7 +111,8 @@
     "appium-novawindows-driver": "^1.4.5",
     "appium-safari-driver": "^5.0.10",
     "appium-uiautomator2-driver": "^8.7.0",
-    "appium-xcuitest-driver": "^12.20.0"
+    "appium-xcuitest-driver": "^12.20.0",
+    "opencv-bindings": "4.5.5"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

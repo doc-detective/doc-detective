@@ -39,6 +39,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { isVisualMatch, visualRect } from "./visualMatch.js";
 import { RENDER_SETTLE_MS } from "./timing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
@@ -646,6 +647,7 @@ async function captureScreenshot({
           elementClass: step.screenshot.crop?.elementClass,
           elementAttribute: step.screenshot.crop?.elementAttribute,
           elementAria: step.screenshot.crop?.elementAria,
+          elementImage: step.screenshot.crop?.elementImage,
           timeout: step.screenshot.crop?.timeout,
         },
       };
@@ -669,7 +671,7 @@ async function captureScreenshot({
         statement: `$$outputs.cropElementFound == true`,
         severity: "fail",
       });
-      result.description = `Couldn't find element to crop.`;
+      result.description = `Couldn't find element to crop. ${findResult.description}`;
       return await evaluateApplicable();
     }
     result.outputs.cropElementFound = true;
@@ -718,22 +720,25 @@ async function captureScreenshot({
       return await evaluateApplicable();
     }
 
-    // Scroll element into view at top-left with padding
-    await driver.execute(
-      (el: any, pad: any) => {
-        el.scrollIntoView({
-          block: "start",
-          inline: "start",
-          behavior: "instant",
-        });
-        window.scrollBy(-pad.left, -pad.top);
-      },
-      element,
-      padding
-    );
+    // Scroll element into view at top-left with padding. A match on screen is
+    // already in view, and scrolling would move it away from its rect.
+    if (!isVisualMatch(element)) {
+      await driver.execute(
+        (el: any, pad: any) => {
+          el.scrollIntoView({
+            block: "start",
+            inline: "start",
+            behavior: "instant",
+          });
+          window.scrollBy(-pad.left, -pad.top);
+        },
+        element,
+        padding
+      );
 
-    // Wait for scroll to complete
-    await driver.pause(RENDER_SETTLE_MS);
+      // Wait for scroll to complete
+      await driver.pause(RENDER_SETTLE_MS);
+    }
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,
@@ -859,15 +864,17 @@ async function captureScreenshot({
     const pixelDensity = await driver.execute(() => window.devicePixelRatio);
 
     // Get the bounding rectangle of the element relative to the viewport after scroll
-    const rect = await driver.execute((el: any) => {
-      const bounds = el.getBoundingClientRect();
-      return {
-        x: bounds.left,
-        y: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
-      };
-    }, element);
+    const rect = isVisualMatch(element)
+      ? { ...visualRect(element) }
+      : await driver.execute((el: any) => {
+          const bounds = el.getBoundingClientRect();
+          return {
+            x: bounds.left,
+            y: bounds.top,
+            width: bounds.width,
+            height: bounds.height,
+          };
+        }, element);
     log(config, "debug", { rect });
 
     // Calculate the padding based on the provided padding values
