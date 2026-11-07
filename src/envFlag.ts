@@ -47,7 +47,8 @@ const ALIASES = [{ oldName: "DOC_DETECTIVE_RUNTIME_DEBUG", newName: "DOC_DETECTI
 // an old name that's on says what to rename it to.
 export function checkEnvAliases(env: NodeJS.ProcessEnv = process.env) {
   for (const { oldName, newName } of ALIASES) {
-    if (env[oldName]?.trim() && env[newName]?.trim()) {
+    // Both set and either on: which one meant it is unclear. Both off is harmless.
+    if (env[oldName]?.trim() && env[newName]?.trim() && (envFlag(oldName, env) || envFlag(newName, env))) {
       throw new Error(`set \`${newName}\` or \`${oldName}\`, not both.`);
     }
     if (envFlag(oldName, env)) warnOnce(oldName, `\`${oldName}\` is deprecated. Rename it to \`${newName}\`.`);
