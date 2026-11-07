@@ -15,7 +15,8 @@ if (typeof fs.globSync !== "function") {
 const FILES = [...fs.globSync("docs/fern/pages/**/*.mdx"), "README.md", "src/common/README.md"];
 const configKeys = new Set(Object.keys(schemas.config_v3.properties));
 const stepKeys = new Set(Object.keys(schemas.step_v3.properties)); // actions + step-level keys
-const isAction = (key) => stepActions.includes(key);
+const actionKeys = new Set(stepActions);
+const isAction = (key) => actionKeys.has(key);
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 function classify(object) {
@@ -66,6 +67,7 @@ function checkDocExamples() {
       }
       counts.checked++;
       const result = validate({ schemaKey, object });
+      // validate() formats `errors` as a string, so this interpolates readable text.
       if (!result.valid) failures.push(`${where} (${schemaKey}): ${result.errors}`);
     }
   }

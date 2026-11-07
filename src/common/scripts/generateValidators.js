@@ -16,7 +16,13 @@ for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
 }
 
 // tsc copies src/schemas/schemas.json here; both loops share this outDir.
-const schemas = JSON.parse(await readFile(path.join(outDir, "schemas.json"), "utf8"));
+const schemasPath = path.join(outDir, "schemas.json");
+const schemas = JSON.parse(
+  await readFile(schemasPath, "utf8").catch((err) => {
+    if (err.code !== "ENOENT") throw err;
+    throw new Error(`generateValidators: ${schemasPath} not found. Did tsc run first and copy schemas.json?`);
+  })
+);
 for (const [key, schema] of Object.entries(schemas)) {
   if (!key.endsWith("_v3")) continue;
   await writeFile(path.join(outDir, `${key}.schema.json`), JSON.stringify(schema, null, 2));

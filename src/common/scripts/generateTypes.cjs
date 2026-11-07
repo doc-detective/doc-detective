@@ -71,8 +71,8 @@ async function generateTypes() {
 
 // Each step_v3 oneOf branch requires one action key, on the branch or in an allOf part.
 // Invariant: a branch's `required` lists only its action key. Step-level keys (stepId,
-// description, ...) live in the shared `common` part and are never required. If one ever
-// is, this throws ("got [goTo, stepId]") rather than publishing it as an action.
+// description, ...) live in the shared `common` part and are never required. If a step-level
+// key ever appears in `required`, the count exceeds 1 and this throws ("got [goTo, stepId]").
 // exports.test.js cross-checks the result against step_v3.properties minus the common keys.
 function renderStepActions(step) {
   const keys = step.oneOf.map((branch, i) => {
