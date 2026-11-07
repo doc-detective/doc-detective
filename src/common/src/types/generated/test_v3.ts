@@ -6168,7 +6168,7 @@ export type Condition124 = string | [string, ...string[]];
  * Pause (in milliseconds) before performing the next action.
  */
 export type Wait1 = WaitSimple | WaitEnvironmentVariable;
-export type WaitSimple = boolean | number;
+export type WaitSimple = number | boolean;
 export type WaitEnvironmentVariable = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -12792,7 +12792,7 @@ export type Condition250 = string | [string, ...string[]];
  * Pause (in milliseconds) before performing the next action.
  */
 export type Wait3 = WaitSimple1 | WaitEnvironmentVariable1;
-export type WaitSimple1 = boolean | number;
+export type WaitSimple1 = number | boolean;
 export type WaitEnvironmentVariable1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.

@@ -1974,8 +1974,8 @@
       "anyOf": [
         {
           "type": [
-            "boolean",
-            "number"
+            "number",
+            "boolean"
           ]
         },
         {
@@ -9910,8 +9910,8 @@
       "anyOf": [
         {
           "type": [
-            "boolean",
-            "number"
+            "number",
+            "boolean"
           ]
         },
         {

@@ -336,7 +336,9 @@ of the listed types. So make the first branches non-coercing
 - **Scalar-only union: one `type` array**, such as `{"type": ["boolean", "number", "string"]}`
   for `elementAttribute` values. Every listed type survives as authored.
 - **Scalar branches without their own constraints: merge them into one leading `type` array.**
-  `wait` uses `["boolean", "number"]` ahead of its `$VAR` string branch.
+  `wait` uses `["number", "boolean"]` ahead of its `$VAR` string branch. Order inside the array
+  doesn't change what an authored value becomes, but the LSP offers the first listed type as the
+  value kind, so list the usual one first.
 - **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
   with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
   `click_v3` does this.
