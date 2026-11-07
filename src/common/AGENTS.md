@@ -315,7 +315,8 @@ of the listed types. So make the first branches non-coercing
   `screenshot_v3`).
 
 Say why in a `$comment` on the branch. The ratchet in `test/schema.test.js` fails on any
-`anyOf`/`oneOf` where a branch's `type` would coerce a scalar meant for a later branch. Pair a
+`anyOf`/`oneOf` where a branch's `type` would coerce a scalar meant for a later branch. That
+includes a `type: boolean` branch ahead of a string branch with no `pattern`, `enum`, or `const`. Pair a
 schema change with a `validate.test.js` case that checks the validated value, not only validity.
 
 Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
