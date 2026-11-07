@@ -174,7 +174,7 @@ function buildYargs(args: any): any {
         "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
       type: "boolean",
     })
-    .version(ownVersion() as string)
+    .version(ownVersion() ?? "unknown")
     .help()
     .alias("help", "h");
 }
