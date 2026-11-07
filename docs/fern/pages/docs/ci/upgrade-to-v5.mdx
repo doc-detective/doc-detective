@@ -4,7 +4,7 @@ sidebar-title: Prepare for 5.0
 description: What's changing in Doc Detective 5.0, and how to try the new behavior on 4.x today.
 ---
 
-Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking release. It isn't out yet. If you landed here from a warning in your logs, your setup uses something that changes in 5.0, and nothing breaks until you upgrade. Auto-update won't move you to 5.0 on its own.
+Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking release. It isn't out yet. If you landed here from a warning in your logs, your setup uses something that changes in 5.0, and nothing breaks until you upgrade. Auto-update won't move you to 5.0 on its own. To hide these warnings, pass `--log-level silent` on the command line. A config file's `logLevel: silent` hides most of them, but not the warnings about commands and flags.
 
 ## What's coming
 
