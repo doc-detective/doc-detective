@@ -5821,10 +5821,16 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       }
 
-      it("accepts a timeout of 1", function () {
-        expect(step({ runShell: { command: "echo", timeout: 1 } }).valid).to.be.true;
-        expect(step({ startSurface: { app: "notepad", timeout: 1 } }).valid).to.be.true;
-      });
+      for (const [name, object] of [
+        ["runShell", { runShell: { command: "echo", timeout: 1 } }],
+        ["runCode", { runCode: { language: "js", code: "1", timeout: 1 } }],
+        ["a startSurface process", { startSurface: { process: "x", name: "p", timeout: 1 } }],
+        ["a startSurface app", { startSurface: { app: "notepad", timeout: 1 } }],
+      ]) {
+        it(`accepts a ${name} timeout of 1`, function () {
+          expect(step(object).valid).to.be.true;
+        });
+      }
 
       it("keeps wait: true and wait: 1 as authored when not normalizing", function () {
         expect(validate({ schemaKey: "step_v3", object: { wait: true }, addDefaults: false }).object.wait).to.equal(true);
