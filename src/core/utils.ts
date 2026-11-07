@@ -1270,8 +1270,13 @@ function shortJson(value: unknown): string {
 // nearest real key named when something is unknown. Config and specs read the
 // same (ADR 01150). Raw errors stay available at debug level.
 function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
-  // AJV types `message` as optional. Name the keyword rather than print "undefined".
-  const errorObjects = rawErrors.map((error) => (error.message === undefined ? { ...error, message: error.keyword } : error));
+  // AJV types `message` as optional. Name the keyword rather than print
+  // "undefined", except `not`, which gets AJV's own words: "not." reads as nonsense.
+  const errorObjects = rawErrors.map((error) =>
+    error.message === undefined
+      ? { ...error, message: error.keyword === "not" ? "must NOT be valid" : error.keyword }
+      : error
+  );
   const byPath = new Map<string, any[]>();
   for (const error of errorObjects) {
     byPath.set(error.instancePath, [...(byPath.get(error.instancePath) ?? []), error]);

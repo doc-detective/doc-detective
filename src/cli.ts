@@ -21,6 +21,7 @@ import { maybeShowHint } from "./hints/index.js";
 import { applyColorFlags, applyInputFlag, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
 import { runProgress } from "./core/progress.js";
 import { setRunCacheDir } from "./runtime/cacheDir.js";
+import type { Logger } from "./runtime/loader.js";
 import { updateCheckAllowed } from "./envFlag.js";
 import { argv as processArgv } from "node:process";
 import { createRequire } from "node:module";
@@ -140,7 +141,8 @@ async function runTestsHandler(args: any) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
     // helper so config.logLevel is respected.
-    const cliLogger = (msg: string, level: string = "info") => log(msg, level, config);
+    // Typed as the runtime's Logger: its LogLevel has no "warn", which log() would drop.
+    const cliLogger: Logger = (msg, level = "info") => log(msg, level, config);
     const currentVersion: string = cliRequire("../package.json").version;
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error

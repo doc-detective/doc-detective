@@ -259,7 +259,8 @@ describe("summarizeSchemaErrors", function () {
   it("names the keyword when AJV leaves an error without a message", function () {
     const at = (keyword) => [{ instancePath: "/concurrentRunners", keyword, params: {}, schemaPath: `#/${keyword}` }];
     expect(summarizeSchemaErrors(at("minimum"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: minimum.");
-    expect(summarizeSchemaErrors(at("not"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: not.");
+    // A bare "not." reads as nonsense, so `not` gets AJV's own wording.
+    expect(summarizeSchemaErrors(at("not"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must NOT be valid.");
     expect(summarizeSchemaErrors(at("oneOf"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: oneOf.");
   });
 

@@ -11,7 +11,7 @@ import fs from "node:fs";
 // optional package on disk — webdriverio is an optionalDependency that npm may
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
-import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath, type Logger } from "../runtime/loader.js";
 import { resolveTheme } from "./annotations/model.js";
 import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
@@ -6307,8 +6307,9 @@ async function provisionChromeRuntime(config: any): Promise<void> {
   const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
   const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log.
-  const logger = (msg: string, level: string = "info") => log(config, level, msg);
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log. Typed as
+  // Logger: its LogLevel has no "warn", which log() would drop.
+  const logger: Logger = (msg, level = "info") => log(config, level, msg);
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
     { ctx, deps: { logger } }
@@ -6419,8 +6420,9 @@ async function ensureContextBrowserInstalled({
   }
 
   const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log.
-  const logger = (msg: string, level: string = "info") => deps.log?.(config, level, msg);
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, typed as
+  // Logger like the one above.
+  const logger: Logger = (msg, level = "info") => deps.log?.(config, level, msg);
   try {
     deps.log?.(
       config,
