@@ -14,7 +14,7 @@ npm install doc-detective-common@next
 
 ## 🚀 Releases
 
-This package publishes in lockstep with `doc-detective`, at the same version and on the same npm dist-tags: `latest` from `main`, `next` from `next`, and a per-branch tag for each `feat/**` branch.
+This package publishes in lockstep with `doc-detective`, at the same version and dist-tags. `main` publishes `latest`, `next` publishes `next`, and each `feat/**` branch publishes its own tag.
 
 ## 📚 API
 
