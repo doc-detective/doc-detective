@@ -5653,8 +5653,9 @@ async function stopAllRecordings({
 // validate() leaves a whole-variable action, such as `"goTo": "$NAV"`, as
 // authored, because the variable can hold the whole action object. After
 // substitution, `substituted` normalizes one that's left, an unset variable, as
-// text. That second, literal pass is on purpose; every pass is idempotent, so
-// it only changes what the first one skipped.
+// text. That second, literal pass is on purpose. A variable that resolved was
+// normalized by the first pass, and every pass is idempotent, so the second
+// changes only an unset variable's text.
 function useEffectiveStep(step: any, { substituted = false } = {}) {
   const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
   const validation = validate({ schemaKey: "step_v3", object: authored });
@@ -5678,7 +5679,8 @@ function placeCapturePaths(step: any, config: any) {
     // A spec file's `directory` is already absolute (resolvePaths ran during
     // detection), so path.resolve drops outputDir and the file goes in that
     // directory. outputDir applies only when `directory` is unset or relative: a
-    // runner-named capture, or a getRunner() step.
+    // runner-named capture, or a getRunner() step. An unset `directory` is an
+    // empty segment, which path.resolve skips.
     capture.path = path.resolve(config?.outputDir ?? ".", capture.directory ?? "", file);
   }
 }
