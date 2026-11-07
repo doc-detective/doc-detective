@@ -59,30 +59,12 @@ branch.
   every run. The update itself is harmless.
 - Neutral: whether a host CLI's `extensions update` follows a moved tag is up to that CLI.
 
-The same change refines the hosted runner's half of [ADR 01146](01146-cli-v5-contract.md).
-`bin/runner-entrypoint.js` reports the exit code as the run's outcome:
-
-| Exit | Finalize status | `summary.reason` |
-|---|---|---|
-| `0` | `succeeded` | none |
-| `1` | `succeeded` | `tests_failed` |
-| `2` | `failed` | `nothing_tested` (was `nonzero_exit`) |
-| `130` | `canceled` | `interrupted` (was `failed`, `nonzero_exit`) |
-| `143`, or SIGTERM | `canceled` | `sigterm` |
-| other | `failed` | `nonzero_exit` |
-
-`buildEffectiveConfig` sets `exitOnFail: true`, as it already pins `output` and `outputDir`. A repository config with
-`exitOnFail: false` would otherwise turn failed, empty, and all-skipped runs into `0`, and the platform would show
-them as passing.
-
 ### Confirmation
 
 - `test/agents-pinned-ref.test.js` asserts `AGENT_TOOLS_REF === "v2"`, that every adapter's up-to-date URL starts
   with `.../agent-tools/v2/`, that `fetchAgentToolsZip` defaults to `zip/v2`, and that Codex and OpenCode pass `v2`
   to `fetchZip`.
 - `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref v2` on a fresh install.
-- `test/runner-entrypoint.test.js` covers every row of the table through `finalizeBodyFor`, and asserts that
-  `buildEffectiveConfig({ exitOnFail: false }, ...)` returns `exitOnFail: true`.
 
 ## Pros and Cons of the Options
 
