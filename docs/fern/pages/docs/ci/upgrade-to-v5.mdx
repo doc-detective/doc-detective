@@ -195,7 +195,7 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 ## URLs and request headers
 
-**What changed:** `goTo`, `checkLink`, and `httpRequest` accept the same three URL forms: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A URL that only contains a variable, such as `"see $BASE_URL"`, makes the spec invalid. Version 4 accepted it on `goTo` and `httpRequest`. `checkLink` now accepts `$BASE_URL/docs`, and an `httpRequest` path joins the `origin` from your config.
+**What changed:** `goTo`, `checkLink`, and `httpRequest` accept the same three URL forms. A URL is absolute, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A URL that only contains a variable, such as `"see $BASE_URL"`, makes the spec invalid. Version 4 accepted it on `goTo` and `httpRequest`. `checkLink` now accepts `$BASE_URL/docs`, and an `httpRequest` path joins the `origin` from your config.
 
 Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with string values, or a string with one `Name: value` header per line. A header value that's an object or an array makes the spec invalid.
 
