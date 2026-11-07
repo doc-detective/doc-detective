@@ -144,6 +144,16 @@ describe("config precedence", function () {
       expect(config.output).to.equal(path.join(tmp, "cfg", "res.json"));
     });
 
+    it("keeps a config file's trailing separator, so an output folder is still caught", async function () {
+      let error;
+      try {
+        await setConfig({ configPath: project({ output: "results/" }), args: {} });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.message).to.include(`'${path.join(tmp, "cfg", "results") + path.sep}' is a folder.`);
+    });
+
     it("resolves DOC_DETECTIVE_CONFIG's relative output against the working directory", async function () {
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ output: "o.json" });
       const config = await setConfig({ configPath: project({}), args: {} });

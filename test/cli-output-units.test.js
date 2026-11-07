@@ -199,6 +199,13 @@ describe("summarizeSchemaErrors", function () {
     expect(summarizeSchemaErrors(errorObjects, { a: { b: 1 } }, "config_v3")).to.equal("a.b: isn't allowed here.");
   });
 
+  it("says a value forbidden at the root isn't allowed, with no path", function () {
+    const errorObjects = [
+      { instancePath: "", keyword: "false schema", params: {}, schemaPath: "#/false schema", message: "boolean schema is false" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, {}, "config_v3")).to.equal("isn't allowed here.");
+  });
+
   it("falls back to compound errors' own messages rather than print nothing", function () {
     const errorObjects = [
       { instancePath: "/tests/0", keyword: "oneOf", params: { passingSchemas: null }, schemaPath: "#/oneOf", message: "must match exactly one schema in oneOf" },
