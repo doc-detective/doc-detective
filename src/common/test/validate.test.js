@@ -1196,7 +1196,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.swipe).to.equal("left");
+        // The effective step expands the shorthand (ADR 01175).
+        expect(result.object.swipe).to.deep.equal({ direction: "left", distance: 0.5, duration: 500 });
       });
 
       it("should validate the directional object form with distance, duration, and an app surface", function () {
@@ -2111,7 +2112,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.valid).to.be.true;
         expect(result.object.type).to.be.an("object");
-        expect(result.object.type.keys).to.equal("Hello");
+        // The effective step lists the keys (ADR 01175).
+        expect(result.object.type.keys).to.deep.equal(["Hello"]);
         expect(result.object.type.inputDelay).to.equal(100);
       });
     });
@@ -2560,17 +2562,87 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
-    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
-    // value meant for a later one (`false` → "false", `true` → 1). Each case
-    // is [authored step, path to the value, expected validated value]. ADR 01161.
-    describe("authored scalar types survive coercion", function () {
+    // ADR 01175: version 5 tightens the browser actions.
+    describe("browser action bounds", function () {
+      const check = (object) => validate({ schemaKey: "step_v3", object });
+
+      for (const value of [true, false]) {
+        it(`rejects click: ${value} and says how to click that text`, function () {
+          const result = validate({ schemaKey: "step_v3", object: { click: value }, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/click").map((error) => error.message)).to.deep.equal([
+            `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`,
+          ]);
+        });
+      }
+
+      it('keeps click: "true" as the text of the element to click', function () {
+        const result = check({ click: "true" });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.click).to.equal("true");
+      });
+
+      for (const click of [true, false, "left", "right", "middle", { button: "right" }, { duration: 800 }]) {
+        it(`accepts find.click: ${JSON.stringify(click)}`, function () {
+          const result = check({ find: { selector: "#a", click } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      // Version 4 took the whole click_v3 object here. Now the object only says
+      // how to click, and a whole variable can't stand in for it.
+      for (const click of [{ selector: "#b" }, { button: "right", timeout: 100 }, "$BTN"]) {
+        it(`rejects find.click: ${JSON.stringify(click)}`, function () {
+          expect(check({ find: { selector: "#a", click } }).valid).to.be.false;
+        });
+      }
+
+      it("rejects a find.click string that isn't a button", function () {
+        const result = check({ find: { selector: "#a", click: "Submit" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('/find/click must be equal to one of the allowed values ({"allowedValues":["left","right","middle"]})');
+      });
+
+      for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria"]) {
+        it(`rejects find.type with its own ${locator}, and names it`, function () {
+          const value = locator === "elementAttribute" ? { a: "b" } : "x";
+          const object = { find: { selector: "#a", type: { keys: "x", [locator]: value } } };
+          const result = validate({ schemaKey: "step_v3", object, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/find/type").map((error) => error.message)).to.deep.equal([
+            `must not set \`${locator}\` (\`find\` already locates the element)`,
+          ]);
+        });
+      }
+
+      it("accepts find.type without a locator", function () {
+        expect(check({ find: { selector: "#a", type: { keys: "x" } } }).valid).to.be.true;
+      });
+
+      for (const [name, step] of [
+        ["click.timeout", { click: { selector: "#a", timeout: -1 } }],
+        ["find.timeout", { find: { selector: "#a", timeout: -1 } }],
+        ["type.inputDelay", { type: { keys: "a", inputDelay: -10 } }],
+        ["dragAndDrop.source.timeout", { dragAndDrop: { source: { selector: "#a", timeout: -1 }, target: "b" } }],
+        ["annotate target timeout", { annotate: { add: [{ outline: { selector: "#a", timeout: -1 } }] } }],
+      ]) {
+        it(`rejects a negative ${name}`, function () {
+          const result = check(step);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      // Ajv runs with coerceTypes, and in a union the first branch with a `type`
+      // rewrites values meant for later ones (ADR 01161).
       const attr = (value) => ({ "data-x": value });
-      const cases = [
+      // Each case is [authored step, path to the value, expected validated value].
+      // #816's rows for `click: true`/`false` moved to the rejections above, and a
+      // clicking find.click is its button in the effective step (ADR 01175).
+      for (const [step, keys, expected] of [
         [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
-        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
-        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
-        [{ click: false }, ["click"], false],
-        [{ click: true }, ["click"], true],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], { button: "left" }],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], { button: "right" }],
         [{ click: "true" }, ["click"], "true"],
         [{ click: "false" }, ["click"], "false"],
         // A true that survives coercion becomes the effective step's 5000. A
@@ -2591,15 +2663,15 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
         [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
         [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ type: { keys: "a", elementAttribute: attr(true) } }, ["type", "elementAttribute", "data-x"], true],
+        [{ dragAndDrop: { source: { elementAttribute: attr("true") }, target: "b" } }, ["dragAndDrop", "source", "elementAttribute", "data-x"], "true"],
         [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
         [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
-      ];
-      for (const [step, keys, expected] of cases) {
+      ]) {
         it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
-          const result = validate({ schemaKey: "step_v3", object: step });
+          const result = check(step);
           expect(result.valid, result.errors).to.be.true;
-          const actual = keys.reduce((value, key) => value[key], result.object);
-          expect(actual).to.equal(expected);
+          expect(keys.reduce((value, key) => value[key], result.object)).to.deep.equal(expected);
         });
       }
     });

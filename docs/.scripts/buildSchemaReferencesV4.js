@@ -210,9 +210,13 @@ const defaultedPages = new Set([schemas.config_v3.title]);
       if (prop.type === "object" && !prop.required && !prop.anyOf) visit(prop);
     }
   };
+  // The same branches applyDefaults reads: a root union's object branches, a
+  // root object (dragAndDrop), or the `object` component (click's allOf root).
   for (const action of actions) {
-    for (const branch of schemas[`${action}_v3`].anyOf || []) {
-      if (branch.properties || branch.allOf) visit(branch);
+    const schema = schemas[`${action}_v3`];
+    const branches = schema.anyOf || (schema.properties ? [schema] : [schema.components?.schemas?.object]);
+    for (const branch of branches) {
+      if (branch?.properties || branch?.allOf) visit(branch);
     }
   }
 })();
