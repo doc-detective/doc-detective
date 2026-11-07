@@ -5,9 +5,9 @@
   "default": 5000,
   "anyOf": [
     {
-      "type": ["boolean", "number"],
+      "type": ["number", "boolean"],
       "title": "Wait (simple)",
-      "$comment": "One type array, boolean first: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so true stays true and 1 stays 1. As separate branches, a leading number branch turned true into 1, and a leading boolean branch would turn 1 into true. Strings still coerce: \"5000\" becomes 5000 and \"true\" becomes true. See ADR 01161.",
+      "$comment": "One type array: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so true stays true and 1 stays 1. Number is listed first because the LSP offers the first listed type as the value kind. As separate branches, a leading number branch turned true into 1, and a leading boolean branch would turn 1 into true. Strings still coerce: \"5000\" becomes 5000 and \"true\" becomes true. See ADR 01161.",
       "minimum": 0
     },
     {

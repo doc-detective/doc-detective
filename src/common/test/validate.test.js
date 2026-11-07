@@ -2442,6 +2442,50 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expectConstraintError(result.errors);
       });
     });
+
+    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
+    // value meant for a later one (`false` → "false", `true` → 1). Each case
+    // is [authored step, path to the value, expected validated value]. ADR 01161.
+    describe("authored scalar types survive coercion", function () {
+      const attr = (value) => ({ "data-x": value });
+      const cases = [
+        [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
+        [{ click: false }, ["click"], false],
+        [{ click: true }, ["click"], true],
+        [{ click: "true" }, ["click"], "true"],
+        [{ click: "false" }, ["click"], "false"],
+        // A true that survives coercion becomes the effective step's 5000. A
+        // true coerced to 1 would stay 1.
+        [{ wait: true }, ["wait"], 5000],
+        [{ wait: false }, ["wait"], false],
+        [{ wait: 1 }, ["wait"], 1],
+        [{ wait: 0 }, ["wait"], 0],
+        [{ wait: "5000" }, ["wait"], 5000],
+        [{ wait: "true" }, ["wait"], 5000],
+        [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
+        [{ record: false }, ["record"], false],
+        [{ record: "true" }, ["record"], true],
+        [{ screenshot: false }, ["screenshot"], false],
+        [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
+        [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
+        [{ find: { elementAttribute: attr("true") } }, ["find", "elementAttribute", "data-x"], "true"],
+        [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
+        [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
+        [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
+      ];
+      for (const [step, keys, expected] of cases) {
+        it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, result.errors).to.be.true;
+          const actual = keys.reduce((value, key) => value[key], result.object);
+          expect(actual).to.equal(expected);
+        });
+      }
+    });
   });
 
   describe("transformToSchemaKey", function () {
