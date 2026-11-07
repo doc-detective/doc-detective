@@ -62,6 +62,7 @@ export {
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
+  hasVariable,
   compileFilter,
   isRetryableSessionError,
   isSessionAlive,
@@ -1415,6 +1416,11 @@ const FETCH_BINARY_DEFAULTS = {
   maxBodyLength: 50 * 1024 * 1024,
   maxRedirects: 5,
 };
+
+/** Whether a value holds a `$VAR` reference, whole or embedded. */
+function hasVariable(value: unknown): boolean {
+  return typeof value === "string" && /\$[A-Za-z0-9_]/.test(value);
+}
 
 // Replace characters that are invalid in filenames on Windows (and often
 // problematic on other platforms) with `_`. Keeps dots, hyphens, and

@@ -23,6 +23,7 @@ import {
   log,
   fetchFile,
   getRunOutputDir,
+  hasVariable,
   redactUrlForOutput,
   sanitizeFilesystemName,
   realizeViewport,
@@ -515,6 +516,14 @@ async function captureScreenshot({
   // we download it to a temp file for comparison, and write the new capture
   // to a local run-specific folder (URLs can't be written back to).
   const isUrlPath = /^https?:\/\//i.test(filePath);
+  // Substitution already ran, so a `$VAR` left in the path or directory is a
+  // variable that isn't set. Writing to a folder named after it helps no one.
+  const unset = (isUrlPath ? ["directory"] : ["path", "directory"]).find((key) => hasVariable(step.screenshot[key]));
+  if (unset) {
+    result.status = "FAIL";
+    result.description = `Couldn't save the screenshot. \`${unset}\` (\`${step.screenshot[unset]}\`) has a variable that isn't set.`;
+    return result;
+  }
   const originalUrlPath = isUrlPath ? filePath : undefined;
   // Safe form for logs/descriptions/outputs: strips query + fragment so
   // presigned-URL signatures/tokens don't leak into the report.

@@ -43,6 +43,7 @@ import {
   getRunOutputDir,
   runArchivesArtifacts,
   sanitizeFilesystemName,
+  hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
   classifyContextRetry,
@@ -5664,11 +5665,15 @@ function useEffectiveStep(step: any, { substituted = false } = {}) {
 // Place a capture's relative path under its `directory`, else outputDir, in
 // place (ADR 01173). That's a file the normalizer named for its step, or a path
 // with no spec file behind it: a path written in a spec file is already
-// absolute. A URL stays, and a `$VAR` path waits for substitution.
+// absolute. A URL stays. A path or directory with a `$VAR` in it waits: the
+// pass before substitution would bake the variable's name into an absolute
+// path that the pass after it then skips. One still unset after substitution
+// stays relative, and the handler reports it.
 function placeCapturePaths(step: any, config: any) {
   for (const capture of [step.screenshot, step.record]) {
     const file = capture?.path;
-    if (typeof file !== "string" || path.isAbsolute(file) || file.startsWith("$") || /^https?:\/\//i.test(file)) continue;
+    if (typeof file !== "string" || path.isAbsolute(file) || /^https?:\/\//i.test(file)) continue;
+    if (hasVariable(file) || hasVariable(capture.directory)) continue;
     // A spec file's `directory` is already absolute (resolvePaths ran during
     // detection), so path.resolve drops outputDir and the file goes in that
     // directory. outputDir applies only when `directory` is unset or relative: a

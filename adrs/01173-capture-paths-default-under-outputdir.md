@@ -56,8 +56,14 @@ builds the effective step, and again after `$VAR` substitution. The path resolve
 - a file the normalizer named;
 - a path with no spec file behind it, such as a step passed to the JavaScript `getRunner()` API.
 
-A URL stays as it is. A `$VAR` path waits for substitution. Handlers get absolute paths, and the effective step and
-the report show them.
+A URL stays as it is. A `path` or `directory` with a `$VAR` in it, whole or embedded, waits for substitution. Placing
+it before then would put the variable's name in an absolute path, which the pass after substitution skips. Handlers
+get absolute paths, and the effective step and the report show them.
+
+**Unset variables.** A `$VAR` still in a capture's `path` or `directory` after substitution is a variable that isn't
+set. The step fails, instead of writing to a folder named after the variable:
+``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says
+``Couldn't start the recording.``
 
 **Steps without an ID.** A runner-named capture needs a `stepId`. A step without one, such as a `getRunner()` step,
 used to write `undefined.png`. It now fails with one of these messages:

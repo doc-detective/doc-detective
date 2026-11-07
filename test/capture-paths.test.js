@@ -165,6 +165,41 @@ describe("capture paths", function () {
     assert.equal(result.description, "Couldn't name the recording. Set `path`, or set the step's `stepId`.");
   });
 
+  // After substitution, a `$NAME` left in a capture's path or directory is a
+  // variable that isn't set. The step says so instead of writing to `$NAME`.
+  for (const [field, screenshot] of [
+    ["directory", { directory: "$DD_UNSET_DIR" }],
+    ["path", { path: "$DD_UNSET_SHOT" }],
+  ]) {
+    it(`fails a screenshot whose ${field} is an unset variable`, async function () {
+      const config = { outputDir: tmp };
+      const result = await saveScreenshot({
+        config,
+        step: runnerStep({ stepId: "shot", screenshot }, config),
+        driver: fakeDriver(await png()),
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(
+        result.description,
+        `Couldn't save the screenshot. \`${field}\` (\`${screenshot[field]}\`) has a variable that isn't set.`
+      );
+      assert.equal(fs.readdirSync(tmp).length, 0);
+    });
+  }
+
+  it("fails a recording whose directory is an unset variable", async function () {
+    const config = { outputDir: tmp };
+    const result = await startRecording({
+      config,
+      context: {},
+      step: runnerStep({ stepId: "demo", record: { directory: "$DD_UNSET_DIR" } }, config),
+      driver: {},
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't start the recording. `directory` (`$DD_UNSET_DIR`) has a variable that isn't set.");
+    assert.equal(fs.readdirSync(tmp).length, 0);
+  });
+
   it("stops nothing for stopRecord: false", async function () {
     const recording = { type: "ffmpeg", targetPath: path.join(tmp, "x.mp4") };
     const driver = { state: { recordings: [recording] } };

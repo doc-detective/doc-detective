@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, hasVariable } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
   switchToSurface,
@@ -142,6 +142,14 @@ async function startRecording({
   if (step.record.path === undefined) {
     result.status = "FAIL";
     result.description = "Couldn't name the recording. Set `path`, or set the step's `stepId`.";
+    return result;
+  }
+  // Substitution already ran, so a `$VAR` left in the path or directory is a
+  // variable that isn't set.
+  const unset = ["path", "directory"].find((key) => hasVariable(step.record[key]));
+  if (unset) {
+    result.status = "FAIL";
+    result.description = `Couldn't start the recording. \`${unset}\` (\`${step.record[unset]}\`) has a variable that isn't set.`;
     return result;
   }
   // The runner placed the path under outputDir (ADR 01173).
