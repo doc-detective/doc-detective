@@ -140,6 +140,13 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     }
   });
 
+  it("readFile ends the warning with one period when the cause is empty", async function () {
+    const logged = sinon.stub(console, "log");
+    sinon.stub(axios, "get").rejects(new Error(""));
+    await readFile({ fileURLOrPath: "https://example.test/x.json" });
+    sinon.assert.calledWith(logged, "(WARNING) Couldn't read https://example.test/x.json.");
+  });
+
   it("readFile returns null and warns on a non-ENOENT local read error", async function () {
     const logged = sinon.stub(console, "log");
     sinon
