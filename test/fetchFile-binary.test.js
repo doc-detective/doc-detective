@@ -291,10 +291,12 @@ describe("local URL guard (ADR 01162)", function () {
   });
 
   function openApiYaml(...refs) {
+    // A YAML single-quoted scalar escapes `'` by doubling it.
+    const quoted = (ref) => `'${ref.replace(/'/g, "''")}'`;
     const schema =
       refs.length === 1
-        ? `{ $ref: '${refs[0]}' }`
-        : `{ type: object, properties: { ${refs.map((ref, i) => `p${i}: { $ref: '${ref}' }`).join(", ")} } }`;
+        ? `{ $ref: ${quoted(refs[0])} }`
+        : `{ type: object, properties: { ${refs.map((ref, i) => `p${i}: { $ref: ${quoted(ref)} }`).join(", ")} } }`;
     return [
       "openapi: 3.0.0",
       "info: { title: t, version: '1' }",
@@ -653,6 +655,19 @@ describe("local URL guard (ADR 01162)", function () {
         definition.paths["/items"].get.responses["200"].content["application/json"].schema;
       assert.equal(schema.type, "boolean", `${BLOCK}=${block}`);
     }
+  });
+
+  // A private network address is another matter: strict mode refuses it, even
+  // from a local description.
+  it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a local description's private $ref", async function () {
+    const file = path.join(tmpDir, "openapi-local-private.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://127.0.0.1:${port}/schema.json`));
+    process.env[BLOCK] = "1";
+    await assert.rejects(() => loadDescription(file), {
+      message:
+        `Couldn't fetch http://127.0.0.1:${port}/schema.json: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+        "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs.",
+    });
   });
 
   // The $ref message, not the redirect one, whether the redirect is refused
