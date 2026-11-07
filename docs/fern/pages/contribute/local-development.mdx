@@ -133,8 +133,8 @@ Fix any errors before submitting your PR. To preview the site, use the local ser
 Vale enforces the documentation style guide. Run it from the `docs/` directory, where it finds its `.vale.ini` configuration.
 
 ```bash
-# Check all documentation
-vale fern/pages/
+# Check all documentation except the generated schema reference pages, which CI also skips
+vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
 
 # Check specific file
 vale fern/pages/path/to/file.mdx
@@ -167,8 +167,6 @@ Don't worry about fixing every suggestion. Reviewers use their judgment during r
    sidebar-title: Sidebar Text
    sidebar_position: 3
    ---
-
-   # Your Page Title
 
    Content goes here...
    ```
@@ -254,7 +252,7 @@ Make sure you're running Vale from the `docs/` directory, which holds `.vale.ini
 
 ```bash
 cd /path/to/doc-detective/docs
-vale fern/pages/
+vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
 ```
 
 ### npm install fails
@@ -337,8 +335,6 @@ Create editor snippets for common patterns:
       "description: ${2:Description}",
       "sidebar-title: ${3:Label}",
       "---",
-      "",
-      "# ${1:Title}",
       "",
       "$0"
     ]
