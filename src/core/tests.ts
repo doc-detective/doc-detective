@@ -4877,7 +4877,7 @@ async function runContext({
       usedStepIds.add(step.stepId);
       // After the ID, which hashes the authored step: steps that never run
       // still report their effective form (ADR 01167).
-      useEffectiveStep(step);
+      useEffectiveStep(step, { beforeSubstitution: true });
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
     // so a duplicated stepId routes to the earliest one).
@@ -5646,7 +5646,12 @@ async function stopAllRecordings({
 // expanded and defaults filled (ADR 01167). In place, so the report that spreads
 // this step echoes it and the runner's markers (`__autoRecord`, the hidden
 // `_fromAfter`) survive. An invalid step stays as it is; its handler says why.
-function useEffectiveStep(step: any) {
+// Before $VAR substitution, a step with a whole-variable value, such as
+// `"goTo": "$NAV"`, waits: the variable can hold the whole action object.
+function useEffectiveStep(step: any, { beforeSubstitution = false } = {}) {
+  if (beforeSubstitution && Object.values(step).some((value) => typeof value === "string" && /^\$[A-Za-z0-9_]+$/.test(value))) {
+    return;
+  }
   const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
   const validation = validate({ schemaKey: "step_v3", object: authored });
   if (validation.valid) Object.assign(step, validation.object);
@@ -5677,7 +5682,7 @@ async function runStep({
   let actionResult: any;
   // Load values from environment variables
   step = replaceEnvs(step);
-  // Again, after substitution: a variable can hold a whole action's value, and
+  // Again, after substitution: this pass normalizes whole-variable actions, and
   // getRunner() callers hand runStep authored steps.
   useEffectiveStep(step);
   if (typeof step.click !== "undefined") {
