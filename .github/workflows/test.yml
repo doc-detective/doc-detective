@@ -133,11 +133,12 @@ jobs:
           node: ${{ matrix.node }}
 
       - run: npm ci --no-audit --no-fund
-      # build:ci = build minus regenerating the committed, type-only
-      # generated types, so the JS under test is identical. The two
-      # coverage-ratchet jobs below (both required) still run the full
-      # build, so a stale committed type still fails the gate
-      # (test/build-ci-contract.test.js).
+      # build:ci = build minus generate:types, which rewrites committed
+      # files: the type-only generated types and the runtime stepActions.ts.
+      # build:ci compiles the committed copies, so the JS under test is
+      # identical while they're current. The two coverage-ratchet jobs below
+      # (both required) still run the full build, so a stale committed file
+      # still fails the gate (test/build-ci-contract.test.js).
       - run: npm run build:ci
       # Pre-warm the lazy-install cache so tests that drive Chrome through
       # the lower-level runSpecs/getRunner paths (and therefore bypass the
