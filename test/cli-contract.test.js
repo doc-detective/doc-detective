@@ -634,7 +634,8 @@ describe("CLI contract", function () {
       const r = run(["-d", "-c", "bad.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("Invalid config in bad.json:");
-      expect(r.stderr).to.include("must NOT have additional properties");
+      expect(r.stderr).to.match(/ \(DEBUG\) CLI:CONFIG ERRORS: must NOT have additional properties/);
+      expect(r.stderr).to.not.match(/^ /m);
     });
 
     it("names DOC_DETECTIVE_CONFIG when it's the invalid config", function () {

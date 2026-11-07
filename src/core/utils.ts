@@ -1203,7 +1203,16 @@ function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
 const ONE_ACTION_MESSAGE = "a step can only have one action.";
 
 // "a or b", "a, b, or c".
-const orList = (items: unknown[]) => new Intl.ListFormat("en", { type: "disjunction" }).format(items.map(String));
+const disjunction = new Intl.ListFormat("en", { type: "disjunction" });
+const orList = (items: unknown[]) => disjunction.format(items.map(String));
+
+// A value as JSON, cut to 40 characters. A string keeps both quotes.
+function shortJson(value: unknown): string {
+  const shown = JSON.stringify(value) ?? String(value);
+  if (shown.length <= 40) return shown;
+  if (typeof value === "string") return `${JSON.stringify(value.slice(0, 37)).slice(0, -1)}…"`;
+  return `${shown.slice(0, 39)}…`;
+}
 
 // Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
 // something a person can act on: one `<path>: <message>` line per problem, with
@@ -1228,9 +1237,7 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
     const parts = partsOf(instancePath);
     const prefix = prefixOf(parts);
     const value = parts.reduce((current: any, part) => current?.[part], object);
-    // Long enough to recognize the value, short enough to keep the line.
-    const shown = JSON.stringify(value) ?? String(value);
-    const got = ` (got ${shown.length > 40 ? `${shown.slice(0, 39)}…` : shown}).`;
+    const got = ` (got ${shortJson(value)}).`;
     const of = (keyword: string) => errors.filter((error) => error.keyword === keyword);
     const required = of("required");
     // The other branches' "required" errors are only noise once two matched.
@@ -1276,6 +1283,7 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
     // object itself requires, or a choice of keys, is still missing.
     const deeper = errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`));
     // Requireds from the branches of one anyOf are a choice: "needs one of".
+    // The regex sees one nesting level: an anyOf branch, or a branch's allOf.
     const choices = new Map<string, { keys: string[]; branch?: string }>();
     for (const error of required) {
       const branch = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/.exec(error.schemaPath)?.[1];
@@ -1288,10 +1296,11 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
       choices.set(group, choice);
     }
     for (const { keys, branch } of choices.values()) {
+      // A suggestion that names a missing key already says it.
+      if (keys.some((key) => suggested.has(key))) continue;
       if (keys.length > 1) {
         if (!deeper || branch === "anyOf") lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
-      } else if (!suggested.has(keys[0]) && (!deeper || !branch)) {
-        // A suggestion for the missing key already says it.
+      } else if (!deeper || !branch) {
         lines.push(`${prefix}missing required key '${keys[0]}'.`);
       }
     }

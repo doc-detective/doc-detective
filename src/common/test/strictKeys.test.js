@@ -132,12 +132,18 @@ describe("unknown keys", function () {
 
     it("reports an invalid authored step, and still drops it", async function () {
       const reasons = [];
+      const details = [];
       const tests = await detect(
         '<!-- step {"goTo":"https://example.com","asertions":[]} -->\n<!-- step {"goTo":"https://example.com"} -->',
-        (reason) => reasons.push(reason)
+        (reason, detail) => {
+          reasons.push(reason);
+          details.push(detail);
+        }
       );
       expect(reasons).to.have.lengthOf(1);
       expect(reasons[0]).to.include("asertions");
+      // The structured errors come along, so the caller needn't validate again.
+      expect(details[0].errorObjects.map((error) => error.params.additionalProperty)).to.include("asertions");
       expect(tests[0].steps).to.have.lengthOf(1);
     });
 

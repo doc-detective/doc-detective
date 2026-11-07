@@ -112,12 +112,14 @@ describe("summarizeSchemaErrors", function () {
   });
 
   it("names the alternatives when one of several keys is required", function () {
+    const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u" }] } };
+    expect(summarize(object, "config_v3")).to.equal("integrations.heretto[0]: needs one of apiToken, apiTokenFile.");
+  });
+
+  it("lets a suggestion stand in for the choice it names", function () {
     const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
     expect(summarize(object, "config_v3")).to.equal(
-      [
-        "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?",
-        "integrations.heretto[0]: needs one of apiToken, apiTokenFile.",
-      ].join("\n")
+      "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
     );
   });
 
@@ -152,6 +154,12 @@ describe("summarizeSchemaErrors", function () {
   it("shortens a long value", function () {
     const line = summarize({ concurrentRunners: { note: "x".repeat(200) } }, "config_v3");
     expect(line).to.equal(`concurrentRunners: must be integer or boolean (got {"note":"${"x".repeat(30)}…).`);
+  });
+
+  it("shortens a long string, and keeps its quotes", function () {
+    expect(summarize({ shell: "z".repeat(100) }, "config_v3")).to.equal(
+      `shell: must be one of bash, cmd, powershell (got "${"z".repeat(37)}…").`
+    );
   });
 
   it("ends any other message with a period", function () {
