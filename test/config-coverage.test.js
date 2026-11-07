@@ -123,6 +123,15 @@ describe("config.ts — pure helpers", function () {
       assert.ok(["mac", "linux", "windows"].includes(env.platform));
     });
 
+    it("reports the Doc Detective, Node.js, and OS release versions", function () {
+      const env = getEnvironment();
+      const pkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      assert.equal(env.docDetectiveVersion, pkg.version);
+      assert.equal(env.nodeVersion, process.versions.node);
+      assert.equal(env.osRelease, os.release());
+      assert.equal(env.workingDirectory, undefined);
+    });
+
     it("maps darwin/linux/win32 to common terms", function () {
       const platforms = { darwin: "mac", linux: "linux", win32: "windows" };
       for (const [nodePlat, expected] of Object.entries(platforms)) {
