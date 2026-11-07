@@ -29,6 +29,12 @@ const HTTP_REQUEST = {
   request: { headers: {}, parameters: {}, body: {} },
   response: { headers: {}, required: [] },
 };
+const CHECK_LINK = {
+  url: "https://example.com",
+  params: {},
+  statusCodes: [200, 301, 302, 307, 308],
+  headers: {},
+};
 
 describe("normalization", function () {
   describe("the effective step", function () {
@@ -111,6 +117,57 @@ describe("normalization", function () {
       expect(result.object.contexts[0].steps[0].goTo).to.equal("https://example.com");
     });
 
+    it("expands the checkLink shorthand and fills its defaults", function () {
+      expect(effective({ checkLink: "https://example.com" }).object.checkLink).to.deep.equal(CHECK_LINK);
+    });
+
+    it("wraps a checkLink scalar statusCodes in an array, after coercion", function () {
+      for (const statusCodes of [200, "200"]) {
+        const { checkLink } = effective({ checkLink: { url: "https://example.com", statusCodes } }).object;
+        expect(checkLink.statusCodes).to.deep.equal([200]);
+      }
+    });
+
+    it("wraps an httpRequest scalar statusCodes in an array", function () {
+      const result = effective({ httpRequest: { url: "https://x.com", statusCodes: 404 } });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.httpRequest.statusCodes).to.deep.equal([404]);
+    });
+
+    it("expands an httpRequest openApi operation ID to the object form", function () {
+      const { httpRequest } = effective({ httpRequest: { openApi: "getUsers" } }).object;
+      expect(httpRequest.openApi).to.deep.equal({ operationId: "getUsers" });
+    });
+
+    it("leaves header strings as authored", function () {
+      const headers = "A: b\n$EXTRA_HEADERS";
+      expect(effective({ checkLink: { url: "https://x.com", headers } }).object.checkLink.headers).to.equal(headers);
+    });
+
+    for (const action of ["saveCookie", "loadCookie"]) {
+      const extra = action === "saveCookie" ? { overwrite: false } : {};
+      it(`expands the ${action} file shorthand to a name and a path`, function () {
+        expect(effective({ [action]: "session.txt" }).object[action]).to.deep.equal({
+          name: "session",
+          path: "session.txt",
+          ...extra,
+        });
+        expect(effective({ [action]: "./cookies/session.txt" }).object[action]).to.deep.equal({
+          name: "session",
+          path: "./cookies/session.txt",
+          ...extra,
+        });
+      });
+
+      it(`expands the ${action} name shorthand to a variable of the same name`, function () {
+        for (const name of ["session_token", "__Secure-next-auth.session-token", "1P_JAR"]) {
+          const result = effective({ [action]: name });
+          expect(result.valid, result.errors).to.equal(true);
+          expect(result.object[action]).to.deep.equal({ name, variable: name, ...extra });
+        }
+      });
+    }
+
     it("upgrades a v2 step to the effective v3 step", function () {
       const result = effective({ action: "goTo", url: "https://example.com" });
       expect(result.valid, result.errors).to.equal(true);
@@ -124,10 +181,20 @@ describe("normalization", function () {
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
       ["httpRequest with a request", { httpRequest: { url: "https://x.com", request: {} } }],
+      ["httpRequest with an operation ID", { httpRequest: { openApi: "getUsers", statusCodes: 200 } }],
+      ["checkLink shorthand", { checkLink: "https://example.com" }],
+      ["checkLink scalar statusCodes", { checkLink: { url: "https://x.com", statusCodes: 200 } }],
+      ["saveCookie file", { saveCookie: "./cookies/session.txt" }],
+      ["saveCookie name", { saveCookie: "__Secure-next-auth.session-token" }],
+      ["loadCookie file", { loadCookie: "session.txt" }],
+      ["loadCookie name", { loadCookie: "session_token" }],
     ]) {
       it(`changes nothing the second time: ${name}`, function () {
         const once = effective(step).object;
-        expect(effective(once).object).to.deep.equal(once);
+        // The runner validates the effective step again, so it must stay valid.
+        const twice = effective(once);
+        expect(twice.valid, twice.errors).to.equal(true);
+        expect(twice.object).to.deep.equal(once);
       });
     }
   });
@@ -167,12 +234,21 @@ describe("normalization", function () {
     // conditional and coded by hand. Add your action's minimal step as you
     // move its normalization out of the handler.
     const MINIMAL = {
+      checkLink: { url: "https://example.com" },
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
+      loadCookie: { name: "session", variable: "session" },
+      saveCookie: { name: "session", path: "session.txt" },
     };
+    // Moved actions whose schemas declare no defaults.
+    const NO_DEFAULTS = ["loadCookie"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
         if (normalizers[action] === passthrough) this.skip();
+        if (NO_DEFAULTS.includes(action)) {
+          expect(normalizers[action](structuredClone(MINIMAL[action]), action)).to.deep.equal(MINIMAL[action]);
+          return;
+        }
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
         const defaults = [];
         (function walk(node, trail) {

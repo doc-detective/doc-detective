@@ -1427,6 +1427,74 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01174: one URL pattern and one request-header shape.
+    describe("URLs, request headers, and status codes", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      it("accepts the same three URL forms on goTo, checkLink, and httpRequest", function () {
+        for (const url of ["https://example.com", "http://localhost:8092/x", "/docs", "$BASE", "$BASE/x"]) {
+          for (const object of [
+            { goTo: url },
+            { goTo: { url } },
+            { checkLink: url },
+            { checkLink: { url } },
+            { httpRequest: url },
+            { httpRequest: { url } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+
+      it("rejects a URL that only contains a variable", function () {
+        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com"]) {
+          for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include('must match pattern "^(https?://|/|\\$[A-Za-z0-9_]+)"');
+          }
+        }
+      });
+
+      it("accepts request headers as an object of strings or as lines of text", function () {
+        for (const headers of [{ "X-Key": "abc" }, "X-Key: abc\nAuthorization: Bearer x"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", headers } },
+            { httpRequest: { url: "https://x.com", request: { headers } } },
+            { httpRequest: { openApi: { operationId: "getUsers", headers } } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+          const openApi = validate({ schemaKey: "openApi_v3", object: { descriptionPath: "x.yaml", headers } });
+          expect(openApi.valid, openApi.errors).to.be.true;
+        }
+      });
+
+      it("rejects a request header whose value is an object", function () {
+        for (const object of [
+          { checkLink: { url: "https://x.com", headers: { a: {} } } },
+          { httpRequest: { url: "https://x.com", request: { headers: { a: {} } } } },
+          { httpRequest: { openApi: { operationId: "getUsers", headers: { a: {} } } } },
+        ]) {
+          expect(step(object).valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+        }
+      });
+
+      it("accepts a single status code or a list on checkLink and httpRequest", function () {
+        for (const statusCodes of [200, [200, 404], "200"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", statusCodes } },
+            { httpRequest: { url: "https://x.com", statusCodes } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+    });
+
     describe("annotations", function () {
       const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
 

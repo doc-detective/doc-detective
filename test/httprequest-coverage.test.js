@@ -126,6 +126,30 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.equal(lastRequestConfig.url, "https://api.example.com/thing");
     });
 
+    it("joins a path to the config's origin and originParams", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      const result = await httpRequest({
+        config: { ...config, origin: "http://api.example.com/", originParams: { k: "v" } },
+        step: { httpRequest: { url: "/users", method: "get", statusCodes: [200] } },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(lastRequestConfig.url, "http://api.example.com/users?k=v");
+    });
+
+    it("FAILs a path when the config has no origin", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      const result = await httpRequest({
+        config,
+        step: { httpRequest: { url: "/users", method: "get", statusCodes: [200] } },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(
+        result.description,
+        "Couldn't send the request: `/users` is a path, and the config has no `origin`. Set `origin` in the config, or use an absolute URL."
+      );
+      assert.equal(lastRequestConfig, undefined);
+    });
+
     it("passes method, headers (object), params, body, and timeout through to axios", async function () {
       stubResponse({ status: 200, data: { ok: true } });
       const result = await httpRequest({
@@ -1475,6 +1499,29 @@ describe("httpRequest coverage (stubbed axios)", function () {
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer abc");
+    });
+
+    it("merges string openApi.headers and string request.headers, request headers winning", async function () {
+      stubResponse({ status: 201, data: { id: 7 } });
+      const p = writeDefinition(sampleDefinition());
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            openApi: {
+              descriptionPath: p,
+              operationId: "createUser",
+              statusCode: 201,
+              validateAgainstSchema: "none",
+              headers: "Authorization: Bearer abc\nX-Source: openapi",
+            },
+            request: { headers: "X-Source: step", body: { name: "Jo" } },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer abc");
+      assert.equal(reqHeader(lastRequestConfig, "X-Source"), "step");
     });
 
     it("mockResponse uses an explicit response.body over the example", async function () {

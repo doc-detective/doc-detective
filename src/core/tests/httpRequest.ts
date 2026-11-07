@@ -9,6 +9,9 @@ import {
   calculateFractionalDifference,
   replaceEnvs,
   loadAxios,
+  parseHeaders,
+  appendQueryParams,
+  redactUrlForOutput,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -23,15 +26,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   let openApiDefinition: any;
   let operation: any;
 
-  // Identify OpenAPI definition
+  // Identify OpenAPI definition. `step` is the effective step (ADR 01167), so
+  // `openApi` is an object.
   if (step.httpRequest.openApi) {
-    // Normalize the string shorthand (openApi: "operationId") to the object
-    // form so a bare operationId resolves like { operationId: "..." }. The
-    // schema permits the string branch, but the resolution below reads
-    // .operationId/.name/.descriptionPath off the value.
-    if (typeof step.httpRequest.openApi === "string") {
-      step.httpRequest.openApi = { operationId: step.httpRequest.openApi };
-    }
     if (step.httpRequest.openApi.descriptionPath) {
       // Load OpenAPI definition from step
       openApiDefinition = await loadDescription(
@@ -103,14 +100,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     if (!step.httpRequest.url) step.httpRequest.url = operation.example.url;
     // Method
     step.httpRequest.method = operation.method;
-    // Headers
+    // Headers: the step's request headers override the OpenAPI ones by name.
     if (step.httpRequest.openApi.headers) {
       if (typeof step.httpRequest.request === "undefined")
         step.httpRequest.request = {};
 
       step.httpRequest.request.headers = {
-        ...step.httpRequest.openApi.headers,
-        ...(step.httpRequest.request.headers || {}),
+        ...parseHeaders(step.httpRequest.openApi.headers),
+        ...parseHeaders(step.httpRequest.request.headers),
       };
     }
 
@@ -129,7 +126,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       if (Object.keys(operation.example.request?.headers ?? {}).length > 0)
         step.httpRequest.request.headers = {
           ...operation.example.request.headers,
-          ...(step.httpRequest.request.headers || {}),
+          ...parseHeaders(step.httpRequest.request.headers),
         };
       if (Object.keys(operation.example.request?.body ?? {}).length > 0)
         step.httpRequest.request.body = {
@@ -169,6 +166,16 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
   }
 
+  // A path joins the config's origin, and its originParams, like goTo's.
+  if (step.httpRequest.url?.startsWith("/")) {
+    if (!config.origin) {
+      result.status = "FAIL";
+      result.description = `Couldn't send the request: \`${redactUrlForOutput(step.httpRequest.url)}\` is a path, and the config has no \`origin\`. Set \`origin\` in the config, or use an absolute URL.`;
+      return result;
+    }
+    step.httpRequest.url = appendQueryParams(config.origin.replace(/\/+$/, "") + step.httpRequest.url, config.originParams);
+  }
+
   // Make sure there's a protocol
   if (step.httpRequest.url && !step.httpRequest.url.includes("://"))
     step.httpRequest.url = "https://" + step.httpRequest.url;
@@ -189,25 +196,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   step = isValidStep.object;
 
   // Standardize step values
-  // request.headers from string to object
-  if (typeof step.httpRequest.request.headers === "string") {
-    // Example string: "Content-Type: application/json\nAuthorization: Bearer token"
-    const headers: any = {};
-    step.httpRequest.request.headers.split("\n").forEach((header: any) => {
-      // Split on the FIRST colon only. Values commonly contain colons (URLs,
-      // timestamps like "12:00:00 GMT", host:port), so splitting on every colon
-      // truncates the value at the second colon. A colon-less line has no
-      // key/value pair and is skipped (preserving prior behavior).
-      const idx = header.indexOf(":");
-      if (idx === -1) return;
-      const key = header.slice(0, idx).trim();
-      const value = header.slice(idx + 1).trim();
-      if (key && value) {
-        headers[key] = value;
-      }
-    });
-    step.httpRequest.request.headers = headers;
-  }
+  step.httpRequest.request.headers = parseHeaders(step.httpRequest.request.headers);
   // request.body is stringified JSON
   if (
     typeof step.httpRequest.request.body === "string" &&

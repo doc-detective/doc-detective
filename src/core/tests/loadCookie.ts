@@ -27,39 +27,10 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object with a `name` and either a
+  // `variable` or a `path`, which the schema guarantees.
   step = isValidStep.object;
-
-  // Parse configuration
-  let cookieName: any, filePath: any, directory: any, domain: any, variable: any;
-
-  if (typeof step.loadCookie === "string") {
-    // Simple string format - could be cookie name or file path
-    if (step.loadCookie.endsWith(".txt")) {
-      // Looks like a file path
-      cookieName = path.basename(step.loadCookie, ".txt");
-      filePath = step.loadCookie;
-    } else {
-      // Treat as cookie name, load from environment variable
-      cookieName = step.loadCookie;
-      variable = cookieName;
-    }
-  } else {
-    // Object format
-    cookieName = step.loadCookie.name;
-    filePath = step.loadCookie.path;
-    directory = step.loadCookie.directory;
-    domain = step.loadCookie.domain;
-    variable = step.loadCookie.variable;
-
-    // If only a file path is provided and name is omitted, infer name from filename
-    if (filePath && !cookieName) {
-      const ext = path.extname(filePath).toLowerCase();
-      if (ext === ".txt") {
-        cookieName = path.basename(filePath, ext);
-      }
-    }
-  }
+  const { name: cookieName, path: filePath, directory, domain, variable } = step.loadCookie;
 
   try {
     let targetCookie = null;
@@ -85,7 +56,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
         result.description = `Failed to parse cookie data from environment variable '${variable}': ${parseError.message}`;
         return result;
       }
-    } else if (filePath) {
+    } else {
       // Load cookie from file
       const inputDirectory = directory || config.outputDir || process.cwd();
       const fullPath = path.resolve(inputDirectory, filePath);
@@ -136,11 +107,6 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
         result.description = `Failed to read cookie file '${fullPath}': ${readError.message}`;
         return result;
       }
-    } else {
-      result.status = "FAIL";
-      result.description =
-        "No cookie source specified (file path or environment variable)";
-      return result;
     }
 
     // Validate cookie data

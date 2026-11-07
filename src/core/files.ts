@@ -256,6 +256,12 @@ async function resolvePaths({
       ((objectType === "spec" && !specNoResolve.includes(property)) ||
         objectType === "config")
     ) {
+      // A cookie file `path` without `directory` belongs under outputDir, which
+      // the cookie handlers join at run time (ADR 01174).
+      const cookiePath =
+        isStep && (property === "saveCookie" || property === "loadCookie") && !object[property]?.directory
+          ? object[property]?.path
+          : undefined;
       object[property] = await resolvePaths({
         config: config,
         object: object[property],
@@ -263,6 +269,7 @@ async function resolvePaths({
         nested: true,
         objectType: objectType,
       });
+      if (cookiePath !== undefined) object[property].path = cookiePath;
     } else if (typeof object[property] === "string") {
       if (
         object[property].startsWith("https://") ||

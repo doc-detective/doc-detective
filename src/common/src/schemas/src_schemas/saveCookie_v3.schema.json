@@ -15,7 +15,7 @@
       "string": {
         "type": "string",
         "title": "Cookie name",
-        "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
+        "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
         "pattern": "^[A-Za-z0-9_./\\-]+$",
         "transform": ["trim"]
       },
@@ -38,20 +38,20 @@
           "variable": {
             "type": "string",
             "title": "Environment variable name",
-            "description": "Environment variable name to store the cookie as JSON string.",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "description": "Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.",
+            "pattern": "^[A-Za-z0-9_.-]+$",
             "transform": ["trim"]
           },
           "path": {
             "type": "string",
             "title": "Cookie file path",
-            "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+            "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
             "transform": ["trim"]
           },
           "directory": {
             "type": "string",
             "title": "Directory path",
-            "description": "Directory to save the cookie file. If not specified, uses output directory.",
+            "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
             "transform": ["trim"]
           },
           "overwrite": {
