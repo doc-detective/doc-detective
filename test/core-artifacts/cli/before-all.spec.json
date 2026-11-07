@@ -49,7 +49,7 @@
             "exitCodes": [
               0
             ],
-            "stdio": "is deprecated. Rename it to"
+            "stdio": "`beforeAny` is deprecated. Rename it to `beforeAll`."
           }
         }
       ]
