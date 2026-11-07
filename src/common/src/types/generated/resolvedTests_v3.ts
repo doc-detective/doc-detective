@@ -28686,9 +28686,9 @@ export interface EnvironmentDetails {
    */
   platform: "linux" | "mac" | "windows";
   /**
-   * The processor architecture of the system running Doc Detective.
+   * The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.
    */
-  arch?: "arm32" | "arm64" | "x32" | "x64";
+  arch?: "arm" | "arm64" | "ia32" | "x64" | "ppc64" | "s390x" | "riscv64" | "loong64";
 }
 /**
  * Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.

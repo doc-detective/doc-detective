@@ -5666,3 +5666,25 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       expect(result.valid).to.be.false;
     });
   });
+
+  describe("config environment arch", function () {
+    for (const arch of ["arm", "arm64", "ia32", "x64", "ppc64", "s390x", "riscv64", "loong64"]) {
+      it(`accepts Node's os.arch() value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    }
+
+    for (const arch of ["arm32", "x32"]) {
+      it(`rejects the non-Node value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });

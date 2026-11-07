@@ -18,7 +18,7 @@ Field | Type | Description | Default
 :-- | :-- | :-- | :--
 workingDirectory | string | Optional. The current working directory of the process running Doc Detective. | —
 platform | string | Required. The operating system type running Doc Detective.<br/><br/>Accepted values: `linux`, `mac`, `windows` | —
-arch | string | Optional. The processor architecture of the system running Doc Detective.<br/><br/>Accepted values: `arm32`, `arm64`, `x32`, `x64` | —
+arch | string | Optional. The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.<br/><br/>Accepted values: `arm`, `arm64`, `ia32`, `x64`, `ppc64`, `s390x`, `riscv64`, `loong64` | —
 
 ## Examples
 
@@ -26,6 +26,6 @@ arch | string | Optional. The processor architecture of the system running Doc D
 {
   "workingDirectory": "example",
   "platform": "linux",
-  "arch": "arm32"
+  "arch": "arm"
 }
 ```

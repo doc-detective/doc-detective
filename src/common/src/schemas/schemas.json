@@ -67932,13 +67932,17 @@
             ]
           },
           "arch": {
-            "description": "The processor architecture of the system running Doc Detective.",
+            "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
             "type": "string",
             "enum": [
-              "arm32",
+              "arm",
               "arm64",
-              "x32",
-              "x64"
+              "ia32",
+              "x64",
+              "ppc64",
+              "s390x",
+              "riscv64",
+              "loong64"
             ]
           }
         },
@@ -68588,13 +68592,17 @@
               ]
             },
             "arch": {
-              "description": "The processor architecture of the system running Doc Detective.",
+              "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
               "type": "string",
               "enum": [
-                "arm32",
+                "arm",
                 "arm64",
-                "x32",
-                "x64"
+                "ia32",
+                "x64",
+                "ppc64",
+                "s390x",
+                "riscv64",
+                "loong64"
               ]
             }
           },
@@ -197388,13 +197396,17 @@
                 ]
               },
               "arch": {
-                "description": "The processor architecture of the system running Doc Detective.",
+                "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
                 "type": "string",
                 "enum": [
-                  "arm32",
+                  "arm",
                   "arm64",
-                  "x32",
-                  "x64"
+                  "ia32",
+                  "x64",
+                  "ppc64",
+                  "s390x",
+                  "riscv64",
+                  "loong64"
                 ]
               }
             },
@@ -198044,13 +198056,17 @@
                   ]
                 },
                 "arch": {
-                  "description": "The processor architecture of the system running Doc Detective.",
+                  "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
                   "type": "string",
                   "enum": [
-                    "arm32",
+                    "arm",
                     "arm64",
-                    "x32",
-                    "x64"
+                    "ia32",
+                    "x64",
+                    "ppc64",
+                    "s390x",
+                    "riscv64",
+                    "loong64"
                   ]
                 }
               },
