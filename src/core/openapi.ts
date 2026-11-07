@@ -86,11 +86,15 @@ async function loadDescription(descriptionPath: string = "") {
     // included.
     definition = await readFile({ fileURLOrPath: descriptionPath });
   }
-  // Only an object is a description. readFile returns null when it can't
-  // read the file, and has already warned why. Empty YAML parses to null;
-  // empty JSON and text that isn't JSON or YAML stay strings, which the ref
-  // parser would read as a path.
-  if (typeof definition !== "object" || definition === null) {
+  // Only an object, not an array, is a description. readFile returns null
+  // when it can't read the file, and has already warned why. Empty YAML
+  // parses to null; empty JSON and text that isn't JSON or YAML stay strings,
+  // which the ref parser would read as a path.
+  if (
+    typeof definition !== "object" ||
+    definition === null ||
+    Array.isArray(definition)
+  ) {
     const location = /^https?:\/\//i.test(descriptionPath)
       ? redactUrlForOutput(descriptionPath)
       : resolvePath(descriptionPath);

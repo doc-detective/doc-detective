@@ -467,11 +467,13 @@ describe("core/openapi coverage", function () {
     });
 
     // Empty YAML parses to null, empty JSON and plain text stay strings; the
-    // ref parser would read a string as a path.
+    // ref parser would read a string as a path. An array parses but isn't a
+    // description either.
     for (const [name, body] of [
       ["empty.yaml", ""],
       ["empty.json", ""],
       ["notes.txt", "plain text"],
+      ["array.json", "[]"],
     ]) {
       it(`says the same for a local description that isn't an object (${name})`, async function () {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
