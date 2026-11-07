@@ -1,6 +1,7 @@
 import { diag } from "../cliOutput.js";
 import { nearestCommand } from "../cliHelp.js";
 import { envFlag } from "../envFlag.js";
+import type { ErrorObject } from "ajv";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1208,12 +1209,21 @@ const ONE_ACTION_MESSAGE = "a step can only have one action.";
 const disjunction = new Intl.ListFormat("en", { type: "disjunction" });
 const orList = (items: unknown[]) => disjunction.format(items.map(String));
 
-// A value as JSON, cut to 40 characters. A string keeps both quotes.
+// A value as JSON, cut to 40 characters. The cut counts the encoded text and
+// never splits an escape such as `\n` or `é`. A string keeps both quotes.
 function shortJson(value: unknown): string {
   const shown = JSON.stringify(value) ?? String(value);
   if (shown.length <= 40) return shown;
-  if (typeof value === "string") return `${JSON.stringify(value.slice(0, 37)).slice(0, -1)}…"`;
-  return `${shown.slice(0, 39)}…`;
+  const cut = (text: string, max: number) => {
+    let kept = "";
+    for (const token of text.match(/\\u[0-9a-fA-F]{4}|\\.|[^\\]/gsu) ?? []) {
+      if (kept.length + token.length > max) break;
+      kept += token;
+    }
+    return kept;
+  };
+  if (typeof value === "string") return `"${cut(shown.slice(1, -1), 37)}…"`;
+  return `${cut(shown, 39)}…`;
 }
 
 // Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
@@ -1221,7 +1231,7 @@ function shortJson(value: unknown): string {
 // the noise of anyOf/oneOf branches the value didn't take dropped, and the
 // nearest real key named when something is unknown. Config and specs read the
 // same (ADR 01150). Raw errors stay available at debug level.
-function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchemaKey = "spec_v3"): string {
+function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, any[]>();
   for (const error of errorObjects) {
     byPath.set(error.instancePath, [...(byPath.get(error.instancePath) ?? []), error]);
@@ -1311,8 +1321,8 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
     const isObject = value !== null && typeof value === "object";
     const allowed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
-    ].filter(() => !isObject);
-    if (allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
+    ];
+    if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
     const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
     for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
     // A type error only matters when nothing else here says what's wrong.
