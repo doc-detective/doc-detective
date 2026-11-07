@@ -1663,7 +1663,10 @@ async function getGuarded(
         : undefined;
     // A fresh lookup of this hop's host, made at most once: a flapping
     // resolver can't give the two checks below different answers. A failed
-    // lookup counts as public.
+    // lookup counts as public. `every: true` is deliberate: the host is
+    // private only when every address is, so in the `fromPublic` check a hop
+    // the connection saw as private still counts as public when the fresh
+    // lookup finds any public address. That's the guard failing closed.
     let fresh: Promise<boolean> | undefined;
     const freshPublic = () =>
       (fresh ??= privateAddressOf(current, { every: true }).then((a) => !a, () => true));
@@ -1674,7 +1677,8 @@ async function getGuarded(
     }
     const location = response.headers?.location;
     if (!location || hops >= 5) {
-      // Names the original URL on purpose: it's the one the spec named.
+      // Names the original URL on purpose: it's the one the spec named. When
+      // the limit and a missing Location both apply, the limit wins on purpose.
       throw new UrlGuardError(
         `Couldn't fetch ${redactUrlForOutput(url)}: ${
           hops >= 5 ? "it needs more than 5 redirects" : `the ${response.status} redirect has no Location header`
