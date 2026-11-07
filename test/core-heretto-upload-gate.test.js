@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { runSpecs } from "../dist/core/tests.js";
+import { runSpecs, uploadChangedFilesIfEnabled } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
 
 /**
@@ -108,6 +108,45 @@ describe("runSpecs Heretto upload gate (uploadOnChange)", function () {
       failed: 0,
       skipped: 0,
       details: [],
+    });
+  });
+});
+
+describe("uploadChangedFilesIfEnabled", function () {
+  const optedIn = { integrations: { heretto: [{ name: "docs", uploadOnChange: true }] } };
+  const log = () => {};
+
+  it("returns undefined without calling the upload when nothing opts in", async function () {
+    let calls = 0;
+    const result = await uploadChangedFilesIfEnabled({
+      config: { integrations: { heretto: [{ name: "docs" }] } },
+      report: { specs: [] },
+      log,
+      upload: async () => {
+        calls++;
+        return {};
+      },
+    });
+    assert.equal(result, undefined);
+    assert.equal(calls, 0);
+  });
+
+  it("keeps the success shape, with empty details and the error, when the upload throws", async function () {
+    const result = await uploadChangedFilesIfEnabled({
+      config: optedIn,
+      report: { specs: [] },
+      log,
+      upload: async () => {
+        throw new Error("collection failed");
+      },
+    });
+    assert.deepEqual(result, {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: "collection failed",
     });
   });
 });
