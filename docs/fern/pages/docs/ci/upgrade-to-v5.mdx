@@ -30,7 +30,7 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `stop: "spec"`, `stop: "run"`, or `goToTest` in a step's routing, and `stop: "run"`, `retry`, or `goToStep` in a test's | Exits `2` |
 | `"click": true` clicks the text `true` | Exits `2`. Use `"click": "true"` for that text |
 | `browser: "edge"` on a surface, and a device's `orientation`, `udid`, and `provider` | Removed |
-| `timeout: 0` on `runShell`, `runCode`, `goTo`, `httpRequest`, `checkLink`, or a `startSurface` process or app, and negative durations, delays, and timeouts anywhere | Exits `2`. Locator and wait timeouts can still be `0` |
+| `timeout: 0` on `runShell`, `runCode`, `goTo`, `httpRequest`, or a `startSurface` process or app, and negative durations, delays, and timeouts anywhere | Exits `2`. Locator and wait timeouts can still be `0` |
 | `screenshot: false` takes a screenshot | Skips the step. Use `screenshot: true` for a screenshot |
 | `find.click` set to text, or to an object with keys other than `button` and `duration` | Exits `2` |
 | A locator such as `selector` inside `find.type` | Exits `2`. Use a separate `type` step |

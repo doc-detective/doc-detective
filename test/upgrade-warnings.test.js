@@ -260,9 +260,10 @@ describe("upgrade warnings", function () {
     });
 
     it("a repeated -t or -s", function () {
-      const [test, spec] = flagWarnings({ test: ["a", "b"], spec: ["c", "d"] });
+      // The fix joins the user's own values, so it can be pasted as is.
+      const [test, spec] = flagWarnings({ test: ["a", "b"], spec: ["foo", "bar"] });
       expect(test).to.include("`--test a,b`");
-      expect(spec).to.include("`--spec a,b`");
+      expect(spec).to.include("`--spec foo,bar`");
       expect(flagWarnings({ test: "a,b", spec: "c" })).to.deep.equal([]);
     });
 
@@ -365,6 +366,9 @@ describe("upgrade warnings", function () {
     it("timeout 0 on operations, and negative durations", function () {
       const [zero] = warns([{ runShell: { command: "echo", timeout: 0 } }]);
       expect(zero).to.include("`timeout: 0`").and.include("Locator and wait timeouts can still be 0");
+      // 4.x has no checkLink timeout to set to 0.
+      expect(zero).to.not.include("checkLink");
+      expect(warns([{ checkLink: { url: "https://a.b", timeout: 0 } }])).to.deep.equal([]);
       expect(warns([{ startSurface: { process: "npm", name: "p", timeout: 0 } }])).to.have.length(1);
       expect(warns([{ wait: -1 }])[0]).to.include("negative `wait`");
       expect(warns([{ type: { keys: "a", inputDelay: -5 } }])[0]).to.include("negative `inputDelay`");

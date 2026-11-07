@@ -99,9 +99,10 @@ export function flagWarnings(args: Record<string, unknown>): string[] {
     );
   }
   for (const flag of ["test", "spec"]) {
-    if (Array.isArray(args[flag])) {
+    const values = args[flag];
+    if (Array.isArray(values)) {
       messages.push(
-        `\`--${flag}\` is given more than once, so 4.x ignores it and Doc Detective 5.0 exits with a usage error. Give one comma-separated value, like \`--${flag} a,b\`, which works today.`
+        `\`--${flag}\` is given more than once, so 4.x ignores it and Doc Detective 5.0 exits with a usage error. Give one comma-separated value, \`--${flag} ${values.join(",")}\`, which works today.`
       );
     }
   }
@@ -295,12 +296,12 @@ function stepWarnings(step: any, where: string, offenders: Offenders): string[] 
     }
   }
   const zeroTimeouts = [
-    ...["runShell", "runCode", "goTo", "httpRequest", "checkLink"].filter((action) => step[action]?.timeout === 0),
+    ...["runShell", "runCode", "goTo", "httpRequest"].filter((action) => step[action]?.timeout === 0),
     ...(starts.some((s) => s.timeout === 0) ? ["startSurface"] : []),
   ];
   for (const action of zeroTimeouts) {
     messages.push(
-      `A \`${action}\` step in ${where} sets \`timeout: 0\`, ${EXIT_2} on \`runShell\`, \`runCode\`, \`goTo\`, \`httpRequest\`, \`checkLink\`, and \`startSurface\` processes and apps. Remove \`timeout\` for the default, or set it to 1 or more, which works today. Locator and wait timeouts can still be 0.`
+      `A \`${action}\` step in ${where} sets \`timeout: 0\`, ${EXIT_2} on \`runShell\`, \`runCode\`, \`goTo\`, \`httpRequest\`, and \`startSurface\` processes and apps. Remove \`timeout\` for the default, or set it to 1 or more, which works today. Locator and wait timeouts can still be 0.`
     );
   }
   for (const key of negatives(step)) {
