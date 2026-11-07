@@ -192,6 +192,31 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
   return extractedSchemas;
 }
 
+// The pages whose defaults validation fills (ADR 01167). It mirrors
+// applyDefaults in src/common/src/normalize/helpers.ts: each action's object
+// branches and the plain nested objects under them, but nothing under another
+// anyOf. Plus config's root, where Ajv fills them. Step-level keys and anything
+// reached through a union, such as OpenAPI options, don't get the line.
+const defaultedPages = new Set([schemas.config_v3.title]);
+(function collectDefaultedPages() {
+  const step = schemas.step_v3;
+  const actions = Object.keys(step.properties).filter(
+    (key) => !(key in step.components.schemas.common.properties)
+  );
+  const visit = (node) => {
+    if (node.title) defaultedPages.add(node.title);
+    const effective = getEffectiveProperties(node);
+    for (const prop of Object.values(effective ? effective.properties : {})) {
+      if (prop.type === "object" && !prop.required && !prop.anyOf) visit(prop);
+    }
+  };
+  for (const action of actions) {
+    for (const branch of schemas[`${action}_v3`].anyOf || []) {
+      if (branch.properties || branch.allOf) visit(branch);
+    }
+  }
+})();
+
 // Function to generate markdown for a schema
 function generateSchemaMarkdown(schemaId, schema) {
   const title = schema.title || schemaId;
@@ -243,7 +268,7 @@ function generateSchemaMarkdown(schemaId, schema) {
   const effectiveFields = getEffectiveProperties(schema);
   // validate() fills these defaults, so results show them too (ADR 01167).
   if (
-    effectiveFields &&
+    defaultedPages.has(schemaId) &&
     Object.values(effectiveFields.properties).some((prop) => prop.default !== undefined)
   ) {
     fields.push("Validation applies the defaults shown here.", "");

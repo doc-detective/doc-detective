@@ -183,6 +183,15 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
 
+## `goTo` and `httpRequest` defaults
+
+**What changed:** Doc Detective fills these defaults the same way for every step, so two edge cases behave differently:
+
+- An authored `timeout: 0` is kept. Version 4 replaced it with the default. A `goTo` step with `timeout: 0` now fails, because the page can't finish loading in no time. An `httpRequest` step with `timeout: 0` now waits with no time limit.
+- An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. With `validateAgainstSchema` set to `request` or `both`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
+
+**What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
+
 ## `--output` is a results file
 
 **What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.

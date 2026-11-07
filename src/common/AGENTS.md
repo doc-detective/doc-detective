@@ -64,9 +64,12 @@ after the schema check passes, `validate()` normalizes every step in a `step_v3`
 object on its own clone, never the caller's. A test's resolved `contexts`, configs (including markup
 templates), and reports aren't walked.
 - `addDefaults: true` (the default) returns the effective object. `addDefaults: false` returns the caller's
-  object unchanged when it's valid, except that a v2 object comes back upgraded to v3.
+  object unchanged when it's valid, except that a v2 object comes back upgraded to v3, not normalized.
+  `transformToSchemaKey`'s own validation calls use `validateObject(..., false)` for the same reason: IDs are
+  hashed from what detection gets back.
 - Normalization runs in both modes, so validity doesn't depend on `addDefaults`. A `NormalizeError` makes the
-  object invalid, with its message as `errors`.
+  object invalid, with its message as `errors`. With `structuredErrors`, it's one `errorObjects` entry with the
+  keyword `normalize` at the error's path.
 - Each action has one normalizer, `src/normalize/<action>.ts`, registered in `src/normalize/index.ts`. Edit
   only your action's file. In order, it expands shorthand to the object form, renames deprecated aliases with
   `renameAliases`, canonicalizes scalars, and applies defaults. Plain defaults come from the schema's object

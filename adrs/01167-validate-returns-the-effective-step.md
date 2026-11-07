@@ -43,10 +43,13 @@ Chosen option: **A**.
   `before` and `after` files arrive through the same calls. A test's resolved `contexts`, configs (including
   markup templates), and reports aren't walked.
 - `addDefaults: true`, the default, returns the effective object. `addDefaults: false` returns the caller's object
-  unchanged when it's valid, except that a v2 object still comes back upgraded to v3. The caller's object is never
-  changed in either mode.
+  unchanged when it's valid, except that a v2 object still comes back upgraded to v3. The upgrade isn't
+  normalized, so the IDs detection hashes from it don't change. The caller's object is never changed in either
+  mode.
 - Normalization runs in both modes, so validity doesn't depend on `addDefaults`. An error it raises, such as
-  setting both a key and its deprecated alias, makes the object invalid in both.
+  setting both a key and its deprecated alias, makes the object invalid in both. With `structuredErrors`, the
+  error is an `errorObjects` entry with the keyword `normalize` at the action's path, so the language server can
+  place it.
 - Each action has one normalizer, `src/common/src/normalize/<action>.ts`, registered in `normalize/index.ts`. In
   order, it expands shorthand to the object form, renames deprecated aliases, canonicalizes scalars, and applies
   defaults. Plain defaults come from the schema's object branch. Conditional ones are coded. It's idempotent. It
@@ -56,9 +59,11 @@ Chosen option: **A**.
   ``Warning: `<old>` is deprecated. Rename it to `<new>`.``. Setting both is invalid:
   ``<path>: set `<new>` or `<old>`, not both.``
 - The runner applies the effective step to each step after it assigns step IDs, so IDs still hash the authored
-  step. It applies it again in `runStep` after environment variables are substituted, so a variable can hold a
-  whole action, and `getRunner()` callers can pass authored steps. Handlers receive effective steps and contain
-  no shorthand or default handling.
+  step. That first pass runs before environment variables are substituted, so it skips a step with a
+  whole-variable value, such as `"goTo": "$NAV"`, because the variable can hold the whole action object. The
+  runner applies the effective step again in `runStep` after substitution. That pass normalizes those steps, and
+  it lets `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
+  or default handling.
 - The report echoes the effective step. That changes a report field's shape, for example `goTo` from a string
   to an object, so it ships in 5.0.
 - This change moves `goTo` and `httpRequest`. The other 19 actions are registered as passthroughs, and their
@@ -67,12 +72,16 @@ Chosen option: **A**.
 
 The pilots keep today's behavior, with three exceptions:
 
-- An authored `0` for goTo's or httpRequest's `timeout` is kept, not replaced by the default.
+- An authored `0` for goTo's or httpRequest's `timeout` is kept, not replaced by the default. A goTo with
+  `timeout: 0` fails, because the page can't load in no time. An httpRequest passes 0 to axios, which means no
+  time limit.
 - `httpRequest.response.body` loses its schema default of `{}`. The handler never applied it, because an unset
   body must skip the body check.
 - For an httpRequest with `openApi`, the operation supplies the method, the status codes, and the request body.
   A step whose OpenAPI config adds no headers and no request example used to send a `{}` body, and now sends
-  none.
+  none. With `validateAgainstSchema` set to `request` or `both`, that step now validates an absent body
+  (`undefined`) instead of `{}`. An operation whose request schema expects an object, even one with no required
+  fields, passed before and now fails. Authoring `request.body` restores the old behavior.
 
 ### Consequences
 
