@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import axios from "axios";
 import { httpRequest } from "../dist/core/tests/httpRequest.js";
+import { validate } from "../dist/common/src/validate.js";
 
 const config = { logLevel: "silent" };
 
@@ -1363,6 +1364,29 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.equal(lastRequestConfig, undefined);
       });
     }
+
+    // The runner hands the handler the effective step, which leaves statusCodes
+    // unset with openApi, so the operation's own 2xx codes apply.
+    it("accepts the operation's 2xx codes when the effective step sets no statusCodes", async function () {
+      const definition = sampleDefinition();
+      const responses = definition.paths["/users"].post.responses;
+      responses[202] = responses[201];
+      delete responses[201];
+      stubResponse({ status: 202, data: { id: 7 } });
+      const { object: step, valid } = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { openApi: "createUser", request: { body: { name: "Jo" } } } },
+      });
+      assert.equal(valid, true);
+      assert.equal(step.httpRequest.statusCodes, undefined);
+      const result = await httpRequest({
+        config,
+        openApiDefinitions: [{ name: "MyApi", definition }],
+        step,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.match(result.description, /Returned 202/);
+    });
 
     it("keeps an integration's own validateAgainstSchema", async function () {
       stubResponse({ status: 201, data: { id: 7 } });

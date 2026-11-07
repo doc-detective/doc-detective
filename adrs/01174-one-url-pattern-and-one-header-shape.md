@@ -72,7 +72,9 @@ Chosen option: **A**.
   that an authored `timeout: 0` is kept.
 - **Status codes.** httpRequest's `statusCodes` accepts an integer or a list, like checkLink's. The integer branch
   comes first, so Ajv's coercion turns `"200"` into `200`. The normalizer turns a single code into a one-item
-  list, so the effective step always holds a list.
+  list, so an authored `statusCodes` is always a list in the effective step. The `[200, 201]` default is
+  conditional. With `openApi`, the normalizer leaves `statusCodes` unset, so the handler accepts the operation's
+  `2xx` response codes, as in version 4.
 - **Normalizers.** checkLink, saveCookie, and loadCookie move their shorthand and defaults out of their handlers
   (ADR 01167). httpRequest's normalizer also expands an `openApi` operation ID to `{ operationId }`.
   - openApi's own defaults, such as `validateAgainstSchema: "both"`, stay unset in the effective step. At run time, a step's

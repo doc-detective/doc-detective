@@ -325,17 +325,30 @@ describe("normalization", function () {
       });
     }
 
-    // Exempt from the parity check above, by name: httpRequest's openApi
-    // defaults. A step's openApi spreads over the config or spec integration it
-    // names or shares an operation with, at run time, so a default filled here
-    // would override the integration's own value. The handler applies
-    // `validateAgainstSchema`'s default after that merge.
+    // Exempt from the parity check above, by name, because the run time
+    // supplies them only with openApi:
+    // - httpRequest's openApi defaults. A step's openApi spreads over the
+    //   config or spec integration it names or shares an operation with, so a
+    //   default filled here would override the integration's own value. The
+    //   handler applies `validateAgainstSchema`'s default after that merge.
+    // - httpRequest's `statusCodes`, `method`, and `request.body`. The
+    //   operation supplies them: its 2xx responses, its method, and its example.
+    const OPENAPI_SUPPLIES = { httpRequest: ["statusCodes", "method"] };
     it("leaves httpRequest's openApi defaults to the run-time merge", function () {
       const properties = schemas.openApi_v3.properties;
       const defaulted = Object.keys(properties).filter((key) => "default" in properties[key]);
       expect(defaulted).to.include("validateAgainstSchema");
       const { openApi } = effective({ httpRequest: { openApi: { operationId: "getUsers" } } }).object.httpRequest;
       expect(openApi).to.not.have.any.keys(...defaulted);
+    });
+
+    it("leaves the defaults an OpenAPI operation supplies unset only with openApi", function () {
+      const withOpenApi = effective({ httpRequest: { openApi: "createOrder" } }).object.httpRequest;
+      const without = effective({ httpRequest: "https://x.com" }).object.httpRequest;
+      expect(withOpenApi).to.not.have.any.keys(...OPENAPI_SUPPLIES.httpRequest);
+      expect(withOpenApi.request).to.not.have.property("body");
+      expect(without).to.include({ method: "get" });
+      expect(without.statusCodes).to.deep.equal([200, 201]);
     });
   });
 
