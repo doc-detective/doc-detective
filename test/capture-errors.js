@@ -2,7 +2,8 @@ import sinon from "sinon";
 
 // Run `run` with console.error stubbed, and return its result plus the lines it
 // printed. The stub is restored even when `run` throws, but the rejection
-// propagates and the lines are lost, so test error paths with assert.rejects.
+// propagates and the lines are lost. A test of an error path should call `run`
+// through assert.rejects, not through this helper.
 export async function captureConsoleError(run) {
   const errors = sinon.stub(console, "error");
   try {
