@@ -4,15 +4,16 @@
   "description": "Takes a screenshot in PNG format.",
   "anyOf": [
     {
+      "type": "boolean",
+      "title": "Capture screenshot",
+      "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.",
+      "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the path branch's pattern needs a .png extension or a `$VAR`, so it never wanted \"true\" or \"false\"."
+    },
+    {
       "$ref": "#/components/schemas/path"
     },
     {
       "$ref": "#/components/schemas/object"
-    },
-    {
-      "type": "boolean",
-      "title": "Capture screenshot",
-      "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
     }
   ],
   "components": {
@@ -208,17 +209,7 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
+              "type": ["boolean", "number", "string"]
             }
           },
           "elementAria": {

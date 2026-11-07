@@ -7,7 +7,11 @@
 /**
  * Takes a screenshot in PNG format.
  */
-export type Screenshot = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
+export type Screenshot = CaptureScreenshot | ScreenshotSimple | CaptureScreenshotDetailed;
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot = boolean;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -91,7 +95,7 @@ export type CropByElementDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -211,10 +215,6 @@ export type NamedRegion6 =
 export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot = boolean;
 
 export interface CaptureScreenshotFields {
   /**

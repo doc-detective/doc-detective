@@ -294,10 +294,26 @@ describe("findElement unified assertion model", function () {
     assert.equal(found.result, "PASS");
     assert.ok(/Couldn't click/.test(result.description));
   });
+
+  // ADR 01161: coercion used to turn `click: false` into the string "false",
+  // which is truthy, so the find clicked anyway.
+  it("find.click: false finds the element without clicking it", async () => {
+    let clicks = 0;
+    const element = makeElement({ clickImpl: async () => clicks++ });
+    const driver = makeDriver({ candidates: [element] });
+    const result = await findElement({
+      config,
+      step: { find: { selector: "button", click: false } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(clicks, 0, result.description);
+  });
 });
 
 // ADR 01175: a boolean `click` names no element, so it's invalid. Coercion used
-// to turn it into the text "true" or "false" and click whatever matched.
+// to turn it into the text "true" or "false" and click whatever matched. 4.x
+// (ADR 01161) failed it at run time; 5.0 fails it at validation.
 describe("click with a boolean value", function () {
   for (const value of [true, false]) {
     it(`click: ${value} fails with a hint to quote it, and clicks nothing`, async () => {
@@ -306,7 +322,12 @@ describe("click with a boolean value", function () {
       const driver = makeDriver({ candidates: [element], $impl: async () => element });
       const result = await clickElement({ config, step: { click: value }, driver });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, new RegExp(`To click an element whose text is "${value}", quote it: "click": "${value}"`));
+      assert.ok(
+        result.description.includes(
+          `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`
+        ),
+        result.description
+      );
       assert.equal(clicks, 0);
     });
   }

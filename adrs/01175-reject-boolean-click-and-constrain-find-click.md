@@ -6,8 +6,7 @@ decision-makers: doc-detective maintainers
 
 # Reject boolean click and constrain find.click
 
-Extends ADR 01161, "Keep authored scalar types through coercion", to version 5. That ADR lands on
-`main` with #816 and reaches this branch when `main` merges forward. Applies
+Extends [ADR 01161](01161-keep-authored-scalar-types-through-coercion.md) to version 5, and applies
 [ADR 01167](01167-validate-returns-the-effective-step.md) to the browser actions.
 
 ## Context and Problem Statement

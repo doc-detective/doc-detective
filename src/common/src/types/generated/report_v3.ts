@@ -1468,7 +1468,7 @@ export type ElementCriteria = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1525,7 +1525,7 @@ export type ElementCriteria1 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1833,7 +1833,7 @@ export type GoToURLDetailed = {
        * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
        */
       elementAttribute?: {
-        [k: string]: string | number | boolean;
+        [k: string]: boolean | number | string;
       };
       /**
        * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3106,7 +3106,7 @@ export type ElementCriteria2 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3163,7 +3163,7 @@ export type ElementCriteria3 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3353,7 +3353,11 @@ export type Condition65 = string | [string, ...string[]];
 /**
  * Takes a screenshot in PNG format.
  */
-export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
+export type Screenshot1 = CaptureScreenshot | ScreenshotSimple | CaptureScreenshotDetailed;
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot = boolean;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -3457,7 +3461,7 @@ export type CropByElementDetailed = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3707,10 +3711,6 @@ export type ExactlyOneAnnotationType =
   | {
       [k: string]: unknown;
     };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -4125,7 +4125,11 @@ export type Condition77 = string | [string, ...string[]];
 /**
  * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
-export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
+export type Record1 = RecordBoolean | RecordSimple | RecordDetailed;
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean = boolean;
 /**
  * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
  */
@@ -4187,10 +4191,6 @@ export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckp
  * If `true`, enables checkpoints with default settings.
  */
 export type RecordingCheckpointsBoolean = boolean;
-/**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -4894,7 +4894,7 @@ export type ElementCriteria4 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -4961,7 +4961,7 @@ export type ElementCriteria5 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -6165,10 +6165,9 @@ export type Condition125 = string | [string, ...string[]];
 /**
  * Pause (in milliseconds) before performing the next action.
  */
-export type Wait1 = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
-export type WaitSimple = number;
+export type Wait1 = WaitSimple | WaitEnvironmentVariable;
+export type WaitSimple = number | boolean;
 export type WaitEnvironmentVariable = string;
-export type WaitBoolean = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -7980,7 +7979,7 @@ export type ElementCriteria6 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -8037,7 +8036,7 @@ export type ElementCriteria7 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -8345,7 +8344,7 @@ export type GoToURLDetailed1 = {
        * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
        */
       elementAttribute?: {
-        [k: string]: string | number | boolean;
+        [k: string]: boolean | number | string;
       };
       /**
        * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -9618,7 +9617,7 @@ export type ElementCriteria8 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -9675,7 +9674,7 @@ export type ElementCriteria9 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -9865,7 +9864,11 @@ export type Condition191 = string | [string, ...string[]];
 /**
  * Takes a screenshot in PNG format.
  */
-export type Screenshot3 = ScreenshotSimple2 | CaptureScreenshotDetailed1 | CaptureScreenshot1;
+export type Screenshot3 = CaptureScreenshot1 | ScreenshotSimple2 | CaptureScreenshotDetailed1;
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot1 = boolean;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -9969,7 +9972,7 @@ export type CropByElementDetailed1 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10219,10 +10222,6 @@ export type ExactlyOneAnnotationType3 =
   | {
       [k: string]: unknown;
     };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot1 = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -10637,7 +10636,11 @@ export type Condition203 = string | [string, ...string[]];
 /**
  * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
-export type Record3 = RecordSimple1 | RecordDetailed1 | RecordBoolean1;
+export type Record3 = RecordBoolean1 | RecordSimple1 | RecordDetailed1;
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean1 = boolean;
 /**
  * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
  */
@@ -10699,10 +10702,6 @@ export type RecordingCheckpoints1 = RecordingCheckpointsBoolean1 | RecordingChec
  * If `true`, enables checkpoints with default settings.
  */
 export type RecordingCheckpointsBoolean1 = boolean;
-/**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean1 = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -11406,7 +11405,7 @@ export type ElementCriteria10 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -11473,7 +11472,7 @@ export type ElementCriteria11 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -12677,10 +12676,9 @@ export type Condition251 = string | [string, ...string[]];
 /**
  * Pause (in milliseconds) before performing the next action.
  */
-export type Wait3 = WaitSimple1 | WaitEnvironmentVariable1 | WaitBoolean1;
-export type WaitSimple1 = number;
+export type Wait3 = WaitSimple1 | WaitEnvironmentVariable1;
+export type WaitSimple1 = number | boolean;
 export type WaitEnvironmentVariable1 = string;
-export type WaitBoolean1 = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */

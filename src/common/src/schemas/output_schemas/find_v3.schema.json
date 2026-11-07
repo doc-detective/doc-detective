@@ -1161,16 +1161,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -1270,16 +1264,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -1570,16 +1558,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -1700,16 +1682,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -1839,16 +1815,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2653,16 +2623,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -2762,16 +2726,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -3062,16 +3020,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -3192,16 +3144,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -3331,16 +3277,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -4665,16 +4605,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -4774,16 +4708,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -5074,16 +5002,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -5204,16 +5126,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -5343,16 +5259,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6157,16 +6067,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -6266,16 +6170,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -6566,16 +6464,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6696,16 +6588,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6835,16 +6721,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },

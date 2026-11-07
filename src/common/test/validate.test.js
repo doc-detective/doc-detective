@@ -2518,8 +2518,25 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       // Ajv runs with coerceTypes, and in a union the first branch with a `type`
       // rewrites values meant for later ones (ADR 01161).
       const attr = (value) => ({ "data-x": value });
+      // Each case is [authored step, path to the value, expected validated value].
+      // #816's rows for `click: true`/`false` moved to the rejections above, and a
+      // clicking find.click is its button in the effective step (ADR 01175).
       for (const [step, keys, expected] of [
         [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], { button: "left" }],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], { button: "right" }],
+        [{ click: "true" }, ["click"], "true"],
+        [{ click: "false" }, ["click"], "false"],
+        [{ wait: true }, ["wait"], true],
+        [{ wait: false }, ["wait"], false],
+        [{ wait: 1 }, ["wait"], 1],
+        [{ wait: 0 }, ["wait"], 0],
+        [{ wait: "5000" }, ["wait"], 5000],
+        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
+        [{ record: false }, ["record"], false],
+        [{ record: "true" }, ["record"], true],
+        [{ screenshot: false }, ["screenshot"], false],
         [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
         [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
         [{ find: { elementAttribute: attr("true") } }, ["find", "elementAttribute", "data-x"], "true"],
@@ -2534,7 +2551,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
           const result = check(step);
           expect(result.valid, result.errors).to.be.true;
-          expect(keys.reduce((value, key) => value[key], result.object)).to.equal(expected);
+          expect(keys.reduce((value, key) => value[key], result.object)).to.deep.equal(expected);
         });
       }
     });

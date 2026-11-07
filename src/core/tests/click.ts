@@ -19,6 +19,8 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
     return result;
   }
   // The effective step (ADR 01167): an object click has its defaults filled.
+  // A boolean click is invalid in 5.0 (ADR 01175), so validation above has
+  // already failed it with a hint to quote the text.
   step = isValidStep.object;
   let findStep: any;
 

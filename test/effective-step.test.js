@@ -19,6 +19,18 @@ describe("useEffectiveStep", function () {
     expect(step._fromAfter).to.equal(true);
   });
 
+  // The runner executes the coerced effective step, so coercion must keep an
+  // authored boolean a boolean (ADR 01161).
+  it("keeps authored booleans", function () {
+    const wait = { wait: false };
+    const find = { find: { elementText: "Save", click: false, elementAttribute: { disabled: false } } };
+    useEffectiveStep(wait);
+    useEffectiveStep(find);
+    expect(wait.wait).to.equal(false);
+    expect(find.find.click).to.equal(false);
+    expect(find.find.elementAttribute.disabled).to.equal(false);
+  });
+
   // validate() leaves a whole-variable action as authored, because the variable
   // can hold an object. The runner's pass after substitution normalizes it.
   for (const [action, value, filled] of [
