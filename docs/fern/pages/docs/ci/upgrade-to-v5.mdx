@@ -105,6 +105,19 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 
 A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
 
+## Routing actions that never ran
+
+**What changed:** A [routing entry](/docs/get-started/how-testing-works#routing-handlers) can only name an action Doc Detective performs at its scope. Version 4 accepted every action on both steps and tests, then ignored some and quietly downgraded others. These now make the spec invalid, and the run exits `2`:
+
+| Entry | Version 4 | Version 5 |
+|---|---|---|
+| `stop: "spec"` or `stop: "run"` on a step | Warned, then stopped only the current test. | The spec is invalid. |
+| `goToTest` on a step | Ignored. | The spec is invalid. |
+| `stop: "run"` on a test | Warned, then stopped only the current spec. | The spec is invalid. |
+| `retry` or `goToStep` on a test | Ignored. | The spec is invalid. |
+
+**What to do:** On a step, use `stop: "test"`. To skip a spec's remaining tests, move the handler to the test and use `stop: "spec"`. Remove step-level `goToTest` entries and test-level `retry` and `goToStep` entries, which never did anything.
+
 ## Test detection reads document structure
 
 **What changed:** Doc Detective parses each file before it detects tests, so it reads structure instead of matching raw text. With step detection on, a default config detects different steps:

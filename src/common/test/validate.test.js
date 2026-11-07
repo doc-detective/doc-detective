@@ -3538,15 +3538,77 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01168: each scope accepts only the routing actions the runner performs there.
+    describe("routing scopes", function () {
+      const step = (handler) => ({ goTo: { url: "https://example.com" }, onFail: [handler] });
+      const test = (handler) => ({ steps: [{ runShell: "echo hi" }], onFail: [handler] });
+      const check = (schemaKey, object) => validate({ schemaKey, object, addDefaults: false });
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a step`, function () {
+          const result = check("step_v3", step(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { stop: "spec" }, { goToTest: "t" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a test`, function () {
+          const result = check("test_v3", test(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("accepts stop: spec in a test's onPass", function () {
+        const result = check("test_v3", { steps: [{ runShell: "echo hi" }], onPass: [{ stop: "spec" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const value of ["spec", "run"]) {
+        it(`rejects stop: ${value} on a step`, function () {
+          const result = check("step_v3", step({ stop: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+          expect(result.errors).to.include('"allowedValues":["test"]');
+        });
+      }
+
+      it("rejects goToTest on a step as an unknown key", function () {
+        const result = check("step_v3", step({ goToTest: "t" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('"additionalProperty":"goToTest"');
+      });
+
+      it("rejects stop: run on a test", function () {
+        const result = check("test_v3", test({ stop: "run" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+        expect(result.errors).to.include('"allowedValues":["test","spec"]');
+      });
+
+      for (const [key, value] of [["retry", { limit: 1 }], ["goToStep", "s"]]) {
+        it(`rejects ${key} on a test as an unknown key`, function () {
+          const result = check("test_v3", test({ [key]: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
+
+      it("names the full path when a spec's step stops the run", function () {
+        const result = check("spec_v3", { tests: [{ steps: [step({ stop: "run" })] }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("/tests/0/steps/0/onFail/0/stop");
+      });
+    });
+
     describe("dynamic routing (Phase 1 schema foundation)", function () {
       // Positive cases — must validate.
-      it("validates a step with onFail conditional goToTest + unconditional stop", function () {
+      it("validates a step with onFail conditional goToStep + unconditional stop", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             goTo: { url: "https://example.com" },
             onFail: [
-              { if: "$$platform == windows", goToTest: "x" },
+              { if: "$$platform == windows", goToStep: "x" },
               { stop: "test" },
             ],
           },
@@ -3705,9 +3767,9 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
       it("rejects goToTest whitespace-only string", function () {
         const result = validate({
-          schemaKey: "step_v3",
+          schemaKey: "test_v3",
           object: {
-            goTo: { url: "https://example.com" },
+            steps: [{ goTo: { url: "https://example.com" } }],
             onFail: [{ goToTest: "   " }],
           },
         });

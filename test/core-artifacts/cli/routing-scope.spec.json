@@ -1,0 +1,99 @@
+{
+  "specId": "cli-routing-scope",
+  "description": "Routing actions the runner can't perform at their scope make a spec invalid (ADR 01168), through the real CLI: exit 2. A test-level stop: spec still runs.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-routing-scope';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const e={runShell:'echo hi'};const w=(n,o)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify(o));const step=h=>({tests:[{steps:[{...e,onFail:[h]}]}]});const test=h=>({tests:[{steps:[e],onFail:[h]}]});w('step-stop-spec',step({stop:'spec'}));w('step-stop-run',step({stop:'run'}));w('step-goToTest',step({goToTest:'t'}));w('test-stop-run',test({stop:'run'}));w('test-retry',test({retry:{limit:1}}));w('test-goToStep',test({goToStep:'s'}));w('test-stop-spec',{tests:[{steps:[e],onPass:[{stop:'spec'}]},{steps:[e]}]});\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "step-scope-exit-2",
+      "description": "A step handler with stop: spec, stop: run, or goToTest exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/step-stop-spec.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/step-stop-run.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/step-goToTest.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "test-scope-exit-2",
+      "description": "A test handler with stop: run, retry, or goToStep exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/test-stop-run.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/test-retry.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/test-goToStep.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "test-stop-spec-runs",
+      "description": "A test handler with stop: spec is valid and runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-routing-scope/test-stop-spec.spec.json --output-dir .tmp/fixture-routing-scope/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

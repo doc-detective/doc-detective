@@ -315,7 +315,7 @@ Each handler is an array of routing entries. An entry has an optional `if` condi
 Routing entries support these actions:
 
 - **`continue`**: Run the next step. Set `continue` to `true`.
-- **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
+- **`stop`**: Stop the test. Set `stop` to `test`, the only scope a step can stop.
 - **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
 - **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
 
@@ -383,7 +383,9 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+At the step level, `stop` halts the remaining steps in the current test, and `test` is its only scope. A step can't stop later tests or specs, so a step-level `stop: spec` or `stop: run` makes the spec invalid, and the run exits `2` before anything runs. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+
+A step-level entry also can't use `goToTest`. Doc Detective reports it as an unknown key, because jumping between tests is a test-level action.
 
 ### Retry a step
 
@@ -512,21 +514,18 @@ Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detectiv
 
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number. That's `2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
-<Note>
-At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test).
-</Note>
-
 ## Route between tests
 
 Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test. Once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers. Each is an array of entries, each with an optional `if` condition and exactly one action, and the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
 
-At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
+At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so a test-level entry that uses either one makes the spec invalid, and the run exits `2`. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
 
 `stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
 
 - **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
 - **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
-- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests.
+
+A test can't stop the whole run, so `stop: run` makes the spec invalid, and the run exits `2` before anything runs.
 
 As with step-level routing, test-level routing controls flow only. It never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution. A spec whose tests have no routing handlers runs exactly as it does today.
 

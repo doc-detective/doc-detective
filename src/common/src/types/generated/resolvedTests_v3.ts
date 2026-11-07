@@ -824,19 +824,19 @@ export type Test = (
   openApi?: (OpenApi2 & OpenAPIDescriptionTest2)[];
   if?: Condition1;
   /**
-   * Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.
+   * Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: "test"`, `stop: "spec"`, or `goToTest`.
    */
   onPass?: Routing[];
   /**
-   * Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.
+   * Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: "test"`, `stop: "spec"`, or `goToTest`.
    */
   onFail?: Routing1[];
   /**
-   * Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.
+   * Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: "test"`, `stop: "spec"`, or `goToTest`.
    */
   onWarning?: Routing2[];
   /**
-   * Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.
+   * Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: "test"`, `stop: "spec"`, or `goToTest`.
    */
   onSkip?: Routing3[];
   /**
@@ -923,15 +923,9 @@ export type OpenApi2 = (
  */
 export type Condition1 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a test handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test` or `spec`), or `goToTest`. Step handlers take a step routing entry instead.
  */
 export type Routing = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
   | {
       [k: string]: unknown;
     }
@@ -944,20 +938,15 @@ export type Routing = (
 ) & {
   if?: Condition2;
   /**
-   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   * Continue with the next test. Use to explicitly suppress a default handler behavior.
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop at the given scope. `test` does nothing, because the test already finished. `spec` skips the spec's remaining tests.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry;
+  stop?: "test" | "spec";
   /**
-   * Identifier of the step to jump to.
-   */
-  goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
+   * Identifier of the test to jump to, within the same spec.
    */
   goToTest?: string;
 };
@@ -966,15 +955,9 @@ export type Routing = (
  */
 export type Condition2 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a test handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test` or `spec`), or `goToTest`. Step handlers take a step routing entry instead.
  */
 export type Routing1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
   | {
       [k: string]: unknown;
     }
@@ -987,20 +970,15 @@ export type Routing1 = (
 ) & {
   if?: Condition3;
   /**
-   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   * Continue with the next test. Use to explicitly suppress a default handler behavior.
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop at the given scope. `test` does nothing, because the test already finished. `spec` skips the spec's remaining tests.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry1;
+  stop?: "test" | "spec";
   /**
-   * Identifier of the step to jump to.
-   */
-  goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
+   * Identifier of the test to jump to, within the same spec.
    */
   goToTest?: string;
 };
@@ -1009,15 +987,9 @@ export type Routing1 = (
  */
 export type Condition3 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a test handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test` or `spec`), or `goToTest`. Step handlers take a step routing entry instead.
  */
 export type Routing2 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
   | {
       [k: string]: unknown;
     }
@@ -1030,20 +1002,15 @@ export type Routing2 = (
 ) & {
   if?: Condition4;
   /**
-   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   * Continue with the next test. Use to explicitly suppress a default handler behavior.
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop at the given scope. `test` does nothing, because the test already finished. `spec` skips the spec's remaining tests.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry2;
+  stop?: "test" | "spec";
   /**
-   * Identifier of the step to jump to.
-   */
-  goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
+   * Identifier of the test to jump to, within the same spec.
    */
   goToTest?: string;
 };
@@ -1052,15 +1019,9 @@ export type Routing2 = (
  */
 export type Condition4 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a test handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test` or `spec`), or `goToTest`. Step handlers take a step routing entry instead.
  */
 export type Routing3 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
   | {
       [k: string]: unknown;
     }
@@ -1073,20 +1034,15 @@ export type Routing3 = (
 ) & {
   if?: Condition5;
   /**
-   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   * Continue with the next test. Use to explicitly suppress a default handler behavior.
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop at the given scope. `test` does nothing, because the test already finished. `spec` skips the spec's remaining tests.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry3;
+  stop?: "test" | "spec";
   /**
-   * Identifier of the step to jump to.
-   */
-  goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
+   * Identifier of the test to jump to, within the same spec.
    */
   goToTest?: string;
 };
@@ -1235,12 +1191,9 @@ export type Condition6 = string | [string, ...string[]];
  */
 export type Condition7 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing4 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting = (
   | {
       [k: string]: unknown;
     }
@@ -1260,30 +1213,23 @@ export type Routing4 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry4;
+  stop?: "test";
+  retry?: Retry;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition8 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing5 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting1 = (
   | {
       [k: string]: unknown;
     }
@@ -1303,30 +1249,23 @@ export type Routing5 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry5;
+  stop?: "test";
+  retry?: Retry1;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition9 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing6 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting2 = (
   | {
       [k: string]: unknown;
     }
@@ -1346,30 +1285,23 @@ export type Routing6 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry6;
+  stop?: "test";
+  retry?: Retry2;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition10 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing7 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting3 = (
   | {
       [k: string]: unknown;
     }
@@ -1389,18 +1321,14 @@ export type Routing7 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry7;
+  stop?: "test";
+  retry?: Retry3;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -1425,12 +1353,9 @@ export type Condition12 = string | [string, ...string[]];
  */
 export type Condition13 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing8 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting4 = (
   | {
       [k: string]: unknown;
     }
@@ -1450,30 +1375,23 @@ export type Routing8 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry8;
+  stop?: "test";
+  retry?: Retry4;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition14 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing9 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting5 = (
   | {
       [k: string]: unknown;
     }
@@ -1493,30 +1411,23 @@ export type Routing9 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry9;
+  stop?: "test";
+  retry?: Retry5;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition15 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing10 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting6 = (
   | {
       [k: string]: unknown;
     }
@@ -1536,30 +1447,23 @@ export type Routing10 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry10;
+  stop?: "test";
+  retry?: Retry6;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition16 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing11 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting7 = (
   | {
       [k: string]: unknown;
     }
@@ -1579,18 +1483,14 @@ export type Routing11 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry11;
+  stop?: "test";
+  retry?: Retry7;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -1723,12 +1623,9 @@ export type Condition18 = string | [string, ...string[]];
  */
 export type Condition19 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing12 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting8 = (
   | {
       [k: string]: unknown;
     }
@@ -1748,30 +1645,23 @@ export type Routing12 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry12;
+  stop?: "test";
+  retry?: Retry8;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition20 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing13 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting9 = (
   | {
       [k: string]: unknown;
     }
@@ -1791,30 +1681,23 @@ export type Routing13 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry13;
+  stop?: "test";
+  retry?: Retry9;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition21 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing14 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting10 = (
   | {
       [k: string]: unknown;
     }
@@ -1834,30 +1717,23 @@ export type Routing14 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry14;
+  stop?: "test";
+  retry?: Retry10;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition22 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing15 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting11 = (
   | {
       [k: string]: unknown;
     }
@@ -1877,18 +1753,14 @@ export type Routing15 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry15;
+  stop?: "test";
+  retry?: Retry11;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -2364,12 +2236,9 @@ export type Condition24 = string | [string, ...string[]];
  */
 export type Condition25 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing16 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting12 = (
   | {
       [k: string]: unknown;
     }
@@ -2389,30 +2258,23 @@ export type Routing16 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry16;
+  stop?: "test";
+  retry?: Retry12;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition26 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing17 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting13 = (
   | {
       [k: string]: unknown;
     }
@@ -2432,30 +2294,23 @@ export type Routing17 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry17;
+  stop?: "test";
+  retry?: Retry13;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition27 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing18 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting14 = (
   | {
       [k: string]: unknown;
     }
@@ -2475,30 +2330,23 @@ export type Routing18 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry18;
+  stop?: "test";
+  retry?: Retry14;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition28 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing19 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting15 = (
   | {
       [k: string]: unknown;
     }
@@ -2518,18 +2366,14 @@ export type Routing19 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry19;
+  stop?: "test";
+  retry?: Retry15;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -2704,12 +2548,9 @@ export type Condition30 = string | [string, ...string[]];
  */
 export type Condition31 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing20 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting16 = (
   | {
       [k: string]: unknown;
     }
@@ -2729,30 +2570,23 @@ export type Routing20 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry20;
+  stop?: "test";
+  retry?: Retry16;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition32 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing21 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting17 = (
   | {
       [k: string]: unknown;
     }
@@ -2772,30 +2606,23 @@ export type Routing21 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry21;
+  stop?: "test";
+  retry?: Retry17;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition33 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing22 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting18 = (
   | {
       [k: string]: unknown;
     }
@@ -2815,30 +2642,23 @@ export type Routing22 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry22;
+  stop?: "test";
+  retry?: Retry18;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition34 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing23 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting19 = (
   | {
       [k: string]: unknown;
     }
@@ -2858,18 +2678,14 @@ export type Routing23 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry23;
+  stop?: "test";
+  retry?: Retry19;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -3013,12 +2829,9 @@ export type Condition36 = string | [string, ...string[]];
  */
 export type Condition37 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing24 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting20 = (
   | {
       [k: string]: unknown;
     }
@@ -3038,30 +2851,23 @@ export type Routing24 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry24;
+  stop?: "test";
+  retry?: Retry20;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition38 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing25 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting21 = (
   | {
       [k: string]: unknown;
     }
@@ -3081,30 +2887,23 @@ export type Routing25 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry25;
+  stop?: "test";
+  retry?: Retry21;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition39 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing26 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting22 = (
   | {
       [k: string]: unknown;
     }
@@ -3124,30 +2923,23 @@ export type Routing26 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry26;
+  stop?: "test";
+  retry?: Retry22;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition40 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing27 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting23 = (
   | {
       [k: string]: unknown;
     }
@@ -3167,18 +2959,14 @@ export type Routing27 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry27;
+  stop?: "test";
+  retry?: Retry23;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -3201,12 +2989,9 @@ export type Condition42 = string | [string, ...string[]];
  */
 export type Condition43 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing28 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting24 = (
   | {
       [k: string]: unknown;
     }
@@ -3226,30 +3011,23 @@ export type Routing28 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry28;
+  stop?: "test";
+  retry?: Retry24;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition44 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing29 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting25 = (
   | {
       [k: string]: unknown;
     }
@@ -3269,30 +3047,23 @@ export type Routing29 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry29;
+  stop?: "test";
+  retry?: Retry25;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition45 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing30 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting26 = (
   | {
       [k: string]: unknown;
     }
@@ -3312,30 +3083,23 @@ export type Routing30 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry30;
+  stop?: "test";
+  retry?: Retry26;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition46 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing31 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting27 = (
   | {
       [k: string]: unknown;
     }
@@ -3355,18 +3119,14 @@ export type Routing31 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry31;
+  stop?: "test";
+  retry?: Retry27;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -3385,12 +3145,9 @@ export type Condition48 = string | [string, ...string[]];
  */
 export type Condition49 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing32 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting28 = (
   | {
       [k: string]: unknown;
     }
@@ -3410,30 +3167,23 @@ export type Routing32 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry32;
+  stop?: "test";
+  retry?: Retry28;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition50 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing33 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting29 = (
   | {
       [k: string]: unknown;
     }
@@ -3453,30 +3203,23 @@ export type Routing33 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry33;
+  stop?: "test";
+  retry?: Retry29;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition51 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing34 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting30 = (
   | {
       [k: string]: unknown;
     }
@@ -3496,30 +3239,23 @@ export type Routing34 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry34;
+  stop?: "test";
+  retry?: Retry30;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition52 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing35 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting31 = (
   | {
       [k: string]: unknown;
     }
@@ -3539,18 +3275,14 @@ export type Routing35 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry35;
+  stop?: "test";
+  retry?: Retry31;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -3601,12 +3333,9 @@ export type Condition54 = string | [string, ...string[]];
  */
 export type Condition55 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing36 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting32 = (
   | {
       [k: string]: unknown;
     }
@@ -3626,30 +3355,23 @@ export type Routing36 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry36;
+  stop?: "test";
+  retry?: Retry32;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition56 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing37 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting33 = (
   | {
       [k: string]: unknown;
     }
@@ -3669,30 +3391,23 @@ export type Routing37 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry37;
+  stop?: "test";
+  retry?: Retry33;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition57 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing38 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting34 = (
   | {
       [k: string]: unknown;
     }
@@ -3712,30 +3427,23 @@ export type Routing38 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry38;
+  stop?: "test";
+  retry?: Retry34;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition58 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing39 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting35 = (
   | {
       [k: string]: unknown;
     }
@@ -3755,18 +3463,14 @@ export type Routing39 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry39;
+  stop?: "test";
+  retry?: Retry35;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -4002,12 +3706,9 @@ export type Condition60 = string | [string, ...string[]];
  */
 export type Condition61 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing40 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting36 = (
   | {
       [k: string]: unknown;
     }
@@ -4027,30 +3728,23 @@ export type Routing40 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry40;
+  stop?: "test";
+  retry?: Retry36;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition62 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing41 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting37 = (
   | {
       [k: string]: unknown;
     }
@@ -4070,30 +3764,23 @@ export type Routing41 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry41;
+  stop?: "test";
+  retry?: Retry37;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition63 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing42 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting38 = (
   | {
       [k: string]: unknown;
     }
@@ -4113,30 +3800,23 @@ export type Routing42 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry42;
+  stop?: "test";
+  retry?: Retry38;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition64 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing43 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting39 = (
   | {
       [k: string]: unknown;
     }
@@ -4156,18 +3836,14 @@ export type Routing43 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry43;
+  stop?: "test";
+  retry?: Retry39;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -4543,12 +4219,9 @@ export type Condition66 = string | [string, ...string[]];
  */
 export type Condition67 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing44 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting40 = (
   | {
       [k: string]: unknown;
     }
@@ -4568,30 +4241,23 @@ export type Routing44 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry44;
+  stop?: "test";
+  retry?: Retry40;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition68 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing45 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting41 = (
   | {
       [k: string]: unknown;
     }
@@ -4611,30 +4277,23 @@ export type Routing45 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry45;
+  stop?: "test";
+  retry?: Retry41;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition69 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing46 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting42 = (
   | {
       [k: string]: unknown;
     }
@@ -4654,30 +4313,23 @@ export type Routing46 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry46;
+  stop?: "test";
+  retry?: Retry42;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition70 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing47 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting43 = (
   | {
       [k: string]: unknown;
     }
@@ -4697,18 +4349,14 @@ export type Routing47 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry47;
+  stop?: "test";
+  retry?: Retry43;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -4774,12 +4422,9 @@ export type Condition72 = string | [string, ...string[]];
  */
 export type Condition73 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing48 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting44 = (
   | {
       [k: string]: unknown;
     }
@@ -4799,30 +4444,23 @@ export type Routing48 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry48;
+  stop?: "test";
+  retry?: Retry44;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition74 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing49 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting45 = (
   | {
       [k: string]: unknown;
     }
@@ -4842,30 +4480,23 @@ export type Routing49 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry49;
+  stop?: "test";
+  retry?: Retry45;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition75 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing50 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting46 = (
   | {
       [k: string]: unknown;
     }
@@ -4885,30 +4516,23 @@ export type Routing50 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry50;
+  stop?: "test";
+  retry?: Retry46;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition76 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing51 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting47 = (
   | {
       [k: string]: unknown;
     }
@@ -4928,18 +4552,14 @@ export type Routing51 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry51;
+  stop?: "test";
+  retry?: Retry47;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -5023,12 +4643,9 @@ export type Condition78 = string | [string, ...string[]];
  */
 export type Condition79 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing52 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting48 = (
   | {
       [k: string]: unknown;
     }
@@ -5048,30 +4665,23 @@ export type Routing52 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry52;
+  stop?: "test";
+  retry?: Retry48;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition80 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing53 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting49 = (
   | {
       [k: string]: unknown;
     }
@@ -5091,30 +4701,23 @@ export type Routing53 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry53;
+  stop?: "test";
+  retry?: Retry49;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition81 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing54 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting50 = (
   | {
       [k: string]: unknown;
     }
@@ -5134,30 +4737,23 @@ export type Routing54 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry54;
+  stop?: "test";
+  retry?: Retry50;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition82 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing55 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting51 = (
   | {
       [k: string]: unknown;
     }
@@ -5177,18 +4773,14 @@ export type Routing55 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry55;
+  stop?: "test";
+  retry?: Retry51;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -5219,12 +4811,9 @@ export type Condition84 = string | [string, ...string[]];
  */
 export type Condition85 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing56 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting52 = (
   | {
       [k: string]: unknown;
     }
@@ -5244,30 +4833,23 @@ export type Routing56 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry56;
+  stop?: "test";
+  retry?: Retry52;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition86 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing57 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting53 = (
   | {
       [k: string]: unknown;
     }
@@ -5287,30 +4869,23 @@ export type Routing57 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry57;
+  stop?: "test";
+  retry?: Retry53;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition87 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing58 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting54 = (
   | {
       [k: string]: unknown;
     }
@@ -5330,30 +4905,23 @@ export type Routing58 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry58;
+  stop?: "test";
+  retry?: Retry54;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition88 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing59 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting55 = (
   | {
       [k: string]: unknown;
     }
@@ -5373,18 +4941,14 @@ export type Routing59 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry59;
+  stop?: "test";
+  retry?: Retry55;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -5491,12 +5055,9 @@ export type Condition90 = string | [string, ...string[]];
  */
 export type Condition91 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing60 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting56 = (
   | {
       [k: string]: unknown;
     }
@@ -5516,30 +5077,23 @@ export type Routing60 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry60;
+  stop?: "test";
+  retry?: Retry56;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition92 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing61 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting57 = (
   | {
       [k: string]: unknown;
     }
@@ -5559,30 +5113,23 @@ export type Routing61 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry61;
+  stop?: "test";
+  retry?: Retry57;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition93 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing62 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting58 = (
   | {
       [k: string]: unknown;
     }
@@ -5602,30 +5149,23 @@ export type Routing62 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry62;
+  stop?: "test";
+  retry?: Retry58;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition94 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing63 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting59 = (
   | {
       [k: string]: unknown;
     }
@@ -5645,18 +5185,14 @@ export type Routing63 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry63;
+  stop?: "test";
+  retry?: Retry59;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -5800,12 +5336,9 @@ export type Condition96 = string | [string, ...string[]];
  */
 export type Condition97 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing64 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting60 = (
   | {
       [k: string]: unknown;
     }
@@ -5825,30 +5358,23 @@ export type Routing64 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry64;
+  stop?: "test";
+  retry?: Retry60;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition98 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing65 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting61 = (
   | {
       [k: string]: unknown;
     }
@@ -5868,30 +5394,23 @@ export type Routing65 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry65;
+  stop?: "test";
+  retry?: Retry61;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition99 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing66 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting62 = (
   | {
       [k: string]: unknown;
     }
@@ -5911,30 +5430,23 @@ export type Routing66 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry66;
+  stop?: "test";
+  retry?: Retry62;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition100 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing67 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting63 = (
   | {
       [k: string]: unknown;
     }
@@ -5954,18 +5466,14 @@ export type Routing67 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry67;
+  stop?: "test";
+  retry?: Retry63;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -5984,12 +5492,9 @@ export type Condition102 = string | [string, ...string[]];
  */
 export type Condition103 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing68 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting64 = (
   | {
       [k: string]: unknown;
     }
@@ -6009,30 +5514,23 @@ export type Routing68 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry68;
+  stop?: "test";
+  retry?: Retry64;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition104 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing69 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting65 = (
   | {
       [k: string]: unknown;
     }
@@ -6052,30 +5550,23 @@ export type Routing69 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry69;
+  stop?: "test";
+  retry?: Retry65;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition105 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing70 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting66 = (
   | {
       [k: string]: unknown;
     }
@@ -6095,30 +5586,23 @@ export type Routing70 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry70;
+  stop?: "test";
+  retry?: Retry66;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition106 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing71 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting67 = (
   | {
       [k: string]: unknown;
     }
@@ -6138,18 +5622,14 @@ export type Routing71 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry71;
+  stop?: "test";
+  retry?: Retry67;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -6316,12 +5796,9 @@ export type Condition108 = string | [string, ...string[]];
  */
 export type Condition109 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing72 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting68 = (
   | {
       [k: string]: unknown;
     }
@@ -6341,30 +5818,23 @@ export type Routing72 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry72;
+  stop?: "test";
+  retry?: Retry68;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition110 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing73 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting69 = (
   | {
       [k: string]: unknown;
     }
@@ -6384,30 +5854,23 @@ export type Routing73 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry73;
+  stop?: "test";
+  retry?: Retry69;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition111 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing74 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting70 = (
   | {
       [k: string]: unknown;
     }
@@ -6427,30 +5890,23 @@ export type Routing74 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry74;
+  stop?: "test";
+  retry?: Retry70;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition112 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing75 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting71 = (
   | {
       [k: string]: unknown;
     }
@@ -6470,18 +5926,14 @@ export type Routing75 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry75;
+  stop?: "test";
+  retry?: Retry71;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -6542,12 +5994,9 @@ export type Condition114 = string | [string, ...string[]];
  */
 export type Condition115 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing76 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting72 = (
   | {
       [k: string]: unknown;
     }
@@ -6567,30 +6016,23 @@ export type Routing76 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry76;
+  stop?: "test";
+  retry?: Retry72;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition116 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing77 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting73 = (
   | {
       [k: string]: unknown;
     }
@@ -6610,30 +6052,23 @@ export type Routing77 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry77;
+  stop?: "test";
+  retry?: Retry73;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition117 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing78 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting74 = (
   | {
       [k: string]: unknown;
     }
@@ -6653,30 +6088,23 @@ export type Routing78 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry78;
+  stop?: "test";
+  retry?: Retry74;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition118 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing79 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting75 = (
   | {
       [k: string]: unknown;
     }
@@ -6696,18 +6124,14 @@ export type Routing79 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry79;
+  stop?: "test";
+  retry?: Retry75;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -6814,12 +6238,9 @@ export type Condition120 = string | [string, ...string[]];
  */
 export type Condition121 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing80 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting76 = (
   | {
       [k: string]: unknown;
     }
@@ -6839,30 +6260,23 @@ export type Routing80 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry80;
+  stop?: "test";
+  retry?: Retry76;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition122 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing81 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting77 = (
   | {
       [k: string]: unknown;
     }
@@ -6882,30 +6296,23 @@ export type Routing81 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry81;
+  stop?: "test";
+  retry?: Retry77;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition123 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing82 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting78 = (
   | {
       [k: string]: unknown;
     }
@@ -6925,30 +6332,23 @@ export type Routing82 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry82;
+  stop?: "test";
+  retry?: Retry78;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition124 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing83 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting79 = (
   | {
       [k: string]: unknown;
     }
@@ -6968,18 +6368,14 @@ export type Routing83 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry83;
+  stop?: "test";
+  retry?: Retry79;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -7001,12 +6397,9 @@ export type Condition126 = string | [string, ...string[]];
  */
 export type Condition127 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing84 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting80 = (
   | {
       [k: string]: unknown;
     }
@@ -7026,30 +6419,23 @@ export type Routing84 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry84;
+  stop?: "test";
+  retry?: Retry80;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition128 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing85 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting81 = (
   | {
       [k: string]: unknown;
     }
@@ -7069,30 +6455,23 @@ export type Routing85 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry85;
+  stop?: "test";
+  retry?: Retry81;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition129 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing86 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting82 = (
   | {
       [k: string]: unknown;
     }
@@ -7112,30 +6491,23 @@ export type Routing86 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry86;
+  stop?: "test";
+  retry?: Retry82;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition130 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing87 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting83 = (
   | {
       [k: string]: unknown;
     }
@@ -7155,18 +6527,14 @@ export type Routing87 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry87;
+  stop?: "test";
+  retry?: Retry83;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -7865,12 +7233,9 @@ export type Condition132 = string | [string, ...string[]];
  */
 export type Condition133 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing88 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting84 = (
   | {
       [k: string]: unknown;
     }
@@ -7890,30 +7255,23 @@ export type Routing88 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry88;
+  stop?: "test";
+  retry?: Retry84;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition134 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing89 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting85 = (
   | {
       [k: string]: unknown;
     }
@@ -7933,30 +7291,23 @@ export type Routing89 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry89;
+  stop?: "test";
+  retry?: Retry85;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition135 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing90 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting86 = (
   | {
       [k: string]: unknown;
     }
@@ -7976,30 +7327,23 @@ export type Routing90 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry90;
+  stop?: "test";
+  retry?: Retry86;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition136 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing91 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting87 = (
   | {
       [k: string]: unknown;
     }
@@ -8019,18 +7363,14 @@ export type Routing91 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry91;
+  stop?: "test";
+  retry?: Retry87;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -8055,12 +7395,9 @@ export type Condition138 = string | [string, ...string[]];
  */
 export type Condition139 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing92 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting88 = (
   | {
       [k: string]: unknown;
     }
@@ -8080,30 +7417,23 @@ export type Routing92 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry92;
+  stop?: "test";
+  retry?: Retry88;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition140 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing93 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting89 = (
   | {
       [k: string]: unknown;
     }
@@ -8123,30 +7453,23 @@ export type Routing93 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry93;
+  stop?: "test";
+  retry?: Retry89;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition141 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing94 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting90 = (
   | {
       [k: string]: unknown;
     }
@@ -8166,30 +7489,23 @@ export type Routing94 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry94;
+  stop?: "test";
+  retry?: Retry90;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition142 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing95 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting91 = (
   | {
       [k: string]: unknown;
     }
@@ -8209,18 +7525,14 @@ export type Routing95 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry95;
+  stop?: "test";
+  retry?: Retry91;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -8353,12 +7665,9 @@ export type Condition144 = string | [string, ...string[]];
  */
 export type Condition145 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing96 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting92 = (
   | {
       [k: string]: unknown;
     }
@@ -8378,30 +7687,23 @@ export type Routing96 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry96;
+  stop?: "test";
+  retry?: Retry92;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition146 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing97 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting93 = (
   | {
       [k: string]: unknown;
     }
@@ -8421,30 +7723,23 @@ export type Routing97 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry97;
+  stop?: "test";
+  retry?: Retry93;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition147 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing98 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting94 = (
   | {
       [k: string]: unknown;
     }
@@ -8464,30 +7759,23 @@ export type Routing98 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry98;
+  stop?: "test";
+  retry?: Retry94;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition148 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing99 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting95 = (
   | {
       [k: string]: unknown;
     }
@@ -8507,18 +7795,14 @@ export type Routing99 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry99;
+  stop?: "test";
+  retry?: Retry95;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -8994,12 +8278,9 @@ export type Condition150 = string | [string, ...string[]];
  */
 export type Condition151 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing100 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting96 = (
   | {
       [k: string]: unknown;
     }
@@ -9019,30 +8300,23 @@ export type Routing100 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry100;
+  stop?: "test";
+  retry?: Retry96;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition152 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing101 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting97 = (
   | {
       [k: string]: unknown;
     }
@@ -9062,30 +8336,23 @@ export type Routing101 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry101;
+  stop?: "test";
+  retry?: Retry97;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition153 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing102 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting98 = (
   | {
       [k: string]: unknown;
     }
@@ -9105,30 +8372,23 @@ export type Routing102 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry102;
+  stop?: "test";
+  retry?: Retry98;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition154 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing103 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting99 = (
   | {
       [k: string]: unknown;
     }
@@ -9148,18 +8408,14 @@ export type Routing103 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry103;
+  stop?: "test";
+  retry?: Retry99;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -9334,12 +8590,9 @@ export type Condition156 = string | [string, ...string[]];
  */
 export type Condition157 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing104 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting100 = (
   | {
       [k: string]: unknown;
     }
@@ -9359,30 +8612,23 @@ export type Routing104 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry104;
+  stop?: "test";
+  retry?: Retry100;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition158 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing105 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting101 = (
   | {
       [k: string]: unknown;
     }
@@ -9402,30 +8648,23 @@ export type Routing105 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry105;
+  stop?: "test";
+  retry?: Retry101;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition159 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing106 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting102 = (
   | {
       [k: string]: unknown;
     }
@@ -9445,30 +8684,23 @@ export type Routing106 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry106;
+  stop?: "test";
+  retry?: Retry102;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition160 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing107 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting103 = (
   | {
       [k: string]: unknown;
     }
@@ -9488,18 +8720,14 @@ export type Routing107 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry107;
+  stop?: "test";
+  retry?: Retry103;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -9643,12 +8871,9 @@ export type Condition162 = string | [string, ...string[]];
  */
 export type Condition163 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing108 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting104 = (
   | {
       [k: string]: unknown;
     }
@@ -9668,30 +8893,23 @@ export type Routing108 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry108;
+  stop?: "test";
+  retry?: Retry104;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition164 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing109 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting105 = (
   | {
       [k: string]: unknown;
     }
@@ -9711,30 +8929,23 @@ export type Routing109 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry109;
+  stop?: "test";
+  retry?: Retry105;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition165 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing110 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting106 = (
   | {
       [k: string]: unknown;
     }
@@ -9754,30 +8965,23 @@ export type Routing110 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry110;
+  stop?: "test";
+  retry?: Retry106;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition166 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing111 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting107 = (
   | {
       [k: string]: unknown;
     }
@@ -9797,18 +9001,14 @@ export type Routing111 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry111;
+  stop?: "test";
+  retry?: Retry107;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -9831,12 +9031,9 @@ export type Condition168 = string | [string, ...string[]];
  */
 export type Condition169 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing112 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting108 = (
   | {
       [k: string]: unknown;
     }
@@ -9856,30 +9053,23 @@ export type Routing112 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry112;
+  stop?: "test";
+  retry?: Retry108;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition170 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing113 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting109 = (
   | {
       [k: string]: unknown;
     }
@@ -9899,30 +9089,23 @@ export type Routing113 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry113;
+  stop?: "test";
+  retry?: Retry109;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition171 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing114 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting110 = (
   | {
       [k: string]: unknown;
     }
@@ -9942,30 +9125,23 @@ export type Routing114 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry114;
+  stop?: "test";
+  retry?: Retry110;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition172 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing115 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting111 = (
   | {
       [k: string]: unknown;
     }
@@ -9985,18 +9161,14 @@ export type Routing115 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry115;
+  stop?: "test";
+  retry?: Retry111;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -10015,12 +9187,9 @@ export type Condition174 = string | [string, ...string[]];
  */
 export type Condition175 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing116 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting112 = (
   | {
       [k: string]: unknown;
     }
@@ -10040,30 +9209,23 @@ export type Routing116 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry116;
+  stop?: "test";
+  retry?: Retry112;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition176 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing117 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting113 = (
   | {
       [k: string]: unknown;
     }
@@ -10083,30 +9245,23 @@ export type Routing117 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry117;
+  stop?: "test";
+  retry?: Retry113;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition177 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing118 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting114 = (
   | {
       [k: string]: unknown;
     }
@@ -10126,30 +9281,23 @@ export type Routing118 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry118;
+  stop?: "test";
+  retry?: Retry114;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition178 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing119 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting115 = (
   | {
       [k: string]: unknown;
     }
@@ -10169,18 +9317,14 @@ export type Routing119 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry119;
+  stop?: "test";
+  retry?: Retry115;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -10231,12 +9375,9 @@ export type Condition180 = string | [string, ...string[]];
  */
 export type Condition181 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing120 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting116 = (
   | {
       [k: string]: unknown;
     }
@@ -10256,30 +9397,23 @@ export type Routing120 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry120;
+  stop?: "test";
+  retry?: Retry116;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition182 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing121 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting117 = (
   | {
       [k: string]: unknown;
     }
@@ -10299,30 +9433,23 @@ export type Routing121 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry121;
+  stop?: "test";
+  retry?: Retry117;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition183 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing122 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting118 = (
   | {
       [k: string]: unknown;
     }
@@ -10342,30 +9469,23 @@ export type Routing122 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry122;
+  stop?: "test";
+  retry?: Retry118;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition184 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing123 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting119 = (
   | {
       [k: string]: unknown;
     }
@@ -10385,18 +9505,14 @@ export type Routing123 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry123;
+  stop?: "test";
+  retry?: Retry119;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -10632,12 +9748,9 @@ export type Condition186 = string | [string, ...string[]];
  */
 export type Condition187 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing124 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting120 = (
   | {
       [k: string]: unknown;
     }
@@ -10657,30 +9770,23 @@ export type Routing124 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry124;
+  stop?: "test";
+  retry?: Retry120;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition188 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing125 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting121 = (
   | {
       [k: string]: unknown;
     }
@@ -10700,30 +9806,23 @@ export type Routing125 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry125;
+  stop?: "test";
+  retry?: Retry121;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition189 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing126 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting122 = (
   | {
       [k: string]: unknown;
     }
@@ -10743,30 +9842,23 @@ export type Routing126 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry126;
+  stop?: "test";
+  retry?: Retry122;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition190 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing127 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting123 = (
   | {
       [k: string]: unknown;
     }
@@ -10786,18 +9878,14 @@ export type Routing127 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry127;
+  stop?: "test";
+  retry?: Retry123;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -11173,12 +10261,9 @@ export type Condition192 = string | [string, ...string[]];
  */
 export type Condition193 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing128 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting124 = (
   | {
       [k: string]: unknown;
     }
@@ -11198,30 +10283,23 @@ export type Routing128 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry128;
+  stop?: "test";
+  retry?: Retry124;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition194 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing129 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting125 = (
   | {
       [k: string]: unknown;
     }
@@ -11241,30 +10319,23 @@ export type Routing129 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry129;
+  stop?: "test";
+  retry?: Retry125;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition195 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing130 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting126 = (
   | {
       [k: string]: unknown;
     }
@@ -11284,30 +10355,23 @@ export type Routing130 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry130;
+  stop?: "test";
+  retry?: Retry126;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition196 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing131 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting127 = (
   | {
       [k: string]: unknown;
     }
@@ -11327,18 +10391,14 @@ export type Routing131 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry131;
+  stop?: "test";
+  retry?: Retry127;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -11404,12 +10464,9 @@ export type Condition198 = string | [string, ...string[]];
  */
 export type Condition199 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing132 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting128 = (
   | {
       [k: string]: unknown;
     }
@@ -11429,30 +10486,23 @@ export type Routing132 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry132;
+  stop?: "test";
+  retry?: Retry128;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition200 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing133 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting129 = (
   | {
       [k: string]: unknown;
     }
@@ -11472,30 +10522,23 @@ export type Routing133 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry133;
+  stop?: "test";
+  retry?: Retry129;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition201 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing134 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting130 = (
   | {
       [k: string]: unknown;
     }
@@ -11515,30 +10558,23 @@ export type Routing134 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry134;
+  stop?: "test";
+  retry?: Retry130;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition202 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing135 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting131 = (
   | {
       [k: string]: unknown;
     }
@@ -11558,18 +10594,14 @@ export type Routing135 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry135;
+  stop?: "test";
+  retry?: Retry131;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -11653,12 +10685,9 @@ export type Condition204 = string | [string, ...string[]];
  */
 export type Condition205 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing136 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting132 = (
   | {
       [k: string]: unknown;
     }
@@ -11678,30 +10707,23 @@ export type Routing136 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry136;
+  stop?: "test";
+  retry?: Retry132;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition206 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing137 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting133 = (
   | {
       [k: string]: unknown;
     }
@@ -11721,30 +10743,23 @@ export type Routing137 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry137;
+  stop?: "test";
+  retry?: Retry133;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition207 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing138 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting134 = (
   | {
       [k: string]: unknown;
     }
@@ -11764,30 +10779,23 @@ export type Routing138 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry138;
+  stop?: "test";
+  retry?: Retry134;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition208 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing139 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting135 = (
   | {
       [k: string]: unknown;
     }
@@ -11807,18 +10815,14 @@ export type Routing139 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry139;
+  stop?: "test";
+  retry?: Retry135;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -11849,12 +10853,9 @@ export type Condition210 = string | [string, ...string[]];
  */
 export type Condition211 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing140 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting136 = (
   | {
       [k: string]: unknown;
     }
@@ -11874,30 +10875,23 @@ export type Routing140 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry140;
+  stop?: "test";
+  retry?: Retry136;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition212 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing141 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting137 = (
   | {
       [k: string]: unknown;
     }
@@ -11917,30 +10911,23 @@ export type Routing141 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry141;
+  stop?: "test";
+  retry?: Retry137;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition213 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing142 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting138 = (
   | {
       [k: string]: unknown;
     }
@@ -11960,30 +10947,23 @@ export type Routing142 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry142;
+  stop?: "test";
+  retry?: Retry138;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition214 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing143 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting139 = (
   | {
       [k: string]: unknown;
     }
@@ -12003,18 +10983,14 @@ export type Routing143 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry143;
+  stop?: "test";
+  retry?: Retry139;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -12121,12 +11097,9 @@ export type Condition216 = string | [string, ...string[]];
  */
 export type Condition217 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing144 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting140 = (
   | {
       [k: string]: unknown;
     }
@@ -12146,30 +11119,23 @@ export type Routing144 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry144;
+  stop?: "test";
+  retry?: Retry140;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition218 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing145 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting141 = (
   | {
       [k: string]: unknown;
     }
@@ -12189,30 +11155,23 @@ export type Routing145 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry145;
+  stop?: "test";
+  retry?: Retry141;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition219 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing146 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting142 = (
   | {
       [k: string]: unknown;
     }
@@ -12232,30 +11191,23 @@ export type Routing146 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry146;
+  stop?: "test";
+  retry?: Retry142;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition220 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing147 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting143 = (
   | {
       [k: string]: unknown;
     }
@@ -12275,18 +11227,14 @@ export type Routing147 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry147;
+  stop?: "test";
+  retry?: Retry143;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -12430,12 +11378,9 @@ export type Condition222 = string | [string, ...string[]];
  */
 export type Condition223 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing148 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting144 = (
   | {
       [k: string]: unknown;
     }
@@ -12455,30 +11400,23 @@ export type Routing148 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry148;
+  stop?: "test";
+  retry?: Retry144;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition224 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing149 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting145 = (
   | {
       [k: string]: unknown;
     }
@@ -12498,30 +11436,23 @@ export type Routing149 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry149;
+  stop?: "test";
+  retry?: Retry145;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition225 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing150 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting146 = (
   | {
       [k: string]: unknown;
     }
@@ -12541,30 +11472,23 @@ export type Routing150 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry150;
+  stop?: "test";
+  retry?: Retry146;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition226 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing151 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting147 = (
   | {
       [k: string]: unknown;
     }
@@ -12584,18 +11508,14 @@ export type Routing151 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry151;
+  stop?: "test";
+  retry?: Retry147;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -12614,12 +11534,9 @@ export type Condition228 = string | [string, ...string[]];
  */
 export type Condition229 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing152 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting148 = (
   | {
       [k: string]: unknown;
     }
@@ -12639,30 +11556,23 @@ export type Routing152 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry152;
+  stop?: "test";
+  retry?: Retry148;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition230 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing153 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting149 = (
   | {
       [k: string]: unknown;
     }
@@ -12682,30 +11592,23 @@ export type Routing153 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry153;
+  stop?: "test";
+  retry?: Retry149;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition231 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing154 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting150 = (
   | {
       [k: string]: unknown;
     }
@@ -12725,30 +11628,23 @@ export type Routing154 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry154;
+  stop?: "test";
+  retry?: Retry150;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition232 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing155 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting151 = (
   | {
       [k: string]: unknown;
     }
@@ -12768,18 +11664,14 @@ export type Routing155 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry155;
+  stop?: "test";
+  retry?: Retry151;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -12946,12 +11838,9 @@ export type Condition234 = string | [string, ...string[]];
  */
 export type Condition235 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing156 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting152 = (
   | {
       [k: string]: unknown;
     }
@@ -12971,30 +11860,23 @@ export type Routing156 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry156;
+  stop?: "test";
+  retry?: Retry152;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition236 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing157 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting153 = (
   | {
       [k: string]: unknown;
     }
@@ -13014,30 +11896,23 @@ export type Routing157 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry157;
+  stop?: "test";
+  retry?: Retry153;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition237 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing158 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting154 = (
   | {
       [k: string]: unknown;
     }
@@ -13057,30 +11932,23 @@ export type Routing158 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry158;
+  stop?: "test";
+  retry?: Retry154;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition238 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing159 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting155 = (
   | {
       [k: string]: unknown;
     }
@@ -13100,18 +11968,14 @@ export type Routing159 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry159;
+  stop?: "test";
+  retry?: Retry155;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -13172,12 +12036,9 @@ export type Condition240 = string | [string, ...string[]];
  */
 export type Condition241 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing160 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting156 = (
   | {
       [k: string]: unknown;
     }
@@ -13197,30 +12058,23 @@ export type Routing160 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry160;
+  stop?: "test";
+  retry?: Retry156;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition242 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing161 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting157 = (
   | {
       [k: string]: unknown;
     }
@@ -13240,30 +12094,23 @@ export type Routing161 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry161;
+  stop?: "test";
+  retry?: Retry157;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition243 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing162 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting158 = (
   | {
       [k: string]: unknown;
     }
@@ -13283,30 +12130,23 @@ export type Routing162 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry162;
+  stop?: "test";
+  retry?: Retry158;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition244 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing163 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting159 = (
   | {
       [k: string]: unknown;
     }
@@ -13326,18 +12166,14 @@ export type Routing163 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry163;
+  stop?: "test";
+  retry?: Retry159;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -13444,12 +12280,9 @@ export type Condition246 = string | [string, ...string[]];
  */
 export type Condition247 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing164 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting160 = (
   | {
       [k: string]: unknown;
     }
@@ -13469,30 +12302,23 @@ export type Routing164 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry164;
+  stop?: "test";
+  retry?: Retry160;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition248 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing165 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting161 = (
   | {
       [k: string]: unknown;
     }
@@ -13512,30 +12338,23 @@ export type Routing165 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry165;
+  stop?: "test";
+  retry?: Retry161;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition249 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing166 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting162 = (
   | {
       [k: string]: unknown;
     }
@@ -13555,30 +12374,23 @@ export type Routing166 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry166;
+  stop?: "test";
+  retry?: Retry162;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition250 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing167 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting163 = (
   | {
       [k: string]: unknown;
     }
@@ -13598,18 +12410,14 @@ export type Routing167 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry167;
+  stop?: "test";
+  retry?: Retry163;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -13631,12 +12439,9 @@ export type Condition252 = string | [string, ...string[]];
  */
 export type Condition253 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing168 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting164 = (
   | {
       [k: string]: unknown;
     }
@@ -13656,30 +12461,23 @@ export type Routing168 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry168;
+  stop?: "test";
+  retry?: Retry164;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition254 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing169 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting165 = (
   | {
       [k: string]: unknown;
     }
@@ -13699,30 +12497,23 @@ export type Routing169 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry169;
+  stop?: "test";
+  retry?: Retry165;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition255 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing170 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting166 = (
   | {
       [k: string]: unknown;
     }
@@ -13742,30 +12533,23 @@ export type Routing170 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry170;
+  stop?: "test";
+  retry?: Retry166;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition256 = string | [string, ...string[]];
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type Routing171 = (
-  | {
-      [k: string]: unknown;
-    }
+export type StepRouting167 = (
   | {
       [k: string]: unknown;
     }
@@ -13785,18 +12569,14 @@ export type Routing171 = (
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop the test's remaining steps in this context.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry171;
+  stop?: "test";
+  retry?: Retry167;
   /**
-   * Identifier of the step to jump to.
+   * Identifier of the step to jump to, within the same test.
    */
   goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
-   */
-  goToTest?: string;
 };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -14472,7 +13252,7 @@ export interface Config {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
+   * How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. That route's `retry.limit` sets its count, and the step's `attempts` result field reports how many times it ran. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
    */
   retries?: number;
 }
@@ -14504,7 +13284,7 @@ export interface Context {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
   /**
@@ -15294,7 +14074,7 @@ export interface Context1 {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
   /**
@@ -16173,7 +14953,7 @@ export interface Context2 {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
   /**
@@ -16346,74 +15126,6 @@ export interface OpenAPIRequestHeaders2 {
 export interface OpenAPIDescriptionTest2 {
   [k: string]: unknown;
 }
-/**
- * Retry the current step.
- */
-export interface Retry {
-  /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
-   */
-  limit: number;
-  /**
-   * Delay in milliseconds before each retry.
-   */
-  delay?: number;
-  /**
-   * Backoff strategy applied to the delay between retries.
-   */
-  backoff?: "fixed" | "exponential";
-}
-/**
- * Retry the current step.
- */
-export interface Retry1 {
-  /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
-   */
-  limit: number;
-  /**
-   * Delay in milliseconds before each retry.
-   */
-  delay?: number;
-  /**
-   * Backoff strategy applied to the delay between retries.
-   */
-  backoff?: "fixed" | "exponential";
-}
-/**
- * Retry the current step.
- */
-export interface Retry2 {
-  /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
-   */
-  limit: number;
-  /**
-   * Delay in milliseconds before each retry.
-   */
-  delay?: number;
-  /**
-   * Backoff strategy applied to the delay between retries.
-   */
-  backoff?: "fixed" | "exponential";
-}
-/**
- * Retry the current step.
- */
-export interface Retry3 {
-  /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
-   */
-  limit: number;
-  /**
-   * Delay in milliseconds before each retry.
-   */
-  delay?: number;
-  /**
-   * Backoff strategy applied to the delay between retries.
-   */
-  backoff?: "fixed" | "exponential";
-}
 export interface Common {
   /**
    * JSON Schema for this object.
@@ -16451,28 +15163,28 @@ export interface Common {
    */
   assertions?: Condition7 | Assertion[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing4[];
+  onPass?: StepRouting[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing5[];
+  onFail?: StepRouting1[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing6[];
+  onWarning?: StepRouting2[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing7[];
+  onSkip?: StepRouting3[];
   location?: SourceLocation;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -16561,9 +15273,9 @@ export interface Assertion {
 /**
  * Retry the current step.
  */
-export interface Retry4 {
+export interface Retry {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16578,9 +15290,9 @@ export interface Retry4 {
 /**
  * Retry the current step.
  */
-export interface Retry5 {
+export interface Retry1 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16595,9 +15307,9 @@ export interface Retry5 {
 /**
  * Retry the current step.
  */
-export interface Retry6 {
+export interface Retry2 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16612,9 +15324,9 @@ export interface Retry6 {
 /**
  * Retry the current step.
  */
-export interface Retry7 {
+export interface Retry3 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16717,28 +15429,28 @@ export interface Common1 {
    */
   assertions?: Condition13 | Assertion1[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing8[];
+  onPass?: StepRouting4[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing9[];
+  onFail?: StepRouting5[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing10[];
+  onWarning?: StepRouting6[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing11[];
+  onSkip?: StepRouting7[];
   location?: SourceLocation1;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -16827,9 +15539,9 @@ export interface Assertion1 {
 /**
  * Retry the current step.
  */
-export interface Retry8 {
+export interface Retry4 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16844,9 +15556,9 @@ export interface Retry8 {
 /**
  * Retry the current step.
  */
-export interface Retry9 {
+export interface Retry5 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16861,9 +15573,9 @@ export interface Retry9 {
 /**
  * Retry the current step.
  */
-export interface Retry10 {
+export interface Retry6 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -16878,9 +15590,9 @@ export interface Retry10 {
 /**
  * Retry the current step.
  */
-export interface Retry11 {
+export interface Retry7 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17019,28 +15731,28 @@ export interface Common2 {
    */
   assertions?: Condition19 | Assertion2[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing12[];
+  onPass?: StepRouting8[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing13[];
+  onFail?: StepRouting9[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing14[];
+  onWarning?: StepRouting10[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing15[];
+  onSkip?: StepRouting11[];
   location?: SourceLocation2;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -17129,9 +15841,9 @@ export interface Assertion2 {
 /**
  * Retry the current step.
  */
-export interface Retry12 {
+export interface Retry8 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17146,9 +15858,9 @@ export interface Retry12 {
 /**
  * Retry the current step.
  */
-export interface Retry13 {
+export interface Retry9 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17163,9 +15875,9 @@ export interface Retry13 {
 /**
  * Retry the current step.
  */
-export interface Retry14 {
+export interface Retry10 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17180,9 +15892,9 @@ export interface Retry14 {
 /**
  * Retry the current step.
  */
-export interface Retry15 {
+export interface Retry11 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17521,28 +16233,28 @@ export interface Common3 {
    */
   assertions?: Condition25 | Assertion3[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing16[];
+  onPass?: StepRouting12[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing17[];
+  onFail?: StepRouting13[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing18[];
+  onWarning?: StepRouting14[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing19[];
+  onSkip?: StepRouting15[];
   location?: SourceLocation3;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -17631,9 +16343,9 @@ export interface Assertion3 {
 /**
  * Retry the current step.
  */
-export interface Retry16 {
+export interface Retry12 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17648,9 +16360,9 @@ export interface Retry16 {
 /**
  * Retry the current step.
  */
-export interface Retry17 {
+export interface Retry13 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17665,9 +16377,9 @@ export interface Retry17 {
 /**
  * Retry the current step.
  */
-export interface Retry18 {
+export interface Retry14 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17682,9 +16394,9 @@ export interface Retry18 {
 /**
  * Retry the current step.
  */
-export interface Retry19 {
+export interface Retry15 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17811,28 +16523,28 @@ export interface Common4 {
    */
   assertions?: Condition31 | Assertion4[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing20[];
+  onPass?: StepRouting16[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing21[];
+  onFail?: StepRouting17[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing22[];
+  onWarning?: StepRouting18[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing23[];
+  onSkip?: StepRouting19[];
   location?: SourceLocation4;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -17921,9 +16633,9 @@ export interface Assertion4 {
 /**
  * Retry the current step.
  */
-export interface Retry20 {
+export interface Retry16 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17938,9 +16650,9 @@ export interface Retry20 {
 /**
  * Retry the current step.
  */
-export interface Retry21 {
+export interface Retry17 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17955,9 +16667,9 @@ export interface Retry21 {
 /**
  * Retry the current step.
  */
-export interface Retry22 {
+export interface Retry18 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -17972,9 +16684,9 @@ export interface Retry22 {
 /**
  * Retry the current step.
  */
-export interface Retry23 {
+export interface Retry19 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18117,28 +16829,28 @@ export interface Common5 {
    */
   assertions?: Condition37 | Assertion5[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing24[];
+  onPass?: StepRouting20[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing25[];
+  onFail?: StepRouting21[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing26[];
+  onWarning?: StepRouting22[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing27[];
+  onSkip?: StepRouting23[];
   location?: SourceLocation5;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -18227,9 +16939,9 @@ export interface Assertion5 {
 /**
  * Retry the current step.
  */
-export interface Retry24 {
+export interface Retry20 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18244,9 +16956,9 @@ export interface Retry24 {
 /**
  * Retry the current step.
  */
-export interface Retry25 {
+export interface Retry21 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18261,9 +16973,9 @@ export interface Retry25 {
 /**
  * Retry the current step.
  */
-export interface Retry26 {
+export interface Retry22 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18278,9 +16990,9 @@ export interface Retry26 {
 /**
  * Retry the current step.
  */
-export interface Retry27 {
+export interface Retry23 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18431,28 +17143,28 @@ export interface Common6 {
    */
   assertions?: Condition43 | Assertion6[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing28[];
+  onPass?: StepRouting24[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing29[];
+  onFail?: StepRouting25[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing30[];
+  onWarning?: StepRouting26[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing31[];
+  onSkip?: StepRouting27[];
   location?: SourceLocation6;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -18541,9 +17253,9 @@ export interface Assertion6 {
 /**
  * Retry the current step.
  */
-export interface Retry28 {
+export interface Retry24 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18558,9 +17270,9 @@ export interface Retry28 {
 /**
  * Retry the current step.
  */
-export interface Retry29 {
+export interface Retry25 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18575,9 +17287,9 @@ export interface Retry29 {
 /**
  * Retry the current step.
  */
-export interface Retry30 {
+export interface Retry26 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18592,9 +17304,9 @@ export interface Retry30 {
 /**
  * Retry the current step.
  */
-export interface Retry31 {
+export interface Retry27 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18745,28 +17457,28 @@ export interface Common7 {
    */
   assertions?: Condition49 | Assertion7[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing32[];
+  onPass?: StepRouting28[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing33[];
+  onFail?: StepRouting29[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing34[];
+  onWarning?: StepRouting30[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing35[];
+  onSkip?: StepRouting31[];
   location?: SourceLocation7;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -18855,9 +17567,9 @@ export interface Assertion7 {
 /**
  * Retry the current step.
  */
-export interface Retry32 {
+export interface Retry28 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18872,9 +17584,9 @@ export interface Retry32 {
 /**
  * Retry the current step.
  */
-export interface Retry33 {
+export interface Retry29 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18889,9 +17601,9 @@ export interface Retry33 {
 /**
  * Retry the current step.
  */
-export interface Retry34 {
+export interface Retry30 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -18906,9 +17618,9 @@ export interface Retry34 {
 /**
  * Retry the current step.
  */
-export interface Retry35 {
+export interface Retry31 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19065,28 +17777,28 @@ export interface Common8 {
    */
   assertions?: Condition55 | Assertion8[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing36[];
+  onPass?: StepRouting32[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing37[];
+  onFail?: StepRouting33[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing38[];
+  onWarning?: StepRouting34[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing39[];
+  onSkip?: StepRouting35[];
   location?: SourceLocation8;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -19175,9 +17887,9 @@ export interface Assertion8 {
 /**
  * Retry the current step.
  */
-export interface Retry36 {
+export interface Retry32 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19192,9 +17904,9 @@ export interface Retry36 {
 /**
  * Retry the current step.
  */
-export interface Retry37 {
+export interface Retry33 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19209,9 +17921,9 @@ export interface Retry37 {
 /**
  * Retry the current step.
  */
-export interface Retry38 {
+export interface Retry34 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19226,9 +17938,9 @@ export interface Retry38 {
 /**
  * Retry the current step.
  */
-export interface Retry39 {
+export interface Retry35 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19419,28 +18131,28 @@ export interface Common9 {
    */
   assertions?: Condition61 | Assertion9[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing40[];
+  onPass?: StepRouting36[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing41[];
+  onFail?: StepRouting37[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing42[];
+  onWarning?: StepRouting38[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing43[];
+  onSkip?: StepRouting39[];
   location?: SourceLocation9;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -19529,9 +18241,9 @@ export interface Assertion9 {
 /**
  * Retry the current step.
  */
-export interface Retry40 {
+export interface Retry36 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19546,9 +18258,9 @@ export interface Retry40 {
 /**
  * Retry the current step.
  */
-export interface Retry41 {
+export interface Retry37 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19563,9 +18275,9 @@ export interface Retry41 {
 /**
  * Retry the current step.
  */
-export interface Retry42 {
+export interface Retry38 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -19580,9 +18292,9 @@ export interface Retry42 {
 /**
  * Retry the current step.
  */
-export interface Retry43 {
+export interface Retry39 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20259,28 +18971,28 @@ export interface Common10 {
    */
   assertions?: Condition67 | Assertion10[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing44[];
+  onPass?: StepRouting40[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing45[];
+  onFail?: StepRouting41[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing46[];
+  onWarning?: StepRouting42[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing47[];
+  onSkip?: StepRouting43[];
   location?: SourceLocation10;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -20369,9 +19081,9 @@ export interface Assertion10 {
 /**
  * Retry the current step.
  */
-export interface Retry44 {
+export interface Retry40 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20386,9 +19098,9 @@ export interface Retry44 {
 /**
  * Retry the current step.
  */
-export interface Retry45 {
+export interface Retry41 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20403,9 +19115,9 @@ export interface Retry45 {
 /**
  * Retry the current step.
  */
-export interface Retry46 {
+export interface Retry42 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20420,9 +19132,9 @@ export interface Retry46 {
 /**
  * Retry the current step.
  */
-export interface Retry47 {
+export interface Retry43 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20492,28 +19204,28 @@ export interface Common11 {
    */
   assertions?: Condition73 | Assertion11[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing48[];
+  onPass?: StepRouting44[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing49[];
+  onFail?: StepRouting45[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing50[];
+  onWarning?: StepRouting46[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing51[];
+  onSkip?: StepRouting47[];
   location?: SourceLocation11;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -20602,9 +19314,9 @@ export interface Assertion11 {
 /**
  * Retry the current step.
  */
-export interface Retry48 {
+export interface Retry44 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20619,9 +19331,9 @@ export interface Retry48 {
 /**
  * Retry the current step.
  */
-export interface Retry49 {
+export interface Retry45 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20636,9 +19348,9 @@ export interface Retry49 {
 /**
  * Retry the current step.
  */
-export interface Retry50 {
+export interface Retry46 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20653,9 +19365,9 @@ export interface Retry50 {
 /**
  * Retry the current step.
  */
-export interface Retry51 {
+export interface Retry47 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20868,28 +19580,28 @@ export interface Common12 {
    */
   assertions?: Condition79 | Assertion12[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing52[];
+  onPass?: StepRouting48[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing53[];
+  onFail?: StepRouting49[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing54[];
+  onWarning?: StepRouting50[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing55[];
+  onSkip?: StepRouting51[];
   location?: SourceLocation12;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -20978,9 +19690,9 @@ export interface Assertion12 {
 /**
  * Retry the current step.
  */
-export interface Retry52 {
+export interface Retry48 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -20995,9 +19707,9 @@ export interface Retry52 {
 /**
  * Retry the current step.
  */
-export interface Retry53 {
+export interface Retry49 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21012,9 +19724,9 @@ export interface Retry53 {
 /**
  * Retry the current step.
  */
-export interface Retry54 {
+export interface Retry50 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21029,9 +19741,9 @@ export interface Retry54 {
 /**
  * Retry the current step.
  */
-export interface Retry55 {
+export interface Retry51 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21107,28 +19819,28 @@ export interface Common13 {
    */
   assertions?: Condition85 | Assertion13[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing56[];
+  onPass?: StepRouting52[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing57[];
+  onFail?: StepRouting53[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing58[];
+  onWarning?: StepRouting54[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing59[];
+  onSkip?: StepRouting55[];
   location?: SourceLocation13;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -21217,9 +19929,9 @@ export interface Assertion13 {
 /**
  * Retry the current step.
  */
-export interface Retry56 {
+export interface Retry52 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21234,9 +19946,9 @@ export interface Retry56 {
 /**
  * Retry the current step.
  */
-export interface Retry57 {
+export interface Retry53 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21251,9 +19963,9 @@ export interface Retry57 {
 /**
  * Retry the current step.
  */
-export interface Retry58 {
+export interface Retry54 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21268,9 +19980,9 @@ export interface Retry58 {
 /**
  * Retry the current step.
  */
-export interface Retry59 {
+export interface Retry55 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21490,28 +20202,28 @@ export interface Common14 {
    */
   assertions?: Condition91 | Assertion14[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing60[];
+  onPass?: StepRouting56[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing61[];
+  onFail?: StepRouting57[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing62[];
+  onWarning?: StepRouting58[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing63[];
+  onSkip?: StepRouting59[];
   location?: SourceLocation14;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -21600,9 +20312,9 @@ export interface Assertion14 {
 /**
  * Retry the current step.
  */
-export interface Retry60 {
+export interface Retry56 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21617,9 +20329,9 @@ export interface Retry60 {
 /**
  * Retry the current step.
  */
-export interface Retry61 {
+export interface Retry57 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21634,9 +20346,9 @@ export interface Retry61 {
 /**
  * Retry the current step.
  */
-export interface Retry62 {
+export interface Retry58 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -21651,9 +20363,9 @@ export interface Retry62 {
 /**
  * Retry the current step.
  */
-export interface Retry63 {
+export interface Retry59 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22107,28 +20819,28 @@ export interface Common15 {
    */
   assertions?: Condition97 | Assertion15[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing64[];
+  onPass?: StepRouting60[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing65[];
+  onFail?: StepRouting61[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing66[];
+  onWarning?: StepRouting62[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing67[];
+  onSkip?: StepRouting63[];
   location?: SourceLocation15;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -22217,9 +20929,9 @@ export interface Assertion15 {
 /**
  * Retry the current step.
  */
-export interface Retry64 {
+export interface Retry60 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22234,9 +20946,9 @@ export interface Retry64 {
 /**
  * Retry the current step.
  */
-export interface Retry65 {
+export interface Retry61 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22251,9 +20963,9 @@ export interface Retry65 {
 /**
  * Retry the current step.
  */
-export interface Retry66 {
+export interface Retry62 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22268,9 +20980,9 @@ export interface Retry66 {
 /**
  * Retry the current step.
  */
-export interface Retry67 {
+export interface Retry63 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22340,28 +21052,28 @@ export interface Common16 {
    */
   assertions?: Condition103 | Assertion16[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing68[];
+  onPass?: StepRouting64[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing69[];
+  onFail?: StepRouting65[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing70[];
+  onWarning?: StepRouting66[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing71[];
+  onSkip?: StepRouting67[];
   location?: SourceLocation16;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -22450,9 +21162,9 @@ export interface Assertion16 {
 /**
  * Retry the current step.
  */
-export interface Retry68 {
+export interface Retry64 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22467,9 +21179,9 @@ export interface Retry68 {
 /**
  * Retry the current step.
  */
-export interface Retry69 {
+export interface Retry65 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22484,9 +21196,9 @@ export interface Retry69 {
 /**
  * Retry the current step.
  */
-export interface Retry70 {
+export interface Retry66 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22501,9 +21213,9 @@ export interface Retry70 {
 /**
  * Retry the current step.
  */
-export interface Retry71 {
+export interface Retry67 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22642,28 +21354,28 @@ export interface Common17 {
    */
   assertions?: Condition109 | Assertion17[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing72[];
+  onPass?: StepRouting68[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing73[];
+  onFail?: StepRouting69[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing74[];
+  onWarning?: StepRouting70[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing75[];
+  onSkip?: StepRouting71[];
   location?: SourceLocation17;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -22752,9 +21464,9 @@ export interface Assertion17 {
 /**
  * Retry the current step.
  */
-export interface Retry72 {
+export interface Retry68 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22769,9 +21481,9 @@ export interface Retry72 {
 /**
  * Retry the current step.
  */
-export interface Retry73 {
+export interface Retry69 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22786,9 +21498,9 @@ export interface Retry73 {
 /**
  * Retry the current step.
  */
-export interface Retry74 {
+export interface Retry70 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22803,9 +21515,9 @@ export interface Retry74 {
 /**
  * Retry the current step.
  */
-export interface Retry75 {
+export interface Retry71 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -22875,28 +21587,28 @@ export interface Common18 {
    */
   assertions?: Condition115 | Assertion18[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing76[];
+  onPass?: StepRouting72[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing77[];
+  onFail?: StepRouting73[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing78[];
+  onWarning?: StepRouting74[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing79[];
+  onSkip?: StepRouting75[];
   location?: SourceLocation18;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -22985,9 +21697,9 @@ export interface Assertion18 {
 /**
  * Retry the current step.
  */
-export interface Retry76 {
+export interface Retry72 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23002,9 +21714,9 @@ export interface Retry76 {
 /**
  * Retry the current step.
  */
-export interface Retry77 {
+export interface Retry73 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23019,9 +21731,9 @@ export interface Retry77 {
 /**
  * Retry the current step.
  */
-export interface Retry78 {
+export interface Retry74 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23036,9 +21748,9 @@ export interface Retry78 {
 /**
  * Retry the current step.
  */
-export interface Retry79 {
+export interface Retry75 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23299,28 +22011,28 @@ export interface Common19 {
    */
   assertions?: Condition121 | Assertion19[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing80[];
+  onPass?: StepRouting76[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing81[];
+  onFail?: StepRouting77[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing82[];
+  onWarning?: StepRouting78[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing83[];
+  onSkip?: StepRouting79[];
   location?: SourceLocation19;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -23409,9 +22121,9 @@ export interface Assertion19 {
 /**
  * Retry the current step.
  */
-export interface Retry80 {
+export interface Retry76 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23426,9 +22138,9 @@ export interface Retry80 {
 /**
  * Retry the current step.
  */
-export interface Retry81 {
+export interface Retry77 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23443,9 +22155,9 @@ export interface Retry81 {
 /**
  * Retry the current step.
  */
-export interface Retry82 {
+export interface Retry78 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23460,9 +22172,9 @@ export interface Retry82 {
 /**
  * Retry the current step.
  */
-export interface Retry83 {
+export interface Retry79 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23532,28 +22244,28 @@ export interface Common20 {
    */
   assertions?: Condition127 | Assertion20[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing84[];
+  onPass?: StepRouting80[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing85[];
+  onFail?: StepRouting81[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing86[];
+  onWarning?: StepRouting82[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing87[];
+  onSkip?: StepRouting83[];
   location?: SourceLocation20;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -23642,9 +22354,9 @@ export interface Assertion20 {
 /**
  * Retry the current step.
  */
-export interface Retry84 {
+export interface Retry80 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23659,9 +22371,9 @@ export interface Retry84 {
 /**
  * Retry the current step.
  */
-export interface Retry85 {
+export interface Retry81 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23676,9 +22388,9 @@ export interface Retry85 {
 /**
  * Retry the current step.
  */
-export interface Retry86 {
+export interface Retry82 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -23693,9 +22405,9 @@ export interface Retry86 {
 /**
  * Retry the current step.
  */
-export interface Retry87 {
+export interface Retry83 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -24819,28 +23531,28 @@ export interface Common21 {
    */
   assertions?: Condition133 | Assertion21[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing88[];
+  onPass?: StepRouting84[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing89[];
+  onFail?: StepRouting85[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing90[];
+  onWarning?: StepRouting86[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing91[];
+  onSkip?: StepRouting87[];
   location?: SourceLocation21;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -24929,9 +23641,9 @@ export interface Assertion21 {
 /**
  * Retry the current step.
  */
-export interface Retry88 {
+export interface Retry84 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -24946,9 +23658,9 @@ export interface Retry88 {
 /**
  * Retry the current step.
  */
-export interface Retry89 {
+export interface Retry85 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -24963,9 +23675,9 @@ export interface Retry89 {
 /**
  * Retry the current step.
  */
-export interface Retry90 {
+export interface Retry86 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -24980,9 +23692,9 @@ export interface Retry90 {
 /**
  * Retry the current step.
  */
-export interface Retry91 {
+export interface Retry87 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25085,28 +23797,28 @@ export interface Common22 {
    */
   assertions?: Condition139 | Assertion22[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing92[];
+  onPass?: StepRouting88[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing93[];
+  onFail?: StepRouting89[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing94[];
+  onWarning?: StepRouting90[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing95[];
+  onSkip?: StepRouting91[];
   location?: SourceLocation22;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -25195,9 +23907,9 @@ export interface Assertion22 {
 /**
  * Retry the current step.
  */
-export interface Retry92 {
+export interface Retry88 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25212,9 +23924,9 @@ export interface Retry92 {
 /**
  * Retry the current step.
  */
-export interface Retry93 {
+export interface Retry89 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25229,9 +23941,9 @@ export interface Retry93 {
 /**
  * Retry the current step.
  */
-export interface Retry94 {
+export interface Retry90 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25246,9 +23958,9 @@ export interface Retry94 {
 /**
  * Retry the current step.
  */
-export interface Retry95 {
+export interface Retry91 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25387,28 +24099,28 @@ export interface Common23 {
    */
   assertions?: Condition145 | Assertion23[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing96[];
+  onPass?: StepRouting92[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing97[];
+  onFail?: StepRouting93[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing98[];
+  onWarning?: StepRouting94[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing99[];
+  onSkip?: StepRouting95[];
   location?: SourceLocation23;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -25497,9 +24209,9 @@ export interface Assertion23 {
 /**
  * Retry the current step.
  */
-export interface Retry96 {
+export interface Retry92 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25514,9 +24226,9 @@ export interface Retry96 {
 /**
  * Retry the current step.
  */
-export interface Retry97 {
+export interface Retry93 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25531,9 +24243,9 @@ export interface Retry97 {
 /**
  * Retry the current step.
  */
-export interface Retry98 {
+export interface Retry94 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25548,9 +24260,9 @@ export interface Retry98 {
 /**
  * Retry the current step.
  */
-export interface Retry99 {
+export interface Retry95 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -25889,28 +24601,28 @@ export interface Common24 {
    */
   assertions?: Condition151 | Assertion24[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing100[];
+  onPass?: StepRouting96[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing101[];
+  onFail?: StepRouting97[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing102[];
+  onWarning?: StepRouting98[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing103[];
+  onSkip?: StepRouting99[];
   location?: SourceLocation24;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -25999,9 +24711,9 @@ export interface Assertion24 {
 /**
  * Retry the current step.
  */
-export interface Retry100 {
+export interface Retry96 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26016,9 +24728,9 @@ export interface Retry100 {
 /**
  * Retry the current step.
  */
-export interface Retry101 {
+export interface Retry97 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26033,9 +24745,9 @@ export interface Retry101 {
 /**
  * Retry the current step.
  */
-export interface Retry102 {
+export interface Retry98 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26050,9 +24762,9 @@ export interface Retry102 {
 /**
  * Retry the current step.
  */
-export interface Retry103 {
+export interface Retry99 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26179,28 +24891,28 @@ export interface Common25 {
    */
   assertions?: Condition157 | Assertion25[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing104[];
+  onPass?: StepRouting100[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing105[];
+  onFail?: StepRouting101[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing106[];
+  onWarning?: StepRouting102[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing107[];
+  onSkip?: StepRouting103[];
   location?: SourceLocation25;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -26289,9 +25001,9 @@ export interface Assertion25 {
 /**
  * Retry the current step.
  */
-export interface Retry104 {
+export interface Retry100 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26306,9 +25018,9 @@ export interface Retry104 {
 /**
  * Retry the current step.
  */
-export interface Retry105 {
+export interface Retry101 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26323,9 +25035,9 @@ export interface Retry105 {
 /**
  * Retry the current step.
  */
-export interface Retry106 {
+export interface Retry102 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26340,9 +25052,9 @@ export interface Retry106 {
 /**
  * Retry the current step.
  */
-export interface Retry107 {
+export interface Retry103 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26485,28 +25197,28 @@ export interface Common26 {
    */
   assertions?: Condition163 | Assertion26[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing108[];
+  onPass?: StepRouting104[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing109[];
+  onFail?: StepRouting105[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing110[];
+  onWarning?: StepRouting106[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing111[];
+  onSkip?: StepRouting107[];
   location?: SourceLocation26;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -26595,9 +25307,9 @@ export interface Assertion26 {
 /**
  * Retry the current step.
  */
-export interface Retry108 {
+export interface Retry104 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26612,9 +25324,9 @@ export interface Retry108 {
 /**
  * Retry the current step.
  */
-export interface Retry109 {
+export interface Retry105 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26629,9 +25341,9 @@ export interface Retry109 {
 /**
  * Retry the current step.
  */
-export interface Retry110 {
+export interface Retry106 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26646,9 +25358,9 @@ export interface Retry110 {
 /**
  * Retry the current step.
  */
-export interface Retry111 {
+export interface Retry107 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26799,28 +25511,28 @@ export interface Common27 {
    */
   assertions?: Condition169 | Assertion27[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing112[];
+  onPass?: StepRouting108[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing113[];
+  onFail?: StepRouting109[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing114[];
+  onWarning?: StepRouting110[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing115[];
+  onSkip?: StepRouting111[];
   location?: SourceLocation27;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -26909,9 +25621,9 @@ export interface Assertion27 {
 /**
  * Retry the current step.
  */
-export interface Retry112 {
+export interface Retry108 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26926,9 +25638,9 @@ export interface Retry112 {
 /**
  * Retry the current step.
  */
-export interface Retry113 {
+export interface Retry109 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26943,9 +25655,9 @@ export interface Retry113 {
 /**
  * Retry the current step.
  */
-export interface Retry114 {
+export interface Retry110 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -26960,9 +25672,9 @@ export interface Retry114 {
 /**
  * Retry the current step.
  */
-export interface Retry115 {
+export interface Retry111 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27113,28 +25825,28 @@ export interface Common28 {
    */
   assertions?: Condition175 | Assertion28[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing116[];
+  onPass?: StepRouting112[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing117[];
+  onFail?: StepRouting113[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing118[];
+  onWarning?: StepRouting114[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing119[];
+  onSkip?: StepRouting115[];
   location?: SourceLocation28;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -27223,9 +25935,9 @@ export interface Assertion28 {
 /**
  * Retry the current step.
  */
-export interface Retry116 {
+export interface Retry112 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27240,9 +25952,9 @@ export interface Retry116 {
 /**
  * Retry the current step.
  */
-export interface Retry117 {
+export interface Retry113 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27257,9 +25969,9 @@ export interface Retry117 {
 /**
  * Retry the current step.
  */
-export interface Retry118 {
+export interface Retry114 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27274,9 +25986,9 @@ export interface Retry118 {
 /**
  * Retry the current step.
  */
-export interface Retry119 {
+export interface Retry115 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27433,28 +26145,28 @@ export interface Common29 {
    */
   assertions?: Condition181 | Assertion29[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing120[];
+  onPass?: StepRouting116[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing121[];
+  onFail?: StepRouting117[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing122[];
+  onWarning?: StepRouting118[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing123[];
+  onSkip?: StepRouting119[];
   location?: SourceLocation29;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -27543,9 +26255,9 @@ export interface Assertion29 {
 /**
  * Retry the current step.
  */
-export interface Retry120 {
+export interface Retry116 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27560,9 +26272,9 @@ export interface Retry120 {
 /**
  * Retry the current step.
  */
-export interface Retry121 {
+export interface Retry117 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27577,9 +26289,9 @@ export interface Retry121 {
 /**
  * Retry the current step.
  */
-export interface Retry122 {
+export interface Retry118 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27594,9 +26306,9 @@ export interface Retry122 {
 /**
  * Retry the current step.
  */
-export interface Retry123 {
+export interface Retry119 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27787,28 +26499,28 @@ export interface Common30 {
    */
   assertions?: Condition187 | Assertion30[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing124[];
+  onPass?: StepRouting120[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing125[];
+  onFail?: StepRouting121[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing126[];
+  onWarning?: StepRouting122[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing127[];
+  onSkip?: StepRouting123[];
   location?: SourceLocation30;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -27897,9 +26609,9 @@ export interface Assertion30 {
 /**
  * Retry the current step.
  */
-export interface Retry124 {
+export interface Retry120 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27914,9 +26626,9 @@ export interface Retry124 {
 /**
  * Retry the current step.
  */
-export interface Retry125 {
+export interface Retry121 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27931,9 +26643,9 @@ export interface Retry125 {
 /**
  * Retry the current step.
  */
-export interface Retry126 {
+export interface Retry122 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -27948,9 +26660,9 @@ export interface Retry126 {
 /**
  * Retry the current step.
  */
-export interface Retry127 {
+export interface Retry123 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28627,28 +27339,28 @@ export interface Common31 {
    */
   assertions?: Condition193 | Assertion31[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing128[];
+  onPass?: StepRouting124[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing129[];
+  onFail?: StepRouting125[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing130[];
+  onWarning?: StepRouting126[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing131[];
+  onSkip?: StepRouting127[];
   location?: SourceLocation31;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -28737,9 +27449,9 @@ export interface Assertion31 {
 /**
  * Retry the current step.
  */
-export interface Retry128 {
+export interface Retry124 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28754,9 +27466,9 @@ export interface Retry128 {
 /**
  * Retry the current step.
  */
-export interface Retry129 {
+export interface Retry125 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28771,9 +27483,9 @@ export interface Retry129 {
 /**
  * Retry the current step.
  */
-export interface Retry130 {
+export interface Retry126 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28788,9 +27500,9 @@ export interface Retry130 {
 /**
  * Retry the current step.
  */
-export interface Retry131 {
+export interface Retry127 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28860,28 +27572,28 @@ export interface Common32 {
    */
   assertions?: Condition199 | Assertion32[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing132[];
+  onPass?: StepRouting128[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing133[];
+  onFail?: StepRouting129[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing134[];
+  onWarning?: StepRouting130[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing135[];
+  onSkip?: StepRouting131[];
   location?: SourceLocation32;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -28970,9 +27682,9 @@ export interface Assertion32 {
 /**
  * Retry the current step.
  */
-export interface Retry132 {
+export interface Retry128 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -28987,9 +27699,9 @@ export interface Retry132 {
 /**
  * Retry the current step.
  */
-export interface Retry133 {
+export interface Retry129 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29004,9 +27716,9 @@ export interface Retry133 {
 /**
  * Retry the current step.
  */
-export interface Retry134 {
+export interface Retry130 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29021,9 +27733,9 @@ export interface Retry134 {
 /**
  * Retry the current step.
  */
-export interface Retry135 {
+export interface Retry131 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29236,28 +27948,28 @@ export interface Common33 {
    */
   assertions?: Condition205 | Assertion33[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing136[];
+  onPass?: StepRouting132[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing137[];
+  onFail?: StepRouting133[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing138[];
+  onWarning?: StepRouting134[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing139[];
+  onSkip?: StepRouting135[];
   location?: SourceLocation33;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -29346,9 +28058,9 @@ export interface Assertion33 {
 /**
  * Retry the current step.
  */
-export interface Retry136 {
+export interface Retry132 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29363,9 +28075,9 @@ export interface Retry136 {
 /**
  * Retry the current step.
  */
-export interface Retry137 {
+export interface Retry133 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29380,9 +28092,9 @@ export interface Retry137 {
 /**
  * Retry the current step.
  */
-export interface Retry138 {
+export interface Retry134 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29397,9 +28109,9 @@ export interface Retry138 {
 /**
  * Retry the current step.
  */
-export interface Retry139 {
+export interface Retry135 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29475,28 +28187,28 @@ export interface Common34 {
    */
   assertions?: Condition211 | Assertion34[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing140[];
+  onPass?: StepRouting136[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing141[];
+  onFail?: StepRouting137[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing142[];
+  onWarning?: StepRouting138[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing143[];
+  onSkip?: StepRouting139[];
   location?: SourceLocation34;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -29585,9 +28297,9 @@ export interface Assertion34 {
 /**
  * Retry the current step.
  */
-export interface Retry140 {
+export interface Retry136 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29602,9 +28314,9 @@ export interface Retry140 {
 /**
  * Retry the current step.
  */
-export interface Retry141 {
+export interface Retry137 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29619,9 +28331,9 @@ export interface Retry141 {
 /**
  * Retry the current step.
  */
-export interface Retry142 {
+export interface Retry138 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29636,9 +28348,9 @@ export interface Retry142 {
 /**
  * Retry the current step.
  */
-export interface Retry143 {
+export interface Retry139 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29858,28 +28570,28 @@ export interface Common35 {
    */
   assertions?: Condition217 | Assertion35[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing144[];
+  onPass?: StepRouting140[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing145[];
+  onFail?: StepRouting141[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing146[];
+  onWarning?: StepRouting142[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing147[];
+  onSkip?: StepRouting143[];
   location?: SourceLocation35;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -29968,9 +28680,9 @@ export interface Assertion35 {
 /**
  * Retry the current step.
  */
-export interface Retry144 {
+export interface Retry140 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -29985,9 +28697,9 @@ export interface Retry144 {
 /**
  * Retry the current step.
  */
-export interface Retry145 {
+export interface Retry141 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30002,9 +28714,9 @@ export interface Retry145 {
 /**
  * Retry the current step.
  */
-export interface Retry146 {
+export interface Retry142 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30019,9 +28731,9 @@ export interface Retry146 {
 /**
  * Retry the current step.
  */
-export interface Retry147 {
+export interface Retry143 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30475,28 +29187,28 @@ export interface Common36 {
    */
   assertions?: Condition223 | Assertion36[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing148[];
+  onPass?: StepRouting144[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing149[];
+  onFail?: StepRouting145[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing150[];
+  onWarning?: StepRouting146[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing151[];
+  onSkip?: StepRouting147[];
   location?: SourceLocation36;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -30585,9 +29297,9 @@ export interface Assertion36 {
 /**
  * Retry the current step.
  */
-export interface Retry148 {
+export interface Retry144 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30602,9 +29314,9 @@ export interface Retry148 {
 /**
  * Retry the current step.
  */
-export interface Retry149 {
+export interface Retry145 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30619,9 +29331,9 @@ export interface Retry149 {
 /**
  * Retry the current step.
  */
-export interface Retry150 {
+export interface Retry146 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30636,9 +29348,9 @@ export interface Retry150 {
 /**
  * Retry the current step.
  */
-export interface Retry151 {
+export interface Retry147 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30708,28 +29420,28 @@ export interface Common37 {
    */
   assertions?: Condition229 | Assertion37[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing152[];
+  onPass?: StepRouting148[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing153[];
+  onFail?: StepRouting149[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing154[];
+  onWarning?: StepRouting150[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing155[];
+  onSkip?: StepRouting151[];
   location?: SourceLocation37;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -30818,9 +29530,9 @@ export interface Assertion37 {
 /**
  * Retry the current step.
  */
-export interface Retry152 {
+export interface Retry148 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30835,9 +29547,9 @@ export interface Retry152 {
 /**
  * Retry the current step.
  */
-export interface Retry153 {
+export interface Retry149 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30852,9 +29564,9 @@ export interface Retry153 {
 /**
  * Retry the current step.
  */
-export interface Retry154 {
+export interface Retry150 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -30869,9 +29581,9 @@ export interface Retry154 {
 /**
  * Retry the current step.
  */
-export interface Retry155 {
+export interface Retry151 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31010,28 +29722,28 @@ export interface Common38 {
    */
   assertions?: Condition235 | Assertion38[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing156[];
+  onPass?: StepRouting152[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing157[];
+  onFail?: StepRouting153[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing158[];
+  onWarning?: StepRouting154[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing159[];
+  onSkip?: StepRouting155[];
   location?: SourceLocation38;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -31120,9 +29832,9 @@ export interface Assertion38 {
 /**
  * Retry the current step.
  */
-export interface Retry156 {
+export interface Retry152 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31137,9 +29849,9 @@ export interface Retry156 {
 /**
  * Retry the current step.
  */
-export interface Retry157 {
+export interface Retry153 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31154,9 +29866,9 @@ export interface Retry157 {
 /**
  * Retry the current step.
  */
-export interface Retry158 {
+export interface Retry154 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31171,9 +29883,9 @@ export interface Retry158 {
 /**
  * Retry the current step.
  */
-export interface Retry159 {
+export interface Retry155 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31243,28 +29955,28 @@ export interface Common39 {
    */
   assertions?: Condition241 | Assertion39[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing160[];
+  onPass?: StepRouting156[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing161[];
+  onFail?: StepRouting157[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing162[];
+  onWarning?: StepRouting158[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing163[];
+  onSkip?: StepRouting159[];
   location?: SourceLocation39;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -31353,9 +30065,9 @@ export interface Assertion39 {
 /**
  * Retry the current step.
  */
-export interface Retry160 {
+export interface Retry156 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31370,9 +30082,9 @@ export interface Retry160 {
 /**
  * Retry the current step.
  */
-export interface Retry161 {
+export interface Retry157 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31387,9 +30099,9 @@ export interface Retry161 {
 /**
  * Retry the current step.
  */
-export interface Retry162 {
+export interface Retry158 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31404,9 +30116,9 @@ export interface Retry162 {
 /**
  * Retry the current step.
  */
-export interface Retry163 {
+export interface Retry159 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31667,28 +30379,28 @@ export interface Common40 {
    */
   assertions?: Condition247 | Assertion40[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing164[];
+  onPass?: StepRouting160[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing165[];
+  onFail?: StepRouting161[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing166[];
+  onWarning?: StepRouting162[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing167[];
+  onSkip?: StepRouting163[];
   location?: SourceLocation40;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -31777,9 +30489,9 @@ export interface Assertion40 {
 /**
  * Retry the current step.
  */
-export interface Retry164 {
+export interface Retry160 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31794,9 +30506,9 @@ export interface Retry164 {
 /**
  * Retry the current step.
  */
-export interface Retry165 {
+export interface Retry161 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31811,9 +30523,9 @@ export interface Retry165 {
 /**
  * Retry the current step.
  */
-export interface Retry166 {
+export interface Retry162 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31828,9 +30540,9 @@ export interface Retry166 {
 /**
  * Retry the current step.
  */
-export interface Retry167 {
+export interface Retry163 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -31900,28 +30612,28 @@ export interface Common41 {
    */
   assertions?: Condition253 | Assertion41[];
   /**
-   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onPass?: Routing168[];
+  onPass?: StepRouting164[];
   /**
-   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onFail?: Routing169[];
+  onFail?: StepRouting165[];
   /**
-   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.
+   * Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, `retry`, or `goToStep`.
    */
-  onWarning?: Routing170[];
+  onWarning?: StepRouting166[];
   /**
-   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here — a step that never ran cannot be re-run.)
+   * Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: "test"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)
    */
-  onSkip?: Routing171[];
+  onSkip?: StepRouting167[];
   location?: SourceLocation41;
   /**
    * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
    */
   autoScreenshot?: string;
   /**
-   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.
+   * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
   attempts?: number;
   /**
@@ -32010,9 +30722,9 @@ export interface Assertion41 {
 /**
  * Retry the current step.
  */
-export interface Retry168 {
+export interface Retry164 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -32027,9 +30739,9 @@ export interface Retry168 {
 /**
  * Retry the current step.
  */
-export interface Retry169 {
+export interface Retry165 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -32044,9 +30756,9 @@ export interface Retry169 {
 /**
  * Retry the current step.
  */
-export interface Retry170 {
+export interface Retry166 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**
@@ -32061,9 +30773,9 @@ export interface Retry170 {
 /**
  * Retry the current step.
  */
-export interface Retry171 {
+export interface Retry167 {
   /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
+   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.
    */
   limit: number;
   /**

@@ -2474,8 +2474,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *     next test. This is the FAIL default, so a FAILing test with no handler
  *     does NOT stop its siblings — exactly like the flat pool.
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
- *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
  *
+
  * goToTest jumps the cursor to the target test within this spec (first-occurrence
  * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
  * bounded by a per-spec visit cap (also a FAIL marker). A re-run test's report
@@ -2531,11 +2531,9 @@ async function runRoutedSpec({
     runHasDisplayRecording: boolean;
   };
 }): Promise<void> {
-  // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
-  // remaining tests are recorded SKIPPED with the stop reason and not executed.
+  // Set once a `stop:spec` decision halts the spec; the remaining tests are
+  // recorded SKIPPED with the stop reason and not executed.
   let stopRest = false;
-  // Warn only once per spec if a deferred `stop:run` is encountered.
-  let warnedRunStop = false;
   // Map testId -> first index within this spec, for `goToTest` jumps.
   // First-occurrence wins (testIds aren't guaranteed unique within a spec),
   // mirroring the step loop's `indexByStepId`.
@@ -2753,7 +2751,7 @@ async function runRoutedSpec({
     testReport.result = testResult;
     // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
     // so its tests are SKIPPED with the spec-guard reason and their onSkip
-    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // handlers must NOT change flow (no stopRest).
     // Only evaluate test-level routing for a reached spec.
     if (!specGuardSkip) {
       const decision = await resolveTestRouting({
@@ -2766,18 +2764,6 @@ async function runRoutedSpec({
 
       if (decision.action === "stop") {
         if (decision.scope === "spec") {
-          stopRest = true;
-        } else if (decision.scope === "run") {
-          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
-          // scoped to this runRoutedSpec call) and treat as spec.
-          if (!warnedRunStop) {
-            log(
-              config,
-              "warning",
-              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
-            );
-            warnedRunStop = true;
-          }
           stopRest = true;
         }
         // scope === "test": no-op — the test already finished; continue to the
@@ -5223,20 +5209,14 @@ async function runContext({
       pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
-      // `stop` halts the remaining steps in this context (`spec`/`run` scope —
-      // skipping later tests/specs — is deferred to the test-routing phase);
+      // `stop` halts the remaining steps in this context (the step schema
+      // allows only `stop: "test"`, ADR 01168);
       // `goToStep` jumps the cursor to the target step. flow != verdict: a
       // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
       // via rollUpResults. EXCEPTION: a cleanup (`_fromAfter`) step never stops
       // execution — cleanup is best-effort and must not cascade-skip later
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
-        if (routingDecision.scope !== "test") {
-          clog(
-            "warning",
-            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
-          );
-        }
         stepExecutionFailed = true;
         // Preserve the historical wording when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.

@@ -2744,10 +2744,9 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("test-level stop:run is deferred -> treated as stop:spec (remaining tests SKIPPED)", async () => {
-    // stop:run is not yet implemented at test scope; it warns once and halts the
-    // spec's remaining tests (same as stop:spec). testA FAILs+stop:run -> testB
-    // SKIPPED with the routing reason; verdict FAIL.
+  it("test-level stop:run is rejected, so the spec doesn't run (ADR 01168)", async () => {
+    // The runner can't stop a whole run, so the schema rejects the request
+    // instead of quietly treating it as stop:spec.
     const t = {
       tests: [
         {
@@ -2760,16 +2759,11 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-routing-test-stoprun.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
-    let result;
+    const config = { input: tempFilePath, logLevel: "silent" };
     try {
-      result = await runTests(config);
-      const tests = result.specs[0].tests;
-      assert.equal(tests.length, 2);
-      assert.equal(tests[0].result, "FAIL");
-      assert.equal(tests[1].result, "SKIPPED");
-      assert.match(tests[1].contexts[0].resultDescription, /prior test stopped the spec/);
-      assert.equal(result.summary.specs.fail, 1);
+      // The API skips an invalid spec; the CLI exits 2 (test/routing-scope.test.js).
+      const result = await runTests(config);
+      assert.ok(!result?.specs?.length, "the invalid spec must not run");
     } finally {
       fs.unlinkSync(tempFilePath);
     }

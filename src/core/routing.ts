@@ -419,12 +419,12 @@ interface RetrySpec {
  * `retry` re-runs the step (the runtime loops, then re-resolves with
  * `skipRetry` to get the terminal decision); `goToStep` jumps execution to the
  * step with the given stepId; `goToTest` jumps execution to the test with the
- * given testId (test-scope jumps are deferred to a later phase, but the variant
- * is in the union now so resolvers can name it).
+ * given testId. The schema allows each action only at the scope that performs
+ * it (ADR 01168).
  */
 type RoutingDecision =
   | { action: "continue" }
-  | { action: "stop"; scope: "test" | "spec" | "run" }
+  | { action: "stop"; scope: "test" | "spec" }
   | {
       action: "retry";
       limit: number;
@@ -439,7 +439,7 @@ type RoutingDecision =
 interface RoutingEntry {
   if?: GuardCondition;
   continue?: true;
-  stop?: "test" | "spec" | "run";
+  stop?: "test" | "spec";
   retry?: RetrySpec;
   goToStep?: string;
   goToTest?: string;
@@ -472,7 +472,7 @@ const ROUTING_BY_STATUS: Record<
  *   - `{ retry: {...} }`   -> `{ action: "retry", limit, delay, backoff }`
  *                             (delay defaults to 0, backoff to "fixed")
  *   - `{ goToStep: <id> }` -> `{ action: "goToStep", stepId }`
- *   - goToTest (not implemented this phase) -> the status default
+ * The step schema rejects every other action (ADR 01168).
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned. Defaults reproduce today's behavior (FAIL stops the test; PASS,
@@ -544,10 +544,6 @@ async function resolveStepRouting(args: {
       // rather than failing as an unknown target on incidental whitespace.
       return { action: "goToStep", stepId: entry.goToStep.trim() };
     }
-    // Matched, but the action isn't implemented this phase (goToTest). Treat as
-    // the status default and stop scanning — a later entry must not override an
-    // already-matched selector.
-    return fallback;
   }
   // No entry matched.
   return fallback;
@@ -569,13 +565,11 @@ async function resolveStepRouting(args: {
  *   - `{ continue: true }` -> `{ action: "continue" }`
  *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
  *       The sequencer interprets these scopes: `stop:test` is a NO-OP (the test
- *       already finished), `stop:spec` stops the spec's remaining tests, and
- *       `stop:run` is deferred (warned once and treated as `spec` this phase).
+ *       already finished), and `stop:spec` stops the spec's remaining tests.
  *   - `{ goToTest: <id> }` -> `{ action: "goToTest", testId }` (trimmed). The
  *       sequencer jumps to that test within the spec (unknown target -> a FAIL
  *       marker + stop, bounded by a per-spec visit cap).
- *   - `{ retry }` / `{ goToStep }` -> not applicable at test scope; treated as a
- *       matched-but-unhandled action -> the status default (stop scanning).
+ * The test schema rejects every other action (ADR 01168).
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned, so a test with no routing fields resolves to the same decision the
@@ -625,10 +619,6 @@ async function resolveTestRouting(args: {
       // `cleanup` rather than failing as an unknown target on whitespace.
       return { action: "goToTest", testId: entry.goToTest.trim() };
     }
-    // retry/goToStep are not applicable at test scope. A matched selector whose
-    // action we don't execute here -> return the status default and STOP
-    // scanning (a later entry must not override an already-matched selector).
-    return fallback;
   }
   // No entry matched.
   return fallback;

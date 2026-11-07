@@ -2875,25 +2875,25 @@
           "onPass": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onFail": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onWarning": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -6465,40 +6465,8 @@
           "type": "string",
           "enum": [
             "test",
-            "spec",
-            "run"
+            "spec"
           ]
-        },
-        "retry": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "limit"
-          ],
-          "properties": {
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "delay": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 3600000
-            },
-            "backoff": {
-              "type": "string",
-              "enum": [
-                "fixed",
-                "exponential"
-              ]
-            }
-          }
-        },
-        "goToStep": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
         },
         "goToTest": {
           "type": "string",
@@ -6515,16 +6483,6 @@
         {
           "required": [
             "stop"
-          ]
-        },
-        {
-          "required": [
-            "retry"
-          ]
-        },
-        {
-          "required": [
-            "goToStep"
           ]
         },
         {
@@ -6550,6 +6508,77 @@
                   "minLength": 1,
                   "pattern": "\\S"
                 }
+              }
+            ]
+          },
+          "step": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "#/components/schemas/condition"
+              },
+              "continue": {
+                "const": true
+              },
+              "stop": {
+                "type": "string",
+                "enum": [
+                  "test"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "limit"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600000
+                  },
+                  "backoff": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "exponential"
+                    ]
+                  }
+                }
+              },
+              "goToStep": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "retry"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
               }
             ]
           }
@@ -10841,25 +10870,25 @@
           "onPass": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onFail": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onWarning": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -14355,40 +14384,8 @@
           "type": "string",
           "enum": [
             "test",
-            "spec",
-            "run"
+            "spec"
           ]
-        },
-        "retry": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "limit"
-          ],
-          "properties": {
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "delay": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 3600000
-            },
-            "backoff": {
-              "type": "string",
-              "enum": [
-                "fixed",
-                "exponential"
-              ]
-            }
-          }
-        },
-        "goToStep": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
         },
         "goToTest": {
           "type": "string",
@@ -14405,16 +14402,6 @@
         {
           "required": [
             "stop"
-          ]
-        },
-        {
-          "required": [
-            "retry"
-          ]
-        },
-        {
-          "required": [
-            "goToStep"
           ]
         },
         {
@@ -14440,6 +14427,77 @@
                   "minLength": 1,
                   "pattern": "\\S"
                 }
+              }
+            ]
+          },
+          "step": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/condition"
+              },
+              "continue": {
+                "const": true
+              },
+              "stop": {
+                "type": "string",
+                "enum": [
+                  "test"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "limit"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600000
+                  },
+                  "backoff": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "exponential"
+                    ]
+                  }
+                }
+              },
+              "goToStep": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "retry"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
               }
             ]
           }
