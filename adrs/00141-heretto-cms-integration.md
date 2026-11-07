@@ -44,8 +44,8 @@ The contract:
    publishing API (a ZIP download of the published content). Modeled in the
    `sourceIntegration_v3` schema.
 3. **Screenshot round-trip**: a screenshot uploader pushes captured images back to the CMS;
-   `uploadOnChange` defaults to `true`, each upload carries a `changed` flag, and results surface
-   on `report.uploadResults`.
+   `uploadOnChange` defaults to `false` (opt-in per integration, as the schema has always said),
+   each upload carries a `changed` flag, and results surface on `report.uploadResults`.
 4. **Identity**: CMS-sourced specs get collision-safe `specId`s so repeated runs don't clash.
 
 Origin spans the common (schema), core (runner integration), and resolver (source fetching)

@@ -148,6 +148,14 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
       continue;
     }
 
+    if (integrationConfig.uploadOnChange !== true) {
+      const reason = `uploadOnChange isn't enabled for integration: ${file.sourceIntegration.integrationName}`;
+      log(config, "debug", `Skipping ${file.localPath}: ${reason}`);
+      results.skipped++;
+      results.details.push({ localPath: file.localPath, status: "SKIPPED", reason });
+      continue;
+    }
+
     // Queue this file for parallel upload
     uploadTasks.push({
       file,

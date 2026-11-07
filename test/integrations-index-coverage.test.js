@@ -83,11 +83,14 @@ function makeReport(files) {
 }
 
 // A config that makes getIntegrationConfig resolve for the named heretto
-// integration. Credentials are irrelevant because we stub upload().
+// integration, opted in to uploads. Credentials are irrelevant because we
+// stub upload().
 function herettoConfig(integrationName) {
   return {
     integrations: {
-      heretto: [{ name: integrationName, organizationId: "org", apiToken: "tok" }],
+      heretto: [
+        { name: integrationName, organizationId: "org", apiToken: "tok", uploadOnChange: true },
+      ],
     },
   };
 }
@@ -221,6 +224,42 @@ describe("integrations/index — uploadChangedFiles orchestration", function () 
             e.message.includes("No integration config found")
         )
       );
+    });
+
+    it("uploads only files whose integration sets uploadOnChange: true", async function () {
+      const log = makeLog();
+      uploadStub = sinon.stub(herettoUploader, "upload").resolves({ status: "PASS" });
+
+      const report = makeReport([
+        {
+          localPath: "/tmp/opted-in.png",
+          sourceIntegration: { type: "heretto", integrationName: "opted-in" },
+        },
+        {
+          localPath: "/tmp/unset.png",
+          sourceIntegration: { type: "heretto", integrationName: "unset" },
+        },
+      ]);
+      const config = {
+        integrations: {
+          heretto: [
+            { name: "opted-in", organizationId: "org", apiToken: "tok", uploadOnChange: true },
+            { name: "unset", organizationId: "org", apiToken: "tok" },
+          ],
+        },
+      };
+
+      const results = await uploadChangedFiles({ config, report, log });
+
+      assert.equal(uploadStub.callCount, 1);
+      assert.equal(uploadStub.firstCall.args[0].localFilePath, "/tmp/opted-in.png");
+      assert.equal(results.successful, 1);
+      assert.equal(results.skipped, 1);
+      assert.deepEqual(results.details[0], {
+        localPath: "/tmp/unset.png",
+        status: "SKIPPED",
+        reason: "uploadOnChange isn't enabled for integration: unset",
+      });
     });
   });
 
