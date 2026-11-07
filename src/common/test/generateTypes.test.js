@@ -5,7 +5,21 @@ import { expect } from "chai";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const { checkGeneratorVersion } = require("../scripts/generateTypes.cjs");
+const { checkGeneratorVersion, renderStepActions } = require("../scripts/generateTypes.cjs");
+
+describe("generateTypes renderStepActions", function () {
+  const branch = (...required) => ({ allOf: [{ properties: {} }, { required }] });
+
+  it("renders one action key per step_v3 branch, sorted", function () {
+    const ts = renderStepActions({ oneOf: [branch("goTo"), { required: ["click"] }] });
+    expect(ts).to.match(/\[\n {2}"click",\n {2}"goTo",\n\] as const;/);
+  });
+
+  it("refuses a branch without exactly one action key", function () {
+    expect(() => renderStepActions({ oneOf: [branch("goTo"), branch()] })).to.throw(/exactly one action key/);
+    expect(() => renderStepActions({ oneOf: [branch("goTo", "find")] })).to.throw(/goTo, find/);
+  });
+});
 
 describe("generateTypes checkGeneratorVersion", function () {
   it("accepts an installed version in the declared major", function () {
