@@ -19,7 +19,9 @@ Recordings are video only, with no audio track.
 
 ## Record and stop
 
-The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`.
+The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`, in any letter case, such as `Demo.MP4`.
+
+`record: true` saves `<stepId>.mp4` in `outputDir`, which defaults to the folder you ran Doc Detective from. A relative path, such as `record: "flow.webm"`, resolves against the spec file.
 
 Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordings still open at the end of the run. `stopRecord` targets a recording in one of two ways:
 
