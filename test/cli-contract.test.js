@@ -650,6 +650,18 @@ describe("CLI contract", function () {
       );
     });
 
+    it("names DOC_DETECTIVE when its config object is invalid", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { logLevl: 1 } }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include(
+        [
+          "Error: Invalid config in DOC_DETECTIVE:",
+          "unknown key 'logLevl'. Did you mean logLevel?",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+        ].join("\n")
+      );
+    });
+
     it("names the user config when it's the invalid config", function () {
       const home = path.join(cwd, "xdg");
       fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });

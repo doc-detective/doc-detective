@@ -1385,11 +1385,12 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
     // AJV's "must NOT be valid" helps only when it's all there is.
     else if (!said && of("not").length) lines.push(`${prefix}${of("not")[0].message}.`);
   }
-  // Never hide every error: fall back to AJV's own messages.
+  // Never hide every error: fall back to AJV's own messages, the compound
+  // keywords' too when nothing else is left.
   if (lines.length === 0) {
+    const leaves = errorObjects.filter((error) => !["anyOf", "oneOf", "if"].includes(error.keyword));
     const raw = new Set<string>();
-    for (const error of errorObjects) {
-      if (["anyOf", "oneOf", "if"].includes(error.keyword)) continue;
+    for (const error of leaves.length ? leaves : errorObjects) {
       raw.add(`${prefixOf(partsOf(error.instancePath))}${error.message}.`);
     }
     lines.push(...raw);

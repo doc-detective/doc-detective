@@ -184,6 +184,13 @@ describe("summarizeSchemaErrors", function () {
     expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
   });
 
+  it("falls back to compound errors' own messages rather than print nothing", function () {
+    const errorObjects = [
+      { instancePath: "/tests/0", keyword: "oneOf", params: { passingSchemas: null }, schemaPath: "#/oneOf", message: "must match exactly one schema in oneOf" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { tests: [{}] })).to.equal("tests[0]: must match exactly one schema in oneOf.");
+  });
+
   it("says `must be` when only one value is allowed", function () {
     const errorObjects = [
       { instancePath: "/mode", keyword: "const", params: { allowedValue: "fast" }, schemaPath: "#/properties/mode/const" },
