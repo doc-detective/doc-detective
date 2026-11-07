@@ -2171,7 +2171,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
-    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // sequential phases. Config-level `beforeAll` specs all finish before any
     // `main` test starts, and `afterAll` specs run only after every `main` test
     // finishes. Within a phase, jobs still run concurrently up to `limit`.
     // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
@@ -2221,9 +2221,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       }
     };
 
-    const PHASES = ["beforeAny", "main", "afterAll"];
+    const PHASES = ["beforeAll", "main", "afterAll"];
     const jobsByPhase: { [phase: string]: any[] } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };
@@ -2239,7 +2239,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // Routed specs are conceptually main-phase work too, so bucket them by the
     // same `_phase` and run each phase's routed specs right after that phase's
     // flat jobs. This keeps #377's ordering guarantee intact under routing: all
-    // `beforeAny` work (flat + routed) finishes before any `main` test, and all
+    // `beforeAll` work (flat + routed) finishes before any `main` test, and all
     // `afterAll` work runs after every `main` test — a routed main spec can't
     // slip past the teardown. Within a phase, routed specs still run
     // sequentially AFTER the flat jobs (unchanged relative order), reusing the
@@ -2248,10 +2248,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // in order with test-level routing evaluated between them; the sequencer
     // only pushes onto the already-registered specReport — it never touches the
     // summary (Phase-3 below remains the sole tally site). With no
-    // beforeAny/afterAll specs (the common case) this is identical to running
+    // beforeAll/afterAll specs (the common case) this is identical to running
     // the main flat pool and then every routed spec.
     const routedByPhase: { [phase: string]: typeof routedSpecs } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };

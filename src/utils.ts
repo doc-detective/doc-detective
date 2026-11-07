@@ -2,6 +2,7 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
+import { renameDeprecatedConfigKeys } from "./core/config.js";
 import { getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -337,6 +338,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   }
 
   readCredentialFiles(config);
+  renameDeprecatedConfigKeys(config, (message) => log(message, "warning", config));
 
   // Validate config
   const validation = validate({

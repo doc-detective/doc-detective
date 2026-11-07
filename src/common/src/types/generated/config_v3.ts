@@ -767,6 +767,11 @@ export interface Config {
   /**
    * Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.
    */
+  beforeAll?: string | string[];
+  /**
+   * @deprecated
+   * Deprecated: use `beforeAll`.
+   */
   beforeAny?: string | string[];
   /**
    * Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments.

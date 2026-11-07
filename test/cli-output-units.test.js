@@ -326,3 +326,51 @@ describe("credentials from files", function () {
     expect(message).to.include("apiKeyFile");
   });
 });
+
+// ADR 01169: the CLI renames a deprecated beforeAny before it resolves paths.
+describe("beforeAll in the CLI config", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-before-all-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const withConfig = (config) => {
+    const file = path.join(dir, "config.json");
+    fs.writeFileSync(file, JSON.stringify(config));
+    return setConfig({ configPath: file, args: {} });
+  };
+  const captureErrors = async (run) => {
+    const original = console.error;
+    const lines = [];
+    console.error = (line) => lines.push(String(line));
+    try {
+      return { result: await run(), lines };
+    } finally {
+      console.error = original;
+    }
+  };
+
+  it("resolves beforeAll relative to the config file", async function () {
+    const config = await withConfig({ beforeAll: "setup.spec.json" });
+    expect(config.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+  });
+
+  it("renames beforeAny to beforeAll and warns once", async function () {
+    const { result, lines } = await captureErrors(() => withConfig({ beforeAny: "setup.spec.json" }));
+    expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+    expect(result).to.not.have.property("beforeAny");
+    expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([
+      "Warning: `beforeAny` is deprecated. Rename it to `beforeAll`.",
+    ]);
+  });
+
+  it("rejects a config that sets both", async function () {
+    let message = "";
+    await withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }).catch((error) => {
+      message = error.message;
+    });
+    expect(message).to.equal("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
+  });
+});

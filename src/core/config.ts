@@ -14,7 +14,19 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
+export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
+
+// Rename deprecated config keys in place, before validation (ADR 01169). The CLI
+// and the API both call this, so the alias works either way and warns once.
+function renameDeprecatedConfigKeys(config: any, warn: (message: string) => void) {
+  if (config?.beforeAny === undefined) return;
+  if (config.beforeAll !== undefined) {
+    throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
+  }
+  warn("`beforeAny` is deprecated. Rename it to `beforeAll`.");
+  config.beforeAll = config.beforeAny;
+  delete config.beforeAny;
+}
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -151,6 +163,8 @@ async function setConfig({ config, detectApps = true }: any) {
     }
   }
 
+  renameDeprecatedConfigKeys(config, (message) => log(config, "warning", message));
+
   // Validate inbound `config`.
   const validityCheck = validate({ schemaKey: "config_v3", object: config });
   if (!validityCheck.valid) {
@@ -182,11 +196,11 @@ async function setConfig({ config, detectApps = true }: any) {
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];
-  if (typeof config.beforeAny === "string") {
-    if (config.beforeAny === "") {
-      config.beforeAny = [];
+  if (typeof config.beforeAll === "string") {
+    if (config.beforeAll === "") {
+      config.beforeAll = [];
     } else {
-      config.beforeAny = [config.beforeAny];
+      config.beforeAll = [config.beforeAll];
     }
   }
   if (typeof config.afterAll === "string") {

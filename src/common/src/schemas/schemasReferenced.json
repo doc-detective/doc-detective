@@ -7336,7 +7336,25 @@
           },
           "default": {}
         },
+        "beforeAll": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
         "beforeAny": {
+          "deprecated": true,
           "anyOf": [
             {
               "type": "string"
@@ -15230,7 +15248,25 @@
             "type": "string"
           }
         },
+        "beforeAll": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
         "beforeAny": {
+          "deprecated": true,
           "anyOf": [
             {
               "type": "string"

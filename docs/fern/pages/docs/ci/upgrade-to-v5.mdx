@@ -293,6 +293,14 @@ These still work, and each prints a warning on stderr. Replace them when you can
 | `--logLevel` | `--log-level` |
 | `-e`, `--exit-on-fail` | Nothing. Failing the run is now the default, so you can delete the flag. |
 
+## Deprecated config keys
+
+These still work, and each prints a warning on stderr. Rename them when you can. A config that sets both the old and the new key exits `2`.
+
+| Deprecated | Replacement |
+|---|---|
+| `beforeAny` | `beforeAll` |
+
 ## GitHub Action
 
 **What changed:** Action `@v2` runs CLI 5. Its `version` input defaults to `5`, `exit_on_fail` defaults to `true`, and it removes the `ios` input. Exit code `2` always fails the job, whatever `exit_on_fail` says. The moving `@v1` tag stays on CLI 4 and refuses `version` 5 or later.

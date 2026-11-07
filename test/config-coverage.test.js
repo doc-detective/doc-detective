@@ -667,33 +667,59 @@ describe("config.ts — setConfig", function () {
     );
   });
 
-  it("normalizes an empty-string beforeAny/afterAll to an empty array", async function () {
+  it("normalizes an empty-string beforeAll/afterAll to an empty array", async function () {
     const config = await setConfig({
       config: {
         logLevel: "silent",
         dryRun: true,
         input: ["./README.md"],
-        beforeAny: "",
+        beforeAll: "",
         afterAll: "",
       },
     });
-    assert.deepEqual(config.beforeAny, []);
+    assert.deepEqual(config.beforeAll, []);
     assert.deepEqual(config.afterAll, []);
   });
 
-  it("wraps non-empty string beforeAny/afterAll/input into arrays", async function () {
+  it("wraps non-empty string beforeAll/afterAll/input into arrays", async function () {
     const config = await setConfig({
       config: {
         logLevel: "silent",
         dryRun: true,
         input: "./README.md",
-        beforeAny: "./setup.json",
+        beforeAll: "./setup.json",
         afterAll: "./cleanup.json",
       },
     });
     assert.deepEqual(config.input, ["./README.md"]);
-    assert.deepEqual(config.beforeAny, ["./setup.json"]);
+    assert.deepEqual(config.beforeAll, ["./setup.json"]);
     assert.deepEqual(config.afterAll, ["./cleanup.json"]);
+  });
+
+  // ADR 01169: beforeAny is a deprecated alias for beforeAll.
+  it("renames a deprecated beforeAny to beforeAll and warns once", async function () {
+    const errors = sinon.stub(console, "error");
+    let config;
+    try {
+      config = await setConfig({
+        config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./setup.json" },
+      });
+    } finally {
+      errors.restore();
+    }
+    assert.deepEqual(config.beforeAll, ["./setup.json"]);
+    assert.equal("beforeAny" in config, false);
+    const warnings = errors.args.map(([line]) => line).filter((line) => /beforeAny/.test(line));
+    assert.deepEqual(warnings, ["Warning: `beforeAny` is deprecated. Rename it to `beforeAll`."]);
+  });
+
+  it("rejects a config that sets both beforeAll and beforeAny", async function () {
+    await assert.rejects(
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: "./b.json" },
+      }),
+      { message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both." }
+    );
   });
 
   it("normalizes a custom object fileType's string inlineStatements and markup regex into arrays", async function () {

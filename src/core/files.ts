@@ -114,7 +114,7 @@ async function resolvePaths({
     "setup",
     "cleanup",
     "configPath",
-    "beforeAny",
+    "beforeAll",
     "afterAll",
     "mediaDirectory",
     "downloadDirectory",

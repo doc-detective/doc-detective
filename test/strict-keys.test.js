@@ -113,17 +113,30 @@ describe("unknown keys through the CLI", function () {
     expect(r.status, r.stderr).to.equal(2);
   });
 
-  it("keeps beforeAny and afterAll ordering", function () {
-    write("first.spec.json", { specId: "first", tests: [{ steps: [echo] }] });
-    write("last.spec.json", { specId: "last", tests: [{ steps: [echo] }] });
-    write("main.spec.json", { specId: "main", tests: [{ steps: [echo] }] });
-    write(
-      ".doc-detective.json",
-      { input: "main.spec.json", beforeAny: "last.spec.json", afterAll: "first.spec.json", telemetry: { send: false } }
-    );
-    const r = run(["-c", ".doc-detective.json", "--json"]);
-    expect(r.status, r.stderr).to.equal(0);
-    expect(JSON.parse(r.stdout).specs.map((spec) => spec.specId)).to.deep.equal(["last", "main", "first"]);
+  // ADR 01169: beforeAll replaces beforeAny, which still works and warns once.
+  for (const key of ["beforeAll", "beforeAny"]) {
+    it(`keeps ${key} and afterAll ordering`, function () {
+      write("first.spec.json", { specId: "first", tests: [{ steps: [echo] }] });
+      write("last.spec.json", { specId: "last", tests: [{ steps: [echo] }] });
+      write("main.spec.json", { specId: "main", tests: [{ steps: [echo] }] });
+      write(
+        ".doc-detective.json",
+        { input: "main.spec.json", [key]: "last.spec.json", afterAll: "first.spec.json", telemetry: { send: false } }
+      );
+      const r = run(["-c", ".doc-detective.json", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).specs.map((spec) => spec.specId)).to.deep.equal(["last", "main", "first"]);
+      const warnings = r.stderr.split("\n").filter((line) => line.includes("`beforeAny` is deprecated"));
+      expect(warnings).to.have.lengthOf(key === "beforeAny" ? 1 : 0);
+    });
+  }
+
+  it("exits 2 when beforeAll and beforeAny are both set", function () {
+    write("setup.spec.json", { tests: [{ steps: [echo] }] });
+    write(".doc-detective.json", { beforeAll: "setup.spec.json", beforeAny: "setup.spec.json", telemetry: { send: false } });
+    const r = run(["-c", ".doc-detective.json"]);
+    expect(r.status, r.stderr).to.equal(2);
+    expect(r.stderr).to.include("beforeAll: set `beforeAll` or `beforeAny`, not both.");
   });
 });
 

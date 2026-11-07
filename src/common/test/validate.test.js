@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { validate, transformToSchemaKey } from "../dist/validate.js";
+import { schemas } from "../dist/index.js";
 
   describe("validate", function () {
     describe("input validation", function () {
@@ -2823,7 +2824,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
         expect(result.detectSteps).to.equal(true);
-        expect(result.beforeAny).to.equal("./setup.js");
+        expect(result.beforeAll).to.equal("./setup.js");
+        expect(result).to.not.have.property("beforeAny");
         expect(result.afterAll).to.equal("./cleanup.js");
       });
 
@@ -3535,6 +3537,29 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
             },
           })
         ).to.throw(/Invalid object/);
+      });
+    });
+
+    // ADR 01169: beforeAll replaces beforeAny, which stays as a deprecated alias.
+    describe("beforeAll", function () {
+      for (const value of ["setup.spec.json", ["a.spec.json", "b.spec.json"]]) {
+        it(`accepts beforeAll: ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { beforeAll: value }, addDefaults: false });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("rejects a beforeAll that isn't a string or an array of strings", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAll: { path: "a.spec.json" } }, addDefaults: false });
+        expect(result.valid).to.be.false;
+      });
+
+      it("keeps beforeAny as a deprecated alias", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAny: "setup.spec.json" }, addDefaults: false });
+        expect(result.valid, result.errors).to.be.true;
+        const property = schemas.config_v3.properties.beforeAny;
+        expect(property.deprecated).to.equal(true);
+        expect(property.description).to.equal("Deprecated: use `beforeAll`.");
       });
     });
 

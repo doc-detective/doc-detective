@@ -2867,9 +2867,10 @@ describe("hints/hints (registry)", function () {
     expect(h.markdown).to.match(/headed/i);
   });
 
-  it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
+  it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAll regardless of step types", function () {
     const h = findHint("extractBeforeAnySharedSetup");
-    // Predicate is `totalSpecs >= 5 && !config.beforeAny` — the
+    expect(h.markdown).to.include('{ "beforeAll": "./setup.spec.json" }');
+    // Predicate is `totalSpecs >= 5 && !config.beforeAll` — the
     // earlier `usedStepTypes.has("loadVariables")` gate was dropped in
     // a manual edit because the setup-extraction advice applies
     // broadly, not just to env-driven suites.
@@ -2881,13 +2882,13 @@ describe("hints/hints (registry)", function () {
     expect(
       h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
     ).to.equal(true);
-    // Already has beforeAny => skip.
+    // Already has beforeAll => skip.
     expect(
       h.when(
         fakeCtx({
           totalSpecs: 6,
           usedStepTypes: new Set(["loadVariables"]),
-          config: { beforeAny: "./setup.spec.json" },
+          config: { beforeAll: "./setup.spec.json" },
         })
       )
     ).to.equal(false);

@@ -1,0 +1,74 @@
+{
+  "specId": "cli-before-all",
+  "description": "Config beforeAll runs setup specs before the input (ADR 01169), through the real CLI. The deprecated beforeAny alias still works and warns, and setting both exits 2.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs and configs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-before-all';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(n,o)=>fs.writeFileSync(d+'/'+n,JSON.stringify(o));const spec={tests:[{steps:[{runShell:'echo hi'}]}]};w('setup.spec.json',spec);w('main.spec.json',spec);const base={input:'main.spec.json',telemetry:{send:false}};w('before-all-string.json',{...base,beforeAll:'setup.spec.json'});w('before-all-array.json',{...base,beforeAll:['setup.spec.json','setup.spec.json']});w('before-any.json',{...base,beforeAny:'setup.spec.json'});w('both.json',{...base,beforeAll:'setup.spec.json',beforeAny:'setup.spec.json'});\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "before-all-runs",
+      "description": "beforeAll as a string and as an array runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-all-string.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-all-array.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "before-any-alias-warns",
+      "description": "The deprecated beforeAny still runs, and warns on stderr.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-any.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "is deprecated. Rename it to"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "both-exit-2",
+      "description": "Setting both beforeAll and beforeAny exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/both.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "not both."
+          }
+        }
+      ]
+    }
+  ]
+}

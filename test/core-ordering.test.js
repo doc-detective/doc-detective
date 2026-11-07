@@ -4,7 +4,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 
-// Advanced ordering under concurrentRunners: beforeAny / setup(before) /
+// Advanced ordering under concurrentRunners: beforeAll / setup(before) /
 // cleanup(after) / afterAll. These exercise the local runner end-to-end with
 // runShell-only steps so they're deterministic and driver-free.
 
@@ -39,7 +39,7 @@ function writeSpec(dir, name, spec) {
 describe("Advanced ordering under concurrentRunners", function () {
   this.timeout(120000);
 
-  it("report spec order matches input order (beforeAny → main → afterAll)", async () => {
+  it("report spec order matches input order (beforeAll → main → afterAll)", async () => {
     const dir = mkTempDir();
     try {
       const b = writeSpec(dir, "b.json", {
@@ -52,7 +52,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [{ runShell: "echo a" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [m],
         afterAll: [a],
         logLevel: "error",
@@ -64,18 +64,18 @@ describe("Advanced ordering under concurrentRunners", function () {
     }
   });
 
-  it("beforeAny completes before any main/afterAll starts under concurrentRunners>1", async () => {
+  it("beforeAll completes before any main/afterAll starts under concurrentRunners>1", async () => {
     const dir = mkTempDir();
     try {
       const log = path.join(dir, "order.log");
-      // beforeAny/afterAll steps are slow (300ms); main is instant. Without a
+      // beforeAll/afterAll steps are slow (300ms); main is instant. Without a
       // barrier, concurrent runners let the instant main tokens land before the
-      // slow beforeAny tokens — which the assertions below catch.
+      // slow beforeAll tokens — which the assertions below catch.
       const b1 = writeSpec(dir, "b1.json", {
-        tests: [{ steps: [appendStep(dir, log, "beforeAny", 300)] }],
+        tests: [{ steps: [appendStep(dir, log, "beforeAll", 300)] }],
       });
       const b2 = writeSpec(dir, "b2.json", {
-        tests: [{ steps: [appendStep(dir, log, "beforeAny", 300)] }],
+        tests: [{ steps: [appendStep(dir, log, "beforeAll", 300)] }],
       });
       const m1 = writeSpec(dir, "m1.json", {
         tests: [{ steps: [appendStep(dir, log, "main", 0)] }],
@@ -90,7 +90,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [appendStep(dir, log, "afterAll", 300)] }],
       });
       await runTests({
-        beforeAny: [b1, b2],
+        beforeAll: [b1, b2],
         input: [m1, m2],
         afterAll: [a1, a2],
         concurrentRunners: 4,
@@ -100,16 +100,16 @@ describe("Advanced ordering under concurrentRunners", function () {
         .readFileSync(log, "utf8")
         .split("\n")
         .filter(Boolean);
-      const lastBeforeAny = tokens.lastIndexOf("beforeAny");
+      const lastBeforeAll = tokens.lastIndexOf("beforeAll");
       const firstMain = tokens.indexOf("main");
       const lastMain = tokens.lastIndexOf("main");
       const firstAfterAll = tokens.indexOf("afterAll");
-      assert.equal(tokens.filter((t) => t === "beforeAny").length, 2);
+      assert.equal(tokens.filter((t) => t === "beforeAll").length, 2);
       assert.equal(tokens.filter((t) => t === "main").length, 2);
       assert.equal(tokens.filter((t) => t === "afterAll").length, 2);
       assert.ok(
-        lastBeforeAny < firstMain,
-        `every beforeAny must precede every main; got ${tokens.join(",")}`
+        lastBeforeAll < firstMain,
+        `every beforeAll must precede every main; got ${tokens.join(",")}`
       );
       assert.ok(
         lastMain < firstAfterAll,
@@ -215,7 +215,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ after: cleanup, steps: [{ runShell: "echo ok" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [core],
         logLevel: "error",
       });
@@ -288,8 +288,8 @@ describe("Advanced ordering under concurrentRunners", function () {
   });
 
   // Locks the ADR's documented choice: phase failures do not abort later
-  // phases (beforeAny is run-everything; afterAll is cleanup and always runs).
-  it("a failing beforeAny spec does not abort main specs", async () => {
+  // phases (beforeAll is run-everything; afterAll is cleanup and always runs).
+  it("a failing beforeAll spec does not abort main specs", async () => {
     const dir = mkTempDir();
     try {
       const b = writeSpec(dir, "b.json", {
@@ -299,7 +299,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [{ runShell: "echo main" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [m],
         concurrentRunners: 4,
         logLevel: "error",
@@ -310,7 +310,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       const main = result.specs.find(
         (s) => path.basename(s.contentPath) === "m.json"
       );
-      assert.equal(before.result, "FAIL"); // beforeAny failed
+      assert.equal(before.result, "FAIL"); // beforeAll failed
       assert.equal(main.result, "PASS"); // main still ran
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });

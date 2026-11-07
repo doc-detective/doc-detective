@@ -26,7 +26,8 @@ relativePathBase | string | Optional. Whether paths should be interpreted as rel
 loadVariables | string | Optional. Load environment variables from the specified `.env` file. | —
 origin | string | Optional. Default protocol and domain to use for relative URLs. | —
 originParams | object | Optional. Query parameters to append to URLs resolved against `origin`. Values support environment variable substitution via `$VAR` syntax. Step-level `params` on `goTo` / `checkLink` are merged on top of these, with step keys winning on collision. WARNING: values are embedded in request URLs and appear verbatim in test results, logs, and reports — avoid putting long-lived secrets here. | ``{}``
-beforeAny | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments. | —
+beforeAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments. | —
+beforeAny | one of:<br/>- string<br/>- array of string | Deprecated: use `beforeAll`. | —
 afterAll | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments. | —
 detectSteps | boolean | Optional. Whether or not to detect steps in input files based on defined markup. | `true`
 allowUnsafeSteps | boolean | Optional. Whether or not to run potentially unsafe steps, such as those that might modify files or system state. | —

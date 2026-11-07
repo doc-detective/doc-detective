@@ -9462,8 +9462,27 @@
         },
         "default": {}
       },
-      "beforeAny": {
+      "beforeAll": {
         "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "beforeAny": {
+        "description": "Deprecated: use `beforeAll`.",
+        "deprecated": true,
         "anyOf": [
           {
             "type": "string"
@@ -28160,8 +28179,27 @@
             },
             "default": {}
           },
-          "beforeAny": {
+          "beforeAll": {
             "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "beforeAny": {
+            "description": "Deprecated: use `beforeAll`.",
+            "deprecated": true,
             "anyOf": [
               {
                 "type": "string"
