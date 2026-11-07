@@ -512,15 +512,24 @@ describe("local URL guard (ADR 01162)", function () {
     assert.equal(schema.properties.id.type, "integer");
   });
 
+  // The ref parser rethrows what a resolver throws as its own ResolverError,
+  // with the original as `cause`.
+  const refusalOf = async (description) => {
+    const error = await loadDescription(description).then(
+      () => assert.fail("loaded"),
+      (e) => e
+    );
+    assert.ok(error.cause instanceof UrlGuardError, String(error.cause));
+    return error;
+  };
+
   it("refuses a public OpenAPI description's $ref to a private address", async function () {
     fakePublicHost();
-    await assert.rejects(
-      () => loadDescription(`http://public.example.test:${port}/openapi.yaml`),
-      {
-        message:
-          `Couldn't resolve $ref http://127.0.0.1:${port}/schema.json in http://public.example.test:${port}/openapi.yaml: a public document can't refer to a private address.\n` +
-          "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.",
-      }
+    const error = await refusalOf(`http://public.example.test:${port}/openapi.yaml`);
+    assert.equal(
+      error.message,
+      `Couldn't resolve $ref http://127.0.0.1:${port}/schema.json in http://public.example.test:${port}/openapi.yaml: a public document can't refer to a private address.\n` +
+        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
     process.env[ALLOW] = "1";
     const definition = await loadDescription(`http://public.example.test:${port}/openapi.yaml`);
@@ -710,14 +719,13 @@ describe("local URL guard (ADR 01162)", function () {
 
   it("refuses a public description's $ref that rebinds to a private address at connect time", async function () {
     fakePublicHost();
-    await assert.rejects(
-      () => loadDescription(`http://public.example.test:${port}/openapi-rebind.yaml`),
-      {
-        message:
-          `Couldn't resolve $ref http://rebind.example.test:${port}/plain.json in ` +
-          `http://public.example.test:${port}/openapi-rebind.yaml: a public document can't refer to 127.0.0.1, a private address.\n` +
-          "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.",
-      }
+    // The refusal itself, not axios's wrapper around it.
+    const error = await refusalOf(`http://public.example.test:${port}/openapi-rebind.yaml`);
+    assert.equal(
+      error.message,
+      `Couldn't resolve $ref http://rebind.example.test:${port}/plain.json in ` +
+        `http://public.example.test:${port}/openapi-rebind.yaml: a public document can't refer to 127.0.0.1, a private address.\n` +
+        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
   });
 

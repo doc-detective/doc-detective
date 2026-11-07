@@ -3,6 +3,7 @@ import {
   localUrlPolicy,
   privateAddressOf,
   getGuarded,
+  UrlGuardError,
   FETCH_TEXT_DEFAULTS,
   redactUrlForOutput,
 } from "./utils.js";
@@ -81,8 +82,9 @@ async function loadDescription(descriptionPath: string = "") {
   } else {
     definition = await readFile({ fileURLOrPath: descriptionPath });
   }
+  // A UrlGuardError, so getGuarded hands back one refused at connect time.
   const refused = (ref: string, doc: string, target: string) =>
-    new Error(
+    new UrlGuardError(
       `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${target}.\n` +
         "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
