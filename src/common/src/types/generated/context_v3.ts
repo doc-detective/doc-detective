@@ -11,9 +11,9 @@ export type DeviceByName = string;
  */
 export interface Context {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */

@@ -5688,3 +5688,40 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     }
   });
+
+  describe("$schema is a free-form string", function () {
+    const legacy = (name) =>
+      `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/${name}_v3.schema.json`;
+    const versioned = (name) =>
+      `https://unpkg.com/doc-detective-common@5/dist/schemas/${name}_v3.schema.json`;
+    const cases = {
+      spec_v3: { name: "spec", object: { tests: [{ steps: [{ wait: 1 }] }] } },
+      config_v3: { name: "config", object: {} },
+      context_v3: { name: "context", object: { platforms: "linux" } },
+      step_v3: { name: "step", object: { wait: 1 } },
+      test_v3: { name: "test", object: { steps: [{ wait: 1 }] } },
+    };
+
+    for (const [schemaKey, { name, object }] of Object.entries(cases)) {
+      for (const [label, $schema] of [
+        ["the versioned unpkg URL", versioned(name)],
+        ["the legacy URL", legacy(name)],
+        ["a local path", `./schemas/${name}_v3.schema.json`],
+      ]) {
+        it(`${schemaKey} accepts ${label}`, function () {
+          const result = validate({ schemaKey, object: { ...object, $schema } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it(`${schemaKey} rejects an empty $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: "" } });
+        expect(result.valid).to.be.false;
+      });
+
+      it(`${schemaKey} rejects a non-string $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: {} } });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });
