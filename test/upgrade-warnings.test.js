@@ -533,11 +533,11 @@ registerHooks({ load(url, ctx, next) {
     });
 
     it("commandWarnings doesn't take a flag's value for a command", function () {
-      expect(commandWarnings(["install", "status"], ["install", "status", "--cache-dir", "-a"], false)).to.deep.equal([]);
-      expect(commandWarnings(["install", "agents"], ["install", "agents", "--agent", "claude"], false)).to.deep.equal([]);
-      expect(commandWarnings(["install", "agents"], ["install", "agents", "-sy", "project"], false)).to.have.length(1);
+      expect(commandWarnings(["install", "status"], ["install", "status", "--cache-dir", "-a"])).to.deep.equal([]);
+      expect(commandWarnings(["install", "agents"], ["install", "agents", "--agent", "claude"])).to.deep.equal([]);
+      expect(commandWarnings(["install", "agents"], ["install", "agents", "-sy", "project"])).to.have.length(1);
       // Only the agents command has -a and -s.
-      expect(commandWarnings([], ["-a"], false)).to.deep.equal([]);
+      expect(commandWarnings([], ["-a"])).to.deep.equal([]);
     });
 
     it("commandWarnings reads --silent from the raw arguments, not a parsed key", function () {
