@@ -32,7 +32,7 @@ Before human review, automated checks verify your contribution.
 
 ### What runs automatically
 
-1. **Vale (style checking)**: Checks adherence to Google Developer Style Guide
+1. **Vale (style checking)**: Checks prose against the Google developer style guide and the Doc Detective house voice
 2. **Build verification**: Ensures the site builds successfully
 3. **Link validation**: Verifies all links work
 4. **CLA check**: Confirms you've signed the Contributor License Agreement
@@ -51,7 +51,20 @@ Don't panic. Failed checks happen and can usually be fixed.
 
 #### Vale failures
 
-Vale checks writing style. Common issues:
+The Vale check lints every Markdown and MDX file in the repository, and it fails on any error-level alert. Vale posts each error as a review comment on the line that caused it. Fix every error before your pull request can merge.
+
+The house voice raises the most common errors:
+
+**"Em dash. Split or restructure the sentence rather than swapping punctuation."**
+
+- ⛔ `Run the tests — they take a minute.`
+- ✅ `Run the tests. They take a minute.`
+
+**"Sentence runs to N words. Split it."**
+
+Vale flags any sentence longer than 25 words. Split it into two sentences, or move a series into a list.
+
+The check posts only errors. Vale also reports warnings and suggestions, such as these Google style issues, when you [run it locally](/contribute/contribute/local-development#style-checking-with-vale):
 
 **"Use second person instead of first person"**
 
@@ -68,13 +81,13 @@ Vale checks writing style. Common issues:
 - ⛔ `The file can be uploaded by...`
 - ✅ `Upload the file by...`
 
-**Handling Vale suggestions:**
+**Handling Vale alerts:**
 
-- **Errors**: Should be fixed
-- **Warnings**: Strongly consider fixing
-- **Suggestions**: Optional, and reviewers use judgment
+- **Errors**: Fix them. Any error fails the check.
+- **Warnings**: Strongly consider fixing them.
+- **Suggestions**: Optional. Reviewers use judgment.
 
-If you disagree with a Vale suggestion, explain why in a comment. Reviewers can override automated checks when it makes sense.
+If Vale flags a correct technical term as misspelled, add it to the accepted vocabulary in `docs/.vale/styles/config/vocabularies/Docs/accept.txt`. If you think a rule is wrong for your content, explain why in a pull request comment.
 
 #### Build failures
 
