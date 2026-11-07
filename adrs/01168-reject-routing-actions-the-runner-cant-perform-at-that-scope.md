@@ -44,8 +44,8 @@ Chosen option: **A**.
   `goToStep`. `routing_v3` gains `components.schemas.step`, and `step_v3`'s handlers reference it.
 - Test handlers accept exactly one of `continue: true`, `stop: "test"` or `"spec"`, or `goToTest`. The root of
   `routing_v3` is the test entry.
-- A spec that uses anything else fails validation, so the CLI exits 2 through the existing invalid-spec path and
-  names the key path, for example `tests[0].steps[0].onFail[0].stop` or
+- A spec that uses anything else fails validation, so the CLI exits 2 through the existing invalid-spec path. The
+  error names the key path, for example `tests[0].steps[0].onFail[0].stop` or
   `tests[0].onFail[0]: unknown key 'retry'.`
 - The two "not yet implemented" warning branches in `src/core/tests.ts`, and the unreachable fallbacks in
   `src/core/routing.ts`, are deleted.

@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 Config has two keys that wrap the whole run: `beforeAny` runs setup specs before the input, and `afterAll` runs
 cleanup specs after it. The pair reads as a typo. Jest and Vitest pair `beforeAll` with `afterAll`, so that's the
-name people reach for, and with strict config keys it's an unknown key that exits 2.
+name people reach for. With strict config keys, it's an unknown key that exits 2.
 
 ```json
 // before                          // after
