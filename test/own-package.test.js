@@ -71,7 +71,8 @@ describe("doc-detective's own package", function () {
 
     it("writes package.json's version into a verified-by entry", async function () {
       const { page } = await runPage();
-      assert.match(fs.readFileSync(page, "utf8"), new RegExp(`\\n {4}version: ${version.replace(/\./g, "\\.")}\\n`));
+      const text = fs.readFileSync(page, "utf8");
+      assert.ok(text.includes(`\n    version: ${version}\n`), text);
     });
 
     it("starts the PTY probe worker", async function () {
@@ -100,7 +101,7 @@ describe("doc-detective's own package", function () {
         timeoutMs: 15000,
       });
       assert.equal(res.outcome, "inconclusive");
-      assert.match(res.detail, new RegExp(marker));
+      assert.ok(res.detail.includes(marker), res.detail);
     });
   });
 });
