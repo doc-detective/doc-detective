@@ -194,7 +194,7 @@ async function runTestsHandler(args: any) {
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
-    if (results.specs.length > 0) {
+    if (results?.specs?.length > 0) {
       console.log(JSON.stringify(results, null, 2));
     } else if (config.exitOnFail !== false) {
       // Dry runs silence logs to keep stdout clean, so say why there's no plan.

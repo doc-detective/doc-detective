@@ -494,17 +494,23 @@ async function setConfig({
     config.dryRun = args.dryRun;
   }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
-  if (typeof args.reporters === "string" && splitList(args.reporters).length > 0) {
-    config.reporters = splitList(args.reporters);
+  for (const [flag, key] of [
+    ["reporters", "reporters"],
+    ["test", "testFilter"],
+    ["spec", "specFilter"],
+  ]) {
+    const list = typeof args[flag] === "string" ? splitList(args[flag]) : [];
+    if (list.length > 0) config[key] = list;
   }
-  if (typeof args.test === "string" && splitList(args.test).length > 0) config.testFilter = splitList(args.test);
-  if (typeof args.spec === "string" && splitList(args.spec).length > 0) config.specFilter = splitList(args.spec);
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
   // setConfig is CLI-only (not a package export), so commander has already
-  // checked each value below against its choices.
+  // checked each value below against its choices: verification,
+  // browserFallback, shell, and concurrentRunners pass through unchecked. Its
+  // callers, cli.ts and the install command, hand it commander's parsed
+  // options; a new caller must too.
   if (typeof args.verification === "string") {
     const write = args.verification === "existing" ? "existing" : args.verification === "true";
     config.verification = { ...(config.verification || {}), write };
