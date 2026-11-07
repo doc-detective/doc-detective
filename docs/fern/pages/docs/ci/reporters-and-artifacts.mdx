@@ -59,13 +59,15 @@ doc-tests:
       junit: reports/junit.xml
 ```
 
-On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc-detective.json`. Keep `junit` in the list if the same config also runs on GitLab. Otherwise, leave it out:
+On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc-detective.json`:
 
 ```json title=".doc-detective.json"
 {
-  "reporters": ["terminal", "json", "html", "junit", "markdown"]
+  "reporters": ["terminal", "json", "html", "markdown"]
 }
 ```
+
+If the same config also runs on GitLab, add `junit` to the `reporters` list too.
 
 Then append the Markdown summary to the job summary:
 
