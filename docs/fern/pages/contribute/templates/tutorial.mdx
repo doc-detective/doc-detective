@@ -209,7 +209,7 @@ Before submitting:
 
 ## Example tutorial
 
-Here's a complete example. Its first stages are deliberately incomplete, so their code blocks carry `invalid` after the title. That tells the docs example check to skip them.
+Here's a complete example:
 
 ````markdown
 ---
@@ -248,7 +248,7 @@ Doc Detective tests are defined in JSON files with a `.spec.json` extension.
 
 Create a file named `first-test.spec.json`:
 
-```json title="first-test.spec.json" invalid
+```json title="first-test.spec.json"
 {
   "tests": []
 }
@@ -258,7 +258,7 @@ This is the basic structure. The `tests` array will contain your test definition
 
 ### Add your first test
 
-```json title="first-test.spec.json" invalid
+```json title="first-test.spec.json"
 {
   "tests": [
     {
@@ -271,7 +271,7 @@ This is the basic structure. The `tests` array will contain your test definition
 
 Inside the `tests` array, add a test object:
 
-```json title="first-test.spec.json" invalid
+```json title="first-test.spec.json"
 {
   "tests": [
     {
@@ -294,7 +294,7 @@ Use descriptive IDs and descriptions. They help you understand test results and 
 
 Tests contain `steps`—actions that Doc Detective performs. Add a `steps` array:
 
-```json title="first-test.spec.json" invalid
+```json title="first-test.spec.json"
 {
   "tests": [
     {
