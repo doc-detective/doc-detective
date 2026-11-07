@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { validate } from "../common/src/validate.js";
 import { requireYaml } from "./lazyYaml.js";
-import { log } from "./utils.js";
+import { log, redactUrlForOutput } from "./utils.js";
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
@@ -39,20 +39,21 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
       const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
-      console.warn(
-        `Error reading remote file from ${fileURLOrPath}: ${error.message}`
-      );
+      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}. ${error.message}`);
       return null;
     }
   } else {
     try {
       content = await fs.promises.readFile(fileURLOrPath, "utf8");
     } catch (error: any) {
-      if (error.code === "ENOENT") {
-        console.warn(`File not found: ${fileURLOrPath}`);
-      } else {
-        console.warn(`Error reading file: ${error.message}`);
-      }
+      const absolute = path.resolve(fileURLOrPath);
+      log(
+        {},
+        "warning",
+        error.code === "ENOENT"
+          ? `Couldn't read ${absolute}: the file doesn't exist.`
+          : `Couldn't read ${absolute}. ${error.message}`
+      );
       return null;
     }
   }

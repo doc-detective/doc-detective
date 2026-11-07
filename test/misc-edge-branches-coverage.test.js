@@ -120,23 +120,31 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
   });
 
   it("readFile returns null and warns when a remote fetch fails", async function () {
-    sinon.stub(console, "warn");
+    const logged = sinon.stub(console, "log");
     sinon.stub(axios, "get").rejects(new Error("network down"));
-    const out = await readFile({ fileURLOrPath: "https://example.test/x.json" });
+    const out = await readFile({ fileURLOrPath: "https://example.test/x.json?token=s3cret" });
     assert.equal(out, null);
+    sinon.assert.calledWith(
+      logged,
+      "(WARNING) Couldn't read https://example.test/x.json. network down"
+    );
   });
 
   it("readFile returns null and warns on a non-ENOENT local read error", async function () {
-    sinon.stub(console, "warn");
+    const logged = sinon.stub(console, "log");
     sinon
       .stub(fs.promises, "readFile")
       .rejects(Object.assign(new Error("perm"), { code: "EACCES" }));
-    const out = await readFile({ fileURLOrPath: "/some/file.txt" });
+    const out = await readFile({ fileURLOrPath: "some/file.txt" });
     assert.equal(out, null);
+    sinon.assert.calledWith(
+      logged,
+      `(WARNING) Couldn't read ${path.resolve("some/file.txt")}. perm`
+    );
   });
 
   it("readFile parses YAML and returns raw text when YAML parsing fails", async function () {
-    sinon.stub(console, "warn");
+    sinon.stub(console, "log");
     const dir = mkTmp("dd-edge-files-");
     const good = path.join(dir, "a.yaml");
     fs.writeFileSync(good, "key: value\nlist:\n  - one\n");
@@ -305,15 +313,16 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out, "plain text body");
   });
 
-  it("readFile returns null when a local file is missing (ENOENT warn path)", async function () {
-    sinon.stub(console, "warn");
-    const dir = mkTmp("dd-edge-files-");
-    const out = await readFile({ fileURLOrPath: path.join(dir, "nope.json") });
+  it("readFile returns null and warns when a local file is missing (ENOENT)", async function () {
+    const logged = sinon.stub(console, "log");
+    const missing = path.join(mkTmp("dd-edge-files-"), "nope.json");
+    const out = await readFile({ fileURLOrPath: missing });
     assert.equal(out, null);
+    sinon.assert.calledWith(logged, `(WARNING) Couldn't read ${missing}: the file doesn't exist.`);
   });
 
   it("readFile returns the raw string when JSON parsing fails", async function () {
-    sinon.stub(console, "warn");
+    sinon.stub(console, "log");
     const dir = mkTmp("dd-edge-files-");
     const p = path.join(dir, "broken.json");
     fs.writeFileSync(p, "{ not: json");
