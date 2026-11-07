@@ -192,6 +192,22 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 **What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
 
+## Where screenshots and recordings go
+
+**What changed:**
+
+| Version 4 | Version 5 |
+|---|---|
+| `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
+| A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
+| A spec loaded from a URL (`--input https://…`) wrote relative paths, such as `screenshot: "example.png"`, beside its temporary download, which the system deletes. | Its relative paths resolve against `outputDir`. |
+| `screenshot: false` took a screenshot. | It skips the step. |
+| `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
+
+`outputDir` defaults to the current folder, so the first row only matters when you set it. Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its file name: `{"screenshot": true}` appears as `{"screenshot": {"path": "<stepId>.png", "maxVariation": 0.05, "overwrite": "aboveVariation"}}`.
+
+**What to do:** If you set `outputDir` and keep reference images from `screenshot: true` in the current folder, move them to `outputDir`, or give the step a `path`. For a URL reference, collect the new screenshot from the run folder.
+
 ## `--output` is a results file
 
 **What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.

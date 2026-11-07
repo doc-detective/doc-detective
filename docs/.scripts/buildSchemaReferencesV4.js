@@ -546,13 +546,14 @@ function getTypeString(schema) {
       return getTypeString(options[0]);
     }
 
-    // Multiple options
+    // Multiple options. An option with a list of types, like stopRecord's
+    // `["boolean", "null"]`, lists each type.
     return (
       "one of:<br/>" +
       options
-        .map((option) => {
-          return `- ${getTypeString(option)}`;
-        })
+        .flatMap((option) =>
+          Array.isArray(option.type) ? option.type.map((type) => `- ${type}`) : [`- ${getTypeString(option)}`]
+        )
         .join("<br/>")
     );
   }
