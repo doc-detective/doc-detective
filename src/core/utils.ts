@@ -80,6 +80,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSchemaErrors,
+  shortJson,
   knownKeysAt,
   configErrorMessage,
   findFreePort,
@@ -1340,7 +1341,8 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     // object itself requires, or a choice of keys, is still missing. At the
     // root, instancePath is "", so any nested error counts as deeper: the root's
     // missing keys still print (the choices below come before the `deeper`
-    // check), but its type and enum errors give way to the nested ones.
+    // check), but its type and enum errors give way to the nested ones. That
+    // relies on AJV reporting nested errors only under a value that is an object.
     const deeper = errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`));
     // Group the required errors by where they come from. Each branch of one
     // anyOf or oneOf (or an allOf inside such a branch) that requires a key
@@ -1379,6 +1381,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
     else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
     const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
+    // Every message is set: errorObjects filled a missing one with the keyword.
     for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
     // A type error only matters when nothing else here says what's wrong.
     const types = [...new Set(of("type").flatMap((error) => error.params.type))];

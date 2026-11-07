@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
 import { displayPath } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
@@ -762,12 +762,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             log(
               config,
               "warning",
-              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+              `Step ${shortJson(step)} isn't a valid step. Skipping.`
             );
             noteInvalidSpec(
               config,
               file,
-              `Step ${JSON.stringify(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
+              `Step ${shortJson(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
             );
             return [];
           }
@@ -940,7 +940,8 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           // `reason` stands in when there's nothing to summarize: a drop with no
           // schema behind it (a duplicate test ID), or a caller that passes no
           // errorObjects. It's AJV's raw text, so the object isn't prepended.
-          noteInvalidSpec(config, file, summary ? `${JSON.stringify(details?.object)}: ${summary}` : reason);
+          // shortJson: a step can be long, and the summary is what helps.
+          noteInvalidSpec(config, file, summary ? `${shortJson(details?.object)}: ${summary}` : reason);
         },
       });
       spec.tests.push(...tests);

@@ -2,7 +2,7 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
+import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, redactUrlForOutput, timestamp } from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
 import { splitList } from "./cliOptions.js";
 import path from "node:path";
@@ -399,7 +399,8 @@ async function setConfig({
     if (typeof config !== "object") {
       throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
     }
-    config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
+    // A remote config's URL can carry a token in its query string; name it without.
+    config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? redactUrlForOutput(configPath) : displayPath(path.resolve(configPath)));
     config = anchorPaths(config, configFileBase(config, configPath));
   }
 

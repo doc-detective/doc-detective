@@ -1,5 +1,6 @@
 // Pure helpers behind the CLI's messages.
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
@@ -164,6 +165,7 @@ describe("summarizeSchemaErrors", function () {
 
   it("shortens a long value", function () {
     const line = summarize({ concurrentRunners: { note: "x".repeat(200) } }, "config_v3");
+    // `…` is one character, U+2026, as shortJson writes it, not three dots.
     expect(line).to.equal(`concurrentRunners: must be integer or boolean (got {"note":"${"x".repeat(30)}…).`);
   });
 
@@ -479,6 +481,26 @@ describe("checkForUpdate across majors", function () {
   it("ignores a maintenance tag that isn't newer", async function () {
     const deps = registry({ latest: "6.0.0", "release-5.x": "5.0.0" });
     expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
+  });
+});
+
+describe("a remote config's error", function () {
+  it("names the config URL without its query string", async function () {
+    const server = http.createServer((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ logLevl: "info" }));
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${server.address().port}/config.json`;
+    try {
+      await setConfig({ configPath: `${base}?token=s3cret`, args: {} });
+      expect.fail("setConfig accepted an invalid config");
+    } catch (error) {
+      expect(error.message).to.include(`Invalid config in ${base}:`);
+      expect(error.message).to.not.include("s3cret");
+    } finally {
+      server.close();
+    }
   });
 });
 
