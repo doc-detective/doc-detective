@@ -203,6 +203,17 @@ describe("summarizeSchemaErrors", function () {
     expect(line(cycle)).to.equal("output: must be string (got [object Object]).");
   });
 
+  it("finds keys under a key that patternProperties matches", function () {
+    const schema = {
+      type: "object",
+      patternProperties: { "^x-": { type: "object", properties: { inner: {} } } },
+      properties: { plain: {} },
+    };
+    expect(knownKeysAt(["x-custom"], schema)).to.deep.equal(["inner"]);
+    expect(knownKeysAt(["other"], schema)).to.deep.equal([]);
+    expect(knownKeysAt([], schema)).to.deep.equal(["plain"]);
+  });
+
   it("finds keys a conditional branch defines", function () {
     const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
     expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);

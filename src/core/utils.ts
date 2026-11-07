@@ -1185,9 +1185,9 @@ function allSchemas() {
 }
 
 // Every schema node that can describe the value at `parts`, following
-// properties and items through anyOf, oneOf, allOf, and an if's then and else.
-// The bundled schemas are dereferenced, so there's no $ref left to follow.
-// `root` is a bundled schema's key, or a schema itself.
+// properties, patternProperties, and items through anyOf, oneOf, allOf, and an
+// if's then and else. The bundled schemas are dereferenced, so there's no $ref
+// left to follow. `root` is a bundled schema's key, or a schema itself.
 function schemasAt(parts: string[], root: string | object): any[] {
   const expand = (node: any): any[] =>
     node && typeof node === "object"
@@ -1198,12 +1198,22 @@ function schemasAt(parts: string[], root: string | object): any[] {
       : [];
   let nodes = expand(typeof root === "string" ? allSchemas()[root] : root);
   for (const part of parts) {
-    nodes = nodes.flatMap((node) => expand(/^\d+$/.test(part) ? node.items : node.properties?.[part]));
+    nodes = nodes.flatMap((node) =>
+      /^\d+$/.test(part)
+        ? expand(node.items)
+        : [
+            node.properties?.[part],
+            ...Object.entries(node.patternProperties ?? {})
+              .filter(([pattern]) => new RegExp(pattern, "u").test(part))
+              .map(([, schema]) => schema),
+          ].flatMap(expand)
+    );
   }
   return nodes;
 }
 
-// The keys valid at a path, for "did you mean".
+// The keys valid at a path, for "did you mean". Only `properties` names them:
+// a patternProperties pattern isn't a key to suggest.
 function knownKeysAt(parts: string[], root: string | object): string[] {
   return [...new Set(schemasAt(parts, root).flatMap((node) => Object.keys(node.properties ?? {})))];
 }
@@ -1375,7 +1385,7 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
 
 // An invalid config, from any source, as one message: the source, one line per
 // problem, and where to read about each key.
-function configErrorMessage(source: string, errorObjects: any[] | undefined, object: any): string {
+function configErrorMessage(source: string, errorObjects: ErrorObject[] | undefined, object: any): string {
   return `Invalid config${source ? ` in ${source}` : ""}:\n${summarizeSchemaErrors(
     errorObjects,
     object,
