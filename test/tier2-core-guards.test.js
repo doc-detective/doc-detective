@@ -66,6 +66,12 @@ describe("Tier-2 core guard/error paths", function () {
   });
 
   describe("wait", function () {
+    it("SKIPs wait: false (ADR 01161)", async function () {
+      const result = await wait({ step: { wait: false }, driver: undefined });
+      assert.equal(result.status, "SKIPPED");
+      assert.equal(result.description, "Wait skipped.");
+    });
+
     it("FAILs an invalid step definition (non-env-ref string)", async function () {
       // wait's string form must match ^\$[A-Za-z0-9_]+$, so "abc" is invalid.
       const result = await wait({ step: { wait: "abc" }, driver: undefined });
