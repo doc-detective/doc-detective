@@ -19,9 +19,10 @@ function classify(object) {
   const keys = Object.keys(object);
   if (keys.includes("tests")) return "spec_v3";
   if (Array.isArray(object.steps) && object.steps.some((s) => isObject(s) && Object.keys(s).some(isAction))) return "test_v3";
-  // One action plus step-level keys. Sub-objects that happen to carry an action-named key
-  // (a find object's `click`, a file type's `runShell`) aren't steps.
-  if (keys.filter(isAction).length === 1 && keys.every((k) => stepKeys.has(k))) return "step_v3";
+  // Only step-level keys, including an action. Sub-objects that happen to carry an action-named
+  // key (a find object's `click`, a file type's `runShell`) aren't steps. Two actions still
+  // classify as a step, so validation rejects them.
+  if (keys.some(isAction) && keys.every((k) => stepKeys.has(k))) return "step_v3";
   if (keys.length > 0 && keys.every((k) => configKeys.has(k))) return "config_v3";
   return null;
 }
@@ -46,8 +47,9 @@ function checkDocExamples() {
       } catch {
         object = undefined; // A fragment, not a whole document.
       }
-      // `"$1"` values are markup capture placeholders: the block is a template, not a step.
-      const schemaKey = /\binvalid\b/.test(info) || /"\$\d+"/.test(body) ? null : classify(object);
+      let schemaKey = /\binvalid\b/.test(info) ? null : classify(object);
+      // A step with `"$1"` values is a markup action template, not a step.
+      if (schemaKey === "step_v3" && /"\$\d+"/.test(body)) schemaKey = null;
       if (!schemaKey) {
         counts.skipped++;
         continue;
@@ -61,6 +63,11 @@ function checkDocExamples() {
 }
 
 describe("doc examples", function () {
+  it("classifies a two-action step as a step, so validation rejects it", function () {
+    assert.equal(classify({ goTo: "https://example.com", find: "Welcome" }), "step_v3");
+    assert.equal(classify({ elementText: "Welcome", click: true }), null);
+  });
+
   it("every json/yaml example validates against doc-detective-common", function () {
     const { checked, skipped, failures } = checkDocExamples();
     console.log(`      ${checked} checked, ${skipped} skipped, ${failures.length} invalid`);
