@@ -24,6 +24,7 @@ import {
   verifyAppDrivers,
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
+  fileTypeObject,
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
@@ -647,6 +648,15 @@ describe("config.ts — setConfig", function () {
     } finally {
       delete process.env[varName];
     }
+  });
+
+  it("names an unknown fileType string, should the schema and the table drift", function () {
+    assert.throws(() => fileTypeObject("not-a-filetype"), /Unknown fileType "not-a-filetype"/);
+    const markdown = fileTypeObject("markdown");
+    assert.notEqual(markdown, defaultFileTypes.markdown);
+    assert.deepEqual(markdown, defaultFileTypes.markdown);
+    const custom = { name: "x", extensions: ["x"] };
+    assert.equal(fileTypeObject(custom), custom);
   });
 
   it("rejects an unknown fileType keyword string at the schema layer", async function () {

@@ -54,9 +54,9 @@ export interface InstallerDeps {
 // with DOC_DETECTIVE_DEBUG=1 for diagnostics. The CLI flow wires
 // its own logger that respects config.logLevel, so this only governs
 // the bare programmatic path.
-const RUNTIME_DEBUG = isDebugRequested();
+// Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
-  if (level === "debug" && !RUNTIME_DEBUG) return;
+  if (level === "debug" && !isDebugRequested()) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };

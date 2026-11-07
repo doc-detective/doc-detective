@@ -29,9 +29,9 @@ export type Logger = (msg: string, level?: LogLevel) => void;
 // DOC_DETECTIVE_DEBUG=1 to opt back in for debugging the
 // installer itself. Real callers (the install CLI commands) inject a
 // logger that respects --silent/--verbose explicitly.
-const RUNTIME_DEBUG = isDebugRequested();
+// Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
-  if (level === "debug" && !RUNTIME_DEBUG) return;
+  if (level === "debug" && !isDebugRequested()) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };
@@ -610,7 +610,7 @@ export async function ensureRuntimeInstalled(
       // Drop npm's deprecation/funding/notice noise (about transitive deps
       // the user can't fix) so even `--verbose` install output stays calm.
       // DOC_DETECTIVE_DEBUG=1 shows everything raw for diagnostics.
-      if (!RUNTIME_DEBUG && isNpmNoiseLine(line)) return;
+      if (!isDebugRequested() && isNpmNoiseLine(line)) return;
       logger(`npm[${stream}]: ${line}`, "debug");
     };
     // Buffer each stream so a line split across `data` chunks is reassembled
