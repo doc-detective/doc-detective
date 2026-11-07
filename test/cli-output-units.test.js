@@ -184,6 +184,18 @@ describe("summarizeSchemaErrors", function () {
     expect(summarizeSchemaErrors(errorObjects, { mode: "slow" }, "config_v3")).to.equal('mode: must be fast (got "slow").');
   });
 
+  it("names a value JSON can't show, from a JS API caller", function () {
+    const errorObjects = [
+      { instancePath: "/output", keyword: "type", params: { type: "string" }, schemaPath: "#/properties/output/type" },
+    ];
+    const line = (output) => summarizeSchemaErrors(errorObjects, { output }, "config_v3");
+    expect(line(() => "x")).to.equal("output: must be string (got a function).");
+    expect(line(10n)).to.equal("output: must be string (got 10).");
+    const cycle = {};
+    cycle.self = cycle;
+    expect(line(cycle)).to.equal("output: must be string (got [object Object]).");
+  });
+
   it("finds keys a conditional branch defines", function () {
     const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
     expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);

@@ -1194,7 +1194,7 @@ function schemasAt(parts: string[], root: string | object): any[] {
     node && typeof node === "object"
       ? [
           node,
-          ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? []), node.then, node.else].flatMap(expand),
+          ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? []), ...[node.then, node.else].filter(Boolean)].flatMap(expand),
         ]
       : [];
   let nodes = expand(typeof root === "string" ? allSchemas()[root] : root);
@@ -1217,8 +1217,19 @@ const orList = (items: unknown[]) => disjunction.format(items.map(String));
 
 // A value as JSON, cut to 40 characters. The cut counts the encoded text and
 // never splits an escape such as `\n` or `é`. A string keeps both quotes.
+// Only a JS API caller can pass what JSON can't show: a function is named, and
+// undefined, a symbol, a bigint, or a cycle falls back to String().
 function shortJson(value: unknown): string {
-  const shown = JSON.stringify(value) ?? String(value);
+  let shown: string | undefined;
+  if (typeof value === "function") shown = "a function";
+  else {
+    try {
+      shown = JSON.stringify(value);
+    } catch {
+      // A bigint or a cycle: String() below.
+    }
+  }
+  shown ??= String(value);
   if (shown.length <= 40) return shown;
   const cut = (text: string, max: number) => {
     let kept = "";
@@ -1271,8 +1282,12 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
     const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
     if (isStep && required.length > 0 && rest.length === 0) {
       const actions = required.map((error) => error.params.missingProperty);
-      const metadata = new Set(Object.keys(allSchemas().step_v3.components.schemas.common.properties));
-      const stepKeys = new Set(Object.keys(allSchemas().step_v3.properties));
+      // step_v3 keeps the keys every step shares (description, stepId, ...)
+      // under components.schemas.common. If that ever moves, read every key as
+      // an action rather than throw while reporting another error.
+      const step = allSchemas().step_v3;
+      const metadata = new Set(Object.keys(step?.components?.schemas?.common?.properties ?? {}));
+      const stepKeys = new Set(Object.keys(step?.properties ?? {}));
       const keys = Object.keys(value ?? {});
       // A real action whose value is wrong has its own, more useful errors.
       if (!unknownKeys.length && keys.some((key) => stepKeys.has(key) && !metadata.has(key))) {
@@ -1298,16 +1313,23 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
     }
     // An error deeper down means the value took a branch that got further, so a
     // key only one branch requires came from a branch it didn't take. A key the
-    // object itself requires, or a choice of keys, is still missing.
+    // object itself requires, or a choice of keys, is still missing. At the
+    // root, instancePath is "", so any nested error counts as deeper: the root's
+    // missing keys still print (the choices below come before the `deeper`
+    // check), but its type and enum errors give way to the nested ones.
     const deeper = errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`));
-    // Requireds from the branches of one anyOf are a choice: "needs one of".
-    // The regex sees one nesting level: an anyOf branch, or a branch's allOf.
+    // Group the required errors by where they come from. Each branch of one
+    // anyOf or oneOf (or an allOf inside such a branch) that requires a key
+    // offers a choice, so those share a group and print "needs one of". A key
+    // the object requires directly gets a group of its own, and its own line,
+    // even beside another one. The pattern stops at that one level: deeper
+    // nesting reads as separate groups, which only means separate lines.
+    const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
     const choices = new Map<string, { keys: string[]; branch?: string }>();
     for (const error of required) {
-      const branch = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/.exec(error.schemaPath)?.[1];
-      // A key the object requires is its own line, even beside another one.
+      const branch = branchRequired.exec(error.schemaPath)?.[1];
       const group = branch
-        ? error.schemaPath.replace(/\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/, `/${branch}`)
+        ? error.schemaPath.replace(branchRequired, `/${branch}`)
         : `${error.schemaPath}#${error.params.missingProperty}`;
       const choice = choices.get(group) ?? { keys: [], branch };
       choice.keys.push(error.params.missingProperty);
