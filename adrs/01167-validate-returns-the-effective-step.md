@@ -12,7 +12,7 @@ Amends [ADR 01149](01149-declare-the-report-contract.md) and [ADR 01150](01150-r
 
 Ajv can't apply defaults inside `step_v3`'s `oneOf` union, and every action schema's root is an `anyOf` of a
 string shorthand and an object. So none of the 59 action defaults in the schemas is ever applied. Each action
-handler expands its own shorthand and hand-codes its own defaults at run time, and the schema `default`s are
+handler expands its own shorthand and hand-codes its own defaults at run time. The schema `default`s are
 documentation that the copies happen to match. Some copies use `||`, so an authored `0` turns into the default.
 
 So validating `{"goTo": "https://example.com"}` returns exactly that, and only the goTo handler knows the timeout
