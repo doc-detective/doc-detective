@@ -199,6 +199,24 @@ describe("local URL guard (ADR 01162)", function () {
       } else if (req.url === "/openapi.yaml") {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end(openApiYaml(`http://127.0.0.1:${port}/schema.json`));
+      } else if (req.url === "/openapi-chain.yaml") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end(openApiYaml(`http://public.example.test:${port}/public-doc.yaml`));
+      } else if (req.url === "/public-doc.yaml") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end(`type: object\nproperties:\n  item:\n    $ref: 'http://127.0.0.1:${port}/schema.json'\n`);
+      } else if (req.url === "/public-doc.json") {
+        // A public schema that refers to a private address.
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            type: "object",
+            properties: { item: { $ref: `http://127.0.0.1:${port}/schema.json` } },
+          })
+        );
+      } else if (req.url === "/plain.json") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ type: "string" }));
       } else {
         res.writeHead(404);
         res.end();
@@ -228,7 +246,11 @@ describe("local URL guard (ADR 01162)", function () {
     }
   });
 
-  function openApiYaml(ref) {
+  function openApiYaml(...refs) {
+    const schema =
+      refs.length === 1
+        ? `{ $ref: '${refs[0]}' }`
+        : `{ type: object, properties: { ${refs.map((ref, i) => `p${i}: { $ref: '${ref}' }`).join(", ")} } }`;
     return [
       "openapi: 3.0.0",
       "info: { title: t, version: '1' }",
@@ -241,7 +263,7 @@ describe("local URL guard (ADR 01162)", function () {
       "          description: ok",
       "          content:",
       "            application/json:",
-      `              schema: { $ref: '${ref}' }`,
+      `              schema: ${schema}`,
       "",
     ].join("\n");
   }
@@ -391,6 +413,52 @@ describe("local URL guard (ADR 01162)", function () {
     process.env[ALLOW] = "1";
     const definition = await loadDescription(`http://public.example.test:${port}/openapi.yaml`);
     assert.ok(definition.paths["/items"]);
+  });
+
+  const refMessage = (ref, doc) =>
+    `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to a private address.\n` +
+    "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.";
+
+  it("refuses a private $ref reached through a public document in a local description", async function () {
+    fakePublicHost();
+    const file = path.join(tmpDir, "openapi-via-public.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/public-doc.json`));
+    await assert.rejects(() => loadDescription(file), {
+      message: refMessage(
+        `http://127.0.0.1:${port}/schema.json`,
+        `http://public.example.test:${port}/public-doc.json`
+      ),
+    });
+  });
+
+  it("allows a local description's sibling $refs to a public and a private document", async function () {
+    fakePublicHost();
+    const file = path.join(tmpDir, "openapi-siblings.yaml");
+    fs.writeFileSync(
+      file,
+      openApiYaml(
+        `http://public.example.test:${port}/plain.json`,
+        `http://127.0.0.1:${port}/schema.json`
+      )
+    );
+    const definition = await loadDescription(file);
+    const schema =
+      definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+    assert.equal(schema.properties.p0.type, "string");
+    assert.equal(schema.properties.p1.properties.id.type, "integer");
+  });
+
+  it("refuses a private $ref two documents deep under a public description", async function () {
+    fakePublicHost();
+    await assert.rejects(
+      () => loadDescription(`http://public.example.test:${port}/openapi-chain.yaml`),
+      {
+        message: refMessage(
+          `http://127.0.0.1:${port}/schema.json`,
+          `http://public.example.test:${port}/public-doc.yaml`
+        ),
+      }
+    );
   });
 
   it("leaves checkLink and httpRequest to 127.0.0.1:8092 unguarded, even in strict mode", async function () {

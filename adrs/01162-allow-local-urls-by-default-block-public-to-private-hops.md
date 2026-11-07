@@ -54,9 +54,12 @@ from a public address to a private one:
 
 * a redirect from a public host to a private, loopback or link-local address. The guarded fetch
   follows redirects by hand (up to 5) and checks each hop;
-* an external HTTP `$ref` in a publicly hosted OpenAPI description that points at a private address.
-  Doc Detective turns off the parser's own `safeUrlResolver` and reads `$ref`s through the same
-  guarded fetch.
+* an external HTTP `$ref` in a public OpenAPI document that points at a private address. That's a
+  publicly hosted description, or any public document a `$ref` reaches, at any depth. Doc Detective
+  turns off the parser's own `safeUrlResolver` and reads `$ref`s through the same guarded fetch.
+  After it reads a public document, it records the `$ref`s inside it. A private read that one of
+  those `$ref`s asked for is refused, and the message names that public document. A local
+  description can still `$ref` a public document and a private one side by side.
 
 A local document that redirects or refers to local addresses is fine. Step requests stay unguarded.
 
@@ -101,8 +104,8 @@ caller words its own message.
   `on`.
 * Bad: a public URL that redirects to a private address now fails where it used to pass. That's the
   case the guard exists for, and the hint names the opt-out.
-* Bad: the `$ref` check judges by the root description only. A public file that a local description
-  `$ref`s can still `$ref` a private address. Tracking each file's referrer would close that.
+* Neutral: the parser reads each URL once. When a local description and a public document both
+  `$ref` the same private URL, the public document's `$ref` wins and the read is refused.
 * Neutral: DNS rebinding can still race the check, as before. Pinning the connection to the checked
   address would close that.
 
@@ -115,6 +118,8 @@ answers so `public.example.test` looks public to the guard but connects locally.
 * a public host's redirect to `127.0.0.1` fails with the redirect message, and loads with `ALLOW=1`;
 * a local OpenAPI description with a local `$ref` loads, and a public one fails with the `$ref`
   message;
+* a private `$ref` reached through a public document fails and names that document. A local
+  description's sibling public and private `$ref`s still load;
 * `BLOCK=1` refuses a direct local image, the switch grammar, and the both-set error and exit 2;
 * `checkLink` and `httpRequest` to `127.0.0.1:8092` still pass, even with `BLOCK=1`.
 

@@ -6,6 +6,7 @@ import {
   redactUrlForOutput,
 } from "./utils.js";
 import { readFile } from "./files.js";
+import { requireYaml } from "./lazyYaml.js";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
 // were previously imported at module load — and `createGenerator` even ran at
@@ -43,14 +44,15 @@ async function loadDescription(descriptionPath: string = "") {
   // Load the definition from the URL or local file path
   const definition = await readFile({ fileURLOrPath: descriptionPath });
 
-  // A publicly hosted description may not $ref a private address (ADR 01162).
-  // ponytail: judged by the root document only; a public $ref'd file inside a
-  // local description can still $ref a private address. Track each file's
-  // referrer if that matters.
+  // A public document may not $ref a private address (ADR 01162). That covers
+  // a public root, and any public document that a $ref reaches.
+  const guardHops = localUrlPolicy() === "hops";
   const fromPublic =
-    localUrlPolicy() === "hops" &&
+    guardHops &&
     /^https?:\/\//i.test(descriptionPath) &&
     !(await privateAddressOf(descriptionPath));
+  // URL (no fragment) → the public document that $refs it.
+  const publicReferrers = new Map<string, string>();
 
   // Dereference the definition (ref parser imported lazily — see top of file)
   const parser = (await import("@apidevtools/json-schema-ref-parser")).default;
@@ -61,19 +63,62 @@ async function loadDescription(descriptionPath: string = "") {
         // local description. getGuarded applies Doc Detective's policy instead.
         safeUrlResolver: false,
         async read(file: { url: string }) {
-          if (fromPublic && (await privateAddressOf(file.url))) {
+          const url = withoutHash(file.url);
+          const isPrivate = guardHops && !!(await privateAddressOf(url));
+          const referrer =
+            publicReferrers.get(url) ?? (fromPublic ? descriptionPath : undefined);
+          if (isPrivate && referrer) {
             throw new Error(
-              `Couldn't resolve $ref ${redactUrlForOutput(file.url)} in ${redactUrlForOutput(descriptionPath)}: a public document can't refer to a private address.\n` +
+              `Couldn't resolve $ref ${redactUrlForOutput(file.url)} in ${redactUrlForOutput(referrer)}: a public document can't refer to a private address.\n` +
                 "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
             );
           }
-          return Buffer.from((await getGuarded(file.url)).data);
+          const data = Buffer.from((await getGuarded(file.url)).data);
+          if (guardHops && !isPrivate) {
+            // Remember what this public document refers to, so a private
+            // target is refused when the parser reads it next.
+            // Fragment-only refs map back to this document, which is public,
+            // so they never match a private read; no need to skip them.
+            for (const ref of refsIn(parseDocument(data.toString("utf8")))) {
+              const target = URL.parse(ref, url);
+              if (!target) continue;
+              const key = withoutHash(target.href);
+              if (!publicReferrers.has(key)) publicReferrers.set(key, url);
+            }
+          }
+          return data;
         },
       },
     },
   } as any);
 
   return dereferencedDefinition;
+}
+
+function withoutHash(url: string): string {
+  return url.split("#")[0];
+}
+
+// JSON, else YAML, else nothing (a document neither parses has no $refs to track).
+function parseDocument(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    try {
+      return requireYaml().parse(text);
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+// Every string `$ref` value in a parsed document, at any depth.
+function refsIn(node: any, refs: string[] = []): string[] {
+  if (node && typeof node === "object") {
+    if (typeof node.$ref === "string") refs.push(node.$ref);
+    for (const value of Object.values(node)) refsIn(value, refs);
+  }
+  return refs;
 }
 
 /**
