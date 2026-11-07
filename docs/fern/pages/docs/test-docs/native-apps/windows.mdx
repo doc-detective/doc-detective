@@ -120,10 +120,10 @@ On a host that isn't Windows, the test skips with a reason rather than failing. 
 - **Cause:** An app with more than one window defaults to its main window.
 - **Solution:** Reintroduce an explicit `surface` on the step and add a `window` selector to address a specific window. For example, `"surface": { "app": "charmap", "window": -1 }`, where `-1` is the newest window. A title or object form also works. See [App windows](/docs/actions/find#app-windows).
 
-**Doc Detective rejects a working directory setting elsewhere**
+**Doc Detective rejects an app's working directory**
 
-- **Cause:** Doc Detective supports `workingDirectory` on Windows only. On other platforms, setting it fails the step.
-- **Solution:** Keep `workingDirectory` in Windows-only specs. See the [app descriptor](/reference/schemas/app-descriptor) reference.
+- **Cause:** The Windows app driver ignores a launch working directory, so the app always starts in the driver's own working directory. Doc Detective fails a step that sets `workingDirectory` on an app descriptor rather than silently ignoring it. It does the same on macOS, Android, and iOS, where no app driver supports a launch working directory either.
+- **Solution:** Remove `workingDirectory` from the app descriptor. If the app must start in a specific folder, start it with [`runShell`](/docs/actions/runshell) and set `workingDirectory` there. `runShell` runs it as a command, not as an app surface. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
 ## What's next
 
