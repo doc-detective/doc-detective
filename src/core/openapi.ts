@@ -1,3 +1,4 @@
+import { resolve as resolvePath } from "node:path";
 import {
   replaceEnvs,
   localUrlPolicy,
@@ -82,6 +83,14 @@ async function loadDescription(descriptionPath: string = "") {
     // axios. Allow mode turns the guard off, its 50 MB cap and 30 s timeout
     // included.
     definition = await readFile({ fileURLOrPath: descriptionPath });
+  }
+  // readFile has already warned why it couldn't read it; an empty document
+  // parses to null too.
+  if (definition == null) {
+    const location = /^https?:\/\//i.test(descriptionPath)
+      ? redactUrlForOutput(descriptionPath)
+      : resolvePath(descriptionPath);
+    throw new Error(`Couldn't read ${location}: it doesn't exist, can't be read, or is empty.`);
   }
   // Every $ref refusal, before connecting or at connect time. It's a
   // UrlGuardError, the type getGuarded unwraps from axios's connect-error

@@ -456,6 +456,22 @@ describe("core/openapi coverage", function () {
       await assert.rejects(() => loadDescription(""), /Description is required/);
     });
 
+    it("names the absolute path when a local description is missing", async function () {
+      const missing = "no-such-openapi-description.yaml";
+      await assert.rejects(() => loadDescription(missing), {
+        message: `Couldn't read ${path.resolve(missing)}: it doesn't exist, can't be read, or is empty.`,
+      });
+    });
+
+    it("says the same for an empty local description", async function () {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
+      const empty = path.join(tmpDir, "empty.yaml");
+      fs.writeFileSync(empty, "");
+      await assert.rejects(() => loadDescription(empty), {
+        message: `Couldn't read ${empty}: it doesn't exist, can't be read, or is empty.`,
+      });
+    });
+
     it("loads and dereferences a local OpenAPI JSON file", async function () {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
       const specPath = path.join(tmpDir, "spec.json");
