@@ -160,6 +160,7 @@ export function envWarnings(env: Record<string, string | undefined>, config: { a
   // The official images set this value themselves, and their 5.0 builds allow
   // unsafe steps in config, so only other images need to act.
   const officialImage = /^docdetective\/docdetective:/.test(String(legacy.container));
+  // Deliberately strict: an explicit `false` has already opted out, so it needs no migration.
   if (legacy.container && !officialImage && config.allowUnsafeSteps === undefined) {
     messages.push(
       "`DOC_DETECTIVE` has a `container` key, which allows unsafe steps today but not in Doc Detective 5.0. To keep running them, set `allowUnsafeSteps: true` in your config, which works today."
@@ -230,6 +231,8 @@ function testWarnings(test: any, where: string): string[] {
 }
 
 // Subtrees that hold the user's own data, where a `timeout` key isn't one of ours.
+// Keep this in sync with the schemas' free-form boundaries: request and response
+// bodies, headers and params, `elementAttribute`, `variables`, and `outputs`.
 const FREE_FORM = new Set([
   "request",
   "response",
@@ -280,7 +283,7 @@ function stepWarnings(step: any, where: string, offenders: Offenders): string[] 
   }
   if (typeof step.click === "boolean") {
     messages.push(
-      `A \`click\` step in ${where} is \`${step.click}\`, which 4.x reads as text to click and ${REJECTS}. To click an element whose text is '${step.click}', quote it as \`"click": "${step.click}"\`, which works today.`
+      `A \`click\` step in ${where} is \`${step.click}\`, which 4.x reads as text to click and ${REJECTS}. To click an element whose text is '${step.click}', quote it as \`"click": "${step.click}"\`, which works today. If you don't want a click, remove the step.`
     );
   }
   const objects = (value: any) => [value].flat().filter((s) => s && typeof s === "object");

@@ -374,7 +374,9 @@ describe("upgrade warnings", function () {
 
     it("a boolean click", function () {
       expect(warns([{ click: true }])[0]).to.include('`"click": "true"`');
-      expect(warns([{ click: false }])).to.have.length(1);
+      const off = warns([{ click: false }]);
+      expect(off).to.have.length(1);
+      expect(off[0]).to.include("`\"click\": \"false\"`, which works today. If you don't want a click, remove the step.");
       expect(warns([{ click: "true" }, { find: { selector: "#a", click: true } }])).to.deep.equal([]);
     });
 
