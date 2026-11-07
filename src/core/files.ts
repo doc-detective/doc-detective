@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { validate } from "../common/src/validate.js";
 import { requireYaml } from "./lazyYaml.js";
+import { log } from "./utils.js";
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
@@ -56,21 +57,31 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
     }
   }
 
-  // Parse based on file extension
+  return parseFileContent(content, fileURLOrPath);
+}
+
+/**
+ * Parses file content by the extension of its URL or path: JSON, YAML, or as is.
+ *
+ * @param {any} content - The raw content, or a remote JSON body axios already parsed.
+ * @param {string} fileURLOrPath - The URL or path the content came from.
+ * @returns {Object|string} Parsed object for JSON or YAML files, the content otherwise.
+ */
+function parseFileContent(content: any, fileURLOrPath: string) {
   const ext = fileURLOrPath.split(".").pop()?.toLowerCase();
 
   if (ext === "json") {
     try {
       return JSON.parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse JSON: ${error.message}`);
+      log({}, "warning", `Failed to parse JSON: ${error.message}`);
       return content;
     }
   } else if (ext === "yaml" || ext === "yml") {
     try {
       return requireYaml().parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse YAML: ${error.message}`);
+      log({}, "warning", `Failed to parse YAML: ${error.message}`);
       return content;
     }
   } else {
@@ -296,4 +307,4 @@ async function resolvePaths({
   return object;
 }
 
-export { readFile, resolvePaths };
+export { readFile, parseFileContent, resolvePaths };

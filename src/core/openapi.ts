@@ -1,5 +1,13 @@
-import { replaceEnvs } from "./utils.js";
-import { readFile } from "./files.js";
+import {
+  replaceEnvs,
+  localUrlPolicy,
+  privateAddressOf,
+  getGuarded,
+  FETCH_TEXT_DEFAULTS,
+  redactUrlForOutput,
+} from "./utils.js";
+import { readFile, parseFileContent } from "./files.js";
+import type { FileInfo } from "@apidevtools/json-schema-ref-parser";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
 // were previously imported at module load — and `createGenerator` even ran at
@@ -34,12 +42,103 @@ async function loadDescription(descriptionPath: string = "") {
     throw new Error("Description is required.");
   }
 
-  // Load the definition from the URL or local file path
-  const definition = await readFile({ fileURLOrPath: descriptionPath });
+  // Fail closed (ADR 01162): once the dereference has read any public
+  // document, every later private or local-file read is refused, whichever
+  // document asked for it. `lastPublic` is the most recent public document,
+  // named in the message. Every document, the root included, counts as public
+  // when any hop of its fetch reached a public address.
+  // The parser resolves sibling $refs concurrently and tells a read only its
+  // URL, not its parent. Refusal starts once a public document has been read:
+  // under a local root, a private sibling $ref can resolve before a public
+  // sibling sets `lastPublic`, and that's intended, since local descriptions
+  // are trusted. And `lastPublic` can name a sibling rather than the document
+  // that asked, which only changes the message.
+  // getGuarded reads localUrlPolicy() again on purpose; with both switches
+  // set, either call throws the same usage error.
+  const guard = localUrlPolicy() !== "allow";
+  let lastPublic: string | undefined;
+  let definition: any;
+  if (guard && /^https?:\/\//i.test(descriptionPath)) {
+    // A remote root goes through the same guarded fetch as its $refs, so its
+    // redirects are checked and strict mode refuses a private one.
+    const root = await getGuarded(descriptionPath, FETCH_TEXT_DEFAULTS);
+    const text: string = root.data;
+    let content: any = text;
+    try {
+      content = JSON.parse(text); // as axios does for readFile's remote fetch
+    } catch {
+      // Not JSON: parse by extension below.
+    }
+    // Already parsed as JSON: don't parse it again by extension.
+    definition = typeof content === "string" ? parseFileContent(text, descriptionPath) : content;
+    if (root.reachedPublic) lastPublic = root.url;
+  } else {
+    definition = await readFile({ fileURLOrPath: descriptionPath });
+  }
+  const refused = (ref: string, doc: string, target: string) =>
+    new Error(
+      `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: a public document can't refer to ${target}.\n` +
+        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
+    );
 
   // Dereference the definition (ref parser imported lazily — see top of file)
-  const parser = (await import("@apidevtools/json-schema-ref-parser")).default;
-  const dereferencedDefinition = await parser.dereference(definition as any);
+  const { default: parser, FileResolver } = await import(
+    "@apidevtools/json-schema-ref-parser"
+  );
+  // Written against @apidevtools/json-schema-ref-parser 16.0.5, whose own
+  // type for a resolver's `read` also allows a string or object. Check that
+  // it's a function rather than cast, so an upgrade that changes it fails here.
+  const readLocalFile = FileResolver.read;
+  if (typeof readLocalFile !== "function") {
+    throw new Error(
+      "Couldn't load the OpenAPI description: json-schema-ref-parser's FileResolver.read isn't a function."
+    );
+  }
+  const dereferencedDefinition = await parser.dereference(definition as any, {
+    resolve: {
+      file: {
+        async read(file: FileInfo) {
+          if (lastPublic) {
+            // The ref is a file:// URL or a bare filesystem path. There's no
+            // credential to strip; redactUrlForOutput leaves both as is, except
+            // that a Windows drive letter comes out lowercase.
+            throw refused(redactUrlForOutput(file.url.split("#")[0]), lastPublic, "a local file");
+          }
+          return readLocalFile(file);
+        },
+      },
+      http: {
+        // The parser's own guard refuses every private address, even from a
+        // local description. getGuarded applies Doc Detective's policy instead.
+        safeUrlResolver: false,
+        async read(file: { url: string }) {
+          const ref = redactUrlForOutput(file.url);
+          const doc = lastPublic;
+          if (doc) {
+            let address: string | undefined;
+            try {
+              address = await privateAddressOf(file.url);
+            } catch (error: any) {
+              if (!error.host) throw error;
+              throw new Error(
+                `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: couldn't resolve host ${error.host} (${error.code}).`
+              );
+            }
+            if (address) throw refused(ref, doc, "a private address");
+          }
+          // After a public document, the connection must not land on a
+          // private address either (DNS rebinding).
+          const { data, url, reachedPublic } = await getGuarded(
+            file.url,
+            FETCH_TEXT_DEFAULTS,
+            doc ? (address) => refused(ref, doc, `${address}, a private address`) : undefined
+          );
+          if (guard && reachedPublic) lastPublic = url.split("#")[0];
+          return data;
+        },
+      },
+    },
+  } as any);
 
   return dereferencedDefinition;
 }

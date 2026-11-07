@@ -542,7 +542,11 @@ async function captureScreenshot({
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
+      // Guard messages already name the URL and the cause; don't wrap them.
+      const msg = fetched.message?.message ?? String(fetched.message);
+      result.description = msg.startsWith("Couldn't ")
+        ? msg
+        : `Couldn't fetch remote reference image (${redactedUrl}): ${msg}`;
       return result;
     }
     existFilePath = fetched.path;

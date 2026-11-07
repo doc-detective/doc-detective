@@ -39,7 +39,7 @@ import {
   appendQueryParams,
   redactUrlForOutput,
   sanitizeFilesystemName,
-  assertUrlHostIsPublic,
+  privateAddressOf,
   fetchFile,
   cleanTemp,
   waitForStdio,
@@ -826,51 +826,39 @@ describe("core/utils.ts — URL helpers", function () {
   });
 });
 
-describe("core/utils.ts — assertUrlHostIsPublic SSRF guard", function () {
-  it("allows everything when DOC_DETECTIVE_ALLOW_LOCAL_URLS=true (early return)", async function () {
-    process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
-    await assertUrlHostIsPublic("http://127.0.0.1/x"); // must not throw
-  });
-
+describe("core/utils.ts — privateAddressOf SSRF classifier", function () {
   it("throws on an invalid URL", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("::::not-a-url"), /Invalid URL/);
+    await assert.rejects(() => privateAddressOf("::::not-a-url"), /Invalid URL/);
   });
 
   it("throws on an unsupported scheme", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("ftp://example.com/x"), /Unsupported URL scheme/);
+    await assert.rejects(() => privateAddressOf("ftp://example.com/x"), /Unsupported URL scheme/);
   });
 
-  it("refuses a private IPv4 literal", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("http://10.0.0.5/x"), /private\/loopback/);
+  it("flags a private IPv4 literal", async function () {
+    assert.equal(await privateAddressOf("http://10.0.0.5/x"), "10.0.0.5");
   });
 
-  it("refuses 172.16/12, 192.168/16, 169.254 link-local, and 100.64 CGNAT literals", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("flags 172.16/12, 192.168/16, 169.254 link-local, and 100.64 CGNAT literals", async function () {
     for (const ip of ["172.20.1.1", "192.168.0.1", "169.254.1.1", "100.66.0.1", "127.0.0.1", "0.0.0.0"]) {
-      await assert.rejects(() => assertUrlHostIsPublic(`http://${ip}/x`), /private\/loopback/);
+      assert.equal(await privateAddressOf(`http://${ip}/x`), ip);
     }
   });
 
-  it("refuses IPv6 loopback / unique-local / link-local literals", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("flags IPv6 loopback / unique-local / link-local literals", async function () {
     for (const host of ["[::1]", "[fc00::1]", "[fd12::1]", "[fe80::1]"]) {
-      await assert.rejects(() => assertUrlHostIsPublic(`http://${host}/x`), /private\/loopback/);
+      assert.ok(await privateAddressOf(`http://${host}/x`), host);
     }
   });
 
-  it("refuses an IPv4-mapped IPv6 private address (::ffff: hex reconstruction)", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("flags an IPv4-mapped IPv6 private address (::ffff: hex reconstruction)", async function () {
     // ::ffff:a00:1 == 10.0.0.1 after the URL parser normalizes the embedded v4.
-    await assert.rejects(() => assertUrlHostIsPublic("http://[::ffff:a00:1]/x"), /private\/loopback/);
+    assert.ok(await privateAddressOf("http://[::ffff:a00:1]/x"));
   });
 
-  it("refuses the literal 'localhost' hostname", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("http://localhost/x"), /localhost/);
-    await assert.rejects(() => assertUrlHostIsPublic("http://api.localhost/x"), /localhost/);
+  it("flags the literal 'localhost' hostname", async function () {
+    assert.equal(await privateAddressOf("http://localhost/x"), "localhost");
+    assert.equal(await privateAddressOf("http://api.localhost/x"), "api.localhost");
   });
 });
 
