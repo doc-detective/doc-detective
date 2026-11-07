@@ -1616,6 +1616,8 @@ async function getGuarded(
   let reachedPublic = false;
   for (let hops = 0; ; hops++) {
     if (policy === "block") {
+      // The pre-connect check. A second lookup fires at connect time through
+      // the agent's `lookup` below (ADR 01162).
       if (await privateAddressOf(current)) throw strictModeError(current);
       const hopUrl = current;
       refuse = () => strictModeError(hopUrl);

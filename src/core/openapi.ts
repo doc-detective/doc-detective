@@ -78,9 +78,14 @@ async function loadDescription(descriptionPath: string = "") {
     definition = typeof content === "string" ? parseFileContent(text, descriptionPath) : content;
     if (root.reachedPublic) lastPublic = docName(descriptionPath, root.url);
   } else {
+    // A local path, or in allow mode a remote root through readFile's plain
+    // axios. Allow mode turns the guard off, its 50 MB cap and 30 s timeout
+    // included.
     definition = await readFile({ fileURLOrPath: descriptionPath });
   }
-  // A UrlGuardError, so getGuarded hands back one refused at connect time.
+  // Every $ref refusal, before connecting or at connect time. It's a
+  // UrlGuardError, the type getGuarded unwraps from axios's connect-error
+  // wrapper, so both reach the caller unwrapped.
   const refused = (ref: string, doc: string, target: string) =>
     new UrlGuardError(
       `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${target}.\n` +
