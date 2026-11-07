@@ -55,14 +55,17 @@ Chosen option: **A**.
   defaults. Plain defaults come from the schema's object branch. Conditional ones are coded. It's idempotent. It
   never touches `$VAR` or `$$` values, paths, config, or runtime state. Step-level `unsafe`, `breakpoint`,
   `outputs`, and `variables` stay as authored.
+- A whole-variable action value, such as `"goTo": "$URL"`, never reaches its normalizer. `validate()` leaves it as
+  authored, because the variable can hold the whole action, even an object. Expanding it like shorthand would
+  put a substituted object inside `url`.
 - A deprecated step key is renamed to its new name with one warning per run on stderr:
   ``Warning: `<old>` is deprecated. Rename it to `<new>`.``. Setting both is invalid:
   ``<path>: set `<new>` or `<old>`, not both.``
 - The runner applies the effective step to each step after it assigns step IDs, so IDs still hash the authored
-  step. That first pass runs before environment variables are substituted, so it skips a step with a
-  whole-variable value, such as `"goTo": "$NAV"`, because the variable can hold the whole action object. The
-  runner applies the effective step again in `runStep` after substitution. That pass normalizes those steps, and
-  it lets `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
+  step. That first pass runs before environment variables are substituted, so `validate()` leaves whole-variable
+  actions as authored. The runner applies the effective step again in `runStep` after substitution. That pass
+  normalizes those actions, treating a variable left unset as text, as handlers did before. It also lets
+  `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
   or default handling.
 - The report echoes the effective step. That changes a report field's shape, for example `goTo` from a string
   to an object, so it ships in 5.0.
