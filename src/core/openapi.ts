@@ -54,8 +54,6 @@ async function loadDescription(descriptionPath: string = "") {
   // sibling sets `lastPublic`, and that's intended, since local descriptions
   // are trusted. And `lastPublic` can name a sibling rather than the document
   // that asked, which only changes the message.
-  // getGuarded reads localUrlPolicy() again on purpose; with both switches
-  // set, either call throws the same usage error.
   const guard = localUrlPolicy() !== "allow";
   // Redacted, for messages: the URL the description or $ref gave, then where
   // its redirects led when that's elsewhere.
@@ -135,7 +133,9 @@ async function loadDescription(descriptionPath: string = "") {
             if (address) throw refused(ref, doc, `${address}, a private address`);
           }
           // After a public document, the connection must not land on a
-          // private address either (DNS rebinding).
+          // private address either (DNS rebinding). getGuarded reads
+          // localUrlPolicy() again on purpose; with both switches set, either
+          // call throws the same usage error.
           const { data, url, reachedPublic } = await getGuarded(
             file.url,
             FETCH_TEXT_DEFAULTS,
