@@ -70,6 +70,13 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
+- **Nested `npm run` fails at deep worktree paths on Windows.** Each nested `npm run` adds
+  `node_modules/.bin` directories to `PATH`. At deep `.claude/worktrees/*` paths that overflows
+  cmd.exe's `PATH`, and the step fails with `'node' is not recognized as an internal or external
+  command`. `npm run build` nests three levels deep. Run the steps of the `build` scripts in
+  [package.json](../package.json) and [src/common/package.json](../src/common/package.json) with
+  `node` directly instead, for example `node ./src/schemas/dereferenceSchemas.cjs` from
+  `src/common/` and `node node_modules/typescript/bin/tsc` from the root.
 
 ## Fixture concurrency & the resource-aware scheduler
 
