@@ -41,8 +41,15 @@ export function resetEnvFlagWarnings() {
   sink = null;
 }
 
-// On: 1, true, yes, or on. Off: unset, empty, 0, false, no, or off. Trimmed and
-// case-insensitive. Anything else warns once and counts as off.
+/**
+ * On: 1, true, yes, or on. Off: unset, empty, 0, false, no, or off. Trimmed and
+ * case-insensitive. Anything else warns once and counts as off.
+ *
+ * scripts/postinstall.js keeps a copy that differs on purpose: it returns
+ * `undefined` for unset or unknown, so each caller keeps its own default, where
+ * this one returns `false`. Don't swap them: postinstall's `=== false` checks,
+ * such as `isRuntimeInstallOptedOut`, would treat unset as opted out.
+ */
 export function envFlag(name: string, env: NodeJS.ProcessEnv = process.env): boolean {
   const value = (env[name] ?? "").trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;

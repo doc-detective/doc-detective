@@ -198,10 +198,16 @@ export function isRuntimeInstallOptedOut(env = process.env) {
   return envFlag("DOC_DETECTIVE_AUTOINSTALL", env) === false;
 }
 
-// A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
-// true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
-// undefined, so each caller keeps its own default.
 const warnedFlags = new Set();
+/**
+ * A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
+ * true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
+ * undefined, so each caller keeps its own default.
+ *
+ * It differs on purpose: src/envFlag.ts returns `false` for unset. Don't swap
+ * them: with `false` for unset, `=== false` checks such as
+ * `isRuntimeInstallOptedOut` would treat every unset variable as opted out.
+ */
 function envFlag(name, env = process.env) {
   const value = String(env[name] ?? "").trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;

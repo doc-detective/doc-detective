@@ -367,6 +367,8 @@ async function setConfig({
   if (args.config && !configPath) {
     configPath = args.config;
   }
+  // Unlike core setConfig, keep what's queued: the CLI's own startup, such as
+  // applyColorFlags, raises warnings before this runs, once per process.
   // Both spellings of a renamed variable is a usage error.
   checkEnvAliases();
 
