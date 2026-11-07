@@ -1597,13 +1597,16 @@ function proxyConfigured(): boolean {
 // when it connects: a name can answer public to privateAddressOf() and private
 // to the connection (DNS rebinding). `refuseFirst`, from a caller whose
 // referrer is public, makes the first request refuse a private address too.
+// `refuseRedirect` builds the refusal of a public-to-private redirect, so a
+// caller can word it its own way.
 // Returns the body, the final URL, and whether any hop reached a public
 // address.
 async function getGuarded(
   url: string,
   // Binary by default (reference images); text callers pass FETCH_TEXT_DEFAULTS.
   opts: AxiosRequestConfig = FETCH_BINARY_DEFAULTS,
-  refuseFirst?: (address: string) => Error
+  refuseFirst?: (address: string) => Error,
+  refuseRedirect: (from: string, address: string) => Error = redirectError
 ): Promise<{ data: any; url: string; reachedPublic: boolean }> {
   const policy = localUrlPolicy();
   const axios = await loadAxios();
@@ -1701,9 +1704,9 @@ async function getGuarded(
       refuse = undefined;
       if (fromPublic) {
         const address = await privateAddressOf(next);
-        if (address) throw redirectError(current, address);
+        if (address) throw refuseRedirect(current, address);
         const from = current;
-        refuse = (connectAddress: string) => redirectError(from, connectAddress);
+        refuse = (connectAddress: string) => refuseRedirect(from, connectAddress);
       }
     }
     current = next;

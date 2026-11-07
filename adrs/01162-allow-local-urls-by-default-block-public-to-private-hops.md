@@ -58,7 +58,8 @@ from a public address to a private one:
   rule fails closed and doesn't track which document asked for which `$ref`. Parsing `$ref` values
   out of public documents is itself attack surface: alias bombs, recursive anchors, and odd
   spellings of the same URL. Doc Detective turns off the parser's own `safeUrlResolver` and
-  reads HTTP `$ref`s through the same guarded fetch.
+  reads HTTP `$ref`s through the same guarded fetch. A `$ref` refused for a redirect gets the
+  `$ref` message, not the redirect one.
   * A remote root description goes through the same guarded fetch as its `$ref`s, so its redirects
     are checked and strict mode refuses a private one.
   * Every fetched document, the root included, counts as public when any hop of its fetch reached a

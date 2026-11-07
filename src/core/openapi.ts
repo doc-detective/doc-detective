@@ -137,16 +137,19 @@ async function loadDescription(descriptionPath: string = "") {
             }
             if (address) throw refused(ref, doc, `${address}, a private address`);
           }
-          // After a public document, the connection must not land on a
-          // private address either (DNS rebinding). getGuarded reads
-          // localUrlPolicy() again on purpose; with both switches set, either
-          // call throws the same usage error.
+          // After a public document, neither the connection (DNS rebinding)
+          // nor a redirect may land on a private address, and the refusal
+          // names the $ref. getGuarded reads localUrlPolicy() again on
+          // purpose; with both switches set, either call throws the same
+          // usage error.
+          const refuseRef = doc
+            ? (privateAddress: string) => refused(ref, doc, `${privateAddress}, a private address`)
+            : undefined;
           const { data, url, reachedPublic } = await getGuarded(
             file.url,
             FETCH_TEXT_DEFAULTS,
-            doc
-              ? (connectAddress) => refused(ref, doc, `${connectAddress}, a private address`)
-              : undefined
+            refuseRef,
+            refuseRef && ((_from, privateAddress) => refuseRef(privateAddress))
           );
           if (guard && reachedPublic) lastPublic = docName(file.url, url);
           return data;

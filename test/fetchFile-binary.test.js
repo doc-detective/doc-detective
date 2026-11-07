@@ -207,6 +207,10 @@ describe("local URL guard (ADR 01162)", function () {
       "/openapi-rebind.yaml": () => text(openApiYaml(`http://rebind.example.test:${port}/plain.json`)),
       "/openapi-gone.yaml": () => text(openApiYaml(`http://gone.example.test:${port}/plain.json?token=s3cret`)),
       "/openapi-public-refs.yaml": () => text(openApiYaml(`http://other.example.test:${port}/plain.json`)),
+      // A public-looking $ref that redirects to a private address, before
+      // connecting or at connect time.
+      "/openapi-ref-redirect.yaml": () => text(openApiYaml(`http://other.example.test:${port}/redirect`)),
+      "/openapi-ref-to-rebind.yaml": () => text(openApiYaml(`http://other.example.test:${port}/to-rebind`)),
       // Relative refs in a description resolve against the working directory.
       "/openapi-file.yaml": () => text(openApiYaml("./local-secret.json")),
       "/public-doc.yaml": () =>
@@ -547,8 +551,8 @@ describe("local URL guard (ADR 01162)", function () {
     assert.ok(definition.paths["/items"]);
   });
 
-  const refMessage = (ref, doc) =>
-    `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${new URL(ref).hostname}, a private address.\n` +
+  const refMessage = (ref, doc, address = new URL(ref).hostname) =>
+    `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${address}, a private address.\n` +
     "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.";
 
   it("refuses a private $ref reached through a public document in a local description", async function () {
@@ -650,6 +654,26 @@ describe("local URL guard (ADR 01162)", function () {
       assert.equal(schema.type, "boolean", `${BLOCK}=${block}`);
     }
   });
+
+  // The $ref message, not the redirect one, whether the redirect is refused
+  // before connecting or at connect time.
+  for (const [name, doc, route] of [
+    ["to a private address", "openapi-ref-redirect.yaml", "redirect"],
+    ["to a host that rebinds at connect time", "openapi-ref-to-rebind.yaml", "to-rebind"],
+  ]) {
+    it(`refuses a public description's $ref that redirects ${name}`, async function () {
+      fakePublicHost();
+      const error = await refusalOf(`http://public.example.test:${port}/${doc}`);
+      assert.equal(
+        error.message,
+        refMessage(
+          `http://other.example.test:${port}/${route}`,
+          `http://public.example.test:${port}/${doc}`,
+          "127.0.0.1"
+        )
+      );
+    });
+  }
 
   it("refuses a private $ref two documents deep under a public description", async function () {
     fakePublicHost();
