@@ -10,6 +10,9 @@ const REMOVED_BINS: Record<string, string> = {
   "doc-detective-lsp": "Use `doc-detective lsp --stdio`, which works today.",
 };
 
+// Each exact message prints once per process. Spec rows name their file, so a
+// later `runTests` call in the same process still warns about a new file, but
+// not about the same issue in a file it already warned about.
 const warned = new Set<string>();
 
 // The Action's legacy path runs v4 on purpose and has its own notice.
@@ -92,6 +95,8 @@ export function concurrentRunnersWarnings(value: unknown): string[] {
 /** `-r` with several values, and repeated `-t` or `-s`, from yargs' parsed args. */
 export function flagWarnings(args: Record<string, unknown>): string[] {
   const messages: string[] = [];
+  // `reporters` is declared with `array: true` in buildYargs (src/utils.ts), so
+  // both `-r a b` and `-r a -r b` arrive as an array of several values.
   if (Array.isArray(args.reporters) && args.reporters.length > 1) {
     // 4.x reads `-r terminal,html` as one unknown reporter, so that form has to wait.
     messages.push(
@@ -122,7 +127,7 @@ const BOOLEAN_ENV: Record<string, { v4: (v: string) => boolean; on?: string; off
   DOC_DETECTIVE_ALLOW_LOCAL_URLS: { v4: (v) => v === "true", on: "true" },
   DOC_DETECTIVE_AUTOINSTALL: {
     v4: (v) => !["0", "false", "no", "off"].includes(v.trim().toLowerCase()),
-    off: "to `0`",
+    off: "`0`",
   },
 };
 
@@ -137,7 +142,7 @@ function readsAs5(value: string): boolean | undefined {
 export function legacyEnv(env: Record<string, string | undefined>): any {
   try {
     const parsed = JSON.parse(env.DOC_DETECTIVE || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -155,6 +160,7 @@ export function envWarnings(env: Record<string, string | undefined>, config: { a
   // The official images set this value themselves, and their 5.0 builds allow
   // unsafe steps in config, so only other images need to act.
   const officialImage = /^docdetective\/docdetective:/.test(String(legacy.container));
+  // Deliberately strict: an explicit `false` has already opted out, so it needs no migration.
   if (legacy.container && !officialImage && config.allowUnsafeSteps === undefined) {
     messages.push(
       "`DOC_DETECTIVE` has a `container` key, which allows unsafe steps today but not in Doc Detective 5.0. To keep running them, set `allowUnsafeSteps: true` in your config, which works today."
@@ -162,7 +168,8 @@ export function envWarnings(env: Record<string, string | undefined>, config: { a
   }
   for (const [name, { v4, on = "1", off = "unset it" }] of Object.entries(BOOLEAN_ENV)) {
     const value = env[name];
-    if (!value) continue;
+    // An empty value still counts: DOC_DETECTIVE_AUTOINSTALL reads it as on today.
+    if (value === undefined) continue;
     const today = v4(value);
     const next = readsAs5(value);
     if (next === today) continue;
@@ -224,6 +231,8 @@ function testWarnings(test: any, where: string): string[] {
 }
 
 // Subtrees that hold the user's own data, where a `timeout` key isn't one of ours.
+// Keep this in sync with the schemas' free-form boundaries: request and response
+// bodies, headers and params, `elementAttribute`, `variables`, and `outputs`.
 const FREE_FORM = new Set([
   "request",
   "response",
@@ -274,7 +283,7 @@ function stepWarnings(step: any, where: string, offenders: Offenders): string[] 
   }
   if (typeof step.click === "boolean") {
     messages.push(
-      `A \`click\` step in ${where} is \`${step.click}\`, which 4.x reads as text to click and ${REJECTS}. To click an element whose text is '${step.click}', quote it as \`"click": "${step.click}"\`, which works today.`
+      `A \`click\` step in ${where} is \`${step.click}\`, which 4.x reads as text to click and ${REJECTS}. To click an element whose text is '${step.click}', quote it as \`"click": "${step.click}"\`, which works today. If you don't want a click, remove the step.`
     );
   }
   const objects = (value: any) => [value].flat().filter((s) => s && typeof s === "object");
@@ -291,7 +300,7 @@ function stepWarnings(step: any, where: string, offenders: Offenders): string[] 
         `A \`startSurface\` device in ${where} sets ${removed.map((key) => `\`${key}\``).join(", ")}, which Doc Detective 5.0 removes. Remove ${removed.length > 1 ? "them" : "it"}, which works today.`
       );
     }
-    if ("app" in surface && surface.workingDirectory === ".") {
+    if (surface.app != null && surface.workingDirectory === ".") {
       messages.push(`An app in ${where} sets \`workingDirectory: "."\`, which 4.x tolerates and Doc Detective 5.0 fails. Remove it, which works today.`);
     }
   }

@@ -10,6 +10,7 @@ import {
   commandWarnings,
   configWarnings,
   envWarnings,
+  legacyEnv,
   flagWarnings,
   namesFolder,
   runResultWarnings,
@@ -273,7 +274,7 @@ describe("upgrade warnings", function () {
       expect(envWarnings({ DOC_DETECTIVE_RUNTIME_DEBUG: "true" }, {})[0]).to.include("off today and on");
       expect(envWarnings({ DOC_DETECTIVE_DEBUG: "maybe" }, {})[0]).to.include("doesn't accept");
       expect(envWarnings({ DOC_DETECTIVE_ALLOW_LOCAL_URLS: "1" }, {})[0]).to.include("`true` for on");
-      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("`0` for off");
+      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("Set it to `1` for on, or `0` for off");
       // 5.0 trims a blank value to empty, which is off.
       expect(envWarnings({ DOC_DETECTIVE_SKIP_AUTO_UPDATE: " " }, {})[0]).to.include("on today and off in Doc Detective 5.0");
       const same = {
@@ -287,6 +288,30 @@ describe("upgrade warnings", function () {
         DOC_DETECTIVE_CACHE_DIR: "no",
       };
       expect(envWarnings(same, {})).to.deep.equal([]);
+    });
+
+    it("an empty DOC_DETECTIVE_* boolean, which only DOC_DETECTIVE_AUTOINSTALL reads as on today", function () {
+      // Common from `${{ inputs.x || '' }}` in CI.
+      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "" }, {})[0])
+        .to.include("`DOC_DETECTIVE_AUTOINSTALL`")
+        .and.include("on today and off in Doc Detective 5.0");
+      const empty = {
+        DOC_DETECTIVE_DEBUG: "",
+        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "",
+        DOC_DETECTIVE_SKIP_AGENT_PROMPT: "",
+        DOC_DETECTIVE_RUNTIME_DEBUG: "",
+        DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: "",
+        DOC_DETECTIVE_REUSE_APPIUM: "",
+        DOC_DETECTIVE_ALLOW_LOCAL_URLS: "",
+      };
+      expect(envWarnings(empty, {})).to.deep.equal([]);
+    });
+
+    it("legacyEnv reads only a JSON object", function () {
+      expect(legacyEnv({ DOC_DETECTIVE: '{"container":"x"}' })).to.deep.equal({ container: "x" });
+      for (const value of ["[1]", "null", "3", "not json", undefined]) {
+        expect(legacyEnv({ DOC_DETECTIVE: value })).to.deep.equal({});
+      }
     });
 
     it("reporters that aren't exact public names", function () {
@@ -349,7 +374,9 @@ describe("upgrade warnings", function () {
 
     it("a boolean click", function () {
       expect(warns([{ click: true }])[0]).to.include('`"click": "true"`');
-      expect(warns([{ click: false }])).to.have.length(1);
+      const off = warns([{ click: false }]);
+      expect(off).to.have.length(1);
+      expect(off[0]).to.include("`\"click\": \"false\"`, which works today. If you don't want a click, remove the step.");
       expect(warns([{ click: "true" }, { find: { selector: "#a", click: true } }])).to.deep.equal([]);
     });
 
@@ -429,6 +456,7 @@ describe("upgrade warnings", function () {
     it('an app with workingDirectory: "."', function () {
       expect(warns([{ startSurface: { app: "notepad", workingDirectory: "." } }])[0]).to.include('`workingDirectory: "."`');
       expect(warns([{ startSurface: [{ app: "notepad", workingDirectory: "C:\\work" }] }])).to.deep.equal([]);
+      expect(warns([{ startSurface: { app: null, workingDirectory: "." } }])).to.deep.equal([]);
     });
 
     it("prints them from the CLI, also with --dry-run", function () {
