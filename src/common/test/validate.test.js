@@ -2350,6 +2350,48 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
+    // value meant for a later one (`false` → "false", `true` → 1). Each case
+    // is [authored step, path to the value, expected validated value]. ADR 01161.
+    describe("authored scalar types survive coercion", function () {
+      const attr = (value) => ({ "data-x": value });
+      const cases = [
+        [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
+        [{ click: false }, ["click"], false],
+        [{ click: true }, ["click"], true],
+        [{ click: "true" }, ["click"], "true"],
+        [{ click: "false" }, ["click"], "false"],
+        [{ wait: true }, ["wait"], true],
+        [{ wait: false }, ["wait"], false],
+        [{ wait: 1 }, ["wait"], 1],
+        [{ wait: 0 }, ["wait"], 0],
+        [{ wait: "5000" }, ["wait"], 5000],
+        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
+        [{ record: false }, ["record"], false],
+        [{ record: "true" }, ["record"], true],
+        [{ screenshot: false }, ["screenshot"], false],
+        [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
+        [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
+        [{ find: { elementAttribute: attr("true") } }, ["find", "elementAttribute", "data-x"], "true"],
+        [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
+        [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
+        [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
+      ];
+      for (const [step, keys, expected] of cases) {
+        it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, result.errors).to.be.true;
+          const actual = keys.reduce((value, key) => value[key], result.object);
+          expect(actual).to.equal(expected);
+        });
+      }
+    });
+
     describe("report_v3 run metadata", function () {
       // The run environment and start times (ADR 01163). System-populated
       // output, never authored.
@@ -4300,6 +4342,70 @@ import { schemas } from "../dist/index.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+
+      for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
+        it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+        });
+      }
+
+      for (const [tty, pattern] of [
+        [{ cols: 0 }, /tty\/cols must be >= 1/],
+        [{ cols: 1001 }, /tty\/cols must be <= 1000/],
+        [{ rows: 0 }, /tty\/rows must be >= 1/],
+        [{ cols: 80.5 }, /tty\/cols must be integer/],
+        [{ width: 80 }, /must NOT have additional properties/],
+      ]) {
+        it(`should reject a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(pattern);
+        });
+      }
+
+      it("should validate a background runCode with tty {cols, rows}", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: { cols: 80, rows: 24 } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a startSurface process with tty {cols, rows} and reject cols 0", function () {
+        const ok = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 100, rows: 40 } },
+          },
+        });
+        expect(ok.valid, ok.errors).to.be.true;
+        const bad = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 0 } },
+          },
+        });
+        expect(bad.valid).to.be.false;
+        expect(bad.errors).to.match(/tty\/cols must be >= 1/);
       });
 
       it("should validate a background runCode with tty:true", function () {

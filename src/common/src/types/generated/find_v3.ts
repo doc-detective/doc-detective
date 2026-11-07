@@ -43,7 +43,7 @@ export type FindElementDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage;
   /**
@@ -138,7 +138,7 @@ export type ImageDetailed = {
 /**
  * Click or tap an element.
  */
-export type Click = ClickElementSimple | ClickElementDetailed | boolean;
+export type Click = (true | false) | ClickElementSimple | ClickElementDetailed;
 /**
  * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
  */
@@ -182,7 +182,7 @@ export type ClickElementDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage1;
   /**
@@ -306,7 +306,7 @@ export type TypeKeysDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage4;
   /**
@@ -397,7 +397,7 @@ export type ElementCriteria = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage2;
   /**
@@ -463,7 +463,7 @@ export type ElementCriteria1 = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage3;
   /**

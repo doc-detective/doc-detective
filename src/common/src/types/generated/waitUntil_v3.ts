@@ -38,7 +38,7 @@ export type ElementCriteria = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage;
   /**
@@ -104,7 +104,7 @@ export type ElementCriteria1 = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage1;
   /**

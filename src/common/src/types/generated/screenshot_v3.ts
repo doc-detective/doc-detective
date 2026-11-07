@@ -7,7 +7,11 @@
 /**
  * Takes a screenshot in PNG format.
  */
-export type Screenshot = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
+export type Screenshot = CaptureScreenshot | ScreenshotSimple | CaptureScreenshotDetailed;
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot = boolean;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -91,7 +95,7 @@ export type CropByElementDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage;
   /**
@@ -408,10 +412,6 @@ export type NamedRegion6 =
 export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot = boolean;
 
 export interface CaptureScreenshotFields {
   /**
@@ -594,7 +594,7 @@ export interface ElementFindingFields {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage1;
   /**
@@ -650,7 +650,7 @@ export interface ElementFindingFields1 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage2;
   /**
@@ -706,7 +706,7 @@ export interface ElementFindingFields2 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage3;
   /**
@@ -762,7 +762,7 @@ export interface ElementFindingFields3 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage4;
   /**
@@ -818,7 +818,7 @@ export interface ElementFindingFields4 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage5;
   /**
@@ -874,7 +874,7 @@ export interface ElementFindingFields5 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage6;
   /**

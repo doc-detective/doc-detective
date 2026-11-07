@@ -667,7 +667,7 @@ export interface ElementFindingFields {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage;
   /**
@@ -723,7 +723,7 @@ export interface ElementFindingFields1 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage1;
   /**
@@ -779,7 +779,7 @@ export interface ElementFindingFields2 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage2;
   /**
@@ -835,7 +835,7 @@ export interface ElementFindingFields3 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage3;
   /**
@@ -891,7 +891,7 @@ export interface ElementFindingFields4 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage4;
   /**
@@ -947,7 +947,7 @@ export interface ElementFindingFields5 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage5;
   /**
@@ -1148,7 +1148,7 @@ export interface ElementFindingFields6 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage6;
   /**
@@ -1204,7 +1204,7 @@ export interface ElementFindingFields7 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage7;
   /**
@@ -1260,7 +1260,7 @@ export interface ElementFindingFields8 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage8;
   /**
@@ -1316,7 +1316,7 @@ export interface ElementFindingFields9 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage9;
   /**
@@ -1372,7 +1372,7 @@ export interface ElementFindingFields10 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage10;
   /**
@@ -1428,7 +1428,7 @@ export interface ElementFindingFields11 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage11;
   /**
