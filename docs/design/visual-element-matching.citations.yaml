@@ -128,3 +128,11 @@ docs/design/visual-element-matching.md:
         lines: 604-609
         integrity: sha256-c82155a99718e370b119fa33f1326e22375eb67cd426652d9d98210341faae1d
         commit-sha: 16980136879a6ff7ecd5508173618158604c97af
+    - id: image-first-match-tie-proof
+      claim:
+        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+      source:
+        file: test/find-image.test.js
+        lines: 611-621
+        integrity: sha256-8c7b65c3dc59d7163f02df426ce449fedf8590d6429b2deec0485aba8ca7f447
+        commit-sha: a1fee6f96ac9200de8119c92825b58c184bc91b7
