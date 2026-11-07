@@ -341,6 +341,9 @@ describe("local URL guard (ADR 01162)", function () {
     });
     const realCreateConnection = http.Agent.prototype.createConnection;
     sinon.stub(http.Agent.prototype, "createConnection").callsFake(function (options, cb) {
+      // Only connections to the fake hosts are redirected; anything else
+      // (127.0.0.1, localhost, a proxy) connects as it would.
+      if (!fake(options.host ?? "")) return realCreateConnection.call(this, options, cb);
       const lookup = options.lookup || dns.lookup;
       const local = (host, opts, done) =>
         lookup(host, opts, (error) => (error ? done(error) : reply("127.0.0.1", opts, done)));

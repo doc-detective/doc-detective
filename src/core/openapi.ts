@@ -99,6 +99,9 @@ async function loadDescription(descriptionPath: string = "") {
       file: {
         async read(file: FileInfo) {
           if (lastPublic) {
+            // The ref is a file:// URL or a bare filesystem path. There's no
+            // credential to strip; redactUrlForOutput leaves both as is, except
+            // that a Windows drive letter comes out lowercase.
             throw refused(redactUrlForOutput(file.url.split("#")[0]), lastPublic, "a local file");
           }
           return readLocalFile(file);
