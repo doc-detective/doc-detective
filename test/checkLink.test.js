@@ -187,6 +187,20 @@ describe("checkLink non-2xx status code regression", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Invalid or unresolvable URL/);
   });
+
+  it("redacts the query string from the unresolvable-URL message", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: "http://this-domain-does-not-exist-12345.invalid/?token=abc",
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid or unresolvable URL/);
+    assert.ok(!result.description.includes("abc"), result.description);
+  });
 });
 
 describe("checkLink retry, headers, and HEAD fallback", function () {

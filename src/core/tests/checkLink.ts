@@ -264,7 +264,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     result.description =
       last.errorCode === "ECONNABORTED"
         ? `Couldn't reach ${redactUrlForOutput(url)}: no response within ${timeout} ms (ECONNABORTED).`
-        : `Invalid or unresolvable URL: ${url}`;
+        : `Invalid or unresolvable URL: ${redactUrlForOutput(url)}`;
     return result;
   }
 
