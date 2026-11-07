@@ -68,6 +68,8 @@ const ALIASES = [{ oldName: "DOC_DETECTIVE_RUNTIME_DEBUG", newName: "DOC_DETECTI
 export function checkEnvAliases(env: NodeJS.ProcessEnv = process.env) {
   for (const { oldName, newName } of ALIASES) {
     // Both set and either on: which one meant it is unclear. Both off is harmless.
+    // envFlag warns once about a value it can't read, so an invalid old name
+    // gets that warning here, and the rename warning below stays quiet for it.
     const on = [newName, oldName].filter((name) => envFlag(name, env));
     if (env[oldName]?.trim() && env[newName]?.trim() && on.length) {
       throw new Error(

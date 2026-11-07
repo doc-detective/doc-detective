@@ -1199,6 +1199,9 @@ function schemasAt(parts: string[], root: string | object): any[] {
       return false;
     }
   };
+  // then/else count with the combiners on purpose: suggesting a key a branch
+  // allows beats missing it, and nearestCommand's threshold keeps a distant
+  // key from being suggested.
   const expand = (node: any): any[] =>
     node && typeof node === "object"
       ? [
@@ -1387,6 +1390,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     const allowed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
     ];
+    // Allowed values print bare, here and in the list below; only `got` is JSON.
     if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
     else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
     const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
