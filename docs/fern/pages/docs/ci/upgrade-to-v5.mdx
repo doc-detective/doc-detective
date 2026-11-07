@@ -196,7 +196,7 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 ## Timeouts start at 1, and waits can't be negative
 
-**What changed:** Every `timeout` must be `1` or more, and every other duration and delay, such as `wait` and `waitUntil.delayMs`, must be `0` or more. A value out of range makes the spec invalid, and the run exits `2`:
+**What changed:** A `timeout` that limits how long an operation runs must be `1` or more. That covers `runShell`, `runCode`, and opening a surface with `startSurface`. A locator's `timeout`, as in `find` or `click`, can still be `0`, which checks once without waiting. Every other duration and delay, such as `wait` and `waitUntil.delayMs`, must be `0` or more. A value out of range makes the spec invalid, and the run exits `2`:
 
 ```text
 tests[0].steps[0].runShell.timeout: must be >= 1.
