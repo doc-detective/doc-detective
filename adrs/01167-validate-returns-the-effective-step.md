@@ -72,12 +72,16 @@ Chosen option: **A**.
 
 The pilots keep today's behavior, with three exceptions:
 
-- An authored `0` for goTo's or httpRequest's `timeout` is kept, not replaced by the default.
+- An authored `0` for goTo's or httpRequest's `timeout` is kept, not replaced by the default. A goTo with
+  `timeout: 0` fails, because the page can't load in no time. An httpRequest passes 0 to axios, which means no
+  time limit.
 - `httpRequest.response.body` loses its schema default of `{}`. The handler never applied it, because an unset
   body must skip the body check.
 - For an httpRequest with `openApi`, the operation supplies the method, the status codes, and the request body.
   A step whose OpenAPI config adds no headers and no request example used to send a `{}` body, and now sends
-  none.
+  none. With `validateAgainstSchema` set to `request` or `both`, that step now validates an absent body
+  (`undefined`) instead of `{}`. An operation whose request schema expects an object, even one with no required
+  fields, passed before and now fails. Authoring `request.body` restores the old behavior.
 
 ### Consequences
 
