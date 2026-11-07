@@ -294,7 +294,10 @@ function validateObject(
   }
   // Normalize the steps (ADR 01167). It runs in both modes, so validity doesn't
   // depend on addDefaults: an alias set twice is invalid in each. Without
-  // addDefaults, a v2 upgrade is returned as is, so normalize a copy of it.
+  // addDefaults the normalized result is only checked, then dropped. A v3
+  // input's validationObject is always a clone, so normalizing it is safe. A v2
+  // upgrade is the object returned as is (validationObject === object), so
+  // normalize a copy of it.
   try {
     if (normalizeSteps) {
       normalize(

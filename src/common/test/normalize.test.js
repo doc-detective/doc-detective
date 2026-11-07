@@ -370,6 +370,13 @@ describe("normalization", function () {
       expect(effective({ closeSurface: ["web", "chrome"] }).object.closeSurface).to.deep.equal(["web", "chrome"]);
     });
 
+    it("returns a copy of a closeSurface list, never the authored one", function () {
+      const list = ["web", "chrome"];
+      const output = normalizers.closeSurface(list, "closeSurface", false, {});
+      expect(output).to.deep.equal(list);
+      expect(output).to.not.equal(list);
+    });
+
     it("fills each startSurface descriptor's defaults, by kind", function () {
       const process = { process: "node server.js", name: "api" };
       expect(effective({ startSurface: process }).object.startSurface).to.deep.equal({

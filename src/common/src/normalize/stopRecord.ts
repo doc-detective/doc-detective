@@ -4,5 +4,5 @@
 export default function stopRecord(value: any): any {
   if (value === null) return true;
   if (typeof value === "string") return { name: value };
-  return typeof value === "object" && value !== null ? { ...value } : value;
+  return typeof value === "object" && value !== null ? structuredClone(value) : value;
 }
