@@ -62,7 +62,32 @@ async function generateTypes() {
     throw new Error(`One or more schemas failed to generate TypeScript types: ${failedFiles.join(", ")}`);
   }
 
+  const step = JSON.parse(await fs.readFile(path.join(schemasDir, "step_v3.schema.json"), "utf-8"));
+  await fs.writeFile(path.join(__dirname, "..", "src", "stepActions.ts"), renderStepActions(step));
+  console.log("  ✓ step_v3.schema.json → stepActions.ts");
+
   console.log("Type generation complete!");
+}
+
+// Each step_v3 oneOf branch requires one action key, on the branch or in an allOf part.
+function renderStepActions(step) {
+  const keys = step.oneOf
+    .flatMap((branch) => [branch, ...(branch.allOf ?? [])])
+    .flatMap((part) => part.required ?? []);
+  const lines = [...new Set(keys)].sort().map((key) => `  ${JSON.stringify(key)},`);
+  return `/* eslint-disable */
+/**
+ * Auto-generated from step_v3.schema.json by scripts/generateTypes.cjs
+ * Do not edit manually
+ */
+
+/** Every step action key, sorted. A step carries exactly one. */
+export const stepActions = [
+${lines.join("\n")}
+] as const;
+
+export type StepAction = (typeof stepActions)[number];
+`;
 }
 
 module.exports = { checkGeneratorVersion };

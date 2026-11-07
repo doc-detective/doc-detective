@@ -1,6 +1,8 @@
-// Writes the precompiled Ajv validators validate.js imports into dist/schemas/.
-// Runs after tsc (it needs dist/ajv.js) and before the CJS bundle. ADR 01138.
-import { writeFile } from "fs/promises";
+// Writes the precompiled Ajv validators validate.js imports into dist/schemas/,
+// plus one published <name>_v3.schema.json per v3 schema (the `$schema` URLs).
+// Runs after tsc (it needs dist/ajv.js, and `clean` wipes dist/) and before the
+// CJS bundle. ADR 01138.
+import { readFile, writeFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import path from "path";
 import { standaloneValidatorFiles } from "../dist/ajv.js";
@@ -11,3 +13,10 @@ for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
   await writeFile(path.join(outDir, file), code);
   console.log(`Generated dist/schemas/${file}`);
 }
+
+const schemas = JSON.parse(await readFile(path.join(outDir, "schemas.json"), "utf8"));
+for (const [key, schema] of Object.entries(schemas)) {
+  if (!key.endsWith("_v3")) continue;
+  await writeFile(path.join(outDir, `${key}.schema.json`), JSON.stringify(schema, null, 2));
+}
+console.log("Published dist/schemas/*_v3.schema.json");
