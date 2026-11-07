@@ -1653,9 +1653,13 @@ async function getGuarded(
       : net.isIP(target)
         ? !isPrivateOrLoopbackAddress(target)
         : undefined;
-    if (hopPublic === undefined && policy !== "allow") {
-      hopPublic = !(await privateAddressOf(current, { every: true }).catch(() => undefined));
-    }
+    // A fresh lookup of this hop's host, made at most once: a flapping
+    // resolver can't give the two checks below different answers. A failed
+    // lookup counts as public.
+    let fresh: Promise<boolean> | undefined;
+    const freshPublic = () =>
+      (fresh ??= privateAddressOf(current, { every: true }).then((a) => !a, () => true));
+    if (hopPublic === undefined && policy !== "allow") hopPublic = await freshPublic();
     if (hopPublic) reachedPublic = true;
     if (!REDIRECT_STATUSES.includes(response.status)) {
       return { data: response.data, url: current, reachedPublic };
@@ -1679,9 +1683,7 @@ async function getGuarded(
     if (policy === "hops") {
       // Fail closed: the hop comes from a public origin unless both the
       // connection and a fresh lookup say every address is private.
-      const fromPublic =
-        hopPublic ||
-        !(await privateAddressOf(current, { every: true }).catch(() => undefined));
+      const fromPublic = hopPublic || (await freshPublic());
       refuse = undefined;
       if (fromPublic) {
         const address = await privateAddressOf(next);

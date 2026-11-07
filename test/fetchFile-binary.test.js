@@ -766,6 +766,24 @@ describe("local URL guard (ADR 01162)", function () {
       const direct = await fetchFile(`http://localhost:${port}/ref.png`, { binary: true });
       assert.match(direct.message.message, /DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses/);
     });
+
+    it("looks a proxied hop's host up once, and keeps that answer", async function () {
+      // A flapping resolver: private first, public after. Through the proxy
+      // the connection never looks the host up, so the guard does, once.
+      const realLookup = dnsPromises.lookup.bind(dnsPromises);
+      let asked = 0;
+      sinon.stub(dnsPromises, "lookup").callsFake((host, opts) => {
+        if (host !== "flap.example.test") return realLookup(host, opts);
+        asked++;
+        const address = asked === 1 ? "127.0.0.1" : "93.184.216.34";
+        return Promise.resolve([{ address, family: 4 }]);
+      });
+      const result = await fetchFile(`http://flap.example.test:${port}/redirect`, {
+        binary: true,
+      });
+      assert.equal(asked, 1);
+      assert.equal(result.result, "success", String(result.message));
+    });
   });
 
   // This suite's own server, not the shared 8092 one, so a concurrent run
