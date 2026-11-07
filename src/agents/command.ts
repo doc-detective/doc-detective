@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import { addGlobalOptions, cliArgv, commaList } from "../cliOptions.js";
+import { addGlobalOptions, cliArgv, commaList, splitList } from "../cliOptions.js";
 
 export interface InstallAgentsArgv {
   agent?: string[];
@@ -51,7 +51,7 @@ export function buildInstallAgentsCommand(
     .action(async (_options, command: Command) => {
       const argv = cliArgv(command);
       if (typeof argv.agent === "string") {
-        argv.agent = argv.agent.split(",").map((id: string) => id.trim()).filter(Boolean);
+        argv.agent = splitList(argv.agent);
       }
       await handler(argv);
     });

@@ -57,12 +57,18 @@ export function commaList(choices?: string[]) {
     if (previous !== undefined) {
       throw new InvalidArgumentError(`Give it once, as a comma-separated list: ${previous},${value}.`);
     }
-    const items = value.split(",").map((item) => item.trim()).filter(Boolean);
-    if (choices && items.some((item) => !choices.includes(item))) {
+    // Commander quotes the whole value; rewriteRootError narrows the message
+    // to the first item that isn't a choice.
+    if (choices && splitList(value).some((item) => !choices.includes(item))) {
       throw new InvalidArgumentError(`Allowed choices are ${choices.join(", ")}.`);
     }
     return value;
   };
+}
+
+// A comma-separated list flag's items: trimmed, with empty ones dropped.
+export function splitList(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 function grouped(group: string, flags: string, description?: string) {

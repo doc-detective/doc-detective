@@ -4,6 +4,7 @@ import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
+import { splitList } from "./cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -490,17 +491,17 @@ async function setConfig({
     config.dryRun = args.dryRun;
   }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
-  const list = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
-  if (typeof args.reporters === "string" && list(args.reporters).length > 0) {
-    config.reporters = list(args.reporters);
+  if (typeof args.reporters === "string" && splitList(args.reporters).length > 0) {
+    config.reporters = splitList(args.reporters);
   }
-  if (typeof args.test === "string" && list(args.test).length > 0) config.testFilter = list(args.test);
-  if (typeof args.spec === "string" && list(args.spec).length > 0) config.specFilter = list(args.spec);
+  if (typeof args.test === "string" && splitList(args.test).length > 0) config.testFilter = splitList(args.test);
+  if (typeof args.spec === "string" && splitList(args.spec).length > 0) config.specFilter = splitList(args.spec);
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
-  // Commander has already checked each value below against its choices.
+  // setConfig is CLI-only (not a package export), so commander has already
+  // checked each value below against its choices.
   if (typeof args.verification === "string") {
     const write = args.verification === "existing" ? "existing" : args.verification === "true";
     config.verification = { ...(config.verification || {}), write };
@@ -526,7 +527,8 @@ async function setConfig({
   if (typeof args.shell === "string") config.shell = args.shell;
   // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
-    config.concurrentRunners = ["auto", "true"].includes(args.concurrentRunners) || Number(args.concurrentRunners);
+    config.concurrentRunners =
+      args.concurrentRunners === "auto" || args.concurrentRunners === "true" ? true : Number(args.concurrentRunners);
   }
   // Modes that replace the terminal summary on stdout.
   const stdoutReporters: string[] = [];
@@ -548,7 +550,8 @@ async function setConfig({
     objectType: "config",
   });
   // The stdout modes' reporters aren't config `reporters` values, so they ride
-  // along unenumerated, out of the runner's validation.
+  // along unenumerated, out of the runner's validation. Non-enumerable on
+  // purpose: the runner's JSON clone drops it, and only outputResults reads it.
   Object.defineProperty(config, "_stdoutReporters", { value: stdoutReporters, configurable: true });
 
   return config;
@@ -1217,7 +1220,7 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
   // folder gate, runArchivesArtifacts, follows the same rule.
   const defaultReporters = ["terminal", "runFolder"];
   // `--json` and `--plain` add their stdout reporters here, not to `reporters`.
-  const stdoutReporters: string[] = config?._stdoutReporters ?? [];
+  const stdoutReporters = (config as { _stdoutReporters?: string[] } | undefined)?._stdoutReporters ?? [];
 
   let activeReporters = Array.isArray(config?.reporters)
     ? [...config.reporters, ...stdoutReporters]

@@ -747,6 +747,13 @@ describe("CLI contract", function () {
       );
     });
 
+    it("names the one bad reporter in a list", function () {
+      usage(
+        run(["-r", "terminal, bogus,json"]),
+        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
     it("rejects a repeated -r, and shows the comma form", function () {
       usage(
         run(["-r", "json", "-r", "html"]),
