@@ -36,9 +36,11 @@ Should show `v22.0.0` or higher.
 
 ## Fork and clone the repository
 
+The docs live in the `docs/` directory of the [`doc-detective`](https://github.com/doc-detective/doc-detective) repo, alongside the code they describe.
+
 ### 1. Fork the repository
 
-1. Go to [https://github.com/doc-detective/doc-detective.github.io](https://github.com/doc-detective/doc-detective.github.io).
+1. Go to [https://github.com/doc-detective/doc-detective](https://github.com/doc-detective/doc-detective).
 2. Click **Fork** in the top right.
 3. Select your GitHub account as the destination.
 
@@ -46,8 +48,8 @@ Should show `v22.0.0` or higher.
 
 ```bash
 # Replace YOUR-USERNAME with your GitHub username
-git clone https://github.com/YOUR-USERNAME/doc-detective.github.io.git
-cd doc-detective.github.io
+git clone https://github.com/YOUR-USERNAME/doc-detective.git
+cd doc-detective
 ```
 
 ### 3. Add upstream remote
@@ -55,7 +57,7 @@ cd doc-detective.github.io
 This lets you sync with the main repository:
 
 ```bash
-git remote add upstream https://github.com/doc-detective/doc-detective.github.io.git
+git remote add upstream https://github.com/doc-detective/doc-detective.git
 ```
 
 Verify remotes:
@@ -67,51 +69,20 @@ git remote -v
 Should show:
 
 ```
-origin    https://github.com/YOUR-USERNAME/doc-detective.github.io.git (fetch)
-origin    https://github.com/YOUR-USERNAME/doc-detective.github.io.git (push)
-upstream  https://github.com/doc-detective/doc-detective.github.io.git (fetch)
-upstream  https://github.com/doc-detective/doc-detective.github.io.git (push)
+origin    https://github.com/YOUR-USERNAME/doc-detective.git (fetch)
+origin    https://github.com/YOUR-USERNAME/doc-detective.git (push)
+upstream  https://github.com/doc-detective/doc-detective.git (fetch)
+upstream  https://github.com/doc-detective/doc-detective.git (push)
 ```
 
 ## Install dependencies
 
-Choose the option that works best for you:
+Install the docs dependencies from the `docs/` directory:
 
-### Option 1: Dev Container (recommended for consistency)
-
-Use VS Code Dev Containers for a zero-config environment:
-
-#### Prerequisites
-
-- [Docker Desktop](https://docs.docker.com/get-docker/)
-- [VS Code](https://code.visualstudio.com/)
-- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-#### Steps
-
-1. **Fork and clone** the repository (see steps below)
-2. **Open in VS Code**
-3. **Reopen in Container**:
-   - Press `F1` or `Cmd/Ctrl+Shift+P`
-   - Select "Dev Containers: Reopen in Container"
-   - Wait for container to build (first time takes 5-10 minutes)
-4. **Start the dev server**:
-   ```bash
-   npm run start
-   ```
-
-Everything is pre-configured and ready to go.
-
-### Option 2: Local installation
-
-Install dependencies directly on your machine:
-
-1. **Fork and clone** the repository (see steps below).
-2. **Install dependencies**:
-   ```bash
-   cd doc-detective.github.io
-   npm install
-   ```
+```bash
+cd docs
+npm install
+```
 
 ## Working locally
 
@@ -135,7 +106,7 @@ To make changes,
 
 2. **Edit files**:
 
-   - Documentation files are in `docs/`
+   - Documentation pages are in `fern/pages/`
    - Edit in your preferred code editor
    - Save and see changes live at `http://localhost:3000`
 
@@ -145,30 +116,15 @@ To make changes,
    git commit -m "Descriptive commit message"
    ```
 
-### Build the site
+### Check the site
 
-Before submitting, verify the production build works:
-
-```bash
-npm run build
-```
-
-This runs the full build process including:
-
-- Schema generation
-- Production optimization
-- Link checking
-- Build verification
-
-Fix any errors before submitting your PR.
-
-### Preview the production build
+Before submitting, validate the Fern configuration and pages from the `docs/` directory:
 
 ```bash
-npm run serve
+npx fern check
 ```
 
-View the production build at `http://localhost:3000`.
+Fix any errors before submitting your PR. To preview the site, use the local server from `npm run start`. A pull request from a branch in the `doc-detective/doc-detective` repo also gets a bot comment linking to a hosted preview. Pull requests from forks don't, because the preview needs a repository secret.
 
 ## Run automated checks
 
@@ -176,14 +132,14 @@ View the production build at `http://localhost:3000`.
 
 Vale enforces the documentation style guide. The pull request check fails on any error-level alert, so run Vale locally to catch errors before you push. A local run also shows warnings and suggestions, which the check doesn't post.
 
-Vale reads its configuration from `docs/.vale.ini`. Run these commands from the repository root:
+Run Vale from the `docs/` directory, where it finds its `.vale.ini` configuration.
 
 ```bash
-# Check all documentation
-vale --config=docs/.vale.ini docs/
+# Check all documentation except the generated schema reference pages, which CI also skips
+vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
 
 # Check specific file
-vale --config=docs/.vale.ini docs/path/to/file.mdx
+vale fern/pages/path/to/file.mdx
 ```
 
 To check `.mdx` files, Vale needs the `mdx2vast` parser on your `PATH`. Install the version the pull request check uses with `npm install -g mdx2vast@0.5.0`.
@@ -203,7 +159,7 @@ Don't worry about fixing every suggestion. Reviewers use their judgment during r
 1. Create the file:
 
    ```bash
-   touch docs/category/your-page.mdx
+   touch fern/pages/docs/category/your-page.mdx
    ```
 
 2. Add front matter:
@@ -216,14 +172,12 @@ Don't worry about fixing every suggestion. Reviewers use their judgment during r
    sidebar_position: 3
    ---
 
-   # Your Page Title
-
    Content goes here...
    ```
 
 3. Update the navigation (if needed):
 
-   Edit `sidebars.ts` to add your page to navigation.
+   Edit `fern/docs.yml` to add your page to navigation.
 
 ### Add images
 
@@ -272,15 +226,14 @@ Stop other development servers or use a different port:
 npm run start -- --port 3001
 ```
 
-### Build fails with module errors
+### Fern fails with module errors
 
-Clear cache and reinstall:
+Reinstall and check again:
 
 ```bash
-npm run clear
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+rm -rf node_modules
+npm ci
+npx fern check
 ```
 
 ### Changes aren't appearing
@@ -299,10 +252,11 @@ npm run start
 
 ### Vale can't find its configuration
 
-The configuration file is `docs/.vale.ini`, not a `.vale.ini` at the repository root. Pass it with `--config` and run Vale from the repository root:
+The configuration file is `docs/.vale.ini`, not a `.vale.ini` at the repository root. Make sure you're running Vale from the `docs/` directory:
 
 ```bash
-vale --config=docs/.vale.ini docs/
+cd /path/to/doc-detective/docs
+vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
 ```
 
 ### npm install fails
@@ -348,7 +302,7 @@ git checkout -b descriptive-branch-name
 Make small, focused commits:
 
 ```bash
-git add docs/path/to/changed-file.mdx
+git add fern/pages/path/to/changed-file.mdx
 git commit -m "Add troubleshooting section for X"
 ```
 
@@ -385,8 +339,6 @@ Create editor snippets for common patterns:
       "description: ${2:Description}",
       "sidebar-title: ${3:Label}",
       "---",
-      "",
-      "# ${1:Title}",
       "",
       "$0"
     ]

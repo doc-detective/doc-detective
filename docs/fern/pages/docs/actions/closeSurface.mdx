@@ -206,4 +206,6 @@ Reference an [app surface](/docs/actions/startsurface) with `{ "app": … }` to 
 }
 ```
 
-Closing a single app window isn't supported yet. Omit `window` to close the whole app surface.
+Window-scoped app closes work on Windows and macOS app surfaces. Android and iOS surfaces are single-window, so a `window` selector fails there. Omit it to close the app.
+
+On Windows, index selectors other than `-1` aren't supported, because the Windows driver can't enumerate an app's windows in creation order. Select by title or `/regex/` instead.

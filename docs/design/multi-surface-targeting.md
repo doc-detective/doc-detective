@@ -95,8 +95,9 @@ have windows but no tabs.
 | `-1` | **newest** (negative counts from the end) |
 | `{ name, index, title, url }` | by criteria (`title`/`url` support `/regex/`) |
 
-`window` and `tab` mean *which* window or tab, exclusively. Window **size** is
-`size` on `browserConfig`, not `window`. See the rename note under openers.
+`window` and `tab` mean *which* window or tab, exclusively. Inside a
+`startSurface` browser descriptor, window **size** is `size`, not `window`. See
+the rename note under openers.
 
 > WebDriver caveat: the W3C handle model is **flat**. Every tab and window is an
 > opaque handle with no parent grouping. We track the window-to-tab hierarchy for
@@ -199,7 +200,7 @@ array is the parallelism mechanism, overlapping startup instead of paying it
 serially.
 
 ```jsonc
-// BROWSER: reuses the shared `browserConfig`, the same fields as runOn
+// BROWSER: its own descriptor, carrying the same fields as runOn
 "startSurface": { "browser": "chrome", "name": "shopper",
                   "headless": false,
                   "size":     { "width": 1920, "height": 1080 },   // was `window` in runOn, now `size`
@@ -227,11 +228,11 @@ serially.
 Fields: `name`/`waitUntil`/`timeout` are common to all kinds; **`args`** and
 **`workingDirectory`** applies to app and process, since both launch executables.
 It defaults to inheriting the run's cwd, `.`. It doesn't apply to browser, which
-takes engine config rather than argv, matching runOn. Browser config is the shared
-**`browserConfig`**, carrying `headless`, `size`, and `viewport`. Both
-`startSurface` and `context_v3.browsers` `$ref` it, so they never drift. Note
-`size`, renamed from runOn's `window`, since `window` now means the selector
-everywhere. Startup readiness is kind-shaped, using the same `if/then` approach as
+takes engine config rather than argv, matching runOn. Browser config lives on
+`startSurface`'s own browser descriptor, carrying `headless`, `size`, and
+`viewport`. Note `size`, renamed from runOn's `window`, since `window` now means
+the selector inside this descriptor. `context_v3.browsers` keeps `window` for
+dimensions, so the two shapes differ. See the Phase 6 deviation note. Startup readiness is kind-shaped, using the same `if/then` approach as
 `type`. `process` takes `{ stdio, delayMs }`, and `app` takes `{ delayMs }`.
 `browser` is launch-only, with no page until `goTo`, so it usually has no
 `waitUntil`.
@@ -363,10 +364,10 @@ The caveat in practice: pin a surface OR fan out, not both.
   unchanged.
 - `record.target`, a region, and `dragAndDrop.source` and `target`, elements, are
   untouched. The surface field is `surface`, which avoids the collision.
-- The `runOn` and `context_v3` shape is stable, except for the browser-size key.
-  `window` becomes `size`, so `window` can mean the selector everywhere. `window`
-  stays a **deprecated alias** for `size` in `browserConfig`, removed at the next
-  schema major. `requires` was added later.
+- The `runOn` and `context_v3` shape is stable, the browser-size key included.
+  `window` becomes `size` only inside `startSurface`'s browser descriptor, so
+  `window` can mean the selector there. `context_v3.browsers` keeps `window` for
+  dimensions, and there is **no deprecated alias**. `requires` was added later.
 
 ## Reusable schema artifacts
 
@@ -380,14 +381,15 @@ The caveat in practice: pin a surface OR fan out, not both.
 - A shared **readiness** schema, reused by flat `waitUntil`. `waitUntilBrowser` is
   `{networkIdleTime,domIdleTime,find}`, goTo's current shape. `waitUntilProcess`
   is `{stdio,delayMs}`. `type`'s `if/then` selects which applies.
-- A shared **`browserConfig`**, carrying `headless`, `size`, and `viewport`, with
-  `window` as a deprecated alias for `size`. BOTH `context_v3.browsers` and
-  `startSurface`'s browser branch `$ref` it. That single source of truth keeps
-  runOn and startSurface from drifting.
+- **A per-descriptor browser config**, carrying `headless`, `size`, `viewport`,
+  and `driverOptions`, declared inline on `startSurface`'s browser branch. There
+  is no shared `browserConfig` to `$ref`, and `context_v3.browsers` keeps its own
+  `window` for dimensions. This was originally planned as one shared schema; see
+  the Phase 6 deviation note for why it shipped separately.
 - A shared **`startSurface` descriptor** in `startSurface_v3.schema.json`. It's an
   object or array, where each entry is
   `{ <kind>, name?, waitUntil?, timeout?, + per-kind payload }`. A browser takes
-  `browserConfig`. App and process take `args`, plus `command` and
+  the config above. App and process take `args`, plus `command` and
   `workingDirectory` for process, and `path` for app. It's the create-side mirror
   of the `surface` reference. `closeSurface` reuses the `surface` reference
   schema, as a string, object, or array.

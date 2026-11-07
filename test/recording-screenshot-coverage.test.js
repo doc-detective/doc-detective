@@ -826,7 +826,9 @@ describe("startRecording: guards + browser engine", function () {
 
   // A fake driver for the browser-engine happy/fail paths. instantiateCursor
   // is satisfied by driver.$ returning an already-instantiated cursor
-  // (truthy elementId) so it skips the DOM/performActions work.
+  // (truthy elementId) so it skips the DOM/performActions work. Shaped like
+  // webdriverio 10: no executeAsync, and `execute` runs an async function
+  // through Execute Async Script, so only the recorder script is async.
   function browserDriver({ recorderStarted = true } = {}) {
     let title = "Original Title";
     return {
@@ -844,6 +846,7 @@ describe("startRecording: guards + browser engine", function () {
         return { elementId: "cursor-exists" };
       },
       async execute(fn, arg) {
+        if (fn?.constructor?.name === "AsyncFunction") return recorderStarted;
         // document.title setter: (title) => (document.title = title)
         if (typeof fn === "function" && fn.length >= 1 && typeof arg === "string") {
           title = arg;
@@ -855,9 +858,6 @@ describe("startRecording: guards + browser engine", function () {
       },
       async switchToWindow() {},
       async url() {},
-      async executeAsync() {
-        return recorderStarted;
-      },
       async closeWindow() {},
     };
   }

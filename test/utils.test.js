@@ -321,6 +321,27 @@ describe("Util tests", function () {
     expect(configAbsent.hints).to.deep.equal({ enabled: true });
   });
 
+  it("setConfig stores --verification on config.verification.write", async function () {
+    this.timeout(5000);
+    for (const [flag, write] of [["true", true], ["false", false], ["existing", "existing"], [" TRUE ", true]]) {
+      const args = setArgs(["node", "runTests.js", "--verification", flag]);
+      expect(args.verification).to.equal(flag);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.verification, flag).to.deep.equal({ write });
+    }
+
+    // An unknown value is ignored, leaving the validated default.
+    const argsBad = setArgs(["node", "runTests.js", "--verification", "always"]);
+    const configBad = await setConfig({ configPath: null, args: argsBad });
+    expect(configBad.verification).to.deep.equal({ write: "existing" });
+
+    // Absent flag: the schema default.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.verification).to.be.undefined;
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.verification).to.deep.equal({ write: "existing" });
+  });
+
   it("Yargs parses --auto-update / --no-auto-update as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-update"]);
     expect(on.autoUpdate).to.equal(true);
@@ -1410,6 +1431,9 @@ describe("runSpecs filter short-circuit", function () {
     expect(result.summary.tests.warning).to.equal(0);
     expect(result.summary.tests.skipped).to.equal(0);
     expect(result.summary.specs.pass).to.equal(0);
+    // Run metadata is present even when nothing ran (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 
@@ -1439,6 +1463,9 @@ describe("runViaApi filter short-circuit", function () {
     expect(result.specs).to.deep.equal([]);
     expect(result.summary.tests.pass).to.equal(0);
     expect(result.summary.tests.fail).to.equal(0);
+    // Run metadata matches runSpecs' short-circuit (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 

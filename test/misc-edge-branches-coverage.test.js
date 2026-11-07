@@ -548,13 +548,13 @@ describe("runtime/cacheDir.ts — guard + fallback branches", function () {
   it("getBrowsersDir skips legacy candidates whose statSync throws and falls back to the default cache", function () {
     // No override → the legacy loop runs; every statSync throws → catch/skip →
     // fall through to <cacheDir>/browsers. Redirect the default cache root to a
-    // temp dir so we don't create anything under the real tmpdir cache.
+    // temp dir so we don't create anything under the real home-dir cache.
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
-    const fakeTmp = mkTmp("dd-edge-tmproot-");
-    sinon.stub(os, "tmpdir").returns(fakeTmp);
+    const fakeHome = mkTmp("dd-edge-homeroot-");
+    sinon.stub(os, "homedir").returns(fakeHome);
     sinon.stub(fs, "statSync").throws(Object.assign(new Error("nope"), { code: "ENOENT" }));
     const out = getBrowsersDir({});
-    assert.equal(out, path.join(fakeTmp, "doc-detective", "browsers"));
+    assert.equal(out, path.join(fakeHome, ".doc-detective", "browsers"));
   });
 
   it("readInstalledRecord degrades to an empty record on a non-ENOENT read error", function () {
@@ -945,9 +945,17 @@ describe("core/utils.ts — cleanTemp / waitForStdio / run output helpers", func
     fs.mkdirSync(path.join(ddDir, "runtime"), { recursive: true });
     fs.mkdirSync(path.join(ddDir, "tools", "git-bash"), { recursive: true });
     fs.mkdirSync(path.join(ddDir, "scratch-dir"), { recursive: true });
+    // A cacheDir explicitly pointed at the temp root also holds the Android
+    // SDK, its JRE, and the iOS WDA prebuilds — multi-GB, must survive.
+    for (const entry of ["android-sdk", "jre", "ios"]) {
+      fs.mkdirSync(path.join(ddDir, entry), { recursive: true });
+    }
     fs.writeFileSync(path.join(ddDir, "installed.json"), "{}");
     fs.writeFileSync(path.join(ddDir, "scratch.txt"), "x");
     cleanTemp();
+    for (const entry of ["android-sdk", "jre", "ios"]) {
+      assert.ok(fs.existsSync(path.join(ddDir, entry)), `${entry} preserved`);
+    }
     assert.ok(fs.existsSync(path.join(ddDir, "runtime")), "runtime preserved");
     assert.ok(fs.existsSync(path.join(ddDir, "installed.json")), "installed.json preserved");
     // tools/ holds the lazily-installed Git Bash (MinGit); wiping it would

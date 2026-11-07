@@ -888,7 +888,8 @@ describe("runSpecs concurrency", function () {
     // across two runs — and the run-level value is EXPECTED to differ by
     // design: it's elapsed time, so 2 runners finish the same work sooner
     // (ADR 01083). Assert the field is present at every level, then strip it
-    // so the comparison stays about execution results.
+    // so the comparison stays about execution results. `startedAt` is a
+    // timestamp (ADR 01163), so it goes too.
     const stripDurations = (node) => {
       // Mirrors the runner's own `if (!contextReport) continue` guard: a
       // crash-isolated context can leave an unassigned slot.
@@ -897,6 +898,7 @@ describe("runSpecs concurrency", function () {
         "number"
       );
       delete node.durationMs;
+      delete node.startedAt;
       for (const child of node.specs ??
         node.tests ??
         node.contexts ??

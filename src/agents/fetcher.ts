@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
 import AdmZip from "adm-zip";
 
 export interface FetchResult {
@@ -49,7 +48,7 @@ export async function fetchAgentToolsZip(
   // test injects a fake `get` for). Exercising it would require a live
   // network peer, which would make the suite flaky/non-hermetic per ADR 01017.
   /* c8 ignore next */
-  const get = deps.get ?? ((url, config) => axios.get(url, config));
+  const get = deps.get ?? (async (url, config) => (await import("axios")).default.get(url, config));
   const mkdtempSync =
     deps.mkdtempSync ?? ((prefix: string) => fs.mkdtempSync(prefix));
 

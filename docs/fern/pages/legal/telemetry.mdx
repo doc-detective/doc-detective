@@ -40,6 +40,8 @@ For `runTests` commands, Doc Detective also sends a flattened summary of the run
 
 Doc Detective attributes each event to the identifier `anonymous` unless you set a `userId` (see [Identify your runs](#identify-your-runs)), and sends telemetry to [PostHog](https://posthog.com).
 
+To keep the end of each run fast, Doc Detective connects to PostHog (`app.posthog.com`) when a run starts. It sends the event over that connection when the run finishes. The opening request doesn't include a telemetry event or identifier.
+
 ## Turn telemetry off
 
 To disable telemetry, set `telemetry.send` to `false` in your `.doc-detective.json` config file:
@@ -52,7 +54,7 @@ To disable telemetry, set `telemetry.send` to `false` in your `.doc-detective.js
 }
 ```
 
-When `telemetry.send` is `false`, Doc Detective returns before it assembles or sends any telemetry data. For the full field reference, see [Telemetry options](/reference/schemas/telemetry-options).
+When `telemetry.send` is `false`, Doc Detective returns before it assembles or sends any telemetry data, and it doesn't contact PostHog at all. For the full field reference, see [Telemetry options](/reference/schemas/telemetry-options).
 
 ## Identify your runs
 

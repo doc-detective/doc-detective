@@ -2,15 +2,12 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir } from "./core/utils.js";
+import { getRunOutputDir, loadAxios } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import axios from "axios";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   buildYargs,
@@ -131,6 +128,11 @@ function buildYargs(args: any): any {
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
       type: "boolean",
     })
+    .option("verification", {
+      description:
+        "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
+      type: "string",
+    })
     .option("auto-screenshot", {
       description:
         "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
@@ -148,7 +150,7 @@ function buildYargs(args: any): any {
     })
     .option("cache-dir", {
       description:
-        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
       type: "string",
     })
     .option("concurrent-runners", {
@@ -172,7 +174,7 @@ function buildYargs(args: any): any {
         "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
       type: "boolean",
     })
-    .version(require("../package.json").version)
+    .version(ownVersion() as string)
     .help()
     .alias("help", "h");
 }
@@ -208,7 +210,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
     log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
 
     // Make GET request to the specified URL with token in header
-    const response = await axios.get(`${apiConfig.url}/resolved-tests`, {
+    const response = await (await loadAxios()).get(`${apiConfig.url}/resolved-tests`, {
       headers: {
         "x-runner-token": apiConfig.token,
       },
@@ -418,6 +420,22 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
+  }
+  if (typeof args.verification === "string" && args.verification.length > 0) {
+    // Validation ran before this block, so drop an unknown value and keep the
+    // validated `verification.write` (which defaults to "existing").
+    const write = ({ existing: "existing", true: true, false: false } as Record<string, string | boolean>)[
+      args.verification.trim().toLowerCase()
+    ];
+    if (write === undefined) {
+      log(
+        `Ignoring invalid --verification value '${args.verification}'. Expected one of: existing, true, false.`,
+        "warning",
+        config
+      );
+    } else {
+      config.verification = { ...(config.verification || {}), write };
+    }
   }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
@@ -1224,7 +1242,7 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
 
-    const response = await axios.post(url, payload, {
+    const response = await (await loadAxios()).post(url, payload, {
       headers: {
         "x-runner-token": apiConfig.token,
       },
@@ -1372,9 +1390,8 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion();
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1388,8 +1405,7 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    const mainPackage: any = readShimPackageJson();
     const versionData: any = {
       main: {
         "doc-detective": {

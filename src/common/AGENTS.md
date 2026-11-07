@@ -12,6 +12,8 @@ This is a dependency package, not a standalone application. Changes here affect 
 
 > Schema changes are user-facing, because they alter the test and config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
 
+> Schema keys and descriptions follow ["Plans and interfaces"](../../CLAUDE.md#plans-and-interfaces-required) in the root guide. That means shared values, present-tense descriptions, a deprecated alias for every rename, and units kept in names.
+
 ## Architecture
 
 ### Schema System (Core Component)
@@ -57,6 +59,35 @@ When `validate()` is called:
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
+
+**Precompiled validators ([ADR 01138](../../adrs/01138-precompile-validators-with-ajv-standalone.md)):**
+`validate()` never compiles a schema at runtime. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which writes Ajv standalone code for every schema
+key to `dist/schemas/validators.cjs` (mutating set) and `validatorsCheck.cjs` (non-mutating
+probe set, loaded on first use). The Ajv options live in one place, `createAjv` in `src/ajv.ts`.
+Its `standalone: true` mode swaps `ajv-keywords`' closure-based `dynamicDefaults` for a
+code-generating equivalent that supports only `"uuid"`. A schema using any other dynamic
+default fails the build, and you then have to extend that keyword.
+`test/precompiledValidators.test.js` checks that the shipped files match a fresh generation. It
+also checks that every validator behaves like the runtime-compiled one across the corpus. The
+generated files are gitignored build output. Never commit or hand-edit them.
+
+Two hazards come with generation:
+
+- **Deep Ajv imports.** `src/ajv.ts` imports `ajv/dist/standalone`, `ajv/dist/compile/codegen`,
+  and `ajv/dist/compile/codegen/code` (`_Code`). Those paths are Ajv internals, not its semver
+  contract. The generated code also `require`s `ajv/dist/runtime/*` and the `ajv-keywords`
+  transform functions. So a minor Ajv or `ajv-keywords` bump can break the build. It can also
+  change the generated code. Every build regenerates the code, and the parity test fails on any
+  behavior change. Treat an Ajv bump as a change to verify, not a routine one. `ajv` keeps its
+  caret range on purpose. A pin would need a guard in
+  [test/dependency-pins.test.js](../../test/dependency-pins.test.js) and would stop compatible
+  fixes reaching consumers. The parity test is the safety net instead.
+- **Inlined function source.** The uuid dynamic default inlines `getRandomUUID.toString()` into
+  the generated code, so it must be self-contained, with no closures or imports. Generation runs
+  from the unminified `dist/ajv.js` that `tsc` emits. Keep it ahead of any minification or
+  bundling step. A minifier that renamed or rewrote the function first would ship its mangled
+  source.
 
 ### Path Resolution (`resolvePaths.js`)
 
@@ -104,14 +135,29 @@ are regenerated:
    suite reads this.
 2. **Root `dist/common`**, a separate copy the **runner** imports `validate` from. Regenerate
    it from the repo root with `npm run build`. That sequences `build:common`, which rebuilds
-   `src/common`, then `compile` and `copy:schemas`. Running `compile` and `copy:schemas` alone can
-   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
+   `src/common`, then `compile`, which runs `copy:schemas` between `tsc` and the CJS bundle.
+   Running `compile` alone can copy a **stale** `src/common/src/schemas/schemas.json`. It can
+   also copy stale precompiled validators from `src/common/dist/schemas/validators*.cjs`, if
+   `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
+   Root `npm run watch` builds `src/common` once at startup, then reruns only `compile` on `.ts`
+   changes. A schema edit during watch leaves the schemas and validators stale. Rerun
+   `npm run build:common`, or restart watch, after editing a schema.
 
 Forgetting #2 has a clear symptom. `src/common` tests pass, but the runner (runTests and core
 fixtures) still validates against the stale schema. A fixture using a newly-added field then fails
 with `/<field> must NOT be valid`, even though the source schema allows it.
 
 Related notes:
+- **A stale `node_modules` guts the committed types.** Take a worktree installed before a
+  `json-schema-to-typescript` major bump (15.x against a declared `^16.0.0`). It emits
+  `{ [k: string]: unknown }` for every object next to `oneOf`/`anyOf`/`allOf`. One observation:
+  142k deletions across ~17 files. `generate:types` now refuses to run on a major mismatch with
+  `src/common/package.json`, and tells you to `npm ci`. Same-major drift (e.g. a prettier bump
+  reflowing unions) still builds. The "Schema reference drift" workflow runs `dereferenceSchemas`
+  and `generate:types`, then fails the PR on any diff under `src/common/src`. **Never commit that
+  churn**: `git checkout -- src/common/src/types/generated/`, reinstall, and rebuild. That reset is
+  a blunt instrument, so check what it would discard first. A schema edit in the same branch SHOULD
+  regenerate types, and those are the one change in that directory worth keeping.
 - `output_schemas/*` regeneration on Windows produces large CRLF-only diffs. That's harmless build
   churn, not content changes.
 - `spec_v3` has no `additionalProperties: false`, so unknown root keys on a spec are silently
@@ -253,8 +299,29 @@ coerces values to make a branch pass. With a string branch first, an authored in
 runtime as a name rather than an index. String branches accept coercion from nearly everything,
 so whichever branch is first wins.
 
-**Rule:** in schema `anyOf` unions, order narrow scalar types (integer, boolean) BEFORE string
-branches, and note the reasoning in the schema description.
+Order alone can't fix every union, because scalars coerce into each other. A leading
+`type: boolean` branch turns `"true"` into `true` and `1` into `true`. A leading `type: number`
+branch turns `true` into `1`. Ajv coerces only through `type`, and only when a value matches none
+of the listed types. So make the first branches non-coercing
+([ADR 01161](../../adrs/01161-keep-authored-scalar-types-through-coercion.md)):
+
+- **Scalar-only union: one `type` array**, such as `{"type": ["boolean", "number", "string"]}`
+  for `elementAttribute` values. Every listed type survives as authored.
+- **Scalar branches without their own constraints: merge them into one leading `type` array.**
+  `wait` uses `["number", "boolean"]` ahead of its `$VAR` string branch. Order inside the array
+  doesn't change what an authored value becomes. The LSP offers the first listed type as the
+  value kind, so list the usual one first.
+- **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
+  with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
+  `click_v3` does this.
+- **A plain `type: boolean` first is fine** when no later branch accepts `"true"`, `"false"`,
+  `0`, or `1`, such as a string branch with a file-extension `pattern` (`record_v3`,
+  `screenshot_v3`).
+
+Say why in a `$comment` on the branch. The ratchet in `test/schema.test.js` fails on any
+`anyOf`/`oneOf` where a branch's `type` would coerce a scalar meant for a later branch. That
+includes a `type: boolean` branch ahead of a string branch with no `pattern`, `enum`, or `const`. Pair a
+schema change with a `validate.test.js` case that checks the validated value, not only validity.
 
 Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
 consumer's validated objects. Keep shared schemas default-free unless every consumer wants the

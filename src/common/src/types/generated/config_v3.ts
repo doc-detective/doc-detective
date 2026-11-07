@@ -437,7 +437,7 @@ export type Condition11 = string | [string, ...string[]];
 /**
  * Click or tap an element.
  */
-export type Click1 = ClickElementSimple | ClickElementDetailed | boolean;
+export type Click1 = (true | false) | ClickElementSimple | ClickElementDetailed;
 /**
  * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
  */
@@ -501,7 +501,7 @@ export type ClickElementDetailed = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -788,7 +788,7 @@ export type FindElementDetailed = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -854,7 +854,7 @@ export type ByName5 = string;
 /**
  * Click or tap an element.
  */
-export type Click2 = ClickElementSimple1 | ClickElementDetailed1 | boolean;
+export type Click2 = (true | false) | ClickElementSimple1 | ClickElementDetailed1;
 /**
  * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
  */
@@ -918,7 +918,7 @@ export type ClickElementDetailed1 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1013,7 +1013,7 @@ export type TypeKeysDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1123,7 +1123,7 @@ export type ElementCriteria = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1180,7 +1180,7 @@ export type ElementCriteria1 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1488,7 +1488,7 @@ export type GoToURLDetailed = {
        * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
        */
       elementAttribute?: {
-        [k: string]: string | number | boolean;
+        [k: string]: boolean | number | string;
       };
       /**
        * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -2651,7 +2651,7 @@ export type TypeKeysDetailed1 = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -2761,7 +2761,7 @@ export type ElementCriteria2 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -2818,7 +2818,7 @@ export type ElementCriteria3 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3008,7 +3008,11 @@ export type Condition59 = string | [string, ...string[]];
 /**
  * Takes a screenshot in PNG format.
  */
-export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
+export type Screenshot1 = CaptureScreenshot | ScreenshotSimple | CaptureScreenshotDetailed;
+/**
+ * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ */
+export type CaptureScreenshot = boolean;
 /**
  * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
  */
@@ -3112,7 +3116,7 @@ export type CropByElementDetailed = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -3362,10 +3366,6 @@ export type ExactlyOneAnnotationType =
   | {
       [k: string]: unknown;
     };
-/**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
- */
-export type CaptureScreenshot = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -3780,7 +3780,11 @@ export type Condition71 = string | [string, ...string[]];
 /**
  * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
-export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
+export type Record1 = RecordBoolean | RecordSimple | RecordDetailed;
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean = boolean;
 /**
  * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
  */
@@ -3842,10 +3846,6 @@ export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckp
  * If `true`, enables checkpoints with default settings.
  */
 export type RecordingCheckpointsBoolean = boolean;
-/**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
- */
-export type RecordBoolean = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -4549,7 +4549,7 @@ export type ElementCriteria4 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -4616,7 +4616,7 @@ export type ElementCriteria5 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -5038,7 +5038,7 @@ export type ElementDetailed = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -5101,7 +5101,7 @@ export type ElementDetailed1 = (
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -5822,10 +5822,9 @@ export type Condition119 = string | [string, ...string[]];
 /**
  * Pause (in milliseconds) before performing the next action.
  */
-export type Wait1 = WaitSimple | WaitEnvironmentVariable | WaitBoolean;
-export type WaitSimple = number;
+export type Wait1 = WaitSimple | WaitEnvironmentVariable;
+export type WaitSimple = number | boolean;
 export type WaitEnvironmentVariable = string;
-export type WaitBoolean = boolean;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -6663,6 +6662,7 @@ export interface Config {
   integrations?: IntegrationsOptions;
   telemetry?: TelemetryOptions;
   hints?: HintsOptions;
+  verification?: VerificationOptions;
   /**
    * Number of concurrent test runners. Set to true to use CPU core count (capped at 4).
    */
@@ -6699,7 +6699,7 @@ export interface Config {
    */
   shell?: "bash" | "cmd" | "powershell";
   /**
-   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `<os.tmpdir()>/doc-detective/`. Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI when the default temp location is unsuitable (e.g., baked container images where temp gets cleared on reboot).
+   * Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `~/.doc-detective/` (the user's home directory). Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI to share one cache across users or place it on another volume.
    */
   cacheDir?: string;
   /**
@@ -6764,6 +6764,10 @@ export interface Browser {
    */
   explicit?: boolean;
   /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
+   */
+  version?: string;
+  /**
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
@@ -6808,6 +6812,10 @@ export interface Browser1 {
    * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
    */
   explicit?: boolean;
+  /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
+   */
+  version?: string;
   /**
    * If `true`, runs the browser in headless mode.
    */
@@ -7042,6 +7050,10 @@ export interface Common {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -7227,6 +7239,10 @@ export interface CheckLinkDetailed1 {
    */
   statusCodes?: number | number[];
   /**
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
+   */
+  timeout?: number;
+  /**
    * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
    */
   headers?: RequestHeadersObject | RequestHeadersString;
@@ -7298,6 +7314,10 @@ export interface Common1 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -7590,6 +7610,10 @@ export interface Common2 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -8083,6 +8107,10 @@ export interface Common3 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -8363,6 +8391,10 @@ export interface Common4 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -8659,6 +8691,10 @@ export interface Common5 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -8897,9 +8933,20 @@ export interface RunShellCommandDetailed {
       delayMs?: number;
     };
     /**
-     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
      */
-    tty?: boolean;
+    tty?:
+      | boolean
+      | {
+          /**
+           * Terminal width in columns (what the process reads as `process.stdout.columns`).
+           */
+          cols?: number;
+          /**
+           * Terminal height in rows (what the process reads as `process.stdout.rows`).
+           */
+          rows?: number;
+        };
   };
 }
 export interface Common6 {
@@ -8963,6 +9010,10 @@ export interface Common6 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -9201,9 +9252,20 @@ export interface RunCodeDetailed {
       delayMs?: number;
     };
     /**
-     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
      */
-    tty?: boolean;
+    tty?:
+      | boolean
+      | {
+          /**
+           * Terminal width in columns (what the process reads as `process.stdout.columns`).
+           */
+          cols?: number;
+          /**
+           * Terminal height in rows (what the process reads as `process.stdout.rows`).
+           */
+          rows?: number;
+        };
   };
   [k: string]: unknown;
 }
@@ -9268,6 +9330,10 @@ export interface Common7 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -9578,6 +9644,10 @@ export interface Common8 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -9922,6 +9992,10 @@ export interface Common9 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -10265,7 +10339,7 @@ export interface ElementFindingFields {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10320,7 +10394,7 @@ export interface ElementFindingFields1 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10375,7 +10449,7 @@ export interface ElementFindingFields2 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10430,7 +10504,7 @@ export interface ElementFindingFields3 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10485,7 +10559,7 @@ export interface ElementFindingFields4 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10540,7 +10614,7 @@ export interface ElementFindingFields5 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -10752,6 +10826,10 @@ export interface Common10 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -10975,6 +11053,10 @@ export interface Common11 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -11342,6 +11424,10 @@ export interface Common12 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -11571,6 +11657,10 @@ export interface Common13 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -11944,6 +12034,10 @@ export interface Common14 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -12269,9 +12363,20 @@ export interface ProcessDescriptor {
    */
   workingDirectory?: string;
   /**
-   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
    */
-  tty?: boolean;
+  tty?:
+    | boolean
+    | {
+        /**
+         * Terminal width in columns (what the process reads as `process.stdout.columns`).
+         */
+        cols?: number;
+        /**
+         * Terminal height in rows (what the process reads as `process.stdout.rows`).
+         */
+        rows?: number;
+      };
   /**
    * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
    */
@@ -12461,9 +12566,20 @@ export interface ProcessDescriptor1 {
    */
   workingDirectory?: string;
   /**
-   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+   * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
    */
-  tty?: boolean;
+  tty?:
+    | boolean
+    | {
+        /**
+         * Terminal width in columns (what the process reads as `process.stdout.columns`).
+         */
+        cols?: number;
+        /**
+         * Terminal height in rows (what the process reads as `process.stdout.rows`).
+         */
+        rows?: number;
+      };
   /**
    * Conditions that must all be met before the process is considered ready and the descriptor completes. Omit to consider the process ready as soon as it is spawned. Specify any combination; every condition given must pass before `timeout` elapses. Note: a process that forks a daemon and then exits (common for some Docker images and databases) is treated as having exited before becoming ready and the descriptor fails — use `port`, `httpGet`, or `delayMs` for those rather than a condition that depends on the foreground process staying alive.
    */
@@ -12551,6 +12667,10 @@ export interface Common15 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -12774,6 +12894,10 @@ export interface Common16 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -13067,6 +13191,10 @@ export interface Common17 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -13290,6 +13418,10 @@ export interface Common18 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -13704,6 +13836,10 @@ export interface Common19 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -13927,6 +14063,10 @@ export interface Common20 {
    * Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.
    */
   durationMs?: number;
+  /**
+   * When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.
+   */
+  startedAt?: string;
   [k: string]: unknown;
 }
 /**
@@ -14180,7 +14320,7 @@ export interface ElementFindingFields6 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14235,7 +14375,7 @@ export interface ElementFindingFields7 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14290,7 +14430,7 @@ export interface ElementFindingFields8 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14345,7 +14485,7 @@ export interface ElementFindingFields9 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14400,7 +14540,7 @@ export interface ElementFindingFields10 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14455,7 +14595,7 @@ export interface ElementFindingFields11 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14655,7 +14795,7 @@ export interface ElementFindingFields12 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14710,7 +14850,7 @@ export interface ElementFindingFields13 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14765,7 +14905,7 @@ export interface ElementFindingFields14 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14820,7 +14960,7 @@ export interface ElementFindingFields15 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14875,7 +15015,7 @@ export interface ElementFindingFields16 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -14930,7 +15070,7 @@ export interface ElementFindingFields17 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -15143,9 +15283,20 @@ export interface RunShellCommandDetailed1 {
       delayMs?: number;
     };
     /**
-     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
+     * Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.
      */
-    tty?: boolean;
+    tty?:
+      | boolean
+      | {
+          /**
+           * Terminal width in columns (what the process reads as `process.stdout.columns`).
+           */
+          cols?: number;
+          /**
+           * Terminal height in rows (what the process reads as `process.stdout.rows`).
+           */
+          rows?: number;
+        };
   };
 }
 /**
@@ -15273,6 +15424,15 @@ export interface HintsOptions {
   enabled: boolean;
 }
 /**
+ * Options for writing verification results back into source files after a run: `verified-by` entries, `last-verified` dates, and "Last verified" badges.
+ */
+export interface VerificationOptions {
+  /**
+   * What Doc Detective writes back after a run. `"existing"` (the default) fills only the `verified-by` entries and `badge: true` tests that a page already declares. `true` also declares them on a passing run: a front-matter `verified-by` entry on each passing Markdown or MDX page, and a `meta` statement above each passing inline test. An inline test with no `testId` first gets the id Doc Detective generated for it, written into its `test` statement so it stays fixed. `false` writes nothing back. Override from the CLI with `--verification`.
+   */
+  write?: boolean | "existing";
+}
+/**
  * Environment information for the system running Doc Detective.
  */
 export interface EnvironmentDetails {
@@ -15288,6 +15448,18 @@ export interface EnvironmentDetails {
    * The processor architecture of the system running Doc Detective.
    */
   arch?: "arm32" | "arm64" | "x32" | "x64";
+  /**
+   * The version of Doc Detective that ran, for example `4.42.0`.
+   */
+  docDetectiveVersion?: string;
+  /**
+   * The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.
+   */
+  nodeVersion?: string;
+  /**
+   * The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.
+   */
+  osRelease?: string;
 }
 /**
  * Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.

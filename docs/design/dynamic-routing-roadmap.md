@@ -156,12 +156,14 @@ derived from the failing assertions for back-compat.
 
 ## Runtime expressions, meta values, and outputs
 
-- **Operators** are currently stubbed out of `containsOperators`, where only `jq(` and `extract(`
-  match. Those operators are `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `oneOf`, and `matches`.
-  Any comparison string is therefore returned truthy, and a condition would always fire. Re-enable
-  them, **gated behind a condition-only entrypoint**. The shared `resolveExpression` used by
-  `step.variables` and `{{…}}` interpolation then stays byte-identical, so a `variables` value of
-  `"x > out.txt"` still resolves to its literal string.
+- **Operators** were stubbed out of `containsOperators` when this was written, where only `jq(` and
+  `extract(` matched. Those operators are `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `oneOf`, and
+  `matches`. Any comparison string was therefore returned truthy, so a condition would always fire.
+  The plan was to re-enable them **gated behind a condition-only entrypoint**. The shared
+  `resolveExpression` used by `step.variables` and `{{…}}` interpolation would stay byte-identical,
+  so a `variables` value of `"x > out.txt"` still resolves to its literal string. **Shipped exactly
+  that way:** `containsOperators` evaluates the comparison and word operators when `allowOperators`
+  is set, which only `evaluateAssertion` does.
 - **Fail-closed** on an unresolvable `$$token` applies **only in the condition and assertion
   path**, not in interpolation.
 - Fix the **dot-escaping** (`replace(/\./g,"\\.")`) and **numeric coercion** quirks inside that
@@ -376,7 +378,7 @@ The interaction that follows, meaning the actual click, type, or drag, is execut
 | Action | Implicit assertions (in order) | Severity | Outputs (`$$outputs.*`) |
 |---|---|---|---|
 | `runShell` | exitCode ∈ `exitCodes`; `stdio` substring/regex; saved-file variation ≤ `maxVariation` | FAIL, FAIL, **WARNING** | `exitCode`, `stdio.stdout`, `stdio.stderr` |
-| `runCode` | delegates to `runShell` → only exitCode ∈ `[0]` until bug ① is fixed | FAIL | `exitCode`, `stdio.*` |
+| `runCode` | delegates to `runShell`, forwarding its own options since bug ① was fixed | FAIL | `exitCode`, `stdio.*` |
 | `runBrowserScript` | `output` substring/regex match; saved-file variation ≤ `maxVariation` | FAIL, **WARNING** | `result` |
 | `httpRequest` | In order: statusCode in `statusCodes`. Required fields present. Request schema (openApi). Response schema (openApi). Body type matches. Body match, string-equal or object-subset. Headers subset. No unexpected fields under `allowAdditionalFields:false`. Saved-file variation at or under `maxVariation` | FAIL ×8, **WARNING** | `response.body`, `response.statusCode`, `response.headers` |
 | `checkLink` | statusCode in `statusCodes`, after a bounded retry and HEAD fallback | FAIL | n/a |
@@ -413,14 +415,21 @@ step + not allowed. So `onSkip` has real triggers beyond a false guard `if`.
 
 ### Latent bugs to fix in 4a (intentional and documented, per the "fix the bugs" decision)
 
-1. **`runCode` drops its own assertions.** It sets `exitCodes`, `maxVariation`, `overwrite`, and
-   `path` defaults, then builds the `runShell` step with only `{command, args}`. So
-   `runCode: { exitCodes: [1] }` is silently ignored, and only exit `0` passes (`runCode.ts` ~114).
-2. **WARNING overwrites FAIL.** In `runShell`, `httpRequest`, `runBrowserScript`, and `screenshot`,
-   a late `maxVariation` WARNING does `status="WARNING"; return`. That clobbers an earlier exitCode
-   or statusCode FAIL. `rollUp(assertions)` corrects it to FAIL.
-3. **`scroll` is dead and inconsistent.** It has the legacy `(action, page, config)` signature, isn't
-   in the `runStep` dispatcher, and returns PASS rather than SKIPPED when no recording is active.
+Bugs ① and ② are **fixed**. They are kept here as the record of what 4a was for, in the state they
+were found in.
+
+1. ~~**`runCode` drops its own assertions.**~~ **Fixed.** It set `exitCodes`, `maxVariation`,
+   `overwrite`, and `path` defaults, then built the `runShell` step with only `{command, args}`, so
+   `runCode: { exitCodes: [1] }` was silently ignored and only exit `0` passed. `runCode.ts` now
+   forwards `exitCodes`, `stdio`, `maxVariation`, `overwrite`, `path`/`directory`, `timeout`, and
+   `workingDirectory`.
+2. ~~**WARNING overwrites FAIL.**~~ **Fixed.** In `runShell`, `httpRequest`, `runBrowserScript`, and
+   `screenshot`, a late `maxVariation` WARNING did `status="WARNING"; return`, clobbering an earlier
+   exitCode or statusCode FAIL. `rollUpResults`, which `rollUpAssertions` uses, now returns FAIL
+   before it considers WARNING.
+3. **`scroll` is dead and inconsistent.** Still true. It has the legacy `(action, page, config)`
+   signature, isn't in the `runStep` dispatcher, and returns PASS rather than SKIPPED when no
+   recording is active. Nothing under `src/` imports it.
 
 ## Open questions (remaining)
 

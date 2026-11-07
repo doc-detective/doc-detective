@@ -49,7 +49,7 @@ On Linux, the `ffmpeg` engine also needs Xvfb to record headless contexts, which
 
 ## Recording app surfaces
 
-A `record` step can target a native app surface opened by [`startSurface`](/docs/test-docs/test-apps) with the object form `{ "app": "<surface name>" }`:
+A `record` step can target a native app surface opened by [`startSurface`](/docs/actions/startsurface) with the object form `{ "app": "<surface name>" }`:
 
 ```json
 {
@@ -169,7 +169,7 @@ While the recording is active, Doc Detective captures a screenshot after every s
 
 Checkpoints keep comparing even when the recording itself doesn't re-record. By default (`overwrite: "false"`), Doc Detective skips a `record` step whose file already exists. Once you commit the recording, that means every run after the first. Doc Detective skips the video but still runs the checkpoints against the committed baselines and reports drift. You keep the signal without rewriting the file. See [Detecting staleness without re-recording](#detecting-staleness-without-re-recording).
 
-The `stopRecord` step reports per-checkpoint results in its [outputs](stopRecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, `seededBaselines`, and `checkpointErrors`.
+The `stopRecord` step reports per-checkpoint results in its [outputs](stoprecord): `checkpoints` (file name and variation per checkpoint), `maxCheckpointVariation`, `seededBaselines`, and `checkpointErrors`.
 
 Tune or relocate the comparison with the object form:
 
@@ -225,7 +225,7 @@ Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord`
 - `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation. That's the crop rectangle for `window` and `viewport` targets, and otherwise the capture frame size. The check is skipped when the engine reports no expectation. Pass `{ "width": …, "height": … }` to compare literal dimensions.
 - `notBlack`: fails when black frames cover 95% or more of the video, the symptom of a broken screen capture.
 
-The measured values land in the [`stopRecord` outputs](stopRecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+The measured values land in the [`stopRecord` outputs](stoprecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
 
 ### Detecting staleness without re-recording
 

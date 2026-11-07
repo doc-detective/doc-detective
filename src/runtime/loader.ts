@@ -110,7 +110,16 @@ function resolveEntry(requireFn: NodeRequire, name: string): string | null {
   }
 }
 
+// Appium and its drivers live only in <cacheDir>/runtime: every Appium server
+// is homed there (one APPIUM_HOME for browser and app surfaces alike), so a
+// copy in the shim's node_modules is never used — resolving one would split
+// Appium across two homes (ADR 01111).
+function isAppiumPackage(name: string): boolean {
+  return name === "appium" || name.startsWith("appium-");
+}
+
 function tryResolveFromShim(name: string): string | null {
+  if (isAppiumPackage(name)) return null;
   return resolveEntry(requireFromShim, name);
 }
 
@@ -282,6 +291,40 @@ export async function loadHeavyDep<T = unknown>(
   }
 
   return (await import(pathToFileURL(resolved).href)) as T;
+}
+
+// Deps whose entry defers the real module graph to a lazy sibling import:
+// webdriverio's CJS entry loads `./node.js` (~350 ms) only inside remote().
+const PREFETCH_SIBLING: Record<string, string> = { webdriverio: "node.js" };
+
+/**
+ * The file `prefetchHeavyDep` imports for `name`: its resolved entry (same
+ * shim → cache resolution as loadHeavyDep), or the deferred sibling module
+ * the entry imports later. `null` when the dep doesn't resolve.
+ */
+export function heavyDepPrefetchTarget(
+  name: string,
+  ctx: CacheDirContext = {}
+): string | null {
+  const entry = resolveHeavyDepPath(name, ctx);
+  if (!entry) return null;
+  const sibling = PREFETCH_SIBLING[name];
+  return sibling ? path.join(path.dirname(entry), sibling) : entry;
+}
+
+/**
+ * Start importing an installed heavy dep in the background so its load
+ * overlaps idle time, e.g. Appium's boot (ADR 01135). Never installs, never
+ * throws, never rejects. The real load later shares Node's module-map entry,
+ * so a failure still surfaces where that load is awaited, as before.
+ */
+export function prefetchHeavyDep(name: string, ctx: CacheDirContext = {}): void {
+  try {
+    const target = heavyDepPrefetchTarget(name, ctx);
+    if (target) import(pathToFileURL(target).href).catch(() => {});
+  } catch {
+    // Best-effort: a prefetch must never change the caller's behavior.
+  }
 }
 
 export interface EnsureRuntimeInstalledOptions {
@@ -664,6 +707,16 @@ export async function ensureRuntimeInstalled(
     record.npmPackages[name] = { installedVersion, installedAt: now };
   }
   writeInstalledRecord(record, ctx);
+  // Appium trusts an existing extension manifest and never rescans
+  // node_modules, so a driver installed after the manifest was built stays
+  // invisible ("Could not find a driver"). Drop it; the next server start
+  // rebuilds it from what's installed.
+  if (toInstall.some(isAppiumPackage)) {
+    fs.rmSync(path.join(runtimeDir, "node_modules", ".cache", "appium"), {
+      recursive: true,
+      force: true,
+    });
+  }
   // Record the new arrivals (now in installed.json AND on disk) so the NEXT
   // install's ideal tree keeps them too (#501).
   recordRuntimeDependencies(runtimeDir, ctx);

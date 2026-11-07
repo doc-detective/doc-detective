@@ -185,9 +185,38 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
         type: "string",
         choices: ["phone", "tablet"] as const,
         describe: "Abstract hardware profile for the default AVD. Default: phone.",
+      })
+      .option("reset-snapshot", {
+        type: "boolean",
+        describe:
+          "Delete Doc Detective's clean boot snapshot from every AVD (nothing is installed). Each AVD's next managed boot cold-boots and retakes the snapshot from its current state.",
       }) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
+    if (argv["reset-snapshot"]) {
+      const { resetCleanSnapshots } = await import("./androidInstaller.js");
+      const dryRun = Boolean(argv["dry-run"]);
+      const { reset, failed } = resetCleanSnapshots({ dryRun });
+      if (reset.length) {
+        logger(
+          dryRun
+            ? `Would reset the clean boot snapshot for: ${reset.join(", ")}.`
+            : `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`,
+          "info"
+        );
+      }
+      for (const { name, error } of failed) {
+        logger(
+          `Couldn't reset the clean boot snapshot for ${name}: ${error}. Close any emulator running that AVD and rerun.`,
+          "error"
+        );
+      }
+      if (!reset.length && !failed.length) {
+        logger("No clean boot snapshots to reset.", "info");
+      }
+      if (failed.length) process.exitCode = 1;
+      return;
+    }
     const { installAndroid } = await import("./androidInstaller.js");
     const reports = await installAndroid({
       yes: Boolean(argv.yes),

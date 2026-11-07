@@ -47,14 +47,30 @@ is almost always this resolution failure. The `automationName` values don't chan
 majors, so don't chase capability renames. Quick confirmation: `require.resolve("<driver>")`
 throws while `require.resolve("<driver>/package.json")` succeeds.
 
+## Heavy deps whose CommonJS entry re-exports ESM
+
+`loadHeavyDep` resolves with CommonJS conditions, then `import()`s the file. Some packages' CJS
+entry is `module.exports = require('../index.js')`, a require of their ESM build. Node's CJS
+lexer can't see those named exports, so the namespace exposes them only on `default`. geckodriver 8
+ships that shape (ADR 01143). Unwrap with `mod.default ?? mod` at the call site, as the
+geckodriver, sharp, and pixelmatch loads do. Diagnostic: `<x>.<fn> is not a function` right after a
+heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.exports`.
+
 ## Appium extension manifest cache
 
 Appium only scans `APPIUM_HOME/node_modules` for drivers when its manifest cache
 (`node_modules/.cache/appium/extensions.yaml`) is **absent**. A lazily-installed driver added to a
 home with an existing manifest is invisible, reporting "Could not find a driver for automationName
-…". The preflight therefore deletes the stale manifest cache before starting a server that needs a
-new driver.
+…". `ensureRuntimeInstalled` therefore deletes the manifest cache after installing any Appium
+package, and the app-surface preflight also deletes a manifest that doesn't list its driver.
 Preserve that behavior in any install-flow refactor.
+
+Every Appium server, browser and app surface alike, is homed at `<cacheDir>/runtime` (ADR 01111).
+The loader never resolves `appium` or `appium-*` from the shim, even in a source checkout whose
+`node_modules` has them. Don't reintroduce a shim fallback for them: it splits Appium across two
+homes. For the same reason they're declared in `ddRuntimeDependencies`, not `optionalDependencies`,
+so `npm ci` never installs an unused copy. Dependabot doesn't read that custom field, so bump their
+ranges by hand.
 
 ## Testing note
 

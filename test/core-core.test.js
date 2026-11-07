@@ -646,6 +646,48 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
+    // The not-found permutation of interactions/find-shorthand.spec.json: it
+    // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: "Shorthand text target" },
+            { find: "No such shorthand target" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "find-shorthand-"));
+    const tempFilePath = path.join(tempDir, "find-shorthand.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const context = result.specs[0].tests[0].contexts.find(
+        (c) => c.steps && c.steps.length
+      );
+      assert.ok(context, "expected a context that ran steps");
+      const [, hit, miss] = context.steps;
+      assert.equal(hit.result, "PASS");
+      // Pre-ADR 01130 every shorthand hit took the full 5s default timeout.
+      assert.ok(
+        hit.durationMs < 4000,
+        `shorthand hit took ${hit.durationMs}ms; it must not wait out the timeout`
+      );
+      assert.equal(miss.result, "FAIL");
+      assert.equal(miss.outputs.found, false);
+      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.ok(
+        miss.durationMs >= 5000,
+        `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("Tests skip steps after a failure", async () => {
     const failureTest = {
       tests: [
@@ -1695,13 +1737,32 @@ describe("getRunner() function", function () {
 
   // Every test here drives a real Appium + Chromium session (or a runTests
   // browser flow). On constrained CI runners — notably windows-latest — that
-  // session can crash shortly after launch, surfacing as an empty getTitle()
-  // ("first runner should work" assertion) or an ECONNREFUSED on teardown: a
-  // transient infra flake, not a getRunner defect. Retry like the sibling
-  // browser suites above (this.retries(2) on the runTests cases). Retries only
-  // re-run on failure, so a deterministic bug still fails all attempts — this
-  // heals a one-off session death without masking a real regression.
+  // session can crash shortly after launch, surfacing as an ECONNREFUSED on
+  // teardown: a transient infra flake, not a getRunner defect. Retry like the
+  // sibling browser suites above (this.retries(2) on the runTests cases).
+  // Retries only re-run on failure, so a deterministic bug still fails all
+  // attempts — this heals a one-off session death without masking a real
+  // regression.
+  //
+  // These retries never covered the OTHER historical signature here, an empty
+  // getTitle() from a session still parked on `data:,`: each attempt starts a
+  // fresh session that can park again. That one is now handled in product code
+  // (ADR 01102), so a recurrence is a real regression, not a flake.
   this.retries(2);
+
+  // Report WHERE the session actually was whenever a title assertion fails.
+  // The historical signature was a bare "first runner should work" with an
+  // empty title, which cannot distinguish a session parked on Chromium's
+  // initial blank document (`data:,`, ADR 01084/01088/01102) from one that
+  // died, and the two need opposite fixes. Reading the URL can itself throw on
+  // a dead session, so that case is reported rather than swallowed.
+  const sessionLocation = async (runner) => {
+    try {
+      return await runner.getUrl();
+    } catch (error) {
+      return `<getUrl failed: ${error.message}>`;
+    }
+  };
 
   let getRunner;
 
@@ -1765,7 +1826,10 @@ describe("getRunner() function", function () {
       // Navigate to test page
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
-      assert.ok(title, "should get page title in headless mode");
+      assert.ok(
+        title,
+        `should get page title in headless mode (session at ${await sessionLocation(result.runner)})`
+      );
 
       // Find elements
       const element = await result.runner.$("body");
@@ -1774,7 +1838,10 @@ describe("getRunner() function", function () {
       // Navigate to a second page
       await result.runner.url("http://localhost:8092/drag-drop-test.html");
       const title2 = await result.runner.getTitle();
-      assert.ok(title2, "should navigate to second page");
+      assert.ok(
+        title2,
+        `should navigate to second page (session at ${await sessionLocation(result.runner)})`
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1788,7 +1855,10 @@ describe("getRunner() function", function () {
 
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
-      assert.ok(title, "should be able to navigate and get title in non-headless mode");
+      assert.ok(
+        title,
+        `should be able to navigate and get title in non-headless mode (session at ${await sessionLocation(result.runner)})`
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1824,7 +1894,59 @@ describe("getRunner() function", function () {
 
       assert.ok(result.runner, "runner should be created with custom config");
       await result.runner.url("http://localhost:8092/index.html");
-      assert.ok(await result.runner.getTitle(), "should work with custom config");
+      const title = await result.runner.getTitle();
+      assert.ok(
+        title,
+        `should work with custom config (session at ${await sessionLocation(result.runner)})`
+      );
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  });
+
+  it("navigation leaves Chromium's initial blank document", async function () {
+    // getRunner's contract after ADR 01102: once `runner.url()` resolves, the
+    // browser has actually left `data:,`. Before the guard the navigation could
+    // silently not take, and the empty title that followed named neither the
+    // navigation nor the page it never reached (issue #696).
+    let cleanup;
+    try {
+      const result = await getRunner();
+      cleanup = result.cleanup;
+
+      await result.runner.url("http://localhost:8092/index.html");
+      const landedOn = await result.runner.getUrl();
+      assert.ok(
+        !/^data:,?$/i.test(String(landedOn).trim()),
+        `navigation should have left the blank document, still at ${landedOn}`
+      );
+      assert.equal(
+        await result.runner.getTitle(),
+        "Basic HTML Elements Demo",
+        `should have loaded the requested page (session at ${landedOn})`
+      );
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  });
+
+  it("a navigation that never leaves the blank document throws", async function () {
+    // Acts out the flake on a real session: make the browser report that it is
+    // still on `data:,` no matter what, and the guard must say so instead of
+    // resolving and leaving the caller on a blank page. The hermetic unit tests
+    // in core-utils-coverage cover the logic; this one pins that the guard is
+    // actually attached to the WebdriverIO proxy getRunner hands out, which a
+    // fake runner cannot prove.
+    let cleanup;
+    try {
+      const result = await getRunner();
+      cleanup = result.cleanup;
+
+      result.runner.overwriteCommand("getUrl", async () => "data:,");
+      await assert.rejects(
+        () => result.runner.url("http://localhost:8092/index.html"),
+        /never left its initial blank document/
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1884,14 +2006,20 @@ describe("getRunner() function", function () {
     const result1 = await getRunner();
     await result1.runner.url("http://localhost:8092/index.html");
     const title1 = await result1.runner.getTitle();
-    assert.ok(title1, "first runner should work");
+    assert.ok(
+      title1,
+      `first runner should work (session at ${await sessionLocation(result1.runner)})`
+    );
     await result1.cleanup();
 
     // Create second runner after first cleanup
     const result2 = await getRunner();
     await result2.runner.url("http://localhost:8092/index.html");
     const title2 = await result2.runner.getTitle();
-    assert.ok(title2, "second runner should work after first cleanup");
+    assert.ok(
+      title2,
+      `second runner should work after first cleanup (session at ${await sessionLocation(result2.runner)})`
+    );
     await result2.cleanup();
   });
 
@@ -2888,6 +3016,60 @@ describe("getRunner() function", function () {
       );
     } finally {
       fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a process-only context on Chrome FAILs on its real assertion without an unnavigated retry", async () => {
+    // Chrome parks a session that never ran a goTo on `data:,`. That's the
+    // legitimate state of a context with no browser steps, so its FAIL must
+    // stand (ADR 01119). Retrying re-ran the background start, which collided
+    // with the still-running process and masked the real failure.
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "chrome", headless: true }],
+              browserFallback: "off",
+            },
+          ],
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: { name: "ttp-chrome-repl", waitUntil: { stdio: "/>/" } },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-chrome-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-chrome-repl" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const ran = result.specs[0].tests[0].contexts.find(
+        (c) => c.result !== "SKIPPED"
+      );
+      assert.ok(ran, "expected the runner's platform context to run");
+      assert.equal(ran.retries, undefined, "context must not be retried");
+      assert.equal(ran.steps[0].result, "PASS");
+      assert.equal(ran.steps[1].result, "FAIL");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 

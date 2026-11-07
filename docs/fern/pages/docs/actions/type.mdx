@@ -119,7 +119,7 @@ Common editing keys work on mobile app surfaces too. Android maps them to key co
 
 ## Type to a background process
 
-By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/run-shell) or [`runCode`](/docs/actions/run-code) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/run-shell#full-screen-terminal-uis).
+By default, `type` sends keystrokes to the active element in the browser. Set `surface` to send them to a background process instead. This lets you drive an interactive CLI or REPL, such as `node -i` or `python -i`, that a [`runShell`](/docs/actions/runshell) or [`runCode`](/docs/actions/runcode) step started with a `background` object. To drive a full-screen terminal UI (TUI) this way, start the process with `background.tty` set to `true` so it runs under a pseudo-terminal. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis).
 
 To send keystrokes to a native desktop app instead, target an [app surface](#type-into-an-app-surface). `surface` can also name a browser session, window, or tab, or an app surface. See [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the app-surface typing rules. On Windows and macOS app surfaces, add a `window` selector to type in a specific window of the app, such as `{ "app": "notepad", "window": { "title": "/Find/" } }`. See [App windows](find#app-windows).
 
@@ -165,14 +165,17 @@ The step records the process `name`, the captured `stdout` and `stderr`, and whe
 
 Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into a control on a [native app surface](/docs/actions/startsurface) that a `startSurface` step opened.
 
-Unlike browser typing, typing on an app surface requires element criteria to name the target control. Provide `elementText`, `elementId`, `elementAria`, or a native `selector` (an XPath or a `~`-prefixed accessibility ID). Typing into the active element isn't available on app surfaces. Doc Detective clicks the control to focus it, then types.
+The rules differ per platform. See [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the full set:
 
-Two limits apply in this phase:
+- **Windows and macOS** require element criteria, and they reject the `$KEY$` tokens listed under [Special keys](#special-keys). That vocabulary is mobile-only in this phase.
+- **Android** types text with or without criteria. Without them, it types into whatever element has focus.
+- **iOS** requires criteria for text, but device keys alone are fine without them.
 
-- `$KEY$` key tokens (listed under [Special keys](#special-keys)) aren't supported on app surfaces. The device key vocabulary lands in a later phase.
-- `waitUntil` on an app surface accepts only `delayMs` and `find`.
+Provide criteria as `elementText`, `elementId`, `elementAria`, or a native `selector`, which is an XPath or a `~`-prefixed accessibility ID. Doc Detective clicks the control to focus it, then types.
 
-App surfaces run on Windows only. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to Windows.
+One limit holds on every platform: `waitUntil` on an app surface accepts only `delayMs` and `find`.
+
+App surfaces run on Windows, macOS, Android, and iOS. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to the platforms it supports.
 
 ## Examples
 

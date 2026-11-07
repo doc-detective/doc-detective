@@ -321,10 +321,33 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
     expect(capabilities["appium:wdaLaunchTimeout"]).to.equal(900000);
     expect(capabilities["appium:wdaConnectionTimeout"]).to.equal(900000);
     expect(capabilities["wdio:enforceWebDriverClassic"]).to.equal(true);
+    // Doc Detective never reads device logs, so don't pay to start them
+    // (ADR 01112).
+    expect(capabilities["appium:skipLogCapture"]).to.equal(true);
     // No chromedriver keys leak onto the ios shape.
     expect(capabilities).to.not.have.property(
       "appium:chromedriverAutodownload"
     );
+  });
+
+  it("launches WDA through the prebuilt path, not directly, below iOS 17 (ADR 01110)", function () {
+    // The driver's direct (preinstalled) launch requires iOS 17+.
+    const hit = () => ({ key: "k", derivedDataPath: "/dd", runnerAppPath: "/dd-cache/runner.app" });
+    const old = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit, iosMajor: 16,
+    });
+    expect(old["appium:usePrebuiltWDA"]).to.equal(true);
+    expect(old["appium:usePreinstalledWDA"]).to.equal(undefined);
+    const current = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit, iosMajor: 17,
+    });
+    expect(current["appium:usePreinstalledWDA"]).to.equal(true);
+    // An unknown version keeps the established prebuilt launch (fail safe).
+    const unknown = buildMobileBrowserCapabilities({
+      platform: "ios", udid: "U", cacheDir: "/tmp/dd-cache", locateWda: hit,
+    });
+    expect(unknown["appium:usePrebuiltWDA"]).to.equal(true);
+    expect(unknown["appium:usePreinstalledWDA"]).to.equal(undefined);
   });
 
   it("keeps the 120s WDA floor under an authored smaller timeout", function () {
@@ -371,16 +394,24 @@ describe("mobile web (A5): buildMobileBrowserCapabilities", function () {
         platform: "ios",
         udid: "SIM-UDID-1234",
         cacheDir: "/tmp/dd-cache",
+        iosMajor: 26,
         locateWda: () => ({
           key: "xcode-16.4-16F6-driver-10.8.1",
           derivedDataPath:
             "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+          runnerAppPath: "/dd-cache/runner.app",
         }),
       });
       expect(capabilities["appium:derivedDataPath"]).to.equal(
         "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData"
       );
       expect(capabilities["appium:usePrebuiltWDA"]).to.equal(true);
+      // Launch the prebuilt runner app directly instead of through xcodebuild
+      // on every session (ADR 01110).
+      expect(capabilities["appium:usePreinstalledWDA"]).to.equal(true);
+      expect(capabilities["appium:prebuiltWDAPath"]).to.equal(
+        "/dd-cache/runner.app"
+      );
     } finally {
       if (prior === undefined) {
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;

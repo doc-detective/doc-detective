@@ -424,6 +424,29 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
     }
   });
 
+  for (const [label, options, expected] of [
+    ["defaults to 120x30", undefined, "120x30"],
+    ["takes cols/rows from options", { cols: 80, rows: 24 }, "80x24"],
+    ["defaults the missing dimension", { cols: 200 }, "200x30"],
+  ]) {
+    it(`sizes the PTY: ${label}`, async function () {
+      if (!ptyAvailable) this.skip();
+      const probe = writeProbe(
+        "process.stdout.write('SIZE:'+process.stdout.columns+'x'+process.stdout.rows+':END')"
+      );
+      const bg = await spawnPtyBackgroundCommand(`node ${probe}`, [], options);
+      try {
+        await waitForStdio(bg, "/SIZE:\\d+x\\d+:END/", {
+          deadline: Date.now() + 15000,
+        });
+        assert.match(bg.getCombined(), new RegExp(`SIZE:${expected}:END`));
+      } finally {
+        await bg.kill();
+        fs.rmSync(probe, { force: true });
+      }
+    });
+  }
+
   it("kill() terminates the PTY (exited resolves)", async function () {
     if (!ptyAvailable) this.skip();
     const tmp = writeProbe("setInterval(() => {}, 100000);");
@@ -695,6 +718,40 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
       fs.rmSync(tmp, { force: true });
     }
   });
+
+  // The PTY size reaches spawnPtyBackgroundCommand from the descriptor's `tty`
+  // object; `true` and `{}` pass no size, so the 120x30 default applies there.
+  for (const [tty, expected] of [
+    [true, { cols: undefined, rows: undefined }],
+    [{}, { cols: undefined, rows: undefined }],
+    [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+    [{ cols: 200 }, { cols: 200, rows: undefined }],
+  ]) {
+    it(`passes tty ${JSON.stringify(tty)} to the PTY spawn as its size`, async function () {
+      const { startBackgroundProcessSurface } = await import(
+        "../dist/core/tests/processSurface.js"
+      );
+      let seen;
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: { command: "my-tui", name: "tui", tty },
+        processRegistry: new Map(),
+        deps: {
+          spawnPtyBackgroundCommand: async (_cmd, _args, options) => {
+            seen = options;
+            return { pid: 1, kill: async () => {} };
+          },
+          spawnBackgroundCommand: () => {
+            throw new Error("tty must take the PTY path");
+          },
+          waitForReady: async () => {},
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(seen.cols, expected.cols);
+      assert.equal(seen.rows, expected.rows);
+    });
+  }
 
   it("fails fast without a process registry", async function () {
     const { startBackgroundProcessSurface } = await import(
