@@ -14,6 +14,7 @@ import {
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
+import { commandWarnings, runResultWarnings, warnUpgrade } from "./upgradeNotice.js";
 import { installCommand } from "./runtime/installCommand.js";
 import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
@@ -40,6 +41,14 @@ main(processArgv).catch((err) => {
 
 async function main(argv: string[]) {
   await buildYargs(argv)
+    // Runs before setConfig reads the config file, so only `--log-level silent`
+    // hides these command warnings; a config file's `logLevel: silent` doesn't.
+    .middleware((args: any) =>
+      warnUpgrade(
+        commandWarnings(args._.map(String), argv.slice(2), Boolean(args.silent)),
+        args.logLevel
+      )
+    )
     .command({
       command: "$0",
       describe: "Run Doc Detective tests (default).",
@@ -187,10 +196,12 @@ async function runTestsHandler(args: any) {
   ) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
-    // helper so config.logLevel is respected. Map "warn" → "warning".
+    // level check so config.logLevel is respected. Map "warn" → "warning". These
+    // lines go to stderr because a major-version notice would otherwise corrupt
+    // --dry-run JSON on stdout.
     const cliLogger = (msg: string, level: string = "info") => {
       const mapped = level === "warn" ? "warning" : level;
-      log(msg, mapped, config);
+      if (logLevelEnabled(mapped, config)) console.error(msg);
     };
     const currentVersion = ownVersion() as string;
     // Kick off the registry check now, concurrently with the detection /
@@ -264,6 +275,11 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
+
+  warnUpgrade(
+    runResultWarnings(config.exitOnFail, shouldFailRun(results), results),
+    config.logLevel
+  );
 
   // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
   // exits 0 even on FAIL (the fail-the-build call has historically lived in CI

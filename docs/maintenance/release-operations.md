@@ -96,6 +96,16 @@ realities around them.
   bypassed with admin rights. The CLA check flags `semantic-release-bot` commits; a promotion PR
   typically needs an admin merge.
 
+## Major releases
+
+A `major` on main fails in `scripts/verify-major-release.js`, before anything publishes, unless the
+`ALLOW_MAJOR_RELEASE` repository variable is `true` ([ADR 01147](../../adrs/01147-prepare-4x-users-for-5-0.md)).
+Unset is the normal state. Prerelease channels are exempt.
+
+- **Intended major:** set the variable to `true`, rerun the release, then unset it.
+- **Stray `BREAKING CHANGE:` footer or `!`:** `git revert` the commit on main. The next release is then
+  an ordinary patch.
+
 ## Stuck `@latest` releases
 
 The release pipeline promotes `@latest` only after `promote.yml`'s "Smoke-test staged release" job

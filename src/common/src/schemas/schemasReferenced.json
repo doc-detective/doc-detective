@@ -7514,8 +7514,7 @@
           "default": true
         },
         "exitOnFail": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "shell": {
           "type": "string",

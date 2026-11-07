@@ -1,5 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+import semver from "semver";
 import { REPO_ROOT } from "../scripts/reconcile-root-lockfile.js";
 
 before(async function () {
@@ -34,6 +36,86 @@ describe(".releaserc.json publish wiring", function () {
     // A version that's partly on npm gets tagged anyway; this publishCmd then
     // fails the release so it can't report success.
     expect(opts[publishIdx].publishCmd).to.match(/publish-guard\.js/);
+  });
+});
+
+describe(".releaserc.json branches", function () {
+  const rc = () => JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ".releaserc.json"), "utf8"));
+
+  it("no channel parses as a semver range", function () {
+    // npm rejects those as dist-tags, and publish-staged-release.js refuses them.
+    // A maintenance branch's channel defaults to its name, so 4.x has to set one.
+    for (const branch of rc().branches) {
+      if (typeof branch === "string") continue;
+      const channel = branch.channel ?? (branch.range ? branch.name : undefined);
+      if (channel === undefined) continue;
+      expect(semver.validRange(channel), `channel of ${branch.name}`).to.equal(null);
+    }
+  });
+
+  it("publishes 4.x maintenance releases on release-4.x", function () {
+    expect(rc().branches).to.deep.include({ name: "4.x", range: "4.x", channel: "release-4.x" });
+  });
+
+  it("release.yml runs on 4.x and passes ALLOW_MAJOR_RELEASE from a repository variable", async function () {
+    const { parse } = await import("yaml");
+    const wf = parse(fs.readFileSync(path.join(REPO_ROOT, ".github/workflows/release.yml"), "utf8"));
+    expect(wf.on.push.branches).to.include("4.x");
+    const steps = Object.values(wf.jobs).flatMap((job) => job.steps ?? []);
+    const release = steps.find((step) => step.id === "sr");
+    expect(release.env.ALLOW_MAJOR_RELEASE).to.equal("${{ vars.ALLOW_MAJOR_RELEASE }}");
+  });
+});
+
+describe("major-release guard", function () {
+  const script = path.join(REPO_ROOT, "scripts/verify-major-release.js");
+  const guard = (args, allow) => {
+    const { ALLOW_MAJOR_RELEASE, ...env } = process.env;
+    return spawnSync(process.execPath, [script, ...args], {
+      env: allow === undefined ? env : { ...env, ALLOW_MAJOR_RELEASE: allow },
+      encoding: "utf8",
+    });
+  };
+
+  it("fails a major on a release branch with the variable unset", function () {
+    const r = guard(["major", "release"]);
+    expect(r.status).to.equal(1);
+    expect(r.stderr).to.include("ALLOW_MAJOR_RELEASE");
+  });
+
+  it("fails a major for any value but true", function () {
+    expect(guard(["major", "release"], "false").status).to.equal(1);
+    expect(guard(["major", "release"], "").status).to.equal(1);
+    expect(guard(["major", "release"], "TRUE").status).to.equal(1);
+  });
+
+  it("allows a major with ALLOW_MAJOR_RELEASE=true", function () {
+    expect(guard(["major", "release"], "true").status).to.equal(0);
+  });
+
+  it("exempts prerelease channels", function () {
+    expect(guard(["major", "prerelease"]).status).to.equal(0);
+  });
+
+  it("allows a non-major", function () {
+    for (const type of ["minor", "patch"]) {
+      expect(guard([type, "release"]).status).to.equal(0);
+    }
+  });
+
+  it("is wired as a verifyReleaseCmd that renders the type and the kind of branch", async function () {
+    const rc = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ".releaserc.json"), "utf8"));
+    const cmd = rc.plugins
+      .map((p) => (Array.isArray(p) ? p[1]?.verifyReleaseCmd : undefined))
+      .find(Boolean);
+    expect(cmd, "verifyReleaseCmd in .releaserc.json").to.be.a("string");
+    // Rendered the way @semantic-release/exec does, with lodash's template.
+    const { template } = await import("lodash-es");
+    const render = (branch) => template(cmd)({ nextRelease: { type: "major" }, branch });
+    expect(render({ name: "main" })).to.equal("node scripts/verify-major-release.js major release");
+    expect(render({ name: "feat/v5-rc", prerelease: "v5-rc" })).to.equal(
+      "node scripts/verify-major-release.js major prerelease"
+    );
   });
 });
 

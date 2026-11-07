@@ -381,7 +381,7 @@ describe("Util tests", function () {
     expect(absent.exitOnFail).to.equal(undefined);
   });
 
-  it("setConfig stores --exit-on-fail on config.exitOnFail and applies schema default when absent", async function () {
+  it("setConfig stores --exit-on-fail on config.exitOnFail and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--exit-on-fail"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -391,11 +391,12 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.exitOnFail).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // No schema default, so the upgrade warning can tell unset from false
+    // (ADR 01147). The exit gate in cli.ts treats unset as false.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.exitOnFail).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.exitOnFail).to.equal(false);
+    expect(configAbsent.exitOnFail).to.equal(undefined);
   });
 
   it("--no-exit-on-fail overrides exitOnFail:true from a config file (CLI wins)", async function () {
