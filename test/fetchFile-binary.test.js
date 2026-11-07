@@ -584,6 +584,44 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
+  describe("through a proxy", function () {
+    const PROXY_KEYS = ["HTTP_PROXY", "http_proxy", "NO_PROXY", "no_proxy"];
+    let proxySaved;
+    beforeEach(function () {
+      proxySaved = Object.fromEntries(PROXY_KEYS.map((key) => [key, process.env[key]]));
+      for (const key of PROXY_KEYS) delete process.env[key];
+      // This suite's server answers proxy requests too, on a private address.
+      process.env.HTTP_PROXY = `http://localhost:${port}`;
+    });
+    afterEach(function () {
+      for (const key of PROXY_KEYS) delete process.env[key];
+      for (const [key, value] of Object.entries(proxySaved)) {
+        if (value !== undefined) process.env[key] = value;
+      }
+    });
+
+    it("doesn't refuse a proxy on a private address", async function () {
+      fakePublicHost();
+      const definition = await loadDescription(
+        `http://public.example.test:${port}/openapi-public-refs.yaml`
+      );
+      const schema =
+        definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+      assert.equal(schema.type, "string");
+    });
+
+    it("still checks each address before a proxied request", async function () {
+      fakePublicHost();
+      const redirect = await fetchFile(`http://public.example.test:${port}/redirect`, {
+        binary: true,
+      });
+      assert.match(redirect.message.message, /^Couldn't follow the redirect from /);
+      process.env[BLOCK] = "1";
+      const direct = await fetchFile(`http://localhost:${port}/ref.png`, { binary: true });
+      assert.match(direct.message.message, /DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses/);
+    });
+  });
+
   // This suite's own server, not the shared 8092 one, so a concurrent run
   // holding that port can't stall the test.
   it("leaves checkLink and httpRequest to 127.0.0.1 unguarded, even in strict mode", async function () {

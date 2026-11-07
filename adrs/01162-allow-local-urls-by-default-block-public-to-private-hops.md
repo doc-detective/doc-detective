@@ -119,13 +119,19 @@ caller words its own message.
 * Bad: failing closed refuses some safe documents. A local description that `$ref`s a public
   document and also a private one can be refused, depending on which the parser reads first. The
   hint names the fixes: download the public document, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1`.
-* Good: DNS rebinding can't slip past the check. A name can answer public when it's checked and
-  private when the request connects. So a request that must not reach a private address checks
+* Good: on a direct connection, DNS rebinding is caught. A name can answer public when it's checked
+  and private when the request connects. So a request that must not reach a private address checks
   again at connect time, through its own DNS lookup, and refuses a private answer. That covers a
-  redirect hop from a public origin, a `$ref` from a public document, and every request in strict
+  redirect hop from a public origin, a `$ref` after a public document, and every request in strict
   mode. Each request gets fresh agents, so no pooled socket skips the lookup. Direct local URLs in
   default mode get no refusing lookup. Turning off the parser's `safeUrlResolver` dropped its own
   pinning, and this replaces it.
+* Bad: through a proxy, only the pre-connect check applies. When `HTTP_PROXY`, `HTTPS_PROXY` or
+  `ALL_PROXY` is set, a lookup of another name than the request's host is the proxy's. It's
+  neither refused nor counted. Refusing it would break proxies on private addresses, which most
+  corporate proxies are. The proxy resolves the target itself, so a name that rebinds between the
+  pre-connect check and the proxy's own lookup gets through. Operators who need strict mode behind
+  a proxy should also enforce egress rules at the proxy.
 
 ### Confirmation
 
@@ -144,6 +150,8 @@ answers so `public.example.test` looks public to the guard but connects locally.
   path. It loads from a local description;
 * a name that answers public to the check and private at connect time is refused. That holds on a
   redirect hop from a public origin, on a public description's `$ref`, and in strict mode;
+* through a proxy on a private address, a public description's `$ref` loads, and each address is
+  still checked before the request;
 * `BLOCK=1` refuses a direct local image, the switch grammar, and the both-set error and exit 2;
 * `checkLink` and `httpRequest` to `127.0.0.1:8092` still pass, even with `BLOCK=1`.
 

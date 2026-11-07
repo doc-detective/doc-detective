@@ -78,7 +78,7 @@ Two environment variables change that. Each one accepts `1`, `true`, `yes`, or `
 | `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Allows public-to-private hops too, so the guard is off. |
 | `DOC_DETECTIVE_BLOCK_LOCAL_URLS` | Refuses every private and loopback address for the guarded fetches, including direct ones. |
 
-On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCAL_URLS=1`. It doesn't cover URLs that steps request directly, such as `goTo`, `checkLink`, and `httpRequest`, and `runShell` can reach any address. Pair it with network egress rules on the runner.
+On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCAL_URLS=1`. It doesn't cover URLs that steps request directly, such as `goTo`, `checkLink`, and `httpRequest`, and `runShell` can reach any address. Pair it with network egress rules on the runner. Behind an HTTP proxy, Doc Detective can check addresses only before the request, so enforce the rules at the proxy too.
 
 ## Verify it works
 

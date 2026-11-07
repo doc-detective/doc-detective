@@ -1520,6 +1520,20 @@ function redirectError(from: string, address: string): Error {
 
 const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
 
+// A hostname as a lookup sees it: no IPv6 brackets, no trailing dot, any case.
+function hostKey(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+}
+
+// Whether an HTTP(S) proxy is configured in the environment, the variables
+// axios and Node read. Only then can a lookup be for a name other than the
+// request's own host.
+function proxyConfigured(): boolean {
+  return ["http_proxy", "https_proxy", "all_proxy"].some(
+    (key) => process.env[key] || process.env[key.toUpperCase()]
+  );
+}
+
 // GET for the guarded fetches. Follows up to 5 redirects by hand so each hop
 // is checked against localUrlPolicy(), both before it's requested and again
 // when it connects: a name can answer public to privateAddressOf() and private
@@ -1552,8 +1566,15 @@ async function getGuarded(
     // refuses one when `refuse` is set.
     const seen: { resolved?: boolean; private?: string; public?: boolean } = {};
     const guard = refuse;
-    const lookup = (hostname: string, options: any, callback: any) =>
-      dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
+    const target = hostKey(new URL(current).hostname);
+    const lookup = (hostname: string, options: any, callback: any) => {
+      // With a proxy configured, a lookup of another name is the proxy's. It
+      // says nothing about the target, so it's neither refused nor counted;
+      // the pre-connect checks still apply (ADR 01162).
+      if (proxyConfigured() && hostKey(hostname) !== target) {
+        return dnsCallback.lookup(hostname, options, callback);
+      }
+      return dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
         if (error) return callback(error, address, family);
         const answers = Array.isArray(address) ? address : [{ address }];
         seen.resolved = true;
@@ -1562,6 +1583,7 @@ async function getGuarded(
         if (seen.private && guard) return callback(guard(seen.private));
         callback(null, address, family);
       });
+    };
     const response = await axios.get(current, {
       ...opts,
       maxRedirects: 0,
@@ -1571,12 +1593,11 @@ async function getGuarded(
         (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
     });
     // An IP literal skips the lookup, so classify it directly. A name the
-    // lookup never saw leaves this hop unknown.
-    const host = new URL(current).hostname.replace(/^\[|\]$/g, "");
+    // lookup never saw (a proxy) leaves this hop unknown.
     const hopPublic = seen.resolved
       ? seen.public
-      : net.isIP(host)
-        ? !isPrivateOrLoopbackAddress(host)
+      : net.isIP(target)
+        ? !isPrivateOrLoopbackAddress(target)
         : undefined;
     if (hopPublic) reachedPublic = true;
     else if (hopPublic === undefined && reachedPublic === false) reachedPublic = undefined;
