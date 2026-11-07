@@ -302,16 +302,10 @@
           "type": "object",
           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
           "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
+            "type": [
+              "boolean",
+              "number",
+              "string"
             ]
           }
         },
@@ -321,732 +315,32 @@
         },
         "timeout": {
           "type": "integer",
-          "description": "Max duration in milliseconds to wait for the element to exist.",
+          "minimum": 0,
+          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
           "default": 5000
         },
         "moveTo": {
           "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
           "type": "boolean",
           "default": false,
-          "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
+          "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does. Since ADR 01175, validate() fills this default in the effective step."
         },
         "click": {
-          "description": "Click the element.",
+          "description": "Click the element after finding it. `true` left-clicks, `false` finds without clicking, and a button name (`left`, `right`, or `middle`) clicks with that button. The object form sets the `button` and a press `duration`. Unlike the `click` action, a string here names the button, not the element.",
           "anyOf": [
             {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "title": "click",
-              "description": "Click or tap an element.",
-              "anyOf": [
-                {
-                  "title": "Click element (simple)",
-                  "type": "string",
-                  "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
-                },
-                {
-                  "title": "Click element (detailed)",
-                  "additionalProperties": false,
-                  "type": "object",
-                  "anyOf": [
-                    {
-                      "required": [
-                        "selector"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementText"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementTestId"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementClass"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAttribute"
-                      ]
-                    },
-                    {
-                      "required": [
-                        "elementAria"
-                      ]
-                    }
-                  ],
-                  "properties": {
-                    "timeout": {
-                      "type": "integer",
-                      "description": "Max duration in milliseconds to wait for the element to exist.",
-                      "default": 5000
-                    },
-                    "button": {
-                      "description": "Kind of click to perform.",
-                      "type": "string",
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ]
-                    },
-                    "duration": {
-                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "surface": {
-                      "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-                      "anyOf": [
-                        {
-                          "title": "Surface (by browser engine)",
-                          "type": "string",
-                          "enum": [
-                            "chrome",
-                            "firefox",
-                            "safari",
-                            "webkit"
-                          ],
-                          "transform": [
-                            "trim"
-                          ],
-                          "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                        },
-                        {
-                          "title": "Browser surface",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "browser"
-                          ],
-                          "properties": {
-                            "browser": {
-                              "type": "string",
-                              "enum": [
-                                "chrome",
-                                "firefox",
-                                "safari",
-                                "webkit"
-                              ],
-                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                            },
-                            "name": {
-                              "type": "string",
-                              "minLength": 1,
-                              "pattern": "\\S",
-                              "transform": [
-                                "trim"
-                              ],
-                              "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                            },
-                            "window": {
-                              "description": "Which window to act on. Omit to use the active window.",
-                              "title": "Window/tab selector",
-                              "anyOf": [
-                                {
-                                  "title": "By index",
-                                  "type": "integer",
-                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                },
-                                {
-                                  "title": "By name",
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "pattern": "\\S",
-                                  "transform": [
-                                    "trim"
-                                  ],
-                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                },
-                                {
-                                  "title": "By criteria",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "minProperties": 1,
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Name assigned when the window/tab was opened."
-                                    },
-                                    "index": {
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end."
-                                    },
-                                    "title": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Page title to match. Substring, or /regex/."
-                                    },
-                                    "url": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Page URL to match. Substring, or /regex/."
-                                    }
-                                  }
-                                }
-                              ]
-                            },
-                            "tab": {
-                              "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                              "title": "Window/tab selector",
-                              "anyOf": [
-                                {
-                                  "title": "By index",
-                                  "type": "integer",
-                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                },
-                                {
-                                  "title": "By name",
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "pattern": "\\S",
-                                  "transform": [
-                                    "trim"
-                                  ],
-                                  "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                },
-                                {
-                                  "title": "By criteria",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "minProperties": 1,
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Name assigned when the window/tab was opened."
-                                    },
-                                    "index": {
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end."
-                                    },
-                                    "title": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Page title to match. Substring, or /regex/."
-                                    },
-                                    "url": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Page URL to match. Substring, or /regex/."
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "title": "App surface",
-                          "type": "object",
-                          "additionalProperties": false,
-                          "required": [
-                            "app"
-                          ],
-                          "properties": {
-                            "app": {
-                              "type": "string",
-                              "minLength": 1,
-                              "pattern": "\\S",
-                              "transform": [
-                                "trim"
-                              ],
-                              "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                            },
-                            "window": {
-                              "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                              "title": "App window selector",
-                              "anyOf": [
-                                {
-                                  "title": "By index",
-                                  "type": "integer",
-                                  "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                                },
-                                {
-                                  "title": "By name",
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "pattern": "\\S",
-                                  "transform": [
-                                    "trim"
-                                  ],
-                                  "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                },
-                                {
-                                  "title": "By criteria",
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "minProperties": 1,
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Assigned window name."
-                                    },
-                                    "index": {
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end."
-                                    },
-                                    "title": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Window title to match. Substring, or /regex/."
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "elementText": {
-                      "type": "string",
-                      "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                    },
-                    "selector": {
-                      "type": "string",
-                      "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                    },
-                    "elementId": {
-                      "type": "string",
-                      "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementTestId": {
-                      "type": "string",
-                      "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                    },
-                    "elementClass": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                    },
-                    "elementAttribute": {
-                      "type": "object",
-                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
-                        ]
-                      }
-                    },
-                    "elementAria": {
-                      "type": "string",
-                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                    }
-                  }
-                },
-                {
-                  "type": "boolean"
-                }
+              "type": "boolean",
+              "$comment": "Boolean first (ADR 01161). Safe as a plain `type`: the next branch is an enum, so it never wanted \"true\" or \"false\", and a $VAR that resolves to \"true\" still means true."
+            },
+            {
+              "description": "Kind of click to perform.",
+              "type": "string",
+              "enum": [
+                "left",
+                "right",
+                "middle"
               ],
-              "components": {
-                "schemas": {
-                  "string": {
-                    "title": "Click element (simple)",
-                    "type": "string",
-                    "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
-                  },
-                  "button": {
-                    "description": "Kind of click to perform.",
-                    "type": "string",
-                    "enum": [
-                      "left",
-                      "right",
-                      "middle"
-                    ]
-                  },
-                  "duration": {
-                    "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "object": {
-                    "title": "Click element (detailed)",
-                    "additionalProperties": false,
-                    "type": "object",
-                    "anyOf": [
-                      {
-                        "required": [
-                          "selector"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementText"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementTestId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementClass"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAttribute"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAria"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "timeout": {
-                        "type": "integer",
-                        "description": "Max duration in milliseconds to wait for the element to exist.",
-                        "default": 5000
-                      },
-                      "button": {
-                        "description": "Kind of click to perform.",
-                        "type": "string",
-                        "enum": [
-                          "left",
-                          "right",
-                          "middle"
-                        ]
-                      },
-                      "duration": {
-                        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-                        "anyOf": [
-                          {
-                            "title": "Surface (by browser engine)",
-                            "type": "string",
-                            "enum": [
-                              "chrome",
-                              "firefox",
-                              "safari",
-                              "webkit"
-                            ],
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                          },
-                          {
-                            "title": "Browser surface",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "browser"
-                            ],
-                            "properties": {
-                              "browser": {
-                                "type": "string",
-                                "enum": [
-                                  "chrome",
-                                  "firefox",
-                                  "safari",
-                                  "webkit"
-                                ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                              },
-                              "name": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                              },
-                              "window": {
-                                "description": "Which window to act on. Omit to use the active window.",
-                                "title": "Window/tab selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Name assigned when the window/tab was opened."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page title to match. Substring, or /regex/."
-                                      },
-                                      "url": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page URL to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "tab": {
-                                "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                                "title": "Window/tab selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Name assigned when the window/tab was opened."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page title to match. Substring, or /regex/."
-                                      },
-                                      "url": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page URL to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "title": "App surface",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "app"
-                            ],
-                            "properties": {
-                              "app": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                              },
-                              "window": {
-                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                                "title": "App window selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Assigned window name."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Window title to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "selector": {
-                        "type": "string",
-                        "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                      },
-                      "elementAttribute": {
-                        "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ]
-                        }
-                      },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                      }
-                    }
-                  }
-                }
-              },
-              "examples": [
-                true,
-                "Submit",
-                {
-                  "button": "left",
-                  "elementText": "Element text"
-                },
-                {
-                  "selector": "#elementToScreenshot",
-                  "elementText": "Element text",
-                  "button": "middle"
-                }
-              ]
+              "default": "left"
             },
             {
               "type": "object",
@@ -1058,7 +352,8 @@
                     "left",
                     "right",
                     "middle"
-                  ]
+                  ],
+                  "default": "left"
                 },
                 "duration": {
                   "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
@@ -1125,6 +420,7 @@
                         },
                         "inputDelay": {
                           "type": "number",
+                          "minimum": 0,
                           "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                           "default": 100
                         },
@@ -1860,16 +1156,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -1969,16 +1259,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -1996,7 +1280,7 @@
                           "type": "integer",
                           "minimum": 0,
                           "default": 5000,
-                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                         },
                         "selector": {
                           "type": "string",
@@ -2032,16 +1316,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -2275,16 +1553,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2405,16 +1677,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2543,16 +1809,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2618,6 +1878,7 @@
                           },
                           "inputDelay": {
                             "type": "number",
+                            "minimum": 0,
                             "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                             "default": 100
                           },
@@ -3353,16 +2614,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -3462,16 +2717,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -3489,7 +2738,7 @@
                             "type": "integer",
                             "minimum": 0,
                             "default": 5000,
-                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                           },
                           "selector": {
                             "type": "string",
@@ -3525,16 +2774,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -3768,16 +3011,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -3898,16 +3135,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -4036,16 +3267,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -4128,18 +3353,81 @@
               ]
             },
             {
+              "$comment": "find already locates the element, so a locator here would be ignored (ADR 01175). One guard per key, so the message names it. `type: object` keeps the keys shorthand valid: `required` passes any string or array.",
               "not": {
                 "type": "object",
                 "required": [
-                  "selector",
-                  "elementText",
-                  "elementId",
-                  "elementTestId",
-                  "elementClass",
-                  "elementAttribute",
+                  "selector"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `selector` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementText"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementText` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementId"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementId` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementTestId"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementTestId` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementClass"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementClass` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementAttribute"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementAttribute` (`find` already locates the element)"
+              }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
                   "elementAria"
-                ],
-                "title": "Find element and type"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementAria` (`find` already locates the element)"
               }
             }
           ]
@@ -4448,16 +3736,10 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
+              "type": [
+                "boolean",
+                "number",
+                "string"
               ]
             }
           },
@@ -4467,732 +3749,32 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "minimum": 0,
+            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
             "default": 5000
           },
           "moveTo": {
             "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
             "type": "boolean",
             "default": false,
-            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
+            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does. Since ADR 01175, validate() fills this default in the effective step."
           },
           "click": {
-            "description": "Click the element.",
+            "description": "Click the element after finding it. `true` left-clicks, `false` finds without clicking, and a button name (`left`, `right`, or `middle`) clicks with that button. The object form sets the `button` and a press `duration`. Unlike the `click` action, a string here names the button, not the element.",
             "anyOf": [
               {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "title": "click",
-                "description": "Click or tap an element.",
-                "anyOf": [
-                  {
-                    "title": "Click element (simple)",
-                    "type": "string",
-                    "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
-                  },
-                  {
-                    "title": "Click element (detailed)",
-                    "additionalProperties": false,
-                    "type": "object",
-                    "anyOf": [
-                      {
-                        "required": [
-                          "selector"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementText"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementTestId"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementClass"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAttribute"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "elementAria"
-                        ]
-                      }
-                    ],
-                    "properties": {
-                      "timeout": {
-                        "type": "integer",
-                        "description": "Max duration in milliseconds to wait for the element to exist.",
-                        "default": 5000
-                      },
-                      "button": {
-                        "description": "Kind of click to perform.",
-                        "type": "string",
-                        "enum": [
-                          "left",
-                          "right",
-                          "middle"
-                        ]
-                      },
-                      "duration": {
-                        "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "surface": {
-                        "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-                        "anyOf": [
-                          {
-                            "title": "Surface (by browser engine)",
-                            "type": "string",
-                            "enum": [
-                              "chrome",
-                              "firefox",
-                              "safari",
-                              "webkit"
-                            ],
-                            "transform": [
-                              "trim"
-                            ],
-                            "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                          },
-                          {
-                            "title": "Browser surface",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "browser"
-                            ],
-                            "properties": {
-                              "browser": {
-                                "type": "string",
-                                "enum": [
-                                  "chrome",
-                                  "firefox",
-                                  "safari",
-                                  "webkit"
-                                ],
-                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                              },
-                              "name": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                              },
-                              "window": {
-                                "description": "Which window to act on. Omit to use the active window.",
-                                "title": "Window/tab selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Name assigned when the window/tab was opened."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page title to match. Substring, or /regex/."
-                                      },
-                                      "url": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page URL to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "tab": {
-                                "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                                "title": "Window/tab selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Name assigned when the window/tab was opened."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page title to match. Substring, or /regex/."
-                                      },
-                                      "url": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Page URL to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                            }
-                          },
-                          {
-                            "title": "App surface",
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "app"
-                            ],
-                            "properties": {
-                              "app": {
-                                "type": "string",
-                                "minLength": 1,
-                                "pattern": "\\S",
-                                "transform": [
-                                  "trim"
-                                ],
-                                "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                              },
-                              "window": {
-                                "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                                "title": "App window selector",
-                                "anyOf": [
-                                  {
-                                    "title": "By index",
-                                    "type": "integer",
-                                    "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                                  },
-                                  {
-                                    "title": "By name",
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "pattern": "\\S",
-                                    "transform": [
-                                      "trim"
-                                    ],
-                                    "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                  },
-                                  {
-                                    "title": "By criteria",
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "minProperties": 1,
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "pattern": "\\S",
-                                        "transform": [
-                                          "trim"
-                                        ],
-                                        "description": "Assigned window name."
-                                      },
-                                      "index": {
-                                        "type": "integer",
-                                        "description": "Index in creation order. Negative counts from the end."
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Window title to match. Substring, or /regex/."
-                                      }
-                                    }
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "elementText": {
-                        "type": "string",
-                        "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "selector": {
-                        "type": "string",
-                        "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                      },
-                      "elementId": {
-                        "type": "string",
-                        "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementTestId": {
-                        "type": "string",
-                        "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                      },
-                      "elementClass": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                      },
-                      "elementAttribute": {
-                        "type": "object",
-                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                        "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ]
-                        }
-                      },
-                      "elementAria": {
-                        "type": "string",
-                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                      }
-                    }
-                  },
-                  {
-                    "type": "boolean"
-                  }
+                "type": "boolean",
+                "$comment": "Boolean first (ADR 01161). Safe as a plain `type`: the next branch is an enum, so it never wanted \"true\" or \"false\", and a $VAR that resolves to \"true\" still means true."
+              },
+              {
+                "description": "Kind of click to perform.",
+                "type": "string",
+                "enum": [
+                  "left",
+                  "right",
+                  "middle"
                 ],
-                "components": {
-                  "schemas": {
-                    "string": {
-                      "title": "Click element (simple)",
-                      "type": "string",
-                      "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
-                    },
-                    "button": {
-                      "description": "Kind of click to perform.",
-                      "type": "string",
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ]
-                    },
-                    "duration": {
-                      "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "object": {
-                      "title": "Click element (detailed)",
-                      "additionalProperties": false,
-                      "type": "object",
-                      "anyOf": [
-                        {
-                          "required": [
-                            "selector"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementText"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementTestId"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementClass"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAttribute"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "elementAria"
-                          ]
-                        }
-                      ],
-                      "properties": {
-                        "timeout": {
-                          "type": "integer",
-                          "description": "Max duration in milliseconds to wait for the element to exist.",
-                          "default": 5000
-                        },
-                        "button": {
-                          "description": "Kind of click to perform.",
-                          "type": "string",
-                          "enum": [
-                            "left",
-                            "right",
-                            "middle"
-                          ]
-                        },
-                        "duration": {
-                          "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
-                          "type": "integer",
-                          "minimum": 1
-                        },
-                        "surface": {
-                          "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
-                          "anyOf": [
-                            {
-                              "title": "Surface (by browser engine)",
-                              "type": "string",
-                              "enum": [
-                                "chrome",
-                                "firefox",
-                                "safari",
-                                "webkit"
-                              ],
-                              "transform": [
-                                "trim"
-                              ],
-                              "description": "Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime."
-                            },
-                            {
-                              "title": "Browser surface",
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "browser"
-                              ],
-                              "properties": {
-                                "browser": {
-                                  "type": "string",
-                                  "enum": [
-                                    "chrome",
-                                    "firefox",
-                                    "safari",
-                                    "webkit"
-                                  ],
-                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "pattern": "\\S",
-                                  "transform": [
-                                    "trim"
-                                  ],
-                                  "description": "Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine."
-                                },
-                                "window": {
-                                  "description": "Which window to act on. Omit to use the active window.",
-                                  "title": "Window/tab selector",
-                                  "anyOf": [
-                                    {
-                                      "title": "By index",
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                    },
-                                    {
-                                      "title": "By name",
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                    },
-                                    {
-                                      "title": "By criteria",
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "minProperties": 1,
-                                      "properties": {
-                                        "name": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "pattern": "\\S",
-                                          "transform": [
-                                            "trim"
-                                          ],
-                                          "description": "Name assigned when the window/tab was opened."
-                                        },
-                                        "index": {
-                                          "type": "integer",
-                                          "description": "Index in creation order. Negative counts from the end."
-                                        },
-                                        "title": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "description": "Page title to match. Substring, or /regex/."
-                                        },
-                                        "url": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "description": "Page URL to match. Substring, or /regex/."
-                                        }
-                                      }
-                                    }
-                                  ]
-                                },
-                                "tab": {
-                                  "description": "Which tab to act on. Omit to use the active tab. Without `window`, the selector searches every tab in creation order — including tabs the page opened itself.",
-                                  "title": "Window/tab selector",
-                                  "anyOf": [
-                                    {
-                                      "title": "By index",
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest."
-                                    },
-                                    {
-                                      "title": "By name",
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                    },
-                                    {
-                                      "title": "By criteria",
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "minProperties": 1,
-                                      "properties": {
-                                        "name": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "pattern": "\\S",
-                                          "transform": [
-                                            "trim"
-                                          ],
-                                          "description": "Name assigned when the window/tab was opened."
-                                        },
-                                        "index": {
-                                          "type": "integer",
-                                          "description": "Index in creation order. Negative counts from the end."
-                                        },
-                                        "title": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "description": "Page title to match. Substring, or /regex/."
-                                        },
-                                        "url": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "description": "Page URL to match. Substring, or /regex/."
-                                        }
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            {
-                              "title": "App surface",
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "app"
-                              ],
-                              "properties": {
-                                "app": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "pattern": "\\S",
-                                  "transform": [
-                                    "trim"
-                                  ],
-                                  "description": "Name of an app surface opened by `startSurface` (its `name`, or the default derived from the app identifier)."
-                                },
-                                "window": {
-                                  "description": "Which app window to act on. Omit to use the active window. Apps have windows, no tabs.",
-                                  "title": "App window selector",
-                                  "anyOf": [
-                                    {
-                                      "title": "By index",
-                                      "type": "integer",
-                                      "description": "Index in creation order. Negative counts from the end; `-1` is the newest (e.g. a dialog the app just opened)."
-                                    },
-                                    {
-                                      "title": "By name",
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "pattern": "\\S",
-                                      "transform": [
-                                        "trim"
-                                      ],
-                                      "description": "Assigned window name. The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings."
-                                    },
-                                    {
-                                      "title": "By criteria",
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "minProperties": 1,
-                                      "properties": {
-                                        "name": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "pattern": "\\S",
-                                          "transform": [
-                                            "trim"
-                                          ],
-                                          "description": "Assigned window name."
-                                        },
-                                        "index": {
-                                          "type": "integer",
-                                          "description": "Index in creation order. Negative counts from the end."
-                                        },
-                                        "title": {
-                                          "type": "string",
-                                          "minLength": 1,
-                                          "description": "Window title to match. Substring, or /regex/."
-                                        }
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        "elementText": {
-                          "type": "string",
-                          "description": "Display text of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                        },
-                        "selector": {
-                          "type": "string",
-                          "description": "Selector of the element to click. If combined with other element finding fields, the element must match all specified criteria."
-                        },
-                        "elementId": {
-                          "type": "string",
-                          "description": "ID attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                        },
-                        "elementTestId": {
-                          "type": "string",
-                          "description": "data-testid attribute of the element to click. Supports exact match or regex pattern using /pattern/ syntax."
-                        },
-                        "elementClass": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          ],
-                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes."
-                        },
-                        "elementAttribute": {
-                          "type": "object",
-                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
-                          "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
-                            ]
-                          }
-                        },
-                        "elementAria": {
-                          "type": "string",
-                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
-                        }
-                      }
-                    }
-                  }
-                },
-                "examples": [
-                  true,
-                  "Submit",
-                  {
-                    "button": "left",
-                    "elementText": "Element text"
-                  },
-                  {
-                    "selector": "#elementToScreenshot",
-                    "elementText": "Element text",
-                    "button": "middle"
-                  }
-                ]
+                "default": "left"
               },
               {
                 "type": "object",
@@ -5204,7 +3786,8 @@
                       "left",
                       "right",
                       "middle"
-                    ]
+                    ],
+                    "default": "left"
                   },
                   "duration": {
                     "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
@@ -5271,6 +3854,7 @@
                           },
                           "inputDelay": {
                             "type": "number",
+                            "minimum": 0,
                             "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                             "default": 100
                           },
@@ -6006,16 +4590,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6115,16 +4693,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6142,7 +4714,7 @@
                             "type": "integer",
                             "minimum": 0,
                             "default": 5000,
-                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                           },
                           "selector": {
                             "type": "string",
@@ -6178,16 +4750,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -6421,16 +4987,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6551,16 +5111,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6689,16 +5243,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6764,6 +5312,7 @@
                             },
                             "inputDelay": {
                               "type": "number",
+                              "minimum": 0,
                               "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                               "default": 100
                             },
@@ -7499,16 +6048,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -7608,16 +6151,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -7635,7 +6172,7 @@
                               "type": "integer",
                               "minimum": 0,
                               "default": 5000,
-                              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
                             },
                             "selector": {
                               "type": "string",
@@ -7671,16 +6208,10 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               }
                             },
@@ -7914,16 +6445,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -8044,16 +6569,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -8182,16 +6701,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -8274,18 +6787,81 @@
                 ]
               },
               {
+                "$comment": "find already locates the element, so a locator here would be ignored (ADR 01175). One guard per key, so the message names it. `type: object` keeps the keys shorthand valid: `required` passes any string or array.",
                 "not": {
                   "type": "object",
                   "required": [
-                    "selector",
-                    "elementText",
-                    "elementId",
-                    "elementTestId",
-                    "elementClass",
-                    "elementAttribute",
+                    "selector"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `selector` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementText"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementText` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementId"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementId` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementTestId"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementTestId` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementClass"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementClass` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementAttribute"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementAttribute` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
                     "elementAria"
-                  ],
-                  "title": "Find element and type"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementAria` (`find` already locates the element)"
                 }
               }
             ]

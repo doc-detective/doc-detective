@@ -3,15 +3,19 @@
 // deprecated keys renamed, scalars canonicalized, and defaults filled.
 //
 // Each action has one normalizer, in this folder, named for the action. It gets
-// the action's value and that value's path, and returns the normalized value.
+// the action's value, that value's path, and the step (read-only: a capture
+// names its file for `stepId`), and returns the normalized value.
 // In order, it:
 //   1. expands shorthand to the object form;
 //   2. renames deprecated aliases (renameAliases);
 //   3. canonicalizes scalars;
 //   4. applies defaults: plain ones from the schema (applyDefaults), and
 //      conditional ones in code.
-// It must be idempotent, and it never touches $VAR or $$ values, paths, config,
-// or runtime state. Step-level keys stay as authored.
+// It must be idempotent and pure: it copies an object value before it changes
+// anything. It never touches $VAR or $$ values, paths, config,
+// or runtime state. Step-level keys stay as authored. A whole-variable action
+// value, such as "goTo": "$URL", never reaches the normalizer before
+// substitution (normalizeStep).
 import annotate from "./annotate.js";
 import checkLink from "./checkLink.js";
 import click from "./click.js";
@@ -34,9 +38,13 @@ import swipe from "./swipe.js";
 import typeAction from "./type.js";
 import wait from "./wait.js";
 
+import { isWholeVariable } from "./helpers.js";
+
 export { NormalizeError } from "./helpers.js";
 
-export const normalizers: Record<string, (value: any, path: string) => any> = {
+// `literal` is normalize()'s: true only after `$VAR` substitution. `step` is the
+// whole step, read-only: a capture names its file for `stepId`.
+export const normalizers: Record<string, (value: any, path: string, literal: boolean, step: any) => any> = {
   annotate,
   checkLink,
   click,
@@ -60,20 +68,32 @@ export const normalizers: Record<string, (value: any, path: string) => any> = {
   wait,
 };
 
-// A valid step has exactly one action.
-function normalizeStep(step: any, path: string) {
-  const action = Object.keys(normalizers).find((name) => name in step)!;
-  step[action] = normalizers[action](step[action], path + action);
+// Read once: normalizeStep runs for every step of a run.
+const actions = Object.keys(normalizers);
+
+// A valid step has exactly one action. A whole-variable value, such as
+// "goTo": "$URL", stays as authored: the variable can hold the whole action,
+// even an object. After substitution, `literal` normalizes one that's left (an
+// unset variable) as text.
+function normalizeStep(step: any, path: string, literal: boolean) {
+  // Only validated steps get here, and a valid step has exactly one action.
+  const action = actions.find((name) => name in step)!;
+  if (!literal && isWholeVariable(step[action])) return;
+  step[action] = normalizers[action](step[action], path + action, literal, step);
 }
 
 // Authored steps only. A test's `contexts` hold resolved steps from a report.
-function normalizeTest(test: any, path: string) {
-  test.steps?.forEach((step: any, i: number) => normalizeStep(step, `${path}steps[${i}].`));
+function normalizeTest(test: any, path: string, literal: boolean) {
+  test.steps?.forEach((step: any, i: number) => normalizeStep(step, `${path}steps[${i}].`, literal));
 }
 
-/** Normalize, in place, every step in a valid object of a schema that holds steps. */
-export function normalize(schemaKey: string, object: any) {
-  if (schemaKey === "step_v3") normalizeStep(object, "");
-  else if (schemaKey === "test_v3") normalizeTest(object, "");
-  else if (schemaKey === "spec_v3") object.tests.forEach((test: any, i: number) => normalizeTest(test, `tests[${i}].`));
+/**
+ * Normalize, in place, every step in a valid object of a schema that holds steps.
+ * Pass `literal` only after `$VAR` substitution.
+ */
+export function normalize(schemaKey: string, object: any, { literal = false } = {}) {
+  if (schemaKey === "step_v3") normalizeStep(object, "", literal);
+  else if (schemaKey === "test_v3") normalizeTest(object, "", literal);
+  else if (schemaKey === "spec_v3")
+    object.tests.forEach((test: any, i: number) => normalizeTest(test, `tests[${i}].`, literal));
 }

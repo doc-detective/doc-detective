@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams, loadAxios } from "../utils.js";
+import { isRelativeUrl, appendQueryParams, loadAxios, parseHeaders } from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -43,40 +43,18 @@ export function _setBaseBackoffMsForTests(
   return prev;
 }
 
-function parseHeaderString(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of raw.split(/\r?\n/)) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    const key = line.slice(0, idx).trim();
-    const value = line.slice(idx + 1).trim();
-    // Match httpRequest's behavior: require a non-empty key AND a non-empty
-    // value. Silently dropping a header with no value avoids sending
-    // "X-Example:" lines that are almost always formatting mistakes.
-    if (key && value) out[key] = value;
-  }
-  return out;
-}
-
 function mergeHeaders(
-  userHeaders: Record<string, unknown> | string | undefined
+  userHeaders: Record<string, string> | string | undefined
 ): Record<string, string> {
   const merged: Record<string, string> = { ...DEFAULT_HEADERS };
-  if (!userHeaders) return merged;
-  const parsed: Record<string, unknown> =
-    typeof userHeaders === "string"
-      ? parseHeaderString(userHeaders)
-      : userHeaders;
+  const parsed = parseHeaders(userHeaders);
   // Case-insensitive override: strip any default with the same name (any casing)
   for (const userKey of Object.keys(parsed)) {
-    const raw = parsed[userKey];
-    if (raw === null || raw === undefined) continue;
-    const value = typeof raw === "string" ? raw : String(raw);
     const lower = userKey.toLowerCase();
     for (const existingKey of Object.keys(merged)) {
       if (existingKey.toLowerCase() === lower) delete merged[existingKey];
     }
-    merged[userKey] = value;
+    merged[userKey] = parsed[userKey];
   }
   return merged;
 }
@@ -140,13 +118,10 @@ async function attemptRequest(
   }
 }
 
+// `step` is the effective step (ADR 01167): checkLink is an object, and its
+// defaults, including the `statusCodes` list, are filled.
 async function checkLink({ config, step }: { config: any; step: any }) {
   let result: any = { status: "PASS", description: "Checked link." };
-
-  // Resolve to object
-  if (typeof step.checkLink === "string") {
-    step.checkLink = { url: step.checkLink };
-  }
 
   const relative = isRelativeUrl(step.checkLink.url);
 
@@ -203,13 +178,6 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
-
-  // Resolve to detailed object with defaults
-  if (typeof step.checkLink.statusCodes === "undefined") {
-    step.checkLink.statusCodes = [200, 301, 302, 307, 308];
-  } else if (typeof step.checkLink.statusCodes === "number") {
-    step.checkLink.statusCodes = [step.checkLink.statusCodes];
-  }
 
   const headers = mergeHeaders(step.checkLink.headers);
   const url = step.checkLink.url;

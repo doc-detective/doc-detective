@@ -190,7 +190,7 @@
         },
         "directory": {
           "type": "string",
-          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
         },
         "maxVariation": {
           "type": "number",
@@ -408,7 +408,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",

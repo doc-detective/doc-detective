@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>find.click Test Page</title>
+</head>
+<body>
+    <h1>find.click Test Page</h1>
+    <!-- Counts each button's clicks, so a find with click: false can prove it
+         clicked nothing and each button name can prove which button fired. -->
+    <button id="counter" data-left="0" data-right="0" data-middle="0"
+        onclick="bump('left')"
+        oncontextmenu="bump('right'); return false"
+        onauxclick="if (event.button === 1) bump('middle')"
+        onmousedown="if (event.button === 1) event.preventDefault()">Count clicks</button>
+
+    <script>
+        function bump(kind) {
+            const counter = document.getElementById("counter");
+            counter.dataset[kind] = String(Number(counter.dataset[kind]) + 1);
+        }
+    </script>
+</body>
+</html>

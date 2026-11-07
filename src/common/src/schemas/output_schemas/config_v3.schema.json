@@ -54,7 +54,7 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
       "type": "array",
       "items": {
         "type": "string",
@@ -2036,7 +2036,7 @@
                               },
                               "workingDirectory": {
                                 "type": "string",
-                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                               },
                               "exitCodes": {
                                 "type": "array",
@@ -2062,7 +2062,7 @@
                               },
                               "directory": {
                                 "type": "string",
-                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                               },
                               "maxVariation": {
                                 "type": "number",
@@ -2084,7 +2084,7 @@
                               "timeout": {
                                 "type": "integer",
                                 "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
-                                "minimum": 0,
+                                "minimum": 1,
                                 "default": 60000
                               },
                               "background": {
@@ -2187,7 +2187,7 @@
                                 },
                                 "workingDirectory": {
                                   "type": "string",
-                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                 },
                                 "exitCodes": {
                                   "type": "array",
@@ -2213,7 +2213,7 @@
                                 },
                                 "directory": {
                                   "type": "string",
-                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                 },
                                 "maxVariation": {
                                   "type": "number",
@@ -2235,7 +2235,7 @@
                                 "timeout": {
                                   "type": "integer",
                                   "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
-                                  "minimum": 0,
+                                  "minimum": 1,
                                   "default": 60000
                                 },
                                 "background": {
@@ -2455,13 +2455,13 @@
                   },
                   "statusCode": {
                     "type": "integer",
-                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                   },
                   "useExample": {
                     "type": [
                       "string"
                     ],
-                    "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                    "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                     "enum": [
                       "request",
                       "response",
@@ -2476,12 +2476,21 @@
                     "default": ""
                   },
                   "headers": {
-                    "type": "object",
-                    "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "title": "OpenAPI request headers"
+                    "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                    "title": "OpenAPI request headers",
+                    "anyOf": [
+                      {
+                        "title": "Request headers (object)",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "title": "Request headers (string)",
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "components": {
@@ -2503,6 +2512,11 @@
                   {
                     "name": "Reqres",
                     "operationId": "getUserById"
+                  },
+                  {
+                    "name": "Reqres",
+                    "operationId": "getUserById",
+                    "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                   },
                   {
                     "descriptionPath": "https://api.example.com/openapi.json",

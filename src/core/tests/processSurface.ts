@@ -62,8 +62,8 @@ interface ProcessSurfaceDescriptor {
   // Readiness condition (port/stdio/httpGet/delayMs), executed by
   // waitForReady. No condition = ready as soon as the process spawns.
   waitUntil?: any;
-  // Readiness ceiling in milliseconds.
-  timeout?: number;
+  // Readiness ceiling in milliseconds. Callers pass the effective step's value.
+  timeout: number;
 }
 
 async function startBackgroundProcessSurface({
@@ -119,8 +119,7 @@ async function startBackgroundProcessSurface({
   const bgOptions: any = {};
   if (descriptor.workingDirectory) bgOptions.cwd = descriptor.workingDirectory;
   if (descriptor.shell) bgOptions.shell = descriptor.shell;
-  const args = descriptor.args ?? [];
-  const timeoutMs = descriptor.timeout ?? 60000;
+  const { args, timeout: timeoutMs } = descriptor;
 
   // Kill a spawned handle so a half-started/crashed process doesn't leak.
   // PTY-backed handles own their own termination via `kill()`; pipe-backed ones

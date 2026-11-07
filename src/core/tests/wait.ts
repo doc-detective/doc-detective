@@ -23,9 +23,10 @@ async function wait({ config, step, driver }: { config?: any; step: any; driver:
     result.description = "Wait skipped.";
     return result;
   }
+  // Only a valid string reaches here: a $VAR that substitution left in place.
   if (typeof duration !== "number") {
     result.status = "FAIL";
-    result.description = `Invalid wait value: ${duration}. Must be a number or boolean.`;
+    result.description = `Couldn't wait: the variable '${duration}' in \`wait\` isn't set. Set it to a number of milliseconds.`;
     return result;
   }
 

@@ -338,9 +338,7 @@ describe("lsp — action registry", function () {
     const goTo = registry.byKey.get("goTo");
     expect(goTo.acceptsPrimitive).to.equal(true); // goTo accepts a bare URL string
     expect(goTo.primitiveKind).to.equal("string");
-    // wait's branch is type ["boolean", "number"], boolean first for coercion
-    // (ADR 01161). Both kinds complete to the same bare `$1` snippet.
-    expect(registry.byKey.get("wait").primitiveKind).to.equal("boolean");
+    expect(registry.byKey.get("wait").primitiveKind).to.equal("number");
     expect(registry.byKey.get("stopRecord").primitiveKind).to.equal("boolean");
     const httpRequest = registry.byKey.get("httpRequest");
     expect(httpRequest.description).to.be.a("string").with.length.greaterThan(0);

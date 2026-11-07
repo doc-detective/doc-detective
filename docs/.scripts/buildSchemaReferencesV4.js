@@ -210,9 +210,13 @@ const defaultedPages = new Set([schemas.config_v3.title]);
       if (prop.type === "object" && !prop.required && !prop.anyOf) visit(prop);
     }
   };
+  // The same branches applyDefaults reads: a root union's object branches, a
+  // root object (dragAndDrop), or the `object` component (click's allOf root).
   for (const action of actions) {
-    for (const branch of schemas[`${action}_v3`].anyOf || []) {
-      if (branch.properties || branch.allOf) visit(branch);
+    const schema = schemas[`${action}_v3`];
+    const branches = schema.anyOf || (schema.properties ? [schema] : [schema.components?.schemas?.object]);
+    for (const branch of branches) {
+      if (branch?.properties || branch?.allOf) visit(branch);
     }
   }
 })();
@@ -517,6 +521,12 @@ function getTypeString(schema) {
     return `\`${JSON.stringify(schema.const)}\``;
   }
 
+  // A type-less `enum: [true, false]` is a boolean branch that Ajv can't coerce
+  // (ADR 01161).
+  if (!schema.type && schema.enum?.every((v) => typeof v === "boolean")) {
+    return "boolean";
+  }
+
   // Direct type
   if (schema.type) {
     let type = schema.type;
@@ -546,13 +556,17 @@ function getTypeString(schema) {
       return getTypeString(options[0]);
     }
 
-    // Multiple options
+    // Multiple options. Any option with a list of types lists each type on its
+    // own line, on purpose for every schema, not only stopRecord's
+    // `["boolean", "null"]`. It prints bare type names, so it suits primitive
+    // types only. A list that mixes in "object" or "array" would lose that
+    // branch's constraints here: give it its own option instead.
     return (
       "one of:<br/>" +
       options
-        .map((option) => {
-          return `- ${getTypeString(option)}`;
-        })
+        .flatMap((option) =>
+          Array.isArray(option.type) ? option.type.map((type) => `- ${type}`) : [`- ${getTypeString(option)}`]
+        )
         .join("<br/>")
     );
   }

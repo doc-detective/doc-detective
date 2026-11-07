@@ -216,6 +216,11 @@ describe("HTML Reporter", function () {
     expect(stepLabel({ httpRequest: { url: "https://api.example.com", method: "get" } })).to.equal(
       "GET https://api.example.com"
     );
+    // A step that never ran keeps a whole-variable value as authored, and an
+    // OpenAPI request gets its method from the operation, so neither is assumed.
+    expect(stepLabel({ goTo: "$URL" })).to.equal("Go to $URL");
+    expect(stepLabel({ httpRequest: "$REQ" })).to.equal("GET ");
+    expect(stepLabel({ httpRequest: { openApi: { operationId: "getUsers" } } })).to.equal("GET ");
   });
 
   it("embeds the canonical logo paths", async function () {

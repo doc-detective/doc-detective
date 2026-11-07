@@ -1250,7 +1250,10 @@ function stepKey(step, ctxId, idx) {
   return step.stepId || (ctxId + ":" + idx);
 }
 
-// A step's row label. Steps are effective (ADR 01167): goTo is an object.
+// A step's row label. Steps are effective (ADR 01167), with two exceptions the
+// fallbacks cover: a step that never ran keeps a whole-variable value such as
+// "goTo": "$URL" as a string, and an OpenAPI request has no method until the
+// operation supplies one.
 function stepLabel(step) {
   return step.description
     || (step.goTo && "Go to " + (step.goTo.url || step.goTo))

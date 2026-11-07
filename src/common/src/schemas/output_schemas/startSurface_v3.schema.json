@@ -215,16 +215,10 @@
                   "type": "object",
                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                   "additionalProperties": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "boolean"
-                      }
+                    "type": [
+                      "boolean",
+                      "number",
+                      "string"
                     ]
                   }
                 },
@@ -238,7 +232,7 @@
         },
         "timeout": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "description": "Startup ceiling in milliseconds (launch + install + readiness).",
           "default": 60000
         }
@@ -350,7 +344,7 @@
         },
         "workingDirectory": {
           "type": "string",
-          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
         },
         "tty": {
           "type": "boolean",
@@ -388,7 +382,7 @@
         },
         "timeout": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "default": 60000,
           "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
         }
@@ -612,16 +606,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -635,7 +623,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "description": "Startup ceiling in milliseconds (launch + install + readiness).",
                 "default": 60000
               }
@@ -747,7 +735,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
               },
               "tty": {
                 "type": "boolean",
@@ -785,7 +773,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000,
                 "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
               }
@@ -904,7 +892,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "tty": {
             "type": "boolean",
@@ -942,7 +930,7 @@
           },
           "timeout": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "default": 60000,
             "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
           }
@@ -1189,16 +1177,10 @@
                     "type": "object",
                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -1212,7 +1194,7 @@
           },
           "timeout": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "description": "Startup ceiling in milliseconds (launch + install + readiness).",
             "default": 60000
           }

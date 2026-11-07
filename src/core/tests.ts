@@ -43,6 +43,7 @@ import {
   getRunOutputDir,
   runArchivesArtifacts,
   sanitizeFilesystemName,
+  hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
   classifyContextRetry,
@@ -53,6 +54,7 @@ import {
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { validate } from "../common/src/validate.js";
+import { normalize } from "../common/src/normalize/index.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -249,6 +251,7 @@ export {
   runViaApi,
   getRunner,
   useEffectiveStep,
+  placeCapturePaths,
   ensureChromeAvailable,
   ensureContextBrowserInstalled,
   combinationKey,
@@ -3912,6 +3915,21 @@ function buildAutoRecordStep({
   };
 }
 
+// A context's `screenshots/` folder in the run folder, which creates the run
+// folder. Auto screenshots and URL-reference captures (ADR 01173) land here.
+function contextScreenshotsDir({ config, spec, test, context }: { config: any; spec: any; test: any; context: any }) {
+  return path.join(
+    getRunOutputDir(config),
+    "specs",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+    "tests",
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
+    "contexts",
+    capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
+    "screenshots"
+  );
+}
+
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
 // path follows the REST resource tree — stable IDs (spec/test/context) as
 // nested collections plus the step's order, action, and ID (e.g.
@@ -3941,20 +3959,7 @@ async function captureAutoScreenshot({
 }): Promise<string | null> {
   try {
     const runDir = getRunOutputDir(config);
-    const dir = path.join(
-      runDir,
-      "specs",
-      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
-      "tests",
-      capPathSegment(
-        sanitizeFilesystemName(String(test.testId ?? ""), "test")
-      ),
-      "contexts",
-      capPathSegment(
-        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
-      ),
-      "screenshots"
-    );
+    const dir = contextScreenshotsDir({ config, spec, test, context });
     const fileName = stepArtifactFileName({
       step,
       stepIndex,
@@ -4875,7 +4880,8 @@ async function runContext({
       usedStepIds.add(step.stepId);
       // After the ID, which hashes the authored step: steps that never run
       // still report their effective form (ADR 01167).
-      useEffectiveStep(step, { beforeSubstitution: true });
+      useEffectiveStep(step);
+      placeCapturePaths(step, config);
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
     // so a duplicated stepId routes to the earliest one).
@@ -5088,6 +5094,7 @@ async function runContext({
           options: {
             openApiDefinitions: context.openApi || [],
             annotationTheme,
+            screenshotsDir: () => contextScreenshotsDir({ config, spec, test, context }),
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -5643,15 +5650,37 @@ async function stopAllRecordings({
 // expanded and defaults filled (ADR 01167). In place, so the report that spreads
 // this step echoes it and the runner's markers (`__autoRecord`, the hidden
 // `_fromAfter`) survive. An invalid step stays as it is; its handler says why.
-// Before $VAR substitution, a step with a whole-variable value, such as
-// `"goTo": "$NAV"`, waits: the variable can hold the whole action object.
-function useEffectiveStep(step: any, { beforeSubstitution = false } = {}) {
-  if (beforeSubstitution && Object.values(step).some((value) => typeof value === "string" && /^\$[A-Za-z0-9_]+$/.test(value))) {
-    return;
-  }
+// validate() leaves a whole-variable action, such as `"goTo": "$NAV"`, as
+// authored, because the variable can hold the whole action object. After
+// substitution, `substituted` normalizes one that's left, an unset variable, as
+// text. That second, literal pass is on purpose; every pass is idempotent, so
+// it only changes what the first one skipped.
+function useEffectiveStep(step: any, { substituted = false } = {}) {
   const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
   const validation = validate({ schemaKey: "step_v3", object: authored });
-  if (validation.valid) Object.assign(step, validation.object);
+  if (!validation.valid) return;
+  if (substituted) normalize("step_v3", validation.object, { literal: true });
+  Object.assign(step, validation.object);
+}
+
+// Place a capture's relative path under its `directory`, else outputDir, in
+// place (ADR 01173). That's a file the normalizer named for its step, or a path
+// with no spec file behind it: a path written in a spec file is already
+// absolute. A URL stays. A path or directory with a `$VAR` in it waits: the
+// pass before substitution would bake the variable's name into an absolute
+// path that the pass after it then skips. One still unset after substitution
+// stays relative, and the handler reports it.
+function placeCapturePaths(step: any, config: any) {
+  for (const capture of [step.screenshot, step.record]) {
+    const file = capture?.path;
+    if (typeof file !== "string" || path.isAbsolute(file) || /^https?:\/\//i.test(file)) continue;
+    if (hasVariable(file) || hasVariable(capture.directory)) continue;
+    // A spec file's `directory` is already absolute (resolvePaths ran during
+    // detection), so path.resolve drops outputDir and the file goes in that
+    // directory. outputDir applies only when `directory` is unset or relative: a
+    // runner-named capture, or a getRunner() step.
+    capture.path = path.resolve(config?.outputDir ?? ".", capture.directory ?? "", file);
+  }
 }
 
 // Run a specific step
@@ -5679,9 +5708,11 @@ async function runStep({
   let actionResult: any;
   // Load values from environment variables
   step = replaceEnvs(step);
-  // Again, after substitution: this pass normalizes whole-variable actions, and
-  // getRunner() callers hand runStep authored steps.
-  useEffectiveStep(step);
+  // Not a redundant re-validation. validate() leaves a whole-variable value such
+  // as "goTo": "$URL" as authored, so this pass normalizes it now that it's
+  // substituted. It also normalizes the authored steps getRunner() callers pass.
+  useEffectiveStep(step, { substituted: true });
+  placeCapturePaths(step, config);
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
       config: config,
@@ -5924,6 +5955,7 @@ async function runStep({
       processRegistry,
       surfaceTracker,
       annotationTheme: options?.annotationTheme,
+      screenshotsDir: options?.screenshotsDir,
     });
   } else if (typeof step.annotate !== "undefined") {
     actionResult = await annotate({
