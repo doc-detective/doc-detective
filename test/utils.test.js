@@ -1,4 +1,4 @@
-import { setConfig, outputResults, reporters, spawnCommand } from "../dist/utils.js";
+import { setConfig, outputResults, reporters, spawnCommand, setMeta, getVersionData } from "../dist/utils.js";
 import { setArgs } from "../dist/cliOptions.js";
 import { buildProgram } from "../dist/cliProgram.js";
 import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
@@ -1234,6 +1234,46 @@ describe("--version", function () {
       _resetCacheForTests();
     }
     expect(printed).to.deep.equal(["unknown\n"]);
+  });
+});
+
+describe("own package.json edge cases", function () {
+  // Serve `pkg` (or a read failure, for null) in place of doc-detective's own
+  // package.json while `run` runs, with ownVersion()'s cache dropped around it.
+  function withOwnPackage(pkg, run) {
+    const own = path.resolve("package.json");
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    fs.readFileSync = (p, ...rest) => {
+      if (pkg === null && String(p).endsWith("package.json")) throw new Error("no package.json");
+      if (pkg !== null && path.resolve(String(p)) === own) return JSON.stringify(pkg);
+      return readFileSync(p, ...rest);
+    };
+    try {
+      return run();
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+  }
+
+  it("sets DOC_DETECTIVE_META's dist_version to unknown when its own package.json can't be found", function () {
+    const meta = process.env.DOC_DETECTIVE_META;
+    delete process.env.DOC_DETECTIVE_META;
+    try {
+      withOwnPackage(null, () => setMeta());
+      expect(JSON.parse(process.env.DOC_DETECTIVE_META).dist_version).to.equal("unknown");
+    } finally {
+      if (meta === undefined) delete process.env.DOC_DETECTIVE_META;
+      else process.env.DOC_DETECTIVE_META = meta;
+    }
+  });
+
+  it("reports installed doc-detective-* packages when its package.json has no devDependencies", function () {
+    const data = withOwnPackage({ name: "doc-detective", version: "9.9.9", dependencies: {} }, () => getVersionData());
+    expect(data.error).to.equal(undefined);
+    expect(data.main["doc-detective"].version).to.equal("9.9.9");
+    expect(data.dependencies["doc-detective-common"].expected).to.equal("not specified in main package");
   });
 });
 

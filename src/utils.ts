@@ -1339,7 +1339,7 @@ function setMeta() {
   // Set meta
   const meta: any = parseMeta(process.env["DOC_DETECTIVE_META"]);
   meta.distribution = "doc-detective";
-  meta.dist_version = ownVersion();
+  meta.dist_version = ownVersion() ?? "unknown";
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1353,7 +1353,8 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    const mainPackage: any = readShimPackageJson();
+    // A published package.json can lack either map, so default both.
+    const mainPackage: any = { dependencies: {}, devDependencies: {}, ...readShimPackageJson() };
     const versionData: any = {
       main: {
         "doc-detective": {
