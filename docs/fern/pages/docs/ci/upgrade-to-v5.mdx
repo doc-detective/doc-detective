@@ -206,6 +206,7 @@ doc-detective --concurrent-runners auto
 
 - `--reporters` no longer takes space-separated names. `-r terminal html` exits `2`, because `html` reads as a command, and the error shows the comma form. `-r json docs/` used to treat `docs/` as a reporter name. `run -r json docs/` now tests `docs/`.
 - Repeating one of these flags exits `2`. A repeated `-i a -i b` used to keep only `b`.
+- An empty `reporters` list means no reporters. With `--json`, `--plain`, or `--output -`, `-r terminal` leaves only the stdout output and no run folder.
 - `--agent` no longer takes space-separated or repeated IDs.
 
 **What to do:** Join the values with commas:
@@ -219,7 +220,9 @@ doc-detective install agents --agent claude,copilot --scope project --yes
 
 **What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
 
-**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test, pass `--plain`.
+An explicit `"reporters": []` now means no reporters, so a run writes no run folder. Version 4 fell back to the default reporters.
+
+**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test, pass `--plain`. To keep the default reporters, leave `reporters` out.
 
 ## Invalid flag values exit 2
 
@@ -286,7 +289,7 @@ A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers alwa
 **What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/cli#configuration-precedence), and each layer merges objects key by key:
 
 - `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
-- `install` reads `cacheDir` from your project and user config, like a run does.
+- `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
 - A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
 - A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
 
@@ -306,9 +309,9 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 ## Boolean environment variables
 
-**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value is ignored with a warning. See [Environment variables](/reference/cli#environment-variables).
+**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value counts as off and prints a warning. So `DOC_DETECTIVE_SKIP_AGENT_PROMPT=maybe`, which used to skip the prompt, no longer does. See [Environment variables](/reference/cli#environment-variables).
 
-**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`.
+**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, exits `2`.
 
 ## Telemetry notice
 
@@ -322,7 +325,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 `runTests()` also changed:
 
-- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`.
+- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.

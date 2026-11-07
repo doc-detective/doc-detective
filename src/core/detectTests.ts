@@ -11,7 +11,7 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
 import { displayPath } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
@@ -762,12 +762,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             log(
               config,
               "warning",
-              `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`
+              `Step ${shortJson(step)} isn't a valid step. Skipping.`
             );
             noteInvalidSpec(
               config,
               file,
-              `Step ${JSON.stringify(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
+              `Step ${shortJson(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
             );
             return [];
           }
@@ -935,13 +935,13 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         fileType: fileType,
         filePath: file,
         testIdBase: id,
-        onInvalid: (reason: string, details?: { schemaKey: string; object: any }) => {
-          // Common hands over AJV's string; validate again for the structured errors.
-          const errorObjects = details
-            ? validate({ ...details, addDefaults: false, structuredErrors: true }).errorObjects
-            : [];
-          const summary = (details && summarizeSchemaErrors(errorObjects, details.object, details.schemaKey)) || reason;
-          noteInvalidSpec(config, file, details ? `${JSON.stringify(details.object)}: ${summary}` : summary);
+        onInvalid: (reason: string, details?: { schemaKey: string; object: any; errorObjects?: any[] }) => {
+          const summary = details && summarizeSchemaErrors(details.errorObjects, details.object, details.schemaKey);
+          // `reason` stands in when there's nothing to summarize: a drop with no
+          // schema behind it (a duplicate test ID), or a caller that passes no
+          // errorObjects. It's AJV's raw text, so the object isn't prepended.
+          // shortJson: a step can be long, and the summary is what helps.
+          noteInvalidSpec(config, file, summary ? `${shortJson(details?.object)}: ${summary}` : reason);
         },
       });
       spec.tests.push(...tests);

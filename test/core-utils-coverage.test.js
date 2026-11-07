@@ -15,7 +15,6 @@ import dnsPromises from "node:dns/promises";
 import {
   log,
   logLevelEnabled,
-  outputResults,
   replaceEnvs,
   timestamp,
   inContainer,
@@ -513,31 +512,6 @@ describe("core/utils coverage", function () {
       const dbgCfg = { logLevel: "debug" };
       if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
       assert.match(logged[0], /^\S+ \(DEBUG\) X$/);
-    });
-  });
-
-  describe("outputResults", function () {
-    let tmpDir;
-    beforeEach(function () {
-      sandbox = sinon.createSandbox();
-      sandbox.stub(console, "log");
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-utils-out-"));
-    });
-    afterEach(function () {
-      sandbox.restore();
-      sandbox = undefined;
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch {}
-    });
-    it("writes pretty-printed JSON results to the given path", async function () {
-      const outPath = path.join(tmpDir, "results.json");
-      const results = { summary: { passed: 2 }, nested: [1, 2, 3] };
-      await outputResults(outPath, results, { logLevel: "info" });
-      const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
-      assert.deepEqual(written, results);
-      // pretty-printed (2-space indent → contains newlines)
-      assert.ok(fs.readFileSync(outPath, "utf8").includes("\n  "));
     });
   });
 

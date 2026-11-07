@@ -115,6 +115,16 @@ describe("unknown keys through the CLI", function () {
     expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
   });
 
+  it("names a long invalid inline step by a short prefix, not the whole step", function () {
+    const long = "x".repeat(200);
+    write("a.md", `<!-- step {"runShell":"echo ${long}","asertions":[]} -->\n`);
+    const r = run(["-i", "a.md"]);
+    expect(r.status, r.stderr).to.equal(2);
+    const note = r.stderr.split("\n").find((line) => line.endsWith("Did you mean assertions?"));
+    expect(note).to.match(/^\{"runShell":"echo x+…: unknown key 'asertions'\./);
+    expect(note).to.not.include(long);
+  });
+
   it("suggests a step key for an unknown key in an inline step", function () {
     write("a.md", '<!-- step {"runShell":"echo hi","asertions":[]} -->\n');
     const r = run(["-i", "a.md"]);

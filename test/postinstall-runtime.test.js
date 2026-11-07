@@ -5,6 +5,7 @@ import {
   isDocDetectiveLspCommand,
   isLspInvocation,
   readAncestorCommandLines,
+  agentInstallArgs,
 } from "../scripts/postinstall.js";
 
 before(async function () {
@@ -27,13 +28,23 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
       }
     });
 
-    it("installs for any other value", function () {
-      for (const v of ["1", "true", "yes", "", "anything"]) {
-        expect(
-          isRuntimeInstallOptedOut({ DOC_DETECTIVE_AUTOINSTALL: v }),
-          v
-        ).to.equal(false);
+    it("installs for any other value, and warns once about one it doesn't know", function () {
+      const original = console.error;
+      const printed = [];
+      console.error = (line) => printed.push(line);
+      try {
+        for (const v of ["1", "true", "yes", "", "anything", "anything"]) {
+          expect(
+            isRuntimeInstallOptedOut({ DOC_DETECTIVE_AUTOINSTALL: v }),
+            v
+          ).to.equal(false);
+        }
+      } finally {
+        console.error = original;
       }
+      expect(printed).to.deep.equal([
+        'Warning: Ignoring DOC_DETECTIVE_AUTOINSTALL="anything". Use 1, true, yes, or on, or 0, false, no, or off.',
+      ]);
     });
   });
 
@@ -160,5 +171,17 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
         })
       ).to.deep.equal([]);
     });
+  });
+});
+
+// ADR 01166: --agent takes one comma-separated list, given once.
+describe("agentInstallArgs", function () {
+  it("passes every agent in one --agent list", function () {
+    expect(agentInstallArgs([{ id: "claude" }, { id: "copilot" }])).to.deep.equal([
+      "install",
+      "agents",
+      "--agent",
+      "claude,copilot",
+    ]);
   });
 });

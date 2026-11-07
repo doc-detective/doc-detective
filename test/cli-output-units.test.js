@@ -1,12 +1,13 @@
 // Pure helpers behind the CLI's messages.
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
-import { summarizeSchemaErrors } from "../dist/core/utils.js";
+import { knownKeysAt, summarizeSchemaErrors } from "../dist/core/utils.js";
 import { validate } from "../dist/common/src/index.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
@@ -41,6 +42,17 @@ describe("rewriteRootError", function () {
     );
     expect(out).to.include("unknown command 'instal'");
     expect(out).to.include("Did you mean install?");
+  });
+  it("suggests a command with two swapped letters", function () {
+    const out = rewriteRootError("error: too many arguments. Expected 0 arguments but got 1: rnu.\n", ["run", "install"]);
+    expect(out).to.include("Did you mean run?");
+  });
+  it("names the bad item of a list option", function () {
+    const raw =
+      "error: option '-r, --reporters <names>' argument 'terminal, bogus,json' is invalid. Allowed choices are terminal, json, html.\n";
+    expect(rewriteRootError(raw, [])).to.equal(
+      "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html.\n"
+    );
   });
   it("passes other errors through", function () {
     expect(rewriteRootError("error: unknown option '--x'\n", [])).to.equal(
@@ -112,12 +124,14 @@ describe("summarizeSchemaErrors", function () {
   });
 
   it("names the alternatives when one of several keys is required", function () {
+    const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u" }] } };
+    expect(summarize(object, "config_v3")).to.equal("integrations.heretto[0]: needs one of apiToken, apiTokenFile.");
+  });
+
+  it("lets a suggestion stand in for the choice it names", function () {
     const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
     expect(summarize(object, "config_v3")).to.equal(
-      [
-        "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?",
-        "integrations.heretto[0]: needs one of apiToken, apiTokenFile.",
-      ].join("\n")
+      "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
     );
   });
 
@@ -151,7 +165,121 @@ describe("summarizeSchemaErrors", function () {
 
   it("shortens a long value", function () {
     const line = summarize({ concurrentRunners: { note: "x".repeat(200) } }, "config_v3");
+    // `…` is one character, U+2026, as shortJson writes it, not three dots.
     expect(line).to.equal(`concurrentRunners: must be integer or boolean (got {"note":"${"x".repeat(30)}…).`);
+  });
+
+  it("shortens a long string, and keeps its quotes", function () {
+    expect(summarize({ shell: "z".repeat(100) }, "config_v3")).to.equal(
+      `shell: must be one of bash, cmd, powershell (got "${"z".repeat(37)}…").`
+    );
+  });
+
+  it("counts escapes when it shortens, and never cuts one in half", function () {
+    const got = (shell) => /\(got (.*)\)\.$/.exec(summarize({ shell }, "config_v3"))[1];
+    for (const shell of ["\n".repeat(37), '"'.repeat(50), `${"a".repeat(36)}\\${"b".repeat(10)}`]) {
+      const shown = got(shell);
+      expect(shown.length, shown).to.be.at.most(40);
+      expect(shown, shown).to.match(/^".*…"$/);
+      expect(shown, shown).to.not.match(/(^|[^\\])(\\\\)*\\…/);
+    }
+    expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
+  });
+
+  it("names keys that can't be used together as a choice, not as false schemas", function () {
+    const markup = { link: {}, image: {}, actions: ["find"] };
+    const config = { fileTypes: [{ name: "docs", extensions: ["md"], markup: [markup] }] };
+    expect(summarize(config, "config_v3")).to.equal("fileTypes[0].markup[0]: set only one of image, link.");
+  });
+
+  it("says a key a schema forbids isn't allowed, not that a schema is false", function () {
+    const errorObjects = [
+      { instancePath: "/a/b", keyword: "false schema", params: {}, schemaPath: "#/properties/a/properties/b/false schema", message: "boolean schema is false" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { a: { b: 1 } }, "config_v3")).to.equal("a.b: isn't allowed here.");
+  });
+
+  it("falls back to compound errors' own messages rather than print nothing", function () {
+    const errorObjects = [
+      { instancePath: "/tests/0", keyword: "oneOf", params: { passingSchemas: null }, schemaPath: "#/oneOf", message: "must match exactly one schema in oneOf" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { tests: [{}] })).to.equal("tests[0]: must match exactly one schema in oneOf.");
+  });
+
+  it("says `must be` when only one value is allowed", function () {
+    const errorObjects = [
+      { instancePath: "/mode", keyword: "const", params: { allowedValue: "fast" }, schemaPath: "#/properties/mode/const" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { mode: "slow" }, "config_v3")).to.equal('mode: must be fast (got "slow").');
+  });
+
+  it("names a value JSON can't show, from a JS API caller", function () {
+    const errorObjects = [
+      { instancePath: "/output", keyword: "type", params: { type: "string" }, schemaPath: "#/properties/output/type" },
+    ];
+    const line = (output) => summarizeSchemaErrors(errorObjects, { output }, "config_v3");
+    expect(line(() => "x")).to.equal("output: must be string (got a function).");
+    expect(line(10n)).to.equal("output: must be string (got 10).");
+    const cycle = {};
+    cycle.self = cycle;
+    expect(line(cycle)).to.equal("output: must be string (got an object that can't be shown).");
+    expect(line({ big: 1n })).to.equal("output: must be string (got an object that can't be shown).");
+  });
+
+  it("drops AJV's if summary for a failed then or else", function () {
+    // AJV 8's own output for { if: { required: ["kind"] }, then: { required: ["x"] }, else: ... }:
+    // a failed then or else reports keyword "if", with the branch in failingKeyword.
+    for (const [branch, key] of [
+      ["then", "x"],
+      ["else", "y"],
+    ]) {
+      const errorObjects = [
+        {
+          instancePath: "",
+          schemaPath: `#/${branch}/required`,
+          keyword: "required",
+          params: { missingProperty: key },
+          message: `must have required property '${key}'`,
+        },
+        { instancePath: "", schemaPath: "#/if", keyword: "if", params: { failingKeyword: branch }, message: `must match "${branch}" schema` },
+      ];
+      expect(summarizeSchemaErrors(errorObjects, { kind: "a" }, "config_v3")).to.equal(`missing required key '${key}'.`);
+    }
+  });
+
+  it("finds keys under a key that patternProperties matches", function () {
+    const schema = {
+      type: "object",
+      patternProperties: { "^x-": { type: "object", properties: { inner: {} } } },
+      properties: { plain: {} },
+    };
+    expect(knownKeysAt(["x-custom"], schema)).to.deep.equal(["inner"]);
+    expect(knownKeysAt(["other"], schema)).to.deep.equal([]);
+    expect(knownKeysAt([], schema)).to.deep.equal(["plain"]);
+  });
+
+  it("treats a patternProperties pattern it can't compile as no match", function () {
+    const schema = { type: "object", patternProperties: { "(": { properties: { inner: {} } } }, properties: { plain: {} } };
+    expect(knownKeysAt(["x"], schema)).to.deep.equal([]);
+  });
+
+  it("follows items into an array's entries", function () {
+    const schema = { type: "array", items: { type: "object", properties: { foo: {}, bar: {} } } };
+    expect(knownKeysAt(["0"], schema)).to.deep.equal(["foo", "bar"]);
+    expect(knownKeysAt(["tests", "0"], "spec_v3")).to.include("steps");
+  });
+
+  it("names the keyword when AJV leaves an error without a message", function () {
+    const at = (keyword) => [{ instancePath: "/concurrentRunners", keyword, params: {}, schemaPath: `#/${keyword}` }];
+    expect(summarizeSchemaErrors(at("minimum"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: minimum.");
+    // A bare "not." reads as nonsense, so `not` gets AJV's own wording.
+    expect(summarizeSchemaErrors(at("not"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must NOT be valid.");
+    expect(summarizeSchemaErrors(at("oneOf"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: oneOf.");
+  });
+
+  it("finds keys a conditional branch defines", function () {
+    const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
+    expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);
   });
 
   it("ends any other message with a period", function () {
@@ -367,6 +495,26 @@ describe("checkForUpdate across majors", function () {
   it("ignores a maintenance tag that isn't newer", async function () {
     const deps = registry({ latest: "6.0.0", "release-5.x": "5.0.0" });
     expect((await checkForUpdate("5.0.0", deps)).newer).to.equal(false);
+  });
+});
+
+describe("a remote config's error", function () {
+  it("names the config URL without its query string", async function () {
+    const server = http.createServer((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ logLevl: "info" }));
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${server.address().port}/config.json`;
+    try {
+      await setConfig({ configPath: `${base}?token=s3cret`, args: {} });
+      expect.fail("setConfig accepted an invalid config");
+    } catch (error) {
+      expect(error.message).to.include(`Invalid config in ${base}:`);
+      expect(error.message).to.not.include("s3cret");
+    } finally {
+      server.close();
+    }
   });
 });
 

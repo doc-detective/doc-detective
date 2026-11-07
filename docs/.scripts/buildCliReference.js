@@ -501,7 +501,7 @@ function buildPage(data) {
     "| `DOC_DETECTIVE_SKIP_AGENT_PROMPT` | Boolean | Off | Stops `npm install` from asking to install agent tools. |",
     "| `XDG_CONFIG_HOME`, `XDG_CACHE_HOME` | Paths | Platform defaults | Where the user config and the cache live. |",
     "| `DOC_DETECTIVE` | `{\"config\": {...}}` | Unset | Deprecated: use `DOC_DETECTIVE_CONFIG`. |",
-    "| `DOC_DETECTIVE_RUNTIME_DEBUG` | Boolean | Off | Deprecated: use `DOC_DETECTIVE_DEBUG`. |",
+    "| `DOC_DETECTIVE_RUNTIME_DEBUG` | Boolean | Off | Deprecated: use `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, exits `2`. |",
     ""
   );
 

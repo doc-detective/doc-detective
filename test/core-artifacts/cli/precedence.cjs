@@ -97,6 +97,8 @@ for (const [file, content] of Object.entries(c.files)) {
 const env = {
   ...process.env,
   DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+  // Keeps the update check off even when a case's own DOC_DETECTIVE_CONFIG
+  // replaces the one above and leaves autoUpdate out.
   DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
   ...c.env,
 };

@@ -23,20 +23,17 @@ describe("CLI contract", function () {
       JSON.stringify({ specId: name, tests: [{ testId: `${name}-t`, steps: [step] }] })
     );
 
-  function run(args, { env = {}, input } = {}) {
+  function run(args, { env = {}, input, unset = [] } = {}) {
     const baseEnv = { ...process.env };
     for (const key of ["CI", "NO_COLOR", "FORCE_COLOR", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete baseEnv[key];
-    return spawnSync(process.execPath, [CLI, ...args], {
-      cwd,
-      encoding: "utf8",
-      input: input ?? "",
-      env: {
-        ...baseEnv,
-        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
-        DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
-        ...env,
-      },
-    });
+    const fullEnv = {
+      ...baseEnv,
+      DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+      ...env,
+    };
+    for (const key of unset) delete fullEnv[key];
+    return spawnSync(process.execPath, [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "", env: fullEnv });
   }
 
   beforeEach(function () {
@@ -636,7 +633,8 @@ describe("CLI contract", function () {
       const r = run(["-d", "-c", "bad.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("Invalid config in bad.json:");
-      expect(r.stderr).to.include("must NOT have additional properties");
+      expect(r.stderr).to.match(/ \(DEBUG\) CLI:CONFIG ERRORS: must NOT have additional properties/);
+      expect(r.stderr).to.not.match(/^ /m);
     });
 
     it("names DOC_DETECTIVE_CONFIG when it's the invalid config", function () {
@@ -652,6 +650,18 @@ describe("CLI contract", function () {
       );
     });
 
+    it("names DOC_DETECTIVE when its config object is invalid", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { logLevl: 1 } }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include(
+        [
+          "Error: Invalid config in DOC_DETECTIVE:",
+          "unknown key 'logLevl'. Did you mean logLevel?",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+        ].join("\n")
+      );
+    });
+
     it("names the user config when it's the invalid config", function () {
       const home = path.join(cwd, "xdg");
       fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
@@ -660,6 +670,21 @@ describe("CLI contract", function () {
       const r = run(["-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include(`Error: Invalid config in user config ${file}:\nshell: must be one of`);
+    });
+
+    it("merges a v2 project config as v3, beside a user config", function () {
+      // The Docker image ships a user config, so a v2 project config meets one
+      // there. Merging its raw v2 keys made the combined config invalid.
+      const home = path.join(cwd, "xdg-v2");
+      fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+      fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ allowUnsafeSteps: true }));
+      fs.writeFileSync(
+        path.join(cwd, "v2.json"),
+        JSON.stringify({ envVariables: "", input: ".", runTests: { detectSteps: false }, telemetry: { send: false } })
+      );
+      const r = run(["-c", "v2.json", "-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
+      expect(r.stderr).to.not.include("Invalid config");
+      expect(r.status, r.stderr).to.equal(0);
     });
 
     it("prints a config error once, even when the runner finds it", function () {
@@ -749,6 +774,13 @@ describe("CLI contract", function () {
       );
     });
 
+    it("names the one bad reporter in a list", function () {
+      usage(
+        run(["-r", "terminal, bogus,json"]),
+        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
     it("rejects a repeated -r, and shows the comma form", function () {
       usage(
         run(["-r", "json", "-r", "html"]),
@@ -786,6 +818,21 @@ describe("CLI contract", function () {
         ].join("\n")
       );
     });
+
+    it("writes an empty report to --output when it finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-i", "empty.md", "-o", "out.json"]);
+      expect(r.status).to.equal(2);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "out.json"), "utf8")).specs).to.deep.equal([]);
+    });
+
+    for (const mode of [["--json"], ["--plain"], ["-o", "-"]]) {
+      it(`leaves no run folder for ${mode.join(" ")} -r terminal`, function () {
+        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, ".doc-detective"))).to.equal(false);
+      });
+    }
 
     it("takes --agent as one comma-separated list", function () {
       const r = run(["install", "agents", "--agent", "claude,copilot", "--scope", "project", "--yes", "--dry-run", "--json"]);
@@ -887,6 +934,62 @@ describe("CLI contract", function () {
       const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
       expect(r.status, r.stderr).to.equal(0);
       expect(fs.existsSync(path.join(cwd, "config-cache"))).to.equal(true);
+    });
+
+    for (const args of [
+      ["install", "status", "--json", "--config", "sub/x.json"],
+      ["--config", "sub/x.json", "install", "status", "--json"],
+    ]) {
+      it(`installs into a --config file's cacheDir, relative to the file: ${args.join(" ")}`, function () {
+        fs.mkdirSync(path.join(cwd, "sub"));
+        fs.writeFileSync(path.join(cwd, "sub", "x.json"), JSON.stringify({ cacheDir: "c" }));
+        const r = run(args, { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, "sub", "c"))).to.equal(true);
+      });
+    }
+
+    it("lets install read the project .env, as a run does", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "DOC_DETECTIVE_CACHE_DIR=dotenv-cache\n");
+      const r = run(["install", "status", "--json"], { unset: ["DOC_DETECTIVE_CACHE_DIR"] });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "dotenv-cache"))).to.equal(true);
+    });
+
+    it("doesn't fail install on a credential file it never reads", function () {
+      fs.writeFileSync(
+        path.join(cwd, ".doc-detective.json"),
+        JSON.stringify({ integrations: { docDetectiveApi: { apiKeyFile: "missing.key" } } })
+      );
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("keeps the run's cache out of a step's environment", function () {
+      writeSpec("cache-env.spec.json", { runShell: 'node -e "process.exit(process.env.DOC_DETECTIVE_CACHE_DIR ? 7 : 0)"' });
+      const r = run(["-i", "cache-env.spec.json", "--cache-dir", "flag-cache"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("rejects both names of the debug variable", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_DEBUG: "0", DOC_DETECTIVE_RUNTIME_DEBUG: "1" } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        "Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.\n"
+      );
+    });
+
+    it("keeps an env warning raised at startup, before setConfig", function () {
+      // applyColorFlags reads DOC_DETECTIVE_NO_COLOR before any config exists.
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_NO_COLOR: "maybe" } });
+      expect(r.stdout + r.stderr).to.include('Ignoring DOC_DETECTIVE_NO_COLOR="maybe".');
+    });
+
+    it("exits 2 from install on an invalid project config", function () {
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevl: "info" }));
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown key 'logLevl'. Did you mean logLevel?");
     });
 
     describe("precedence", function () {

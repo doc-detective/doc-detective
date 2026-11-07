@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
 import { setConfig } from "../dist/utils.js";
+import { deepMerge } from "../dist/core/utils.js";
+import { resetEnvFlagWarnings } from "../dist/envFlag.js";
 
 const ENV_KEYS = [
   "DOC_DETECTIVE",
@@ -41,6 +43,7 @@ describe("config precedence", function () {
     process.env.APPDATA = path.join(tmp, "xdg");
     cwd = process.cwd();
     process.chdir(tmp);
+    resetEnvFlagWarnings();
     printed = [];
     originalError = console.error;
     console.error = (line) => printed.push(String(line));
@@ -72,9 +75,9 @@ describe("config precedence", function () {
     const legacy = (config) => (process.env.DOC_DETECTIVE = JSON.stringify({ config }));
 
     it("still applies its config over the project config, and warns", async function () {
-      legacy({ logLevel: "error" });
-      const config = await setConfig({ configPath: project({ logLevel: "info" }), args: {} });
-      expect(config.logLevel).to.equal("error");
+      legacy({ concurrentRunners: 3 });
+      const config = await setConfig({ configPath: project({ concurrentRunners: 2 }), args: {} });
+      expect(config.concurrentRunners).to.equal(3);
       expect(printed).to.include(
         'Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.'
       );
@@ -91,9 +94,16 @@ describe("config precedence", function () {
       expect((await setConfig({ args: { logLevel: "info" } })).logLevel).to.equal("info");
     });
 
-    it("no longer turns on unsafe steps with `container`", async function () {
+    it("no longer turns on unsafe steps with `container`, and says how to", async function () {
       process.env.DOC_DETECTIVE = JSON.stringify({ container: "docdetective/docdetective:linux" });
       expect((await setConfig({ args: {} })).allowUnsafeSteps).to.not.equal(true);
+      expect(printed.join(" ")).to.include("`container` key no longer turns on unsafe steps");
+    });
+
+    it("warns at the configured level, so -q hides it", async function () {
+      legacy({ logLevel: "info" });
+      await setConfig({ args: { quiet: true } });
+      expect(printed.join(" ")).to.not.include("deprecated");
     });
   });
 
@@ -112,7 +122,19 @@ describe("config precedence", function () {
     it("lets --cache-dir beat DOC_DETECTIVE_CACHE_DIR", async function () {
       process.env.DOC_DETECTIVE_CACHE_DIR = "envc";
       const config = await setConfig({ args: { cacheDir: "flagc" } });
-      expect(path.resolve(config.cacheDir)).to.equal(path.join(tmp, "flagc"));
+      expect(config.cacheDir).to.equal(path.join(tmp, "flagc"));
+    });
+
+    it("resolves DOC_DETECTIVE_CONFIG's relative cacheDir against the working directory", async function () {
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ cacheDir: "envcfg" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.cacheDir).to.equal(path.join(tmp, "envcfg"));
+    });
+
+    it("resolves the user config's relative cacheDir against the user config", async function () {
+      user({ cacheDir: "uc" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.cacheDir).to.equal(path.join(tmp, "xdg", "doc-detective", "uc"));
     });
   });
 
@@ -120,6 +142,18 @@ describe("config precedence", function () {
     it("resolves a config file's relative output against the config file", async function () {
       const config = await setConfig({ configPath: project({ output: "res.json" }), args: {} });
       expect(config.output).to.equal(path.join(tmp, "cfg", "res.json"));
+    });
+
+    it("resolves DOC_DETECTIVE_CONFIG's relative output against the working directory", async function () {
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ output: "o.json" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.output).to.equal(path.join(tmp, "o.json"));
+    });
+
+    it("resolves the user config's relative output against the user config", async function () {
+      user({ output: "u.json" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.output).to.equal(path.join(tmp, "xdg", "doc-detective", "u.json"));
     });
 
     it("resolves --output against the working directory", async function () {
@@ -147,5 +181,11 @@ describe("config precedence", function () {
       expect((await setConfig({ args: {} })).autoUpdate).to.equal(false);
       expect((await setConfig({ args: { autoUpdate: true } })).autoUpdate).to.equal(true);
     });
+  });
+
+  it("doesn't let a config key reach an object's prototype", function () {
+    const merged = deepMerge({}, JSON.parse('{"constructor":{"polluted":true},"prototype":{"polluted":true},"__proto__":{"polluted":true}}'));
+    expect({}.polluted).to.equal(undefined);
+    expect(Object.keys(merged)).to.deep.equal([]);
   });
 });

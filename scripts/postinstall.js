@@ -188,17 +188,37 @@ if (isInvokedDirectly()) main().catch(() => {});
  * DOC_DETECTIVE_AUTOINSTALL (0/false/no/off, case-insensitive). Default
  * (unset or any other value) installs. Exported for tests.
  */
+// `install agents` for these adapters: one comma-separated --agent list, given
+// once (ADR 01166). Exported for tests.
+export function agentInstallArgs(adapters) {
+  return ["install", "agents", "--agent", adapters.map((adapter) => adapter.id).join(",")];
+}
+
 export function isRuntimeInstallOptedOut(env = process.env) {
   return envFlag("DOC_DETECTIVE_AUTOINSTALL", env) === false;
 }
 
-// A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
-// true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
-// undefined, so each caller keeps its own default.
+const warnedFlags = new Set();
+/**
+ * A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
+ * true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
+ * undefined, so each caller keeps its own default.
+ *
+ * It differs on purpose: src/envFlag.ts returns `false` for unset. Don't swap
+ * them: with `false` for unset, `=== false` checks such as
+ * `isRuntimeInstallOptedOut` would treat every unset variable as opted out.
+ */
 function envFlag(name, env = process.env) {
   const value = String(env[name] ?? "").trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;
   if (["0", "false", "no", "off"].includes(value)) return false;
+  // Like src/envFlag.ts: any other value counts as unset, and says so once.
+  if (value && !warnedFlags.has(name)) {
+    warnedFlags.add(name);
+    console.error(
+      `Warning: Ignoring ${name}=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`
+    );
+  }
   return undefined;
 }
 
@@ -512,10 +532,7 @@ async function maybePromptInstallAgents() {
 
   // Pre-fill --agent so the CLI doesn't re-prompt for the picker. Scope stays
   // interactive on purpose — project vs global is a per-user decision.
-  const cliArgs = ["install", "agents"];
-  for (const a of adaptersNeedingInstall) {
-    cliArgs.push("--agent", a.id);
-  }
+  const cliArgs = agentInstallArgs(adaptersNeedingInstall);
   // Hand the child the sanitized PATH under the actual key (PATH or Path) so
   // its adapter spawns can't resolve a fake `claude`/`gh`/etc from
   // `node_modules/.bin` during the install step either.

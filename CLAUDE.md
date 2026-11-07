@@ -37,7 +37,7 @@ node ./bin/doc-detective.js install all --yes   # browsers + drivers, if you'll 
 
 Don't reach for `--no-verify` when a husky hook fails for a missing dependency. Install the deps
 instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
-`doc-detective runTests --input <file>`) rather than guessing at CI behavior.
+`doc-detective --input <file>`) rather than guessing at CI behavior.
 
 ## Don't rewrite whole files with scripts (CRLF landmine)
 
@@ -305,20 +305,30 @@ Reserve the namespace: the bare `doc-detective` command takes flags only, so any
 4. **Runtime helper.** Put any parsing / regex compilation / list-splitting in a small pure helper in [src/core/utils.ts](src/core/utils.ts) (e.g. `compileFilter`, `appendQueryParams`). Keeps `setConfig` boring and the logic unit-testable without the runner.
 5. **Read from `config.flagName`** at the consumption site. Never reach back into `args`.
 
-### Multi-value flags (`--test`, `--spec`)
+### Multi-value flags (`-r`, `-i`, `-t`, `-s`, `--agent`)
 
-This is the convention for **new** strict-array fields. `--input` predates it. For backward compatibility it uses a permissive `stringOrArray` shape, accepting a string or an array with no item-level constraints. Don't model new flags on `--input`.
+A list flag takes one comma-separated value, given once ([ADR 01166](adrs/01166-one-separator-per-list-flag.md)). This is the convention for **new** strict-array fields. `--input` predates it in config. For backward compatibility it uses a permissive `stringOrArray` shape, accepting a string or an array with no item-level constraints. Don't model new config fields on `--input`.
 
 - **Schema**: `type: "array", items: { type: "string", minLength: 1, pattern: "\\S" }`. The `\\S` blocks whitespace-only entries that would otherwise compile into accidentally-matching regexes.
-- **Commander**: `<value>`, a single comma-separated value. Not variadic `<value...>`. The comma split lives in `setConfig`, so file and env users land on the same array shape.
+- **Commander**: `<values>` with `.argParser(commaList())`, which rejects a repeated flag and, given choices, checks each item. Not variadic `<value...>`. The parser returns the raw string, and the comma split lives in `setConfig`, so file and env users land on the same array shape.
 - **`setConfig` override**: split on `,`, trim each, **drop empties**, store as `string[]`. See the `--test` and `--spec` blocks for the canonical pattern. `--input` splits and trims but does not drop empties, because its laxer shape predates this convention.
 - **Runtime helper**: defense-in-depth. Also trim and drop empty entries inside the helper, since env and CLI paths could in theory bypass AJV.
 
 ### Order of precedence (memorize)
 
+Highest first ([ADR 01165](adrs/01165-one-config-env-var-and-one-precedence-order.md)):
+
 ```
-file config + DOC_DETECTIVE_CONFIG  →  AJV validate (config_v3)  →  CLI override  →  runtime
+flags
+→ shell env: single-purpose vars (DOC_DETECTIVE_CACHE_DIR, DOC_DETECTIVE_DEBUG/DEBUG, DO_NOT_TRACK,
+  DOC_DETECTIVE_SKIP_AUTO_UPDATE) over DOC_DETECTIVE_CONFIG
+→ project .env (fills unset variables only)
+→ project config (-c, or .doc-detective.*)
+→ user config ($XDG_CONFIG_HOME/doc-detective/config.json)
+→ schema defaults
 ```
+
+Config layers merge deeply: objects key by key, arrays replace. Each source is validated against `config_v3` on its own, so an error names it. Flags then override the validated result.
 
 ### TDD cycle per flag
 

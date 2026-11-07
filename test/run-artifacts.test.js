@@ -119,10 +119,10 @@ describe("runArchivesArtifacts", function () {
     ).to.equal(false);
   });
 
-  it("is true for an empty reporters array (mirrors the default fallback)", function () {
-    // outputResults falls back to the default reporter set (which includes
-    // runFolder) when reporters is empty, so this helper must agree.
-    expect(runArchivesArtifacts({ reporters: [] })).to.equal(true);
+  it("is false for an empty reporters array, which means no reporters", function () {
+    // outputResults runs no file reporter for an explicit empty list, as
+    // when --json or --plain replaces the only reporter (ADR 01166).
+    expect(runArchivesArtifacts({ reporters: [] })).to.equal(false);
   });
 
   it("matches reporter tokens verbatim like outputResults (no trimming)", function () {

@@ -61,30 +61,46 @@ Chosen option: **A**, with the order below.
   of the layering. The runner's `setConfig`, which the JS API calls, reads only the config it's given.
 - **`DOC_DETECTIVE`** is a deprecated alias of `DOC_DETECTIVE_CONFIG`. Its `config` object merges just
   below `DOC_DETECTIVE_CONFIG`, so flags beat it. It's validated like any config source, and each run
-  warns on stderr, unless `-q`:
-  ``Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.``
+  warns: ``Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.``
   Its other keys do nothing. Invalid JSON warns and is ignored, as it was.
-- **`.container` no longer turns on unsafe steps.** Only `allowUnsafeSteps` does. The Docker images
-  write `{"allowUnsafeSteps": true}` to a user config at `/etc/doc-detective-xdg/doc-detective/config.json`
-  (`C:\ProgramData\doc-detective-xdg` on Windows) and set `XDG_CONFIG_HOME` to its folder. That's the lowest
-  layer, so a project can still turn it off, and pinning `XDG_CONFIG_HOME` keeps it working when a CI
-  system moves `HOME`.
+- **`.container` no longer turns on unsafe steps.** Only `allowUnsafeSteps` does, and a `container` key warns
+  with that fix. The Docker images write `{"allowUnsafeSteps": true}` to a user config at
+  `/etc/doc-detective-xdg/doc-detective/config.json` (`C:\ProgramData\doc-detective-xdg` on Windows). They
+  set `XDG_CONFIG_HOME` to its folder. That's the lowest layer, so a project can still turn it off. Pinning
+  `XDG_CONFIG_HOME` keeps it working when a CI system moves `HOME`.
 - **`loadVariables`.** The config-level file fills only unset variables. The `loadVariables` step still
   replaces them, because a step sets variables on purpose. Every dotenv load is quiet.
-- **Paths.** A config file's relative `output` and `cacheDir` resolve against the config file, like its
-  other paths. Flags and environment variables resolve against the working directory.
+- **Paths.** A relative `output` or `cacheDir` resolves against the source that set it, before the merge:
+  - the project config file's folder, unless it sets `relativePathBase: "cwd"`;
+  - the user config file's own folder;
+  - the working directory for `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE`, single-purpose variables, and flags.
+
+  Other config path keys keep resolving as they did; one rule for all of them is later work (R6).
 - **The cache.** `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`, which beats config `cacheDir`. The CLI
-  writes the resolved value back to `DOC_DETECTIVE_CACHE_DIR`. Every runtime lookup in the process then
-  uses the same cache, including lookups that read only the environment. `install *` resolves it through the
-  same `setConfig` as a run. Browsers always install into `<cacheDir>/browsers`. The `./browser-snapshots/`
-  fallback is gone: a legacy folder costs one fresh download.
+  resolves the winner to an absolute path and hands it to the runtime's cache module in process. Every
+  lookup in the run then uses the same cache. It doesn't write the environment, so steps' child processes never
+  inherit it. `install *` resolves the cache through the same `setConfig`, after loading the project `.env`.
+  It doesn't read `apiKeyFile` or `apiTokenFile`, which it never uses, so an image build can run before
+  secrets are mounted. An invalid config still exits `2`. Browsers always install into
+  `<cacheDir>/browsers`. The `./browser-snapshots/` fallback is gone: a legacy folder costs one fresh download.
+- **Self-update.** `DOC_DETECTIVE_SKIP_AUTO_UPDATE` sets `autoUpdate: false`, so `--auto-update` beats it.
+  A self-update's re-exec gets the original argv, so it also sets an internal marker that no flag or config
+  overrides. A re-exec'd process never checks for updates again.
 - **`envFlag()`** reads every `DOC_DETECTIVE_*` boolean. On: `1`, `true`, `yes`, or `on`. Off: unset, empty,
   or `0`, `false`, `no`, or `off`. Trimmed and case-insensitive. Anything else counts as off and warns once:
   `Warning: Ignoring DOC_DETECTIVE_REUSE_APPIUM="maybe". Use 1, true, yes, or on, or 0, false, no, or off.`
-  Names stay as they are. `DOC_DETECTIVE_RUNTIME_DEBUG` becomes a deprecated alias of `DOC_DETECTIVE_DEBUG`,
-  and warns ``Warning: `DOC_DETECTIVE_RUNTIME_DEBUG` is deprecated. Rename it to `DOC_DETECTIVE_DEBUG`.``
   `NO_COLOR`, `FORCE_COLOR`, `DO_NOT_TRACK`, and `TERM` keep their own conventions. The postinstall script
   keeps a copy, because it runs without `dist`.
+- **Renamed variables.** Names stay as they are, except `DOC_DETECTIVE_RUNTIME_DEBUG`, a deprecated alias of
+  `DOC_DETECTIVE_DEBUG`. When it's on, config setup warns once:
+  ``Warning: `DOC_DETECTIVE_RUNTIME_DEBUG` is deprecated. Rename it to `DOC_DETECTIVE_DEBUG`.``.
+  Setting both, with either one on, is a usage error, exit `2`. The error names the one that's on:
+  ``Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.``.
+  With both on, it ends `Both are on.`
+- **Warnings respect the log level.** Environment warnings wait until `setConfig` knows the level, then go
+  through `log()`. `-q`, `-l error`, and `-l silent` hide them. Each warning prints once per process, so a
+  JS API caller that runs `runTests()` again doesn't see it twice. Each core `setConfig` drops warnings an
+  earlier run queued but never sent, so they don't pile up.
 
 Ladder (exit 0 unless noted):
 
@@ -109,15 +125,17 @@ This amends ADR 01146 § "Configuration and environment".
   The upgrade guide lists each.
 - Bad: a custom image that set `DOC_DETECTIVE='{"container":…}'` to run unsafe steps no longer does. It
   has to set `allowUnsafeSteps`.
-- Neutral: `install` now fails on an invalid config, like a run.
+- Neutral: `install` now fails on an invalid config, like a run, though not on a missing credential file.
 
 ### Confirmation
 
 - `test/config-precedence.test.js` covers the deep merge, `DOC_DETECTIVE`'s layer and warning, the cache
   and `output` paths, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE`.
-- `test/env-flag.test.js` holds the `envFlag` table and the `DOC_DETECTIVE_RUNTIME_DEBUG` alias.
+- `test/env-flag.test.js` holds the `envFlag` table, the warning sink, and the `DOC_DETECTIVE_RUNTIME_DEBUG` alias.
+- `test/runtime-self-update.test.js` shows the re-exec marker stops a second check, even with `--auto-update`.
 - `test/cli-contract.test.js` covers `.env` and `loadVariables` against the shell, `DOC_DETECTIVE` below flags,
-  `.container`, `--cache-dir` against the variable, and `install` reading config `cacheDir`.
+  `.container`, and `--cache-dir` against the variable. It also covers `install` reading config `cacheDir`
+  and `.env`, a step's environment without the run's cache, and both debug names.
 - `test/misc-edge-branches-coverage.test.js` shows `getBrowsersDir()` ignores `./browser-snapshots`.
 - `test/core-artifacts/cli/config-precedence.spec.json` runs the permutations through the fixture jobs.
 

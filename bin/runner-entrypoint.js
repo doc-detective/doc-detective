@@ -394,6 +394,7 @@ function makeLogShipper(apiBase, runId, token) {
  *   * `input`  → /workspace/specs (only for inline specs; for github
  *     sources we leave the user's `input` alone so their committed
  *     paths resolve from the cloned repo cwd)
+ *   * `exitOnFail` → true (the exit code carries the run's outcome)
  */
 function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_DIR) {
 	const effective = { ...(configSnapshot ?? {}) };
@@ -414,7 +415,34 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	if (source.type === 'inline') {
 		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}
+	// The exit code is the run's outcome (finalizeBodyFor). `exitOnFail: false`
+	// would turn failed, empty, and all-skipped runs into 0 (ADR 01146).
+	effective.exitOnFail = true;
 	return effective;
+}
+
+/**
+ * Map the CLI's exit code (ADR 01146) to the finalize body. SIGTERM (143)
+ * signals cancel; the watchdog or cancel handler is the source of truth, but
+ * our best-effort POST helps the row land at `canceled` faster.
+ */
+function finalizeBodyFor(exitCode, canceledBySignal) {
+	if (canceledBySignal || exitCode === 143) {
+		return { status: 'canceled', exit_code: exitCode, summary: { reason: 'sigterm' } };
+	}
+	if (exitCode === 130) {
+		return { status: 'canceled', exit_code: 130, summary: { reason: 'interrupted' } };
+	}
+	if (exitCode === 0) return { status: 'succeeded', exit_code: 0, summary: {} };
+	// The run worked and a test failed. The platform shows a tests-failed outcome.
+	if (exitCode === 1) {
+		return { status: 'succeeded', exit_code: 1, summary: { reason: 'tests_failed' } };
+	}
+	// No specs, every spec skipped, or an invalid spec.
+	if (exitCode === 2) {
+		return { status: 'failed', exit_code: 2, summary: { reason: 'nothing_tested' } };
+	}
+	return { status: 'failed', exit_code: exitCode, summary: { reason: 'nonzero_exit' } };
 }
 
 /**
@@ -737,30 +765,7 @@ async function main() {
 	// deletes the run_token, so a late /logs POST after finalize 401s.
 	await shipper.flush();
 
-	// Map exit code → finalize status. SIGTERM (143) signals cancel;
-	// the watchdog or cancel handler is the source of truth, but our
-	// best-effort POST helps the row land at `canceled` faster.
-	let finalizeBody;
-	if (canceledBySignal || exitCode === 143) {
-		finalizeBody = {
-			status: 'canceled',
-			exit_code: exitCode,
-			summary: { reason: 'sigterm' }
-		};
-	} else if (exitCode === 0) {
-		finalizeBody = { status: 'succeeded', exit_code: 0, summary: {} };
-	} else if (exitCode === 1) {
-		// The run worked and a test failed (ADR 01146). The platform reads this
-		// from the exit code and shows it as a tests-failed outcome.
-		finalizeBody = { status: 'succeeded', exit_code: 1, summary: { reason: 'tests_failed' } };
-	} else {
-		finalizeBody = {
-			status: 'failed',
-			exit_code: exitCode,
-			summary: { reason: 'nonzero_exit' }
-		};
-	}
-	await postFinalize(apiBase, runId, token, finalizeBody);
+	await postFinalize(apiBase, runId, token, finalizeBodyFor(exitCode, canceledBySignal));
 	return exitCode;
 
 	} finally {
@@ -811,6 +816,7 @@ export {
 	buildEffectiveConfig,
 	fetchSpec,
 	filterSecrets,
+	finalizeBodyFor,
 	main,
 	makeLogShipper,
 	postFinalize,

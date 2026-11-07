@@ -2,8 +2,9 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
-import { envFlag, isDebugRequested } from "./envFlag.js";
+import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, redactUrlForOutput, timestamp } from "./core/utils.js";
+import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
+import { splitList } from "./cliOptions.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -186,23 +187,48 @@ async function getConfigFromEnv() {
 
 // DOC_DETECTIVE's `config` object, the deprecated spelling of
 // DOC_DETECTIVE_CONFIG (ADR 01165). It sits just below that variable, and its
-// other keys, such as `container`, do nothing.
-function readLegacyEnvConfig(args: any) {
+// other keys, such as `container`, do nothing. Warnings wait for setConfig to
+// know the log level.
+function readLegacyEnvConfig() {
   if (!process.env.DOC_DETECTIVE) return null;
   let legacy: any;
   try {
     legacy = JSON.parse(process.env.DOC_DETECTIVE);
   } catch (error: any) {
-    if (!args.quiet) diag(`Warning: Ignoring DOC_DETECTIVE: it isn't valid JSON (${error.message}).`);
+    warnOnce("DOC_DETECTIVE", `Ignoring \`DOC_DETECTIVE\`: it isn't valid JSON (${error.message}).`);
     return null;
+  }
+  if (legacy?.container !== undefined) {
+    warnOnce(
+      "DOC_DETECTIVE.container",
+      '`DOC_DETECTIVE`\'s `container` key no longer turns on unsafe steps. Set `"allowUnsafeSteps": true` in your user config, `$XDG_CONFIG_HOME/doc-detective/config.json`, or pass `--allow-unsafe`.'
+    );
   }
   const config = legacy?.config;
   if (config === null || typeof config !== "object" || Array.isArray(config)) return null;
-  if (!args.quiet) {
-    diag('Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
+  warnOnce("DOC_DETECTIVE", '`DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
+  return anchorPaths(assertValidConfig(config, "DOC_DETECTIVE"), process.cwd());
+}
+
+// A relative `output` or `cacheDir` resolves against the source that set it:
+// a config file's folder, or the working directory for the environment and
+// flags (ADR 01165). `path.join` keeps a trailing separator, so `output: "x/"`
+// still reads as a folder. Returns a copy; the input is left as it was.
+function anchorPaths(config: any, base: string) {
+  const anchored = { ...config };
+  for (const key of ["output", "cacheDir"]) {
+    const value = anchored[key];
+    if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
+      anchored[key] = path.join(base, value);
+    }
   }
-  assertValidConfig(config, "DOC_DETECTIVE");
-  return config;
+  return anchored;
+}
+
+// Where a config file's relative paths resolve: its folder, unless it sets
+// `relativePathBase: "cwd"`, or it's a URL.
+function configFileBase(config: any, file: string) {
+  return config.relativePathBase === "cwd" || /^https?:\/\//.test(file) ? process.cwd() : path.dirname(path.resolve(file));
 }
 
 // `--output` and config `output` name the results file (ADR 01146). Fail on a
@@ -224,9 +250,10 @@ function resolveResultsFile(output: string, base = process.cwd()): string {
 }
 
 // Write the run's results to the file `--output` names, replacing any file there.
-// An empty run has no results to write.
+// A run that found no tests writes its empty report, so `--output` always
+// gets a file.
 function writeResultsFile(outputFile: string | undefined, results: any) {
-  if (!outputFile || !results) return;
+  if (!outputFile) return;
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
   fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
 }
@@ -270,19 +297,22 @@ async function readUserConfig() {
   if (config === null || typeof config !== "object") {
     throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
   }
-  assertValidConfig(config, `user config ${file}`);
-  return config;
+  const valid = assertValidConfig(config, `user config ${file}`);
+  return anchorPaths(valid, configFileBase(valid, file));
 }
 
 // Validate one config source on its own, so an error names where it came from.
 // `addDefaults: false` only picks which object validate() returns: it still
 // validates a defaulted clone, so a partial source such as
 // `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
-function assertValidConfig(config: any, source: string) {
+// Returns the source to merge: the caller's own object, or a v2 config's v3
+// form, so the merge never mixes v2 keys into a v3 config.
+function assertValidConfig(config: any, source: string): any {
   const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
   if (!validation.valid) {
     throw new Error(configErrorMessage(source, validation.errorObjects, config), { cause: validation.errors });
   }
+  return validation.object;
 }
 
 // Secrets can come from a file rather than the config or environment, where they
@@ -324,11 +354,25 @@ function discoverConfigPath(args: { config?: unknown } = {}): string | null {
   return found ?? null;
 }
 
-// Override config values based on args and validate the config
-async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
+// Override config values based on args and validate the config.
+// `readCredentials: false` leaves `apiKeyFile` and `apiTokenFile` unread, for
+// `install`, which never uses them and may run before secrets are mounted.
+async function setConfig({
+  configPath,
+  args,
+  readCredentials = true,
+}: {
+  configPath?: any;
+  args: any;
+  readCredentials?: boolean;
+}) {
   if (args.config && !configPath) {
     configPath = args.config;
   }
+  // Unlike core setConfig, keep what's queued: the CLI's own startup, such as
+  // applyColorFlags, raises warnings before this runs, once per process.
+  // Both spellings of a renamed variable is a usage error.
+  checkEnvAliases();
 
   // If a config path is given, read it. `readFile` returns null on a read
   // failure (missing/unreadable file) and may throw on bad input; in both
@@ -355,19 +399,21 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     if (typeof config !== "object") {
       throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
     }
-    assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
+    // A remote config's URL can carry a token in its query string; name it without.
+    config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? redactUrlForOutput(configPath) : displayPath(path.resolve(configPath)));
+    config = anchorPaths(config, configFileBase(config, configPath));
   }
 
   // Lowest first: the user config, the project config, the deprecated
   // DOC_DETECTIVE, then DOC_DETECTIVE_CONFIG. Objects merge, arrays replace
   // (ADR 01165). Single-purpose variables and flags go on top, below.
   config = deepMerge((await readUserConfig()) ?? {}, config);
-  const legacyConfig = readLegacyEnvConfig(args);
+  const legacyConfig = readLegacyEnvConfig();
   if (legacyConfig) config = deepMerge(config, legacyConfig);
   const envConfig = await getConfigFromEnv();
-  if (envConfig) config = deepMerge(config, envConfig);
+  if (envConfig) config = deepMerge(config, anchorPaths(envConfig, process.cwd()));
 
-  readCredentialFiles(config);
+  if (readCredentials) readCredentialFiles(config);
 
   // Validate config. Each source passed on its own, so this rarely fails.
   const validation = validate({
@@ -393,20 +439,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     telemetry: config.telemetry || { send: true },
     hints: config.hints || { enabled: true },
   };
-  // A config's relative `output` and `cacheDir` resolve against the config
-  // file. Flags and single-purpose variables resolve against the working
-  // directory.
-  const configBase =
-    configPath && config.relativePathBase !== "cwd" && !/^https?:\/\//.test(configPath)
-      ? path.dirname(path.resolve(configPath))
-      : process.cwd();
-  // Kept relative to the working directory where it can be, so a cache path
-  // only grows the characters getCacheDir's shell check rejects when it must.
-  if (typeof config.cacheDir === "string") {
-    config.cacheDir = path.relative(process.cwd(), path.resolve(configBase, config.cacheDir)) || ".";
-  }
+  // Single-purpose variables and flags resolve against the working directory.
   const cacheDirFromEnv = process.env.DOC_DETECTIVE_CACHE_DIR?.trim();
-  if (cacheDirFromEnv) config.cacheDir = cacheDirFromEnv;
+  if (cacheDirFromEnv) config.cacheDir = path.resolve(cacheDirFromEnv);
   if (envFlag("DOC_DETECTIVE_SKIP_AUTO_UPDATE")) config.autoUpdate = false;
   // Override config values
   if (configPath) {
@@ -434,7 +469,8 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (args.output && args.output !== "-") {
     config.output = resolveResultsFile(args.output);
   } else if (typeof config.output === "string") {
-    config.output = resolveResultsFile(config.output, configBase);
+    // Each source anchored its own relative path already.
+    config.output = resolveResultsFile(config.output);
   }
   if (args.outputDir) {
     config.outputDir = path.resolve(args.outputDir);
@@ -447,6 +483,12 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (args.logLevel) {
     config.logLevel = args.logLevel;
   }
+  // Now that the level is known, environment warnings (bad boolean values,
+  // deprecated names) print through log(), so -q and -l hide them.
+  const logged = config;
+  // The runner's setConfig sets the sink again on purpose, so JS API callers,
+  // who never reach this one, get the same warnings.
+  setEnvWarningSink((message) => log(message, "warning", logged));
   if (args.telemetry === false || process.env.DO_NOT_TRACK) {
     config.telemetry = { ...(config.telemetry || {}), send: false };
   }
@@ -457,17 +499,23 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config.dryRun = args.dryRun;
   }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
-  const list = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
-  if (typeof args.reporters === "string" && list(args.reporters).length > 0) {
-    config.reporters = list(args.reporters);
+  for (const [flag, key] of [
+    ["reporters", "reporters"],
+    ["test", "testFilter"],
+    ["spec", "specFilter"],
+  ]) {
+    const list = typeof args[flag] === "string" ? splitList(args[flag]) : [];
+    if (list.length > 0) config[key] = list;
   }
-  if (typeof args.test === "string" && list(args.test).length > 0) config.testFilter = list(args.test);
-  if (typeof args.spec === "string" && list(args.spec).length > 0) config.specFilter = list(args.spec);
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
-  // Commander has already checked each value below against its choices.
+  // setConfig is CLI-only (not a package export), so commander has already
+  // checked each value below against its choices: verification,
+  // browserFallback, shell, and concurrentRunners pass through unchecked. Its
+  // callers, cli.ts and the install command, hand it commander's parsed
+  // options; a new caller must too.
   if (typeof args.verification === "string") {
     const write = args.verification === "existing" ? "existing" : args.verification === "true";
     config.verification = { ...(config.verification || {}), write };
@@ -484,18 +532,17 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoRecord === "boolean") {
     config.autoRecord = args.autoRecord;
   }
-  if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
-    // Assignment-only per the documented setConfig contract (the standard
-    // `length > 0` guard, no per-flag sanitization). getCacheDir() in
-    // runtime/cacheDir.ts trims and drops whitespace-only values, so a
-    // `--cache-dir "   "` override is neutralized at the consumption site.
-    config.cacheDir = args.cacheDir;
+  // Absolute, so a later chdir or another working directory finds the same
+  // cache. A whitespace-only value is ignored.
+  if (typeof args.cacheDir === "string" && args.cacheDir.trim().length > 0) {
+    config.cacheDir = path.resolve(args.cacheDir.trim());
   }
   if (typeof args.browserFallback === "string") config.browserFallback = args.browserFallback;
   if (typeof args.shell === "string") config.shell = args.shell;
   // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
-    config.concurrentRunners = ["auto", "true"].includes(args.concurrentRunners) || Number(args.concurrentRunners);
+    config.concurrentRunners =
+      args.concurrentRunners === "auto" || args.concurrentRunners === "true" ? true : Number(args.concurrentRunners);
   }
   // Modes that replace the terminal summary on stdout.
   const stdoutReporters: string[] = [];
@@ -517,7 +564,8 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     objectType: "config",
   });
   // The stdout modes' reporters aren't config `reporters` values, so they ride
-  // along unenumerated, out of the runner's validation.
+  // along unenumerated, out of the runner's validation. Non-enumerable on
+  // purpose: the runner's JSON clone drops it, and only outputResults reads it.
   Object.defineProperty(config, "_stdoutReporters", { value: stdoutReporters, configurable: true });
 
   return config;
@@ -1180,17 +1228,17 @@ function reporterKey(reporter: string): string {
 }
 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
-  // Config is the source of truth. Fall back to options.reporters for
-  // programmatic callers that pass them directly, then to defaults.
+  // Config is the source of truth, and an empty list means no reporters, as
+  // when `--json` replaces the only one. Fall back to options.reporters for
+  // programmatic callers that pass them directly, then to defaults. The run
+  // folder gate, runArchivesArtifacts, follows the same rule.
   const defaultReporters = ["terminal", "runFolder"];
   // `--json` and `--plain` add their stdout reporters here, not to `reporters`.
-  const stdoutReporters: string[] = config?._stdoutReporters ?? [];
-  const configured = [...(Array.isArray(config?.reporters) ? config.reporters : []), ...stdoutReporters];
+  const stdoutReporters = (config as { _stdoutReporters?: string[] } | undefined)?._stdoutReporters ?? [];
 
-  let activeReporters =
-    (configured.length > 0 ? configured : null) ||
-    options.reporters ||
-    defaultReporters;
+  let activeReporters = Array.isArray(config?.reporters)
+    ? [...config.reporters, ...stdoutReporters]
+    : options.reporters || defaultReporters;
 
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {

@@ -215,7 +215,10 @@ function distance(a: string, b: string): number {
 }
 
 // Under 3 edits, and fewer than half the word's letters, so a short word like
-// `nope` isn't stretched into a different one like `type`.
+// `nope` isn't stretched into a different one like `type`. The half-length rule
+// applies to schema keys and to subcommand names (rewriteRootError) on purpose:
+// every command is 3+ letters, and a swap counts as one edit, so `rnu` → `run`.
+// A one-letter word only matches exactly (0 edits), so it never gets a guess.
 export function nearestCommand(word: string, names: string[]): string | undefined {
   let best: string | undefined;
   let bestDistance = 3;
@@ -232,6 +235,13 @@ export function nearestCommand(word: string, names: string[]): string | undefine
 // Rewrite the root's "too many arguments" as what it almost always is: a command
 // that doesn't exist, or a path that needs `-i`.
 export function rewriteRootError(message: string, commandNames: string[], argv: string[] = []): string {
+  // A list option's bad choice: name the first bad item, not the whole list.
+  const choice = /^(error: option '[^']+' argument )'([^']*,[^']*)'( is invalid\. Allowed choices are (.*)\.\s*)$/s.exec(message);
+  if (choice) {
+    const allowed = choice[4].split(/,\s*/);
+    const bad = choice[2].split(",").map((item) => item.trim()).find((item) => item && !allowed.includes(item));
+    if (bad) return `${choice[1]}'${bad}'${choice[3]}`;
+  }
   const match = /too many arguments\b.*: ([^,\s]+)[^:]*\.\s*$/.exec(message);
   if (!match) return message;
   const word = match[1];

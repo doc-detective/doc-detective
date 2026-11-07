@@ -15,7 +15,7 @@ export interface InstallState {
   upToDate?: boolean;
 }
 
-export type LogLevel = "info" | "warn" | "error" | "debug";
+export type LogLevel = "info" | "warning" | "error" | "debug";
 
 export interface InstallOptions {
   scope: Scope;
