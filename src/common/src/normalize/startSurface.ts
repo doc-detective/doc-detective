@@ -1,6 +1,9 @@
 import { schemas } from "../schemas/index.js";
 
-const descriptors = (schemas as any).startSurface_v3.components.schemas;
+// A missing schema structure leaves every descriptor as it is, rather than
+// breaking module load.
+/* c8 ignore next - defensive guard: the bundled startSurface_v3 always has components.schemas */
+const descriptors = (schemas as any).startSurface_v3?.components?.schemas ?? {};
 
 // Fill a descriptor's plain defaults from its kind's schema: app, browser, or
 // process. An authored value, including 0 and false, stays. A descriptor of no

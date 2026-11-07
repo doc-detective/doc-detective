@@ -10,6 +10,8 @@ import { runCode } from "../dist/core/tests/runCode.js";
 import { closeSurface } from "../dist/core/tests/closeSurface.js";
 
 const config = { logLevel: "silent" };
+// runCode runs Python as `python`, so a host with only `python3` on PATH skips
+// the Python examples by design.
 const hasPython = spawnSync("python --version", { shell: true }).status === 0;
 
 describe("runCode schema examples", function () {
