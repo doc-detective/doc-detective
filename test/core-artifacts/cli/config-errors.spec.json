@@ -78,7 +78,7 @@
     },
     {
       "testId": "spec",
-      "description": "An invalid spec gets the same line format: a nested suggestion and the allowed values.",
+      "description": "An invalid spec gets the same line format: a suggestion for a test key and a nested step key, and the allowed values.",
       "steps": [
         {
           "runShell": {
@@ -98,6 +98,16 @@
               2
             ],
             "stdio": "tests[0].steps[0].click.button: must be one of left, right, middle (got \"middle-ish\")."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-config-errors/enum.spec.json --output-dir .tmp/fixture-config-errors/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0]: unknown key 'stepz'. Did you mean steps?"
           }
         }
       ]
