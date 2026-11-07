@@ -176,6 +176,12 @@ describe("normalization", function () {
       expect(effective({ stepId: "demo", record: true }).object.record).to.deep.equal({ path: "demo.mp4", overwrite: "false" });
     });
 
+    it("accepts a recording path with folders", function () {
+      const result = effective({ stepId: "demo", record: "sub/demo.mp4" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.record).to.deep.equal({ path: "sub/demo.mp4", overwrite: "false" });
+    });
+
     it("accepts a recording extension in any case", function () {
       const result = effective({ stepId: "demo", record: "Demo.MP4" });
       expect(result.valid, result.errors).to.equal(true);

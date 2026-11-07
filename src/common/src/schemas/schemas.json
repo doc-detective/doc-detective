@@ -27126,7 +27126,7 @@
         "title": "Record (simple)",
         "type": "string",
         "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-        "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+        "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
         "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
         "transform": [
           "trim"
@@ -27534,7 +27534,7 @@
           "title": "Record (simple)",
           "type": "string",
           "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
           "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
           "transform": [
             "trim"
@@ -74798,7 +74798,7 @@
                                               "title": "Record (simple)",
                                               "type": "string",
                                               "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                              "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                              "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                               "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
@@ -75206,7 +75206,7 @@
                                                 "title": "Record (simple)",
                                                 "type": "string",
                                                 "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                 "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
@@ -132219,7 +132219,7 @@
                                                     "title": "Record (simple)",
                                                     "type": "string",
                                                     "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                     "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
@@ -132627,7 +132627,7 @@
                                                       "title": "Record (simple)",
                                                       "type": "string",
                                                       "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                       "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
@@ -193896,7 +193896,7 @@
                                               "title": "Record (simple)",
                                               "type": "string",
                                               "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                              "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                              "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                               "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
@@ -194304,7 +194304,7 @@
                                                 "title": "Record (simple)",
                                                 "type": "string",
                                                 "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                 "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
@@ -251317,7 +251317,7 @@
                                                     "title": "Record (simple)",
                                                     "type": "string",
                                                     "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                     "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
@@ -251725,7 +251725,7 @@
                                                       "title": "Record (simple)",
                                                       "type": "string",
                                                       "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                                       "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
@@ -322677,7 +322677,7 @@
                                     "title": "Record (simple)",
                                     "type": "string",
                                     "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                     "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
@@ -323085,7 +323085,7 @@
                                       "title": "Record (simple)",
                                       "type": "string",
                                       "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                       "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                       "transform": [
                                         "trim"
@@ -380098,7 +380098,7 @@
                                           "title": "Record (simple)",
                                           "type": "string",
                                           "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                           "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
@@ -380506,7 +380506,7 @@
                                             "title": "Record (simple)",
                                             "type": "string",
                                             "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                            "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                            "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                             "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
@@ -439215,7 +439215,7 @@
                     "title": "Record (simple)",
                     "type": "string",
                     "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                     "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                     "transform": [
                       "trim"
@@ -439623,7 +439623,7 @@
                       "title": "Record (simple)",
                       "type": "string",
                       "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                       "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                       "transform": [
                         "trim"
@@ -500519,7 +500519,7 @@
                           "title": "Record (simple)",
                           "type": "string",
                           "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                          "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                           "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                           "transform": [
                             "trim"
@@ -500927,7 +500927,7 @@
                             "title": "Record (simple)",
                             "type": "string",
                             "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                            "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                            "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                             "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                             "transform": [
                               "trim"
@@ -557940,7 +557940,7 @@
                                 "title": "Record (simple)",
                                 "type": "string",
                                 "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                 "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                 "transform": [
                                   "trim"
@@ -558348,7 +558348,7 @@
                                   "title": "Record (simple)",
                                   "type": "string",
                                   "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
-                                  "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                  "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class. The start is unanchored, so a path with folders, such as `sub/demo.mp4`, matches too.",
                                   "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"

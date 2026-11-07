@@ -111,6 +111,44 @@ describe("capture paths", function () {
     });
   }
 
+  it("places a recording path with folders under outputDir", async function () {
+    const target = path.join(tmp, "sub", "demo.mp4");
+    fs.mkdirSync(path.dirname(target));
+    fs.writeFileSync(target, "");
+    const config = { outputDir: tmp };
+    const result = await startRecording({
+      config,
+      context: {},
+      step: runnerStep({ stepId: "demo", record: "sub/demo.mp4" }, config),
+      driver: {},
+    });
+    assert.equal(result.description, `File already exists: ${target}`);
+  });
+
+  // The normalizer names a capture for its step, so a step with neither a
+  // `stepId` nor a `path`, such as a getRunner() step, can't be named.
+  it("fails a screenshot with no stepId and no path", async function () {
+    const result = await saveScreenshot({
+      config: { outputDir: tmp },
+      step: { screenshot: true },
+      driver: fakeDriver(await png()),
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't name the screenshot. Set `path`, or set the step's `stepId`.");
+    assert.equal(fs.readdirSync(tmp).length, 0);
+  });
+
+  it("fails a recording with no stepId and no path", async function () {
+    const result = await startRecording({
+      config: { outputDir: tmp },
+      context: {},
+      step: { record: true },
+      driver: {},
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't name the recording. Set `path`, or set the step's `stepId`.");
+  });
+
   it("stops nothing for stopRecord: false", async function () {
     const recording = { type: "ffmpeg", targetPath: path.join(tmp, "x.mp4") };
     const driver = { state: { recordings: [recording] } };
