@@ -1440,6 +1440,123 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01174: one URL pattern and one request-header shape.
+    describe("URLs, request headers, and status codes", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      it("accepts the same three URL forms on goTo, checkLink, and httpRequest", function () {
+        for (const url of ["https://example.com", "http://localhost:8092/x", "/docs", "$BASE", "$BASE/x"]) {
+          for (const object of [
+            { goTo: url },
+            { goTo: { url } },
+            { checkLink: url },
+            { checkLink: { url } },
+            { httpRequest: url },
+            { httpRequest: { url } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+
+      it("rejects a URL that only contains a variable, or a protocol-relative one", function () {
+        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com", "//example.com"]) {
+          for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+          }
+        }
+      });
+
+      it("accepts request headers as an object of strings or as lines of text", function () {
+        for (const headers of [{ "X-Key": "abc" }, "X-Key: abc\nAuthorization: Bearer x"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", headers } },
+            { httpRequest: { url: "https://x.com", request: { headers } } },
+            { httpRequest: { openApi: { operationId: "getUsers", headers } } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+          const openApi = validate({ schemaKey: "openApi_v3", object: { descriptionPath: "x.yaml", headers } });
+          expect(openApi.valid, openApi.errors).to.be.true;
+        }
+      });
+
+      it("rejects a request header whose value is an object", function () {
+        for (const object of [
+          { checkLink: { url: "https://x.com", headers: { a: {} } } },
+          { httpRequest: { url: "https://x.com", request: { headers: { a: {} } } } },
+          { httpRequest: { openApi: { operationId: "getUsers", headers: { a: {} } } } },
+        ]) {
+          expect(step(object).valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+        }
+      });
+
+      // ADR 01171: a timeout is at least 1 ms, because 0 meant "no limit" to one
+      // action and "time out at once" to another.
+      it("rejects a goTo or httpRequest timeout below 1 ms", function () {
+        for (const timeout of [0, -1]) {
+          for (const object of [
+            { goTo: { url: "https://x.com", timeout } },
+            { httpRequest: { url: "https://x.com", timeout } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          }
+        }
+        expect(step({ goTo: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+        expect(step({ httpRequest: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+      });
+
+      it("accepts a single status code or a list on checkLink and httpRequest", function () {
+        for (const statusCodes of [200, [200, 404], "200"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", statusCodes } },
+            { httpRequest: { url: "https://x.com", statusCodes } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+    });
+
+    // ADR 01174: every cookie string the schema accepts expands to a valid
+    // { name, path } or { name, variable }.
+    describe("cookie string shorthand", function () {
+      for (const action of ["saveCookie", "loadCookie"]) {
+        it(`${action} accepts cookie names and .txt paths`, function () {
+          for (const value of ["session", "__Secure-next-auth.session-token", "1P_JAR", "session.txt", "./dir/a.b.txt", "..txt"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${value}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects an empty path or directory`, function () {
+          for (const value of [
+            { name: "s", path: "" },
+            { name: "s", path: "  " },
+            { name: "s", path: "c.txt", directory: "" },
+            { name: "s", path: "c.txt", directory: " " },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          }
+        });
+
+        it(`${action} rejects a string with no valid object form`, function () {
+          for (const value of ["dir/session", ".txt", "dir/.txt", "session/"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${value}`).to.be.false;
+          }
+        });
+      }
+    });
+
     describe("annotations", function () {
       const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
 

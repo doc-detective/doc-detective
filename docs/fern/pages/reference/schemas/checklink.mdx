@@ -33,6 +33,21 @@ checkLink | one of:<br/>- string<br/>- object([Check link (detailed)](/reference
 
 ```json
 {
+  "checkLink": "$BASE_URL/docs"
+}
+```
+
+```json
+{
+  "checkLink": {
+    "url": "https://www.example.com",
+    "headers": "X-Api-Key: abc123\nAuthorization: Bearer token"
+  }
+}
+```
+
+```json
+{
   "checkLink": {
     "url": "https://www.google.com",
     "statusCodes": 200

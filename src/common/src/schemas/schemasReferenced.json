@@ -2744,10 +2744,7 @@
           "default": ""
         },
         "headers": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "$ref": "httpRequest_v3.schema.json#/components/schemas/requestHeaders"
         }
       },
       "components": {
@@ -2760,6 +2757,559 @@
           }
         }
       }
+    },
+    "httpRequest_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/url"
+        },
+        {
+          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "url": {
+            "$ref": "goTo_v3.schema.json#/components/schemas/url"
+          },
+          "requestHeaders": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "object": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "url"
+                ]
+              },
+              {
+                "required": [
+                  "openApi"
+                ]
+              }
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "$ref": "goTo_v3.schema.json#/components/schemas/url"
+              },
+              "openApi": {
+                "anyOf": [
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "openApi_v3.nodefaults.schema.json#/components/schemas/operationId"
+                      },
+                      {}
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "openApi_v3.nodefaults.schema.json#"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "operationId"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "statusCodes": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "default": [
+                  200,
+                  201
+                ]
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "get",
+                  "put",
+                  "post",
+                  "patch",
+                  "delete"
+                ],
+                "transform": [
+                  "trim",
+                  "toEnumCase"
+                ],
+                "default": "get"
+              },
+              "timeout": {
+                "type": "integer",
+                "default": 60000,
+                "minimum": 1
+              },
+              "request": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "headers": {
+                    "default": {},
+                    "$ref": "#/components/schemas/requestHeaders"
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "default": {},
+                    "properties": {}
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {}
+                      },
+                      {
+                        "type": "array",
+                        "items": {}
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ],
+                    "default": {}
+                  }
+                }
+              },
+              "response": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "default": {}
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {}
+                      },
+                      {
+                        "type": "array",
+                        "items": {}
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "required": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  }
+                }
+              },
+              "allowAdditionalFields": {
+                "type": "boolean",
+                "default": true
+              },
+              "path": {
+                "type": "string"
+              },
+              "directory": {
+                "type": "string"
+              },
+              "maxVariation": {
+                "type": "number",
+                "default": 0,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "overwrite": {
+                "type": "string",
+                "enum": [
+                  "true",
+                  "false",
+                  "aboveVariation"
+                ],
+                "default": "aboveVariation"
+              }
+            }
+          }
+        }
+      },
+      "$id": "httpRequest_v3.schema.json"
+    },
+    "goTo_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "url": {
+            "type": "string",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "transform": [
+              "trim"
+            ]
+          },
+          "string": {
+            "$ref": "#/components/schemas/url"
+          },
+          "object": {
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "surface": {
+                    "anyOf": [
+                      {
+                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/byEngineName"
+                      },
+                      {
+                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/browser"
+                      }
+                    ]
+                  },
+                  "newTab": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "newWindow": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          },
+                          "tab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "url": {
+                    "$ref": "#/components/schemas/url"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "default": {}
+                  },
+                  "timeout": {
+                    "type": "integer",
+                    "default": 30000,
+                    "minimum": 1
+                  },
+                  "waitUntil": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "networkIdleTime": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "default": 500
+                      },
+                      "domIdleTime": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "default": 1000
+                      },
+                      "find": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "anyOf": [
+                          {
+                            "required": [
+                              "selector"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementText"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementTestId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementClass"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAttribute"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAria"
+                            ]
+                          }
+                        ],
+                        "properties": {
+                          "selector": {
+                            "type": "string"
+                          },
+                          "elementText": {
+                            "type": "string"
+                          },
+                          "elementId": {
+                            "type": "string"
+                          },
+                          "elementTestId": {
+                            "type": "string"
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
+                              ]
+                            }
+                          },
+                          "elementAria": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newTab",
+                    "newWindow"
+                  ],
+                  "properties": {
+                    "newTab": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "newWindow": {
+                      "not": {
+                        "const": false
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newTab"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newTab",
+                    "surface"
+                  ],
+                  "properties": {
+                    "newTab": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "surface": {
+                      "type": "object",
+                      "required": [
+                        "tab"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newTab"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newWindow",
+                    "surface"
+                  ],
+                  "properties": {
+                    "newWindow": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "surface": {
+                      "type": "object",
+                      "anyOf": [
+                        {
+                          "required": [
+                            "window"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "tab"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newWindow"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "$id": "goTo_v3.schema.json"
     },
     "step_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3987,7 +4537,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -4043,19 +4593,23 @@
               },
               "variable": {
                 "type": "string",
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "pattern": "^[A-Za-z0-9_.-]+$",
                 "transform": [
                   "trim"
                 ]
               },
               "path": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
               },
               "directory": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
@@ -4760,7 +5314,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -4782,19 +5336,23 @@
               },
               "variable": {
                 "type": "string",
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "pattern": "^[A-Za-z0-9_.-]+$",
                 "transform": [
                   "trim"
                 ]
               },
               "path": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
               },
               "directory": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
@@ -5466,552 +6024,6 @@
       },
       "$id": "runShell_v3.schema.json"
     },
-    "httpRequest_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
-          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/url"
-        },
-        {
-          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/object"
-        }
-      ],
-      "components": {
-        "schemas": {
-          "url": {
-            "type": "string",
-            "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "object": {
-            "type": "object",
-            "anyOf": [
-              {
-                "required": [
-                  "url"
-                ]
-              },
-              {
-                "required": [
-                  "openApi"
-                ]
-              }
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "url": {
-                "$ref": "#/components/schemas/url"
-              },
-              "openApi": {
-                "anyOf": [
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "openApi_v3.nodefaults.schema.json#/components/schemas/operationId"
-                      },
-                      {}
-                    ]
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "openApi_v3.nodefaults.schema.json#"
-                      },
-                      {
-                        "type": "object",
-                        "required": [
-                          "operationId"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    }
-                  ]
-                },
-                "default": [
-                  200,
-                  201
-                ]
-              },
-              "method": {
-                "type": "string",
-                "enum": [
-                  "get",
-                  "put",
-                  "post",
-                  "patch",
-                  "delete"
-                ],
-                "transform": [
-                  "trim",
-                  "toEnumCase"
-                ],
-                "default": "get"
-              },
-              "timeout": {
-                "type": "integer",
-                "default": 60000
-              },
-              "request": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "headers": {
-                    "default": {},
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "parameters": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "default": {},
-                    "properties": {}
-                  },
-                  "body": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "array",
-                        "items": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "default": {}
-                  }
-                }
-              },
-              "response": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "headers": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {},
-                    "default": {}
-                  },
-                  "body": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "array",
-                        "items": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "required": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "default": []
-                  }
-                }
-              },
-              "allowAdditionalFields": {
-                "type": "boolean",
-                "default": true
-              },
-              "path": {
-                "type": "string"
-              },
-              "directory": {
-                "type": "string"
-              },
-              "maxVariation": {
-                "type": "number",
-                "default": 0,
-                "minimum": 0,
-                "maximum": 1
-              },
-              "overwrite": {
-                "type": "string",
-                "enum": [
-                  "true",
-                  "false",
-                  "aboveVariation"
-                ],
-                "default": "aboveVariation"
-              }
-            }
-          }
-        }
-      },
-      "$id": "httpRequest_v3.schema.json"
-    },
-    "goTo_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
-          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/object"
-        }
-      ],
-      "components": {
-        "schemas": {
-          "string": {
-            "type": "string",
-            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "object": {
-            "allOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "url"
-                ],
-                "properties": {
-                  "surface": {
-                    "anyOf": [
-                      {
-                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/byEngineName"
-                      },
-                      {
-                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/browser"
-                      }
-                    ]
-                  },
-                  "newTab": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "newWindow": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          },
-                          "tab": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "url": {
-                    "type": "string",
-                    "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  "origin": {
-                    "type": "string",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  "params": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "default": {}
-                  },
-                  "timeout": {
-                    "type": "integer",
-                    "default": 30000,
-                    "minimum": 0
-                  },
-                  "waitUntil": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "networkIdleTime": {
-                        "anyOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ],
-                        "default": 500
-                      },
-                      "domIdleTime": {
-                        "anyOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ],
-                        "default": 1000
-                      },
-                      "find": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "anyOf": [
-                          {
-                            "required": [
-                              "selector"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementText"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementTestId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementClass"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAttribute"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAria"
-                            ]
-                          }
-                        ],
-                        "properties": {
-                          "selector": {
-                            "type": "string"
-                          },
-                          "elementText": {
-                            "type": "string"
-                          },
-                          "elementId": {
-                            "type": "string"
-                          },
-                          "elementTestId": {
-                            "type": "string"
-                          },
-                          "elementClass": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            ]
-                          },
-                          "elementAttribute": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": [
-                                "boolean",
-                                "number",
-                                "string"
-                              ]
-                            }
-                          },
-                          "elementAria": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newTab",
-                    "newWindow"
-                  ],
-                  "properties": {
-                    "newTab": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "newWindow": {
-                      "not": {
-                        "const": false
-                      }
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newTab"
-                    ]
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newTab",
-                    "surface"
-                  ],
-                  "properties": {
-                    "newTab": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "surface": {
-                      "type": "object",
-                      "required": [
-                        "tab"
-                      ]
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newTab"
-                    ]
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newWindow",
-                    "surface"
-                  ],
-                  "properties": {
-                    "newWindow": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "surface": {
-                      "type": "object",
-                      "anyOf": [
-                        {
-                          "required": [
-                            "window"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "tab"
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newWindow"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-      },
-      "$id": "goTo_v3.schema.json"
-    },
     "find_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
@@ -6327,11 +6339,7 @@
       "components": {
         "schemas": {
           "string": {
-            "type": "string",
-            "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
-            "transform": [
-              "trim"
-            ]
+            "$ref": "goTo_v3.schema.json#/components/schemas/url"
           },
           "object": {
             "type": "object",
@@ -6341,11 +6349,7 @@
             ],
             "properties": {
               "url": {
-                "type": "string",
-                "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
-                "transform": [
-                  "trim"
-                ]
+                "$ref": "goTo_v3.schema.json#/components/schemas/url"
               },
               "origin": {
                 "type": "string",
@@ -6386,18 +6390,7 @@
               },
               "headers": {
                 "default": {},
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "properties": {}
-                  },
-                  {
-                    "type": "string"
-                  }
-                ]
+                "$ref": "httpRequest_v3.schema.json#/components/schemas/requestHeaders"
               }
             }
           }
@@ -10672,10 +10665,7 @@
           "type": "string"
         },
         "headers": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/requestHeaders"
         }
       },
       "components": {
@@ -10688,6 +10678,541 @@
           }
         }
       }
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/url"
+        },
+        {
+          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "url": {
+            "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
+          },
+          "requestHeaders": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "object": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "url"
+                ]
+              },
+              {
+                "required": [
+                  "openApi"
+                ]
+              }
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
+              },
+              "openApi": {
+                "anyOf": [
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "openApi_v3.nodefaults.schema.json#/components/schemas/operationId"
+                      },
+                      {}
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "openApi_v3.nodefaults.schema.json#"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "operationId"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "statusCodes": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "get",
+                  "put",
+                  "post",
+                  "patch",
+                  "delete"
+                ],
+                "transform": [
+                  "trim",
+                  "toEnumCase"
+                ]
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "request": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "headers": {
+                    "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/requestHeaders"
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {}
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {}
+                      },
+                      {
+                        "type": "array",
+                        "items": {}
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              "response": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {}
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {}
+                      },
+                      {
+                        "type": "array",
+                        "items": {}
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "required": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "allowAdditionalFields": {
+                "type": "boolean"
+              },
+              "path": {
+                "type": "string"
+              },
+              "directory": {
+                "type": "string"
+              },
+              "maxVariation": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "overwrite": {
+                "type": "string",
+                "enum": [
+                  "true",
+                  "false",
+                  "aboveVariation"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "$id": "httpRequest_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "url": {
+            "type": "string",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "transform": [
+              "trim"
+            ]
+          },
+          "string": {
+            "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
+          },
+          "object": {
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "surface": {
+                    "anyOf": [
+                      {
+                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/byEngineName"
+                      },
+                      {
+                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/browser"
+                      }
+                    ]
+                  },
+                  "newTab": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "newWindow": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S",
+                        "transform": [
+                          "trim"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          },
+                          "tab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S",
+                            "transform": [
+                              "trim"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "url": {
+                    "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "timeout": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "waitUntil": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "networkIdleTime": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "domIdleTime": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "find": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "anyOf": [
+                          {
+                            "required": [
+                              "selector"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementText"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementTestId"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementClass"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAttribute"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "elementAria"
+                            ]
+                          }
+                        ],
+                        "properties": {
+                          "selector": {
+                            "type": "string"
+                          },
+                          "elementText": {
+                            "type": "string"
+                          },
+                          "elementId": {
+                            "type": "string"
+                          },
+                          "elementTestId": {
+                            "type": "string"
+                          },
+                          "elementClass": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            ]
+                          },
+                          "elementAttribute": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
+                              ]
+                            }
+                          },
+                          "elementAria": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newTab",
+                    "newWindow"
+                  ],
+                  "properties": {
+                    "newTab": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "newWindow": {
+                      "not": {
+                        "const": false
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newTab"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newTab",
+                    "surface"
+                  ],
+                  "properties": {
+                    "newTab": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "surface": {
+                      "type": "object",
+                      "required": [
+                        "tab"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newTab"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "newWindow",
+                    "surface"
+                  ],
+                  "properties": {
+                    "newWindow": {
+                      "not": {
+                        "const": false
+                      }
+                    },
+                    "surface": {
+                      "type": "object",
+                      "anyOf": [
+                        {
+                          "required": [
+                            "window"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "tab"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "newWindow"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "$id": "goTo_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -11898,7 +12423,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -11954,19 +12479,23 @@
               },
               "variable": {
                 "type": "string",
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "pattern": "^[A-Za-z0-9_.-]+$",
                 "transform": [
                   "trim"
                 ]
               },
               "path": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
               },
               "directory": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
@@ -12660,7 +13189,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_./\\-]+$",
+            "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
             "transform": [
               "trim"
             ]
@@ -12682,19 +13211,23 @@
               },
               "variable": {
                 "type": "string",
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "pattern": "^[A-Za-z0-9_.-]+$",
                 "transform": [
                   "trim"
                 ]
               },
               "path": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
               },
               "directory": {
                 "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
                 "transform": [
                   "trim"
                 ]
@@ -13345,534 +13878,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/url"
-        },
-        {
-          "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/object"
-        }
-      ],
-      "components": {
-        "schemas": {
-          "url": {
-            "type": "string",
-            "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "object": {
-            "type": "object",
-            "anyOf": [
-              {
-                "required": [
-                  "url"
-                ]
-              },
-              {
-                "required": [
-                  "openApi"
-                ]
-              }
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "url": {
-                "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/url"
-              },
-              "openApi": {
-                "anyOf": [
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "openApi_v3.nodefaults.schema.json#/components/schemas/operationId"
-                      },
-                      {}
-                    ]
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "openApi_v3.nodefaults.schema.json#"
-                      },
-                      {
-                        "type": "object",
-                        "required": [
-                          "operationId"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    }
-                  ]
-                }
-              },
-              "method": {
-                "type": "string",
-                "enum": [
-                  "get",
-                  "put",
-                  "post",
-                  "patch",
-                  "delete"
-                ],
-                "transform": [
-                  "trim",
-                  "toEnumCase"
-                ]
-              },
-              "timeout": {
-                "type": "integer"
-              },
-              "request": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "headers": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "parameters": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
-                  },
-                  "body": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "array",
-                        "items": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  }
-                }
-              },
-              "response": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "headers": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
-                  },
-                  "body": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "properties": {}
-                      },
-                      {
-                        "type": "array",
-                        "items": {}
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "required": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "allowAdditionalFields": {
-                "type": "boolean"
-              },
-              "path": {
-                "type": "string"
-              },
-              "directory": {
-                "type": "string"
-              },
-              "maxVariation": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "overwrite": {
-                "type": "string",
-                "enum": [
-                  "true",
-                  "false",
-                  "aboveVariation"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "$id": "httpRequest_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
-          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/object"
-        }
-      ],
-      "components": {
-        "schemas": {
-          "string": {
-            "type": "string",
-            "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-            "transform": [
-              "trim"
-            ]
-          },
-          "object": {
-            "allOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "url"
-                ],
-                "properties": {
-                  "surface": {
-                    "anyOf": [
-                      {
-                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/byEngineName"
-                      },
-                      {
-                        "$ref": "surface_v3.nodefaults.schema.json#/components/schemas/browser"
-                      }
-                    ]
-                  },
-                  "newTab": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "newWindow": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "\\S",
-                        "transform": [
-                          "trim"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "minProperties": 1,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          },
-                          "tab": {
-                            "type": "string",
-                            "minLength": 1,
-                            "pattern": "\\S",
-                            "transform": [
-                              "trim"
-                            ]
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  "url": {
-                    "type": "string",
-                    "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  "origin": {
-                    "type": "string",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  "params": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  },
-                  "timeout": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "waitUntil": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "networkIdleTime": {
-                        "anyOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "domIdleTime": {
-                        "anyOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "find": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "anyOf": [
-                          {
-                            "required": [
-                              "selector"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementText"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementTestId"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementClass"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAttribute"
-                            ]
-                          },
-                          {
-                            "required": [
-                              "elementAria"
-                            ]
-                          }
-                        ],
-                        "properties": {
-                          "selector": {
-                            "type": "string"
-                          },
-                          "elementText": {
-                            "type": "string"
-                          },
-                          "elementId": {
-                            "type": "string"
-                          },
-                          "elementTestId": {
-                            "type": "string"
-                          },
-                          "elementClass": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              }
-                            ]
-                          },
-                          "elementAttribute": {
-                            "type": "object",
-                            "additionalProperties": {
-                              "type": [
-                                "boolean",
-                                "number",
-                                "string"
-                              ]
-                            }
-                          },
-                          "elementAria": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newTab",
-                    "newWindow"
-                  ],
-                  "properties": {
-                    "newTab": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "newWindow": {
-                      "not": {
-                        "const": false
-                      }
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newTab"
-                    ]
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newTab",
-                    "surface"
-                  ],
-                  "properties": {
-                    "newTab": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "surface": {
-                      "type": "object",
-                      "required": [
-                        "tab"
-                      ]
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newTab"
-                    ]
-                  }
-                }
-              },
-              {
-                "if": {
-                  "required": [
-                    "newWindow",
-                    "surface"
-                  ],
-                  "properties": {
-                    "newWindow": {
-                      "not": {
-                        "const": false
-                      }
-                    },
-                    "surface": {
-                      "type": "object",
-                      "anyOf": [
-                        {
-                          "required": [
-                            "window"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "tab"
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                },
-                "then": {
-                  "not": {
-                    "required": [
-                      "newWindow"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-      },
-      "$id": "goTo_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
           "$ref": "find_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
@@ -14181,11 +14186,7 @@
       "components": {
         "schemas": {
           "string": {
-            "type": "string",
-            "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
-            "transform": [
-              "trim"
-            ]
+            "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
           },
           "object": {
             "type": "object",
@@ -14195,11 +14196,7 @@
             ],
             "properties": {
               "url": {
-                "type": "string",
-                "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
-                "transform": [
-                  "trim"
-                ]
+                "$ref": "goTo_v3.nodefaults.schema.json#/components/schemas/url"
               },
               "origin": {
                 "type": "string",
@@ -14231,18 +14228,7 @@
                 ]
               },
               "headers": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "properties": {}
-                  },
-                  {
-                    "type": "string"
-                  }
-                ]
+                "$ref": "httpRequest_v3.nodefaults.schema.json#/components/schemas/requestHeaders"
               }
             }
           }
