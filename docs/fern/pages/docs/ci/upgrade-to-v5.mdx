@@ -181,6 +181,8 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 Steps that skip, such as the ones after a failure, show it too. Step-level fields that you didn't set, such as `unsafe` or `variables`, stay out of the results. Step and test IDs don't change.
 
+Other shorthand appears in its full form too. For example, `"wait": true` appears as `"wait": 5000`, `"runShell": "npm test"` as an object with `command`, and `"closeSurface": "web"` as `["web"]`.
+
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
 
 ## `goTo` and `httpRequest` defaults
@@ -191,6 +193,30 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 - An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. With `validateAgainstSchema` set to `request` or `both`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
 
 **What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
+
+## Durations can't be negative
+
+**What changed:** `wait` and the `timeout` of `runShell` and `runCode` must be `0` or more, like every other duration and delay. A negative value makes the spec invalid, and the run exits `2`. Version 4 accepted `"wait": -5` and moved on without waiting. A `runShell` or `runCode` `timeout` of `0` now means 0 milliseconds, so the command times out at once. Version 4 replaced it with the 60000-millisecond default.
+
+**What to do:** Remove negative values. To use the default `timeout`, leave it out instead of setting `0`.
+
+## No `edge` browser surface
+
+**What changed:** `startSurface` and `surface` don't accept `"browser": "edge"`. Version 4 opened Chrome for it, so a test that named Edge ran in Chrome. A spec that sets it is invalid, and the run exits `2`:
+
+```text
+tests[0].steps[0].startSurface.browser: must be one of chrome, firefox, safari, webkit (got "edge").
+```
+
+A plain `"surface": "edge"` now names a background process, not a browser.
+
+**What to do:** Use `"browser": "chrome"`.
+
+## Removed device fields
+
+**What changed:** A `device` descriptor, in `startSurface` or in a context, no longer has `orientation`, `udid`, or `provider`. They never did anything. A spec or config that sets one is invalid, and the run exits `2`.
+
+**What to do:** Delete those fields.
 
 ## `--output` is a results file
 

@@ -78,6 +78,9 @@ templates), and reports aren't walked.
   `unsafe`, `breakpoint`, `outputs`, and `variables` stay as authored.
 - When you move an action, delete its handler's shorthand and default handling, add its minimal step to the
   parity test in `test/normalize.test.js`, and lower `CEILING` in the root `test/shorthand-ratchet.test.js`.
+  An action without a `components.schemas.object`, like `startSurface`'s descriptors, lists
+  `[component, minimal step]` pairs there. Defaults inside a nested object with required keys, like
+  `background.tty`, are conditional, so the parity test skips them and the normalizer codes them.
 - A plain default the handler never applied is a wrong default. Remove it from the schema, as
   `httpRequest.response.body` did.
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
