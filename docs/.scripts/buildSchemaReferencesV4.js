@@ -546,8 +546,9 @@ function getTypeString(schema) {
       return getTypeString(options[0]);
     }
 
-    // Multiple options. An option with a list of types, like stopRecord's
-    // `["boolean", "null"]`, lists each type.
+    // Multiple options. Any option with a list of types lists each type on its
+    // own line, on purpose for every schema, not only stopRecord's
+    // `["boolean", "null"]`.
     return (
       "one of:<br/>" +
       options

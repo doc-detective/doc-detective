@@ -182,6 +182,21 @@ describe("normalization", function () {
       expect(result.object.record).to.deep.equal({ path: "Demo.MP4", overwrite: "false" });
     });
 
+    it("leaves the authored capture object unchanged", function () {
+      for (const action of ["screenshot", "record"]) {
+        const value = { directory: "d" };
+        const output = normalizers[action](value, action, { stepId: "s" });
+        expect(value, action).to.deep.equal({ directory: "d" });
+        expect(output, action).to.include({ directory: "d" }).and.have.property("path");
+      }
+    });
+
+    it("keeps stopRecord: false through type coercion", function () {
+      const result = effective({ stopRecord: false });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.stopRecord).to.equal(false);
+    });
+
     it("expands a stopRecord name, and makes null an untargeted stop", function () {
       expect(effective({ stopRecord: "demo" }).object.stopRecord).to.deep.equal({ name: "demo" });
       expect(effective({ stopRecord: null }).object.stopRecord).to.equal(true);

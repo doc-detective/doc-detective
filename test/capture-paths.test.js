@@ -9,6 +9,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
+import { stopRecording } from "../dist/core/tests/stopRecording.js";
 import { detectTests } from "../dist/core/detectTests.js";
 import { resolvePaths } from "../dist/core/files.js";
 import { getRunOutputDir } from "../dist/core/utils.js";
@@ -90,18 +91,36 @@ describe("capture paths", function () {
     assert.equal(fs.readdirSync(tmp).length, 0);
   });
 
-  it("names record: true <outputDir>/<stepId>.mp4", async function () {
-    const target = path.join(tmp, "demo.mp4");
-    fs.writeFileSync(target, "");
-    const config = { outputDir: tmp };
-    const result = await startRecording({
-      config,
-      context: {},
-      step: runnerStep({ stepId: "demo", record: true }, config),
-      driver: {},
+  for (const [name, record] of [
+    ["true", true],
+    ["{}", {}],
+  ]) {
+    it(`names record: ${name} <outputDir>/<stepId>.mp4`, async function () {
+      // An existing target makes the step skip and name it, without recording.
+      const target = path.join(tmp, "demo.mp4");
+      fs.writeFileSync(target, "");
+      const config = { outputDir: tmp };
+      const result = await startRecording({
+        config,
+        context: {},
+        step: runnerStep({ stepId: "demo", record }, config),
+        driver: {},
+      });
+      assert.equal(result.status, "SKIPPED");
+      assert.equal(result.description, `File already exists: ${target}`);
+    });
+  }
+
+  it("stops nothing for stopRecord: false", async function () {
+    const recording = { type: "ffmpeg", targetPath: path.join(tmp, "x.mp4") };
+    const driver = { state: { recordings: [recording] } };
+    const result = await stopRecording({
+      config: {},
+      step: runnerStep({ stopRecord: false }, {}),
+      driver,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.equal(result.description, `File already exists: ${target}`);
+    assert.deepEqual(driver.state.recordings, [recording]);
   });
 
   describe("a URL reference", function () {
