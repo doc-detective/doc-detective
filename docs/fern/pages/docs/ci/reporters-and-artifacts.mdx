@@ -27,7 +27,7 @@ Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `jun
 
 The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
 
-To choose reporters for every run, set them in your config file. This works on 4.x and on 5.0:
+To choose reporters for every run, set them in your config file. This works on 4.x and on 5.0. For example, this config runs the `terminal`, `json`, and `html` reporters:
 
 ```json title=".doc-detective.json"
 {
@@ -35,9 +35,11 @@ To choose reporters for every run, set them in your config file. This works on 4
 }
 ```
 
+The `reporters` list replaces the defaults, so name every reporter you want. This example leaves out `runFolder`, so the run doesn't archive a run folder.
+
 On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
 
-On GitLab, add `junit` to `reporters` in your config, like `["terminal", "junit"]`, and point the test summary at the `junit.xml` file:
+On GitLab, add `junit` to the `reporters` list in your config, like `["terminal", "json", "html", "junit"]`, and point the test summary at the `junit.xml` file:
 
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
@@ -48,7 +50,7 @@ doc-tests:
       junit: reports/junit.xml
 ```
 
-On GitHub Actions, add `markdown` to `reporters` in your config, like `["terminal", "markdown"]`, and append the Markdown summary to the job summary:
+On GitHub Actions, add `markdown` to the `reporters` list in your config, like `["terminal", "json", "html", "markdown"]`, and append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
 - run: doc-detective --input ./docs --output ./reports

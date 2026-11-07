@@ -526,7 +526,7 @@ At the test level, the available actions are `continue`, `stop`, and `goToTest`.
 
 - **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
 - **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
-- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `stop: run`, so use `stop: spec`.
+- **`stop: run`** falls back to `stop: spec` on 4.x, stopping the current spec's remaining tests, and Doc Detective logs a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `stop: run`, so use `stop: spec`.
 
 As with step-level routing, test-level routing controls flow only. It never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution. A spec whose tests have no routing handlers runs exactly as it does today.
 
