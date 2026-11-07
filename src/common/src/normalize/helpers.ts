@@ -44,9 +44,17 @@ export function renameAliases(value: any, aliases: Record<string, string>, path:
   return value;
 }
 
-/** A locator's `elementClass` as a list: one class is shorthand for a list of one. */
-export function listClasses(locator: any): any {
-  if (typeof locator.elementClass === "string") locator.elementClass = [locator.elementClass];
+/**
+ * `value` as a list: one string is shorthand for a list of one. Before `$VAR`
+ * substitution (`literal` false), a whole variable stays: it can hold the list.
+ */
+export function asList(value: any, literal: boolean): any {
+  return typeof value === "string" && (literal || !isWholeVariable(value)) ? [value] : value;
+}
+
+/** A locator's `elementClass` as a list (asList). */
+export function listClasses(locator: any, literal: boolean): any {
+  if (locator.elementClass !== undefined) locator.elementClass = asList(locator.elementClass, literal);
   return locator;
 }
 

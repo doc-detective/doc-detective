@@ -229,6 +229,23 @@ describe("normalization", function () {
       expect(step.goTo).to.deep.equal({ ...GO_TO, url: "$UNSET" });
     });
 
+    // Inside an action too: a variable where a list goes can hold the list, so
+    // it isn't wrapped in one until it's literal text (ADR 01175).
+    for (const [step, read, literal] of [
+      [{ type: { keys: "$K" } }, (s) => s.type.keys, ["$K"]],
+      [{ find: { selector: "#a", elementClass: "$C" } }, (s) => s.find.elementClass, ["$C"]],
+      [{ click: { selector: "#a", elementClass: "$C" } }, (s) => s.click.elementClass, ["$C"]],
+      [{ find: { selector: "#a", type: "$K" } }, (s) => s.find.type, { keys: ["$K"], inputDelay: 100, timeout: 5000 }],
+      [{ find: { selector: "#a", type: { keys: "$K" } } }, (s) => s.find.type.keys, ["$K"]],
+    ]) {
+      it(`keeps ${JSON.stringify(step)} until it's literal`, function () {
+        const before = effective(step).object;
+        expect(read(before)).to.equal(read(step));
+        normalize("step_v3", before, { literal: true });
+        expect(read(before)).to.deep.equal(literal);
+      });
+    }
+
     it("matches whole variable references only", function () {
       expect(["$URL", "$my_var", "$1"].map(isWholeVariable)).to.deep.equal([true, true, true]);
       expect(["URL", "$", "$URL/x", "a $URL", "$$URL", 5, null].map(isWholeVariable)).to.deep.equal(

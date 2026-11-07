@@ -44,6 +44,27 @@ describe("useEffectiveStep", function () {
     });
   }
 
+  // A whole variable inside an action can hold a list too, so the pass before
+  // substitution doesn't wrap it in one (ADR 01175).
+  for (const [name, step, list, at, read] of [
+    ["type.keys", { type: { keys: "$DD_EFFECTIVE_LIST" } }, ["a", "$ENTER$"], (s) => s.type.keys, (s) => s.type.keys],
+    ["find.elementClass", { find: { selector: "#a", elementClass: "$DD_EFFECTIVE_LIST" } }, ["x", "y"], (s) => s.find.elementClass, (s) => s.find.elementClass],
+    ["find.type", { find: { selector: "#a", type: "$DD_EFFECTIVE_LIST" } }, ["a"], (s) => s.find.type, (s) => s.find.type.keys],
+  ]) {
+    it(`keeps a whole-variable ${name} for a list until substitution`, function () {
+      process.env.DD_EFFECTIVE_LIST = JSON.stringify(list);
+      try {
+        useEffectiveStep(step);
+        expect(at(step)).to.equal("$DD_EFFECTIVE_LIST");
+        replaceEnvs(step);
+        useEffectiveStep(step, { substituted: true });
+        expect(read(step)).to.deep.equal(list);
+      } finally {
+        delete process.env.DD_EFFECTIVE_LIST;
+      }
+    });
+  }
+
   // An unset variable stays "$NAME" through substitution. The handler gets it as
   // text, in the object form, as it did before handlers stopped expanding shorthand.
   it("normalizes a whole-variable action that's unset after substitution", function () {
@@ -52,6 +73,14 @@ describe("useEffectiveStep", function () {
     replaceEnvs(step);
     useEffectiveStep(step, { substituted: true });
     expect(step.goTo).to.include({ url: "$DD_EFFECTIVE_STEP_UNSET", timeout: 30000 });
+  });
+
+  it("lists an unset whole-variable type.keys as text after substitution", function () {
+    const step = { type: { keys: "$DD_EFFECTIVE_LIST_UNSET" } };
+    useEffectiveStep(step);
+    replaceEnvs(step);
+    useEffectiveStep(step, { substituted: true });
+    expect(step.type.keys).to.deep.equal(["$DD_EFFECTIVE_LIST_UNSET"]);
   });
 
   it("leaves an invalid step for its handler to report", function () {
