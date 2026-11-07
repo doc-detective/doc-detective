@@ -17,15 +17,15 @@ The GitHub Action can automatically create GitHub issues when tests fail. Set `c
 - `issue_body`: Body of the issue. Supports these variables:
   - `$RUN_URL`: URL of the workflow run that created the issue.
   - `$RESULTS`: Test results as a JSON code block.
-  - `$PROMPT`: The `issue_prompt` text (see below).
+  - `$PROMPT`: The prompt text (see below).
 - `issue_labels`: Comma-separated list of labels to apply.
 - `issue_assignees`: Comma-separated list of GitHub usernames to assign.
 
 ### AI integrations
 
-Notify AI-powered integrations when issues are created to help investigate and fix failures faster. Use `issue_mentions` to specify which integrations to notify.
+Notify AI-powered integrations when issues are created to help investigate and fix failures faster. Use `integrations` to specify which integrations to notify.
 
-- `issue_mentions`: Comma-separated list of integrations to notify. Supported values:
+- `integrations`: Comma-separated list of integrations to notify. Supported values:
   - `doc-sentinel`: Mentions @reem-sab
   - `promptless`: Mentions @Promptless with the prompt
   - `dosu`: Mentions @dosu with the prompt
@@ -36,9 +36,7 @@ Notify AI-powered integrations when issues are created to help investigate and f
   
   Integrations (except `copilot`) appear in a collapsible "Integrations" section in the issue body. Invalid integration names are warned and ignored.
 
-- `issue_prompt`: Text passed to integrations, inserted where `$PROMPT` appears in integration mentions. You can also use `$PROMPT` in your custom `issue_body` template. Default: `"Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes."`.
-
-Action `@v2` still accepts the `@v1` names `integrations` and `prompt` as deprecated aliases that log a warning. Setting both the old and new name of an input fails the job before the run.
+- `prompt`: Text passed to integrations, inserted where `$PROMPT` appears in integration mentions. You can also use `$PROMPT` in your custom `issue_body` template. Default: `"Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes."`.
 
 ### Example
 
@@ -47,6 +45,6 @@ Action `@v2` still accepts the `@v1` names `integrations` and `prompt` as deprec
   with:
     input: ./docs
     create_issue_on_fail: true
-    issue_mentions: claude,copilot
-    issue_prompt: "Analyze these test failures and suggest documentation fixes"
+    integrations: claude,copilot
+    prompt: "Analyze these test failures and suggest documentation fixes"
 ```

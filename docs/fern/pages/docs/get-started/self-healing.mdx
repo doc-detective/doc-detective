@@ -45,8 +45,8 @@ jobs:
         with:
           input: ./docs
           create_issue_on_fail: true
-          issue_mentions: claude
-          issue_prompt: |
+          integrations: claude
+          prompt: |
             Analyze these Doc Detective test failures. For each failure:
             1. Identify the root cause (documentation drift, broken link, UI change, etc.)
             2. Suggest a specific fix with the exact text or code changes needed
@@ -61,7 +61,7 @@ This configuration:
 
 ## Craft effective prompts
 
-The `issue_prompt` input determines how AI integrations analyze failures. A good prompt produces actionable suggestions rather than generic advice.
+The `prompt` input determines how AI integrations analyze failures. A good prompt produces actionable suggestions rather than generic advice.
 
 ### Prompt structure
 
@@ -78,7 +78,7 @@ Build your prompt around three elements:
 **For API documentation:**
 
 ```yaml
-issue_prompt: |
+prompt: |
   These tests validate API documentation. For each failure:
   - Check if the API endpoint, request format, or response changed
   - Provide the corrected curl command or code example
@@ -88,7 +88,7 @@ issue_prompt: |
 **For procedural documentation:**
 
 ```yaml
-issue_prompt: |
+prompt: |
   These tests validate step-by-step procedures. For each failure:
   - Identify which step broke and why
   - Check if the UI, command output, or workflow changed
@@ -98,7 +98,7 @@ issue_prompt: |
 **For screenshot tests:**
 
 ```yaml
-issue_prompt: |
+prompt: |
   These visual regression tests compare screenshots against baselines. For each failure:
   - Describe what changed visually
   - Assess if this is a cosmetic change, feature change, or bug
@@ -113,7 +113,7 @@ Use these variables in your prompt or issue body:
 |----------|------------|
 | `$RESULTS` | Full test results as a JSON code block |
 | `$RUN_URL` | URL of the GitHub Actions workflow run |
-| `$PROMPT` | The `issue_prompt` text (useful in custom `issue_body` templates) |
+| `$PROMPT` | The prompt text (useful in custom `issue_body` templates) |
 
 ## Choose an AI integration
 
@@ -130,7 +130,7 @@ Each integration behaves differently. Choose based on your workflow:
 Combine integrations to get multiple perspectives:
 
 ```yaml
-issue_mentions: claude,copilot
+integrations: claude,copilot
 ```
 
 ## Advanced configuration
@@ -200,8 +200,8 @@ jobs:
           input: ./docs
           create_issue_on_fail: true
           create_pr_on_change: true
-          issue_mentions: claude,promptless
-          issue_prompt: |
+          integrations: claude,promptless
+          prompt: |
             Analyze these documentation test failures and provide:
             1. Root cause for each failure
             2. Specific text changes to fix the documentation

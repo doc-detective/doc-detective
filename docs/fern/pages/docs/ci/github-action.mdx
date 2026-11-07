@@ -113,7 +113,7 @@ You must allow GitHub Actions to create pull requests for the repository. Go to 
 | Input | Default | Description |
 |---|---|---|
 | `create_pr_on_change` | `false` | Open a pull request if any files change during the run. |
-| `pr_branch` | `doc-detective-<timestamp>` | Branch name for the pull request. `<timestamp>` is the time in milliseconds since the Unix epoch. |
+| `pr_branch` | `doc-detective-{DATE}` | Branch name for the pull request. |
 | `pr_title` | `Doc Detective Changes` | Pull request title. |
 | `pr_body` | See README | Pull request body. `$RUN_URL` inserts the workflow run URL. |
 | `pr_labels` | `doc-detective` | Comma-separated labels. |
@@ -142,26 +142,22 @@ jobs:
         with:
           create_issue_on_fail: true
           issue_title: Doc Detective found documentation issues
-          issue_mentions: claude
+          integrations: claude
 ```
 
 | Input | Default | Description |
 |---|---|---|
 | `create_issue_on_fail` | `false` | Open an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. |
+| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the prompt text. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
-| `issue_mentions` | None | Comma-separated tools to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
-| `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention from `issue_mentions`. `$PROMPT` inserts it in `issue_body`. |
+| `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
+| `prompt` | See README | Prompt text passed to integrations. |
 
-GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
-The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations).
-
-<Note>
-Action `@v1` names these inputs `integrations` and `prompt`. Action `@v2` still accepts the old names and logs a deprecation warning, so rename them when you can. Setting both the old and new name of an input fails the job before the run.
-</Note>
+The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations).
 
 ## Step 6: Use the results in later steps
 
