@@ -213,15 +213,16 @@ function readLegacyEnvConfig() {
 // A relative `output` or `cacheDir` resolves against the source that set it:
 // a config file's folder, or the working directory for the environment and
 // flags (ADR 01165). `path.join` keeps a trailing separator, so `output: "x/"`
-// still reads as a folder.
+// still reads as a folder. Returns a copy; the input is left as it was.
 function anchorPaths(config: any, base: string) {
+  const anchored = { ...config };
   for (const key of ["output", "cacheDir"]) {
-    const value = config[key];
+    const value = anchored[key];
     if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
-      config[key] = path.join(base, value);
+      anchored[key] = path.join(base, value);
     }
   }
-  return config;
+  return anchored;
 }
 
 // Where a config file's relative paths resolve: its folder, unless it sets
