@@ -248,7 +248,7 @@ Doc Detective tests are defined in JSON files with a `.spec.json` extension.
 
 Create a file named `first-test.spec.json`:
 
-```json title="first-test.spec.json"
+```json title="first-test.spec.json" invalid
 {
   "tests": []
 }
@@ -258,7 +258,7 @@ This is the basic structure. The `tests` array will contain your test definition
 
 ### Add your first test
 
-```json title="first-test.spec.json"
+```json title="first-test.spec.json" invalid
 {
   "tests": [
     {
@@ -271,7 +271,7 @@ This is the basic structure. The `tests` array will contain your test definition
 
 Inside the `tests` array, add a test object:
 
-```json title="first-test.spec.json"
+```json title="first-test.spec.json" invalid
 {
   "tests": [
     {
@@ -294,7 +294,7 @@ Use descriptive IDs and descriptions. They help you understand test results and 
 
 Tests contain `steps`—actions that Doc Detective performs. Add a `steps` array:
 
-```json title="first-test.spec.json"
+```json title="first-test.spec.json" invalid
 {
   "tests": [
     {
@@ -345,7 +345,7 @@ Add a `find` action to verify the page title exists:
         {
           "find": {
             "selector": "h1",
-            "matchText": "Doc Detective"
+            "elementText": "Doc Detective"
           }
         }
       ]

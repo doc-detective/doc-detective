@@ -200,6 +200,7 @@ Without a `device`, an Android app runs on the context's default emulator, which
   "startSurface": {
     "app": "com.android.settings",
     "device": {
+      "platform": "android",
       "name": "pixel-tablet",
       "deviceType": "tablet",
       "osVersion": "14"
@@ -208,6 +209,7 @@ Without a `device`, an Android app runs on the context's default emulator, which
 }
 ```
 
+- `platform` selects the mobile driver. A step's `device` needs it. On the context, the context's platform implies it.
 - `name` is the emulator's identity. If an AVD with that name already exists, Doc Detective reuses it; otherwise it creates one under that name. Reusing a name across steps and tests targets the same emulator.
 - `deviceType` picks the hardware profile when Doc Detective creates the device, either `phone` (the default) or `tablet`. Doc Detective ignores it when `name` matches an existing AVD.
 - `osVersion` picks the Android version for a newly created device and must match a system image you've installed. Install more with `doc-detective install android`. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing AVD.
@@ -260,6 +262,7 @@ Without a `device`, an iOS app runs on the context's default simulator. Doc Dete
   "startSurface": {
     "app": "com.apple.Preferences",
     "device": {
+      "platform": "ios",
       "name": "dd-iphone",
       "deviceType": "phone",
       "osVersion": "17"
@@ -268,6 +271,7 @@ Without a `device`, an iOS app runs on the context's default simulator. Doc Dete
 }
 ```
 
+- `platform` selects the mobile driver. A step's `device` needs it. On the context, the context's platform implies it.
 - `name` is the simulator's identity. If a simulator with that name already exists, Doc Detective reuses it (booting it if needed); otherwise it creates one under that name. Reusing a name across steps and tests targets the same simulator.
 - `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). Doc Detective ignores it when `name` matches an existing simulator.
 - `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing simulator.
