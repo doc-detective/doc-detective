@@ -8,7 +8,10 @@ import fs from "node:fs";
 import YAML from "yaml";
 import { validate, schemas, stepActions } from "../dist/common/src/index.js";
 
-// fs.globSync needs Node 22+ (CI runs 24+).
+// fs.globSync needs Node 22+ (CI runs 24+). Say so instead of failing with a TypeError.
+if (typeof fs.globSync !== "function") {
+  throw new Error(`doc-examples.test.js needs Node 22 or later for fs.globSync (running ${process.version}).`);
+}
 const FILES = [...fs.globSync("docs/fern/pages/**/*.mdx"), "README.md", "src/common/README.md"];
 const configKeys = new Set(Object.keys(schemas.config_v3.properties));
 const stepKeys = new Set(Object.keys(schemas.step_v3.properties)); // actions + step-level keys
@@ -89,10 +92,16 @@ describe("doc examples", function () {
     assert.deepEqual(failures, []);
   });
 
-  // Core only (not part of the copy): the concepts page lists every action.
-  it("concepts.mdx has a row for every step action", function () {
+  // Core only (not part of the copy): the concepts page lists every action, linking its page.
+  // docs.yml mounts pages/docs/actions as a folder, so Fern slugs each page from its lowercased
+  // file name: actions/dragAndDrop.mdx is /docs/actions/draganddrop.
+  it("concepts.mdx has a row for every step action, linking an existing page", function () {
     const concepts = fs.readFileSync("docs/fern/pages/docs/get-started/concepts.mdx", "utf8");
-    const missing = stepActions.filter((a) => !concepts.includes(`| [${a}](/docs/actions/${a.toLowerCase()})`));
+    const missing = stepActions.filter(
+      (a) =>
+        !concepts.includes(`| [${a}](/docs/actions/${a.toLowerCase()})`) ||
+        !fs.existsSync(`docs/fern/pages/docs/actions/${a}.mdx`)
+    );
     assert.deepEqual(missing, []);
   });
 });
