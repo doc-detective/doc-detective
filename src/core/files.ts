@@ -263,9 +263,10 @@ async function resolvePaths({
       // the cookie handlers join at run time (ADR 01174). The recursive call
       // below resolves every `path` against the spec, so save this one first
       // and put it back afterward, undoing that resolution.
+      const cookie = object[property];
       const cookiePath =
-        isStep && (property === "saveCookie" || property === "loadCookie") && !object[property]?.directory
-          ? object[property]?.path
+        isStep && (property === "saveCookie" || property === "loadCookie") && cookie?.path && !cookie.directory
+          ? cookie.path
           : undefined;
       object[property] = await resolvePaths({
         config: config,
