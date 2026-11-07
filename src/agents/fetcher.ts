@@ -27,6 +27,18 @@ const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
 /**
+ * agent-tools ref that matches this CLI's major (ADR 01164). A floating tag
+ * that agent-tools' release moves forward, so CLI 5 gets every agent-tools 2.x
+ * release and never the default branch.
+ */
+export const AGENT_TOOLS_REF = "v2";
+
+/** Raw file URL in agent-tools at the pinned ref. */
+export function agentToolsRawUrl(file: string): string {
+  return `https://raw.githubusercontent.com/${REPO_SLUG}/${AGENT_TOOLS_REF}/${file}`;
+}
+
+/**
  * Build the codeload archive URL for a given ref. GitHub's codeload endpoint
  * accepts `<ref>` directly (branches, tags, and full commit SHAs all resolve),
  * so we don't hard-code `refs/heads/…` and we support tags like `v1.3.0`.
@@ -40,7 +52,7 @@ function codeloadUrl(ref: string): string {
  * top-level `agent-tools-<ref>/` wrapper dir that GitHub adds to codeload zips.
  */
 export async function fetchAgentToolsZip(
-  ref: string = "main",
+  ref: string = AGENT_TOOLS_REF,
   deps: FetchDeps = {}
 ): Promise<FetchResult> {
   // c8 ignore justification (next line): real network GET to GitHub codeload;

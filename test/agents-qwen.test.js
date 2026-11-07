@@ -184,7 +184,7 @@ describe("QwenCodeAdapter.install()", function () {
     c[1] === "extensions" &&
     (c[2] === "install" || c[2] === "update");
 
-  it("fresh install runs `extensions install <url> --auto-update --consent`", async function () {
+  it("fresh install runs `extensions install <url> --ref v2 --auto-update --consent`", async function () {
     const { adapter, calls } = makeSpyAdapter({ installed: false });
     const report = await adapter.install(baseOpts());
     const installs = calls.filter(mutating);
@@ -192,6 +192,7 @@ describe("QwenCodeAdapter.install()", function () {
       [
         "qwen", "extensions", "install",
         "https://github.com/doc-detective/agent-tools:doc-detective",
+        "--ref", "v2",
         "--auto-update", "--consent",
       ],
     ]);

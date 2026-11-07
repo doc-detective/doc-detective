@@ -10,6 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
+import { agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -28,8 +29,7 @@ export interface CopilotCliDeps {
 const MARKETPLACE_NAME = "doc-detective";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
-const LATEST_PLUGIN_JSON_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/plugins/doc-detective/.claude-plugin/plugin.json";
+const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
 
 export function defaultCopilotCliDeps(): CopilotCliDeps {
   return {

@@ -11,6 +11,7 @@ import type {
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
 import { parseMetadataVersion } from "./codex.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -28,8 +29,7 @@ export interface QwenCodeDeps {
 
 const EXTENSION_NAME = "doc-detective";
 const GIT_SOURCE = "https://github.com/doc-detective/agent-tools";
-const LATEST_SKILL_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/skills/doc-detective-init/SKILL.md";
+const LATEST_SKILL_URL = agentToolsRawUrl("skills/doc-detective-init/SKILL.md");
 
 export function defaultQwenCodeDeps(): QwenCodeDeps {
   return {
@@ -188,7 +188,7 @@ export class QwenCodeAdapter implements AgentAdapter {
     type Cmd = [string, ...string[]];
     const commands: Cmd[] = base.installed
       ? [["qwen", "extensions", "update", EXTENSION_NAME]]
-      : [["qwen", "extensions", "install", installArg, "--auto-update", "--consent"]];
+      : [["qwen", "extensions", "install", installArg, "--ref", AGENT_TOOLS_REF, "--auto-update", "--consent"]];
 
     // Short-circuit dry-run BEFORE touching the network: dry-run is a
     // side-effect-free preview and shouldn't block on (or fail due to) a

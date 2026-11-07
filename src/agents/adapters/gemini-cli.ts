@@ -10,6 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -27,8 +28,7 @@ export interface GeminiCliDeps {
 
 const EXTENSION_NAME = "doc-detective";
 const GIT_SOURCE = "https://github.com/doc-detective/agent-tools.git";
-const LATEST_MANIFEST_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/gemini-extension.json";
+const LATEST_MANIFEST_URL = agentToolsRawUrl("gemini-extension.json");
 
 export function defaultGeminiCliDeps(): GeminiCliDeps {
   return {
@@ -185,6 +185,7 @@ export class GeminiCliAdapter implements AgentAdapter {
       : [
           [
             "gemini", "extensions", "install", GIT_SOURCE,
+            "--ref", AGENT_TOOLS_REF,
             "--auto-update", "--consent", "--skip-settings",
           ],
         ];
