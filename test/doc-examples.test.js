@@ -8,6 +8,7 @@ import fs from "node:fs";
 import YAML from "yaml";
 import { validate, schemas, stepActions } from "../dist/common/src/index.js";
 
+// fs.globSync needs Node 22+ (CI runs 24+).
 const FILES = [...fs.globSync("docs/fern/pages/**/*.mdx"), "README.md", "src/common/README.md"];
 const configKeys = new Set(Object.keys(schemas.config_v3.properties));
 const stepKeys = new Set(Object.keys(schemas.step_v3.properties)); // actions + step-level keys
@@ -29,6 +30,7 @@ function classify(object) {
 
 function* fencedBlocks(file) {
   const text = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+  // `\1` makes the closing fence match the opening fence's indentation.
   for (const m of text.matchAll(/^([ \t]*)```(json|ya?ml)([^\n]*)\n([\s\S]*?)^\1```/gm)) {
     const [, indent, lang, info, body] = m;
     const line = text.slice(0, m.index).split("\n").length;

@@ -19,5 +19,5 @@ const schemas = JSON.parse(await readFile(path.join(outDir, "schemas.json"), "ut
 for (const [key, schema] of Object.entries(schemas)) {
   if (!key.endsWith("_v3")) continue;
   await writeFile(path.join(outDir, `${key}.schema.json`), JSON.stringify(schema, null, 2));
+  console.log(`Published dist/schemas/${key}.schema.json`);
 }
-console.log("Published dist/schemas/*_v3.schema.json");

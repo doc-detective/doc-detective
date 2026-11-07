@@ -10,10 +10,10 @@ const distSchemas = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."
 describe("stepActions", function () {
   it("matches the action keys step_v3 requires, sorted", function () {
     // Each step_v3 oneOf branch requires one action key, on the branch or in an allOf part.
-    const derived = schemas.step_v3.oneOf
+    const keys = schemas.step_v3.oneOf
       .flatMap((branch) => [branch, ...(branch.allOf ?? [])])
-      .flatMap((part) => part.required ?? [])
-      .sort();
+      .flatMap((part) => part.required ?? []);
+    const derived = [...new Set(keys)].sort();
     expect(derived).to.include("goTo");
     expect(stepActions).to.deep.equal(derived);
   });
