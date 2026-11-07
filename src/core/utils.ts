@@ -2409,7 +2409,7 @@ function applyVerifiedMarkers({
   }
 
   const today = verifiedDate();
-  const version = ownVersion() as string;
+  const version = ownVersion() ?? "unknown";
   for (const file of files) {
     try {
       if (!fs.existsSync(file)) continue;
