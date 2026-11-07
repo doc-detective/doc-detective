@@ -39,6 +39,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -736,7 +737,7 @@ async function captureScreenshot({
     );
 
     // Wait for scroll to complete
-    await driver.pause(100);
+    await driver.pause(RENDER_SETTLE_MS);
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,

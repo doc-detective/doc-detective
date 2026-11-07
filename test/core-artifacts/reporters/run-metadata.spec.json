@@ -1,0 +1,83 @@
+{
+  "specId": "run-metadata",
+  "description": "End-to-end coverage of the run metadata in the JSON report (ADR 01163): the run's `startedAt` and `environment`, each context's `startedAt`, `browser.version`, and `driver`, and each step's `startedAt`. A spec can't read its own report, because reporters run after every spec finishes, so each test seeds an inner spec, runs it through a nested `doc-detective` with `--output`, and asserts on the JSON it wrote. The asserting `node` is the same binary the nested run used, so `process.versions.node` and `os.release()` are the expected values. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`.",
+  "tests": [
+    {
+      "testId": "run-metadata-no-browser",
+      "description": "A shell-only run records the host environment and start times, and no browser or driver version. Runs on every platform.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-run-metadata/shell';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-shell',tests:[{testId:'inner-shell',steps:[{runShell:'node -e 0'},{runShell:'node -e 0'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-run-metadata/shell/inner.spec.json --output .tmp/fixture-run-metadata/shell/report.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),os=require('os');const r=JSON.parse(fs.readFileSync('.tmp/fixture-run-metadata/shell/report.json','utf8'));const fail=m=>{console.error(m);process.exit(1)};const iso=s=>typeof s==='string'&&new Date(s).toISOString()===s;const e=r.environment||{};if(!iso(r.startedAt))fail('run startedAt: '+r.startedAt);if(e.nodeVersion!==process.versions.node)fail('nodeVersion: '+e.nodeVersion);if(e.docDetectiveVersion!==require('./package.json').version)fail('docDetectiveVersion: '+e.docDetectiveVersion);if(e.osRelease!==os.release())fail('osRelease: '+e.osRelease);if(!e.platform||!e.arch)fail('platform or arch missing');if('workingDirectory' in e)fail('workingDirectory leaked into the report');const c=r.specs[0].tests[0].contexts[0];if(c.result!=='PASS')fail('inner context: '+c.result);if(!iso(c.startedAt)||c.startedAt<r.startedAt)fail('context startedAt: '+c.startedAt);if(c.driver||(c.browser&&c.browser.version))fail('browser metadata without a browser');if(c.steps.length!==2)fail('expected 2 steps');for(const s of c.steps)if(!iso(s.startedAt)||s.startedAt<c.startedAt)fail('step startedAt: '+s.startedAt);console.log('run-metadata ok: doc-detective '+e.docDetectiveVersion+', node '+e.nodeVersion+', '+e.platform+' '+e.arch+' '+e.osRelease)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "run-metadata-browser",
+      "description": "A Chrome run records the browser and chromedriver versions the session reported. The opening `goTo` is the gate: it starts Chrome, so the test runs only where Chrome can start and lands SKIPPED elsewhere. Fallback is off, so it never substitutes another engine. Needs the test server on 8092.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          },
+          "browserFallback": "off"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-run-metadata/browser';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/inner.spec.json',JSON.stringify({specId:'inner-browser',tests:[{testId:'inner-browser',runOn:[{browsers:{name:'chrome',headless:true},browserFallback:'off'}],steps:[{goTo:'http://localhost:8092'}]}]}))\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-run-metadata/browser/inner.spec.json --output .tmp/fixture-run-metadata/browser/report.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');const r=JSON.parse(fs.readFileSync('.tmp/fixture-run-metadata/browser/report.json','utf8'));const fail=m=>{console.error(m);process.exit(1)};const iso=s=>typeof s==='string'&&new Date(s).toISOString()===s;const c=r.specs[0].tests[0].contexts[0];if(c.result!=='PASS')fail('inner context: '+c.result+' '+(c.resultDescription||''));const b=c.browser||{},v=c.driver||{};if(b.name!=='chrome'||typeof b.version!=='string'||!b.version)fail('browser: '+JSON.stringify(b));if(v.name!=='chromedriver'||typeof v.version!=='string'||!v.version)fail('driver: '+JSON.stringify(v));if(!iso(c.startedAt)||c.startedAt<r.startedAt)fail('context startedAt: '+c.startedAt);for(const s of c.steps)if(!iso(s.startedAt)||s.startedAt<c.startedAt)fail('step startedAt: '+s.startedAt);console.log('run-metadata browser ok: chrome '+b.version+', chromedriver '+v.version)\"",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
