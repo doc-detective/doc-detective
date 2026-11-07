@@ -27,37 +27,33 @@ Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `jun
 
 The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
 
-On GitLab, point the test summary at the `junit.xml` file:
-
-```yaml title=".gitlab-ci.yml"
-doc-tests:
-  script:
-    - doc-detective --input ./docs --reporters terminal junit --output ./reports
-  artifacts:
-    reports:
-      junit: reports/junit.xml
-```
-
-On GitHub Actions, append the Markdown summary to the job summary:
-
-```yaml title=".github/workflows/docs.yml"
-- run: doc-detective --input ./docs --reporters terminal markdown --output ./reports
-- if: always()
-  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
-```
-
-Select reporters on the command line:
-
-```bash
-doc-detective --input api.spec.json --reporters terminal json html
-```
-
-Or set them in your config file so every run uses the same combination:
+To choose reporters for every run, set them in your config file. This works on 4.x and on 5.0:
 
 ```json title=".doc-detective.json"
 {
   "reporters": ["terminal", "json", "html"]
 }
+```
+
+On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
+
+On GitLab, add `junit` to `reporters` in your config, like `["terminal", "junit"]`, and point the test summary at the `junit.xml` file:
+
+```yaml title=".gitlab-ci.yml"
+doc-tests:
+  script:
+    - doc-detective --input ./docs --output ./reports
+  artifacts:
+    reports:
+      junit: reports/junit.xml
+```
+
+On GitHub Actions, add `markdown` to `reporters` in your config, like `["terminal", "markdown"]`, and append the Markdown summary to the job summary:
+
+```yaml title=".github/workflows/docs.yml"
+- run: doc-detective --input ./docs --output ./reports
+- if: always()
+  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
 
 ## Step 2: Read the terminal summary

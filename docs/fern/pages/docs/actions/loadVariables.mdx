@@ -16,7 +16,7 @@ Assuming a file named `secrets.env` exists in the same directory as the test fil
 
 ```env title="secrets.env"
 API_KEY=your_secret_api_key
-BASE_URL=https://api.example.com
+DATA_URL=https://api.example.com/data
 ```
 
 You can load these variables using the `loadVariables` action:
@@ -35,7 +35,7 @@ You can load these variables using the `loadVariables` action:
         {
           "description": "Use the loaded API key in an HTTP request.",
           "httpRequest": {
-            "url": "$BASE_URL/data", // Use loaded BASE_URL
+            "url": "$DATA_URL", // Use loaded DATA_URL
             "method": "GET",
             "request": {
               "headers": {
@@ -51,6 +51,8 @@ You can load these variables using the `loadVariables` action:
 ```
 
 {/* step {"stepId":"loadvariables-load","description":"Load environment variables from secrets.env","loadVariables":"./secrets.env"} */}
-{/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: BASE_URL in the URL (proven by the request reaching the local server at all) and API_KEY in both a header and the request body -- only the body's substitution is independently verified below, since the echo API reflects the body/query but not request headers","httpRequest":{"url":"$BASE_URL/data","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
+{/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: DATA_URL as the URL (proven by the request reaching the local server at all) and API_KEY in both a header and the request body -- only the body's substitution is independently verified below, since the echo API reflects the body/query but not request headers","httpRequest":{"url":"$DATA_URL","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
 {/* test end */}
+
+Keep each whole URL in one variable, like `DATA_URL`. 4.x warns about a URL that starts with a variable and continues with a path, like `$BASE_URL/data`, and [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects it.
 
