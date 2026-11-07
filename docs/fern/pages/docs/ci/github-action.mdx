@@ -160,7 +160,7 @@ GitHub limits an issue body to 65,536 characters. When the body would be longer,
 The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions).
 
 <Note>
-GitHub Action `@v2` renames `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work, but the action logs a deprecation warning. Setting both an old and a new name fails the job.
+GitHub Action `@v2` renames `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work, but the action logs a deprecation warning. Setting both an old and a new name fails the job before tests run.
 </Note>
 
 ## Step 6: Use the results in later steps
