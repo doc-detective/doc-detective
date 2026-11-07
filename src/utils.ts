@@ -480,6 +480,8 @@ async function setConfig({
   // Now that the level is known, environment warnings (bad boolean values,
   // deprecated names) print through log(), so -q and -l hide them.
   const logged = config;
+  // The runner's setConfig sets the sink again on purpose, so JS API callers,
+  // who never reach this one, get the same warnings.
   setEnvWarningSink((message) => log(message, "warning", logged));
   if (args.telemetry === false || process.env.DO_NOT_TRACK) {
     config.telemetry = { ...(config.telemetry || {}), send: false };

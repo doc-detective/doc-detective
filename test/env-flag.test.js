@@ -87,10 +87,15 @@ describe("DOC_DETECTIVE_RUNTIME_DEBUG, the old name of DOC_DETECTIVE_DEBUG", fun
     expect(printed).to.deep.equal([]);
   });
 
-  it("can't be set alongside DOC_DETECTIVE_DEBUG", function () {
+  it("can sit beside DOC_DETECTIVE_DEBUG when both are off", function () {
+    expect(() => checkEnvAliases({ DOC_DETECTIVE_DEBUG: "0", DOC_DETECTIVE_RUNTIME_DEBUG: "0" })).to.not.throw();
+  });
+
+  it("can't be set alongside DOC_DETECTIVE_DEBUG when either is on", function () {
     for (const env of [
       { DOC_DETECTIVE_DEBUG: "1", DOC_DETECTIVE_RUNTIME_DEBUG: "1" },
       { DOC_DETECTIVE_DEBUG: "0", DOC_DETECTIVE_RUNTIME_DEBUG: "1" },
+      { DOC_DETECTIVE_DEBUG: "1", DOC_DETECTIVE_RUNTIME_DEBUG: "0" },
     ]) {
       expect(() => checkEnvAliases(env)).to.throw(
         "set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both."

@@ -201,10 +201,18 @@ export function isRuntimeInstallOptedOut(env = process.env) {
 // A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
 // true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
 // undefined, so each caller keeps its own default.
+const warnedFlags = new Set();
 function envFlag(name, env = process.env) {
   const value = String(env[name] ?? "").trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;
   if (["0", "false", "no", "off"].includes(value)) return false;
+  // Like src/envFlag.ts: any other value counts as unset, and says so once.
+  if (value && !warnedFlags.has(name)) {
+    warnedFlags.add(name);
+    console.error(
+      `Warning: Ignoring ${name}=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`
+    );
+  }
   return undefined;
 }
 
