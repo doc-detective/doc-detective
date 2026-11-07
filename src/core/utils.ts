@@ -12,11 +12,11 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
+import { ownVersion } from "../runtime/heavyDeps.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
-import { createRequire } from "node:module";
 import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
@@ -2461,7 +2461,7 @@ function applyVerifiedMarkers({
   }
 
   const today = verifiedDate();
-  const version: string = createRequire(import.meta.url)("../../package.json").version;
+  const version = ownVersion() as string;
   for (const file of files) {
     try {
       if (!fs.existsSync(file)) continue;

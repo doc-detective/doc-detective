@@ -38,6 +38,7 @@ import { ChildProcess } from "node:child_process";
 import sinon from "sinon";
 
 import { printDebug } from "../dist/debug/index.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import { debugCommand } from "../dist/debug/command.js";
 import { collectAppiumDiagnostics } from "../dist/debug/appium.js";
 import { collectCacheStatus } from "../dist/debug/cache.js";
@@ -793,17 +794,17 @@ describe("debug/* remaining coverage", function () {
   // index.ts
   // -------------------------------------------------------------------
   describe("index.ts", function () {
-    it("resolveLoadedFrom's package.json walk throwing falls back to '<unknown>' (lines 288-290)", async function () {
+    it("loadedFrom falls back to '<unknown>' when no doc-detective package.json is found", async function () {
       this.timeout(60000);
-      // Scope the throw to the bare `package.json` existsSync probe that
-      // resolveLoadedFrom performs, so other collectors' existsSync calls
-      // (cache dirs, node_modules dirs, etc.) are unaffected.
-      const original = fs.existsSync;
-      const stub = sinon.stub(fs, "existsSync").callsFake((p) => {
-        if (typeof p === "string" && p.endsWith(path.join("package.json"))) {
-          throw new Error("existsSync boom (package.json probe)");
+      // packageRoot() caches its walk; drop the cache so this call walks
+      // again, past package.json files that can't be read, to the root.
+      _resetCacheForTests();
+      const original = fs.readFileSync;
+      const stub = sinon.stub(fs, "readFileSync").callsFake((p, ...rest) => {
+        if (typeof p === "string" && p.endsWith("package.json")) {
+          throw new Error("readFileSync boom (package.json)");
         }
-        return original(p);
+        return original(p, ...rest);
       });
       try {
         const out = [];
@@ -812,13 +813,10 @@ describe("debug/* remaining coverage", function () {
           configPath: null,
           print: (line) => out.push(line),
         });
-        const text = out.join("\n");
-        assert.match(text, /loadedFrom\s+<unknown>/);
-        // getVersionData() (src/utils.ts) is unaffected — it never calls
-        // existsSync on a bare "package.json" path (it uses `require`).
-        assert.doesNotMatch(text, /doc-detective\s+<unknown>/);
+        assert.match(out.join("\n"), /loadedFrom\s+<unknown>/);
       } finally {
         stub.restore();
+        _resetCacheForTests();
       }
     });
 
@@ -910,26 +908,6 @@ describe("debug/* remaining coverage", function () {
         assert.match(out.join("\n"), /entryPoint\s+<unknown>/);
       } finally {
         process.argv[1] = originalArgv1;
-      }
-    });
-
-    it("resolveLoadedFrom's ancestor walk exhausts without ever finding a package.json (line 285 branch)", async function () {
-      this.timeout(60000);
-      // existsSync always false (no throw) -> the walk runs to its bound
-      // (filesystem root or the 8-iteration cap) without ever taking the
-      // "found it" break, landing loadedFrom on its "<unknown>" default —
-      // a different code path than the existsSync-throws test above.
-      const stub = sinon.stub(fs, "existsSync").returns(false);
-      try {
-        const out = [];
-        await printDebug({
-          config: { input: ".", environment: { platform: "linux" } },
-          configPath: null,
-          print: (line) => out.push(line),
-        });
-        assert.match(out.join("\n"), /loadedFrom\s+<unknown>/);
-      } finally {
-        stub.restore();
       }
     });
 

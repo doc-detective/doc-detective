@@ -21,9 +21,7 @@ import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
-import { createRequire } from "node:module";
-
-const cliRequire = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
 setMeta();
@@ -208,7 +206,7 @@ async function runTestsHandler(args: any) {
       const mapped = level === "warn" ? "warning" : level;
       log(msg, mapped, config);
     };
-    const currentVersion: string = cliRequire("../package.json").version;
+    const currentVersion = ownVersion() as string;
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.
