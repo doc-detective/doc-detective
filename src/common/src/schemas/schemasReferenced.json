@@ -4259,8 +4259,30 @@
                 "default": "."
               },
               "tty": {
-                "type": "boolean",
-                "default": false
+                "default": false,
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 120
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 30
+                      }
+                    }
+                  }
+                ]
               },
               "waitUntil": {
                 "$ref": "#/components/schemas/processStartWaitUntil"
@@ -5236,8 +5258,30 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 120
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 30
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -5378,8 +5422,30 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 120
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 30
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -11585,7 +11651,27 @@
                 "type": "string"
               },
               "tty": {
-                "type": "boolean"
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      }
+                    }
+                  }
+                ]
               },
               "waitUntil": {
                 "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processStartWaitUntil"
@@ -12541,7 +12627,27 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean"
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -12674,7 +12780,27 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean"
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }

@@ -4170,6 +4170,70 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
 
+      for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
+        it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+        });
+      }
+
+      for (const [tty, pattern] of [
+        [{ cols: 0 }, /tty\/cols must be >= 1/],
+        [{ cols: 1001 }, /tty\/cols must be <= 1000/],
+        [{ rows: 0 }, /tty\/rows must be >= 1/],
+        [{ cols: 80.5 }, /tty\/cols must be integer/],
+        [{ width: 80 }, /must NOT have additional properties/],
+      ]) {
+        it(`should reject a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(pattern);
+        });
+      }
+
+      it("should validate a background runCode with tty {cols, rows}", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: { cols: 80, rows: 24 } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a startSurface process with tty {cols, rows} and reject cols 0", function () {
+        const ok = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 100, rows: 40 } },
+          },
+        });
+        expect(ok.valid, ok.errors).to.be.true;
+        const bad = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 0 } },
+          },
+        });
+        expect(bad.valid).to.be.false;
+        expect(bad.errors).to.match(/tty\/cols must be >= 1/);
+      });
+
       it("should validate a background runCode with tty:true", function () {
         const result = validate({
           schemaKey: "step_v3",
