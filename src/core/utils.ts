@@ -57,6 +57,7 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  parseHeaders,
   isDeviceWebContext,
   computeSettleCeiling,
   redactUrlForOutput,
@@ -1309,6 +1310,24 @@ const SETTLE_CEILING_MAX_MS = 3000;
  */
 function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
   return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
+}
+
+/**
+ * Request headers as an object. The schema's string form has one
+ * `Name: value` header per line; a line splits on its first colon, since values
+ * hold colons (URLs, times), and a line without a name or a value is skipped.
+ */
+function parseHeaders(headers: Record<string, string> | string | undefined): Record<string, string> {
+  if (typeof headers !== "string") return headers ?? {};
+  const out: Record<string, string> = {};
+  for (const line of headers.split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    if (key && value) out[key] = value;
+  }
+  return out;
 }
 
 function appendQueryParams(

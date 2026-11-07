@@ -4,9 +4,9 @@
   "anyOf": [
     {
       "title": "Go to URL (simple)",
-      "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+      "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
       "type": "string",
-      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
       "transform": [
         "trim"
       ]
@@ -250,16 +250,17 @@
               ]
             },
             "url": {
+              "title": "Target URL",
+              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
               "type": "string",
-              "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-              "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
               "transform": [
                 "trim"
               ]
             },
             "origin": {
               "type": "string",
-              "description": "Protocol and domain to navigate to. Prepended to `url`.",
+              "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
               "transform": [
                 "trim"
               ]
@@ -274,9 +275,9 @@
             },
             "timeout": {
               "type": "integer",
-              "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+              "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
               "default": 30000,
-              "minimum": 0
+              "minimum": 1
             },
             "waitUntil": {
               "type": "object",
@@ -528,11 +529,20 @@
   ],
   "components": {
     "schemas": {
+      "url": {
+        "title": "Target URL",
+        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+        "type": "string",
+        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+        "transform": [
+          "trim"
+        ]
+      },
       "string": {
         "title": "Go to URL (simple)",
-        "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
         "type": "string",
-        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
         "transform": [
           "trim"
         ]
@@ -776,16 +786,17 @@
                 ]
               },
               "url": {
+                "title": "Target URL",
+                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                 "type": "string",
-                "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                 "transform": [
                   "trim"
                 ]
               },
               "origin": {
                 "type": "string",
-                "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                 "transform": [
                   "trim"
                 ]
@@ -800,9 +811,9 @@
               },
               "timeout": {
                 "type": "integer",
-                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                 "default": 30000,
-                "minimum": 0
+                "minimum": 1
               },
               "waitUntil": {
                 "type": "object",

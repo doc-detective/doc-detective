@@ -196,15 +196,19 @@ export type Routing3 = {
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition5 = string | [string, ...string[]];
-export type CheckLink1 = CheckLinkDetailed | CheckLinkDetailed1;
+export type CheckLink1 = CheckLinkSimple | CheckLinkDetailed;
 /**
- * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
-export type CheckLinkDetailed = string;
+export type CheckLinkSimple = string;
 /**
- * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
- * Authorization: Bearer token`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
+export type TargetURL = string;
+/**
+ * Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+ */
+export type RequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
@@ -1059,7 +1063,7 @@ export type Routing15 = {
 export type Condition23 = string | [string, ...string[]];
 export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
- * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple = string;
 /**
@@ -1098,12 +1102,9 @@ export type GoToURLDetailed = {
          */
         tab?: string;
       };
+  url: TargetURL1;
   /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.
    */
   origin?: string;
   /**
@@ -1113,7 +1114,7 @@ export type GoToURLDetailed = {
     [k: string]: string;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.
    */
   timeout?: number;
   /**
@@ -1197,6 +1198,10 @@ export type ByIndex13 = number;
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
 export type ByName13 = string;
+/**
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ */
+export type TargetURL1 = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -1326,24 +1331,24 @@ export type Condition29 = string | [string, ...string[]];
  */
 export type HttpRequest1 = HTTPRequestSimple | HTTPRequestDetailed;
 /**
- * URL for the HTTP request.
+ * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple = string;
 export type HTTPRequestDetailed = {
   [k: string]: unknown;
 } & {
-  url?: HTTPRequestSimple1;
+  url?: TargetURL2;
   openApi?: (string & OperationID) | (OpenApi & OpenAPIDefinitionHttpRequest);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
   method?: "get" | "put" | "post" | "patch" | "delete";
   /**
-   * Timeout for the HTTP request, in milliseconds.
+   * Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.
    */
   timeout?: number;
   request?: Request;
@@ -1353,11 +1358,11 @@ export type HTTPRequestDetailed = {
    */
   allowAdditionalFields?: boolean;
   /**
-   * File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings.
+   * File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings.
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder.
    */
   directory?: string;
   /**
@@ -1371,9 +1376,9 @@ export type HTTPRequestDetailed = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * URL for the HTTP request.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
-export type HTTPRequestSimple1 = string;
+export type TargetURL2 = string;
 /**
  * OpenAPI description and configuration.
  */
@@ -1406,11 +1411,11 @@ export type OpenApi = {
    */
   mockResponse?: boolean;
   /**
-   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified.
+   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes.
    */
   statusCode?: number;
   /**
-   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.
+   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.
    */
   useExample?: "request" | "response" | "both" | "none";
   /**
@@ -1420,10 +1425,15 @@ export type OpenApi = {
   headers?: OpenAPIRequestHeaders;
 };
 /**
- * Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json
- * Authorization: Bearer token`.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
+export type OpenAPIRequestHeaders = RequestHeadersObject1 | RequestHeadersString1;
 export type RequestHeadersString1 = string;
+/**
+ * Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.
+ */
+export type RequestHeaders1 = RequestHeadersObject2 | RequestHeadersString2;
+export type RequestHeadersString2 = string;
 /**
  * JSON array to include as the body of the HTTP request.
  */
@@ -2629,7 +2639,7 @@ export type Condition65 = string | [string, ...string[]];
  */
 export type SaveCookie1 = CookieName | SaveCookieDetailed;
 /**
- * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
+ * A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.
  */
 export type CookieName = string;
 export type SaveCookieDetailed = {
@@ -2651,15 +2661,15 @@ export type SaveCookieDetailed = {
  */
 export type CookieName1 = string;
 /**
- * Environment variable name to store the cookie as JSON string.
+ * Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.
  */
 export type EnvironmentVariableName = string;
 /**
- * File path to save the cookie, relative to directory. Uses Netscape cookie format.
+ * File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.
  */
 export type CookieFilePath = string;
 /**
- * Directory to save the cookie file. If not specified, uses output directory.
+ * Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.
  */
 export type DirectoryPath = string;
 /**
@@ -3945,7 +3955,7 @@ export type Condition107 = string | [string, ...string[]];
  */
 export type LoadCookie1 = CookieNameOrFilePath | LoadCookieDetailed;
 /**
- * Name of the specific cookie to load from default location, or file path to cookie file.
+ * A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.
  */
 export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed = {
@@ -3970,11 +3980,11 @@ export type CookieName2 = string;
  */
 export type EnvironmentVariableName1 = string;
 /**
- * File path to cookie file, relative to directory. Supports Netscape cookie format.
+ * File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.
  */
 export type CookieFilePath1 = string;
 /**
- * Directory containing the cookie file.
+ * Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.
  */
 export type DirectoryPath1 = string;
 /**
@@ -4921,13 +4931,10 @@ export interface CheckLink {
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
  */
-export interface CheckLinkDetailed1 {
+export interface CheckLinkDetailed {
+  url: TargetURL;
   /**
-   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.
    */
   origin?: string;
   /**
@@ -4937,17 +4944,11 @@ export interface CheckLinkDetailed1 {
     [k: string]: string;
   };
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
   statusCodes?: number | number[];
-  /**
-   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
-   */
-  headers?: RequestHeadersObject | RequestHeadersString;
+  headers?: RequestHeaders;
 }
-/**
- * Headers to include in the HTTP request, in key/value format. Values must be strings.
- */
 export interface RequestHeadersObject {
   [k: string]: string;
 }
@@ -6282,31 +6283,22 @@ export interface OperationID {
 export interface OpenAPIDefinition {
   [k: string]: unknown;
 }
-/**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.
- */
-export interface OpenAPIRequestHeaders {
+export interface RequestHeadersObject1 {
   [k: string]: string;
 }
 export interface OpenAPIDefinitionHttpRequest {
   [k: string]: unknown;
 }
 export interface Request {
-  /**
-   * Headers to include in the HTTP request.
-   */
-  headers?: RequestHeadersObject1 | RequestHeadersString1;
+  headers?: RequestHeaders1;
   parameters?: RequestParameters;
   /**
    * The body of the HTTP request.
    */
   body?: RequestBodyObject | RequestBodyArray | RequestBodyString;
 }
-/**
- * Headers to include in the HTTP request, in key/value format.
- */
-export interface RequestHeadersObject1 {
-  [k: string]: unknown;
+export interface RequestHeadersObject2 {
+  [k: string]: string;
 }
 /**
  * URL parameters to include in the HTTP request, in key/value format.
@@ -6332,7 +6324,7 @@ export interface Response {
   required?: string[];
 }
 /**
- * Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.
+ * Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.
  */
 export interface ResponseHeaders {
   [k: string]: unknown;
