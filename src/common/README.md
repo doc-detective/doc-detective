@@ -8,17 +8,13 @@ Shared components for Doc Detective projects.
 # Install stable version
 npm install doc-detective-common
 
-# Install latest development version
-npm install doc-detective-common@dev
+# Install the prerelease from the `next` branch
+npm install doc-detective-common@next
 ```
 
-## 🚀 Development Releases
+## 🚀 Releases
 
-When the monorepo auto-dev-release workflow is enabled, this package publishes development versions from `main` commits. This enables dependent libraries to consume the latest changes without waiting for formal releases.
-
-- **Dev versions** follow the pattern: `3.1.0-dev.1`, `3.1.0-dev.2`, etc.
-- **Available via npm**: `npm install doc-detective-common@dev`
-- **Documentation**: See [Auto Dev Release Guide](./docs/auto-dev-release.md)
+This package publishes in lockstep with `doc-detective`, at the same version and on the same npm dist-tags: `latest` from `main`, `next` from `next`, and a per-branch tag for each `feat/**` branch.
 
 ## 📚 API
 
