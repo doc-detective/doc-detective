@@ -33,7 +33,7 @@ export const HINTS: Hint[] = [
       "",
       "```json",
       "{",
-      "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json\",",
+      "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/config_v3.schema.json\",",
       "  \"input\": \"docs\",",
       "  \"output\": \"doc-detective-output\",",
       "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
