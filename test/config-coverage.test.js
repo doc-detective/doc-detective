@@ -736,12 +736,22 @@ describe("config.ts — setConfig", function () {
     });
   }
 
-  it("treats a null beforeAny as absent", function () {
+  it("treats a null beforeAny as absent, and drops it", function () {
     const warn = sinon.spy();
     const source = { beforeAny: null };
-    renameDeprecatedConfigKeys([source, { beforeAll: "./a.json", beforeAny: null }], warn);
-    assert.equal("beforeAll" in source, false);
+    const other = { beforeAll: "./a.json", beforeAny: null };
+    renameDeprecatedConfigKeys([source, other], warn);
+    assert.deepEqual(source, {});
+    assert.deepEqual(other, { beforeAll: "./a.json" });
     assert.equal(warn.callCount, 0);
+  });
+
+  it("accepts beforeAll beside a null beforeAny", async function () {
+    const config = await setConfig({
+      config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: null },
+    });
+    assert.equal("beforeAny" in config, false);
+    assert.ok(config.beforeAll);
   });
 
   it("treats a null beforeAll as absent when beforeAny is set", function () {
