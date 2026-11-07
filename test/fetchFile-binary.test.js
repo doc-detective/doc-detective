@@ -239,11 +239,13 @@ describe("local URL guard (ADR 01162)", function () {
       "/to-js": () => [302, "javascript:alert(1)"],
       "/loop": () => [307, "/loop"],
       "/no-location": () => [302, undefined],
+      // Five redirects, then a sixth with no Location header.
+      "/chain": (n) => [302, n < 5 ? `/chain?n=${n + 1}` : undefined],
     };
     server = http.createServer((req, res) => {
-      const pathname = new URL(req.url, "http://x").pathname;
+      const { pathname, searchParams } = new URL(req.url, "http://x");
       if (redirects[pathname]) {
-        const [status, location] = redirects[pathname]();
+        const [status, location] = redirects[pathname](Number(searchParams.get("n")));
         res.writeHead(status, location ? { Location: location } : {});
         return res.end();
       }
@@ -421,6 +423,12 @@ describe("local URL guard (ADR 01162)", function () {
     assert.equal(
       bare.message.message,
       `Couldn't fetch http://127.0.0.1:${port}/no-location: the 302 redirect has no Location header.`
+    );
+    // Both at once: the limit is the reason it stopped.
+    const chain = await fetchFile(`http://127.0.0.1:${port}/chain`, { binary: true });
+    assert.equal(
+      chain.message.message,
+      `Couldn't fetch http://127.0.0.1:${port}/chain: it needs more than 5 redirects.`
     );
   });
 
