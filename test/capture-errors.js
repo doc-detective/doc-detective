@@ -6,6 +6,7 @@ export async function captureErrors(run) {
   const errors = sinon.stub(console, "error");
   try {
     const result = await run();
+    // Keeps each call's first argument: diag() calls console.error(line) with one string.
     return { result, lines: errors.args.map(([line]) => String(line)) };
   } finally {
     errors.restore();

@@ -744,6 +744,14 @@ describe("config.ts — setConfig", function () {
     assert.equal(warn.callCount, 0);
   });
 
+  it("treats a null beforeAll as absent when beforeAny is set", function () {
+    const warn = sinon.spy();
+    const source = { beforeAll: null, beforeAny: "./x.json" };
+    renameDeprecatedConfigKeys([source], warn);
+    assert.deepEqual(source, { beforeAll: "./x.json" });
+    assert.equal(warn.callCount, 1);
+  });
+
   it("doesn't warn about beforeAny when a DOC_DETECTIVE override is silent", async function () {
     const saved = process.env.DOC_DETECTIVE;
     process.env.DOC_DETECTIVE = JSON.stringify({ config: { logLevel: "silent" } });

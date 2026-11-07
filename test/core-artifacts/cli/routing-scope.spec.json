@@ -24,7 +24,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "steps[0].onFail[0].stop"
           }
         },
         {
@@ -33,7 +34,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "steps[0].onFail[0].stop"
           }
         },
         {
@@ -42,7 +44,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "steps[0].onFail[0]: unknown key 'goToTest'"
           }
         }
       ]
@@ -57,7 +60,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "tests[0].onFail[0].stop"
           }
         },
         {
@@ -66,7 +70,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "tests[0].onFail[0]: unknown key 'retry'"
           }
         },
         {
@@ -75,7 +80,8 @@
             "workingDirectory": "../../..",
             "exitCodes": [
               2
-            ]
+            ],
+            "stdio": "tests[0].onFail[0]: unknown key 'goToStep'"
           }
         }
       ]
