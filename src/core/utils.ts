@@ -66,6 +66,24 @@ export function sessionVersions({
   return result;
 }
 
+// Fetch a file from a URL and save to a temp directory.
+// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
+// required for images and other non-text payloads. Binary fetches also apply
+// hard limits (timeout, max body size; getGuarded caps redirects) so a
+// misbehaving server can't stall or OOM the run.
+// Otherwise, non-JSON responses are stringified (text pass-through).
+// Returns `{ result: "error", message }` on failure.
+const FETCH_BINARY_DEFAULTS = {
+  responseType: "arraybuffer" as const,
+  timeout: 30_000,
+  maxContentLength: 50 * 1024 * 1024,
+  maxBodyLength: 50 * 1024 * 1024,
+};
+
+// The same limits for text bodies, such as OpenAPI descriptions and their
+// $refs. "text" also stops axios from parsing JSON on its own.
+const FETCH_TEXT_DEFAULTS = { ...FETCH_BINARY_DEFAULTS, responseType: "text" as const };
+
 export {
   outputResults,
   loadEnvs,
@@ -1344,24 +1362,6 @@ function cleanTemp() {
     }
   }
 }
-
-// Fetch a file from a URL and save to a temp directory.
-// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
-// required for images and other non-text payloads. Binary fetches also apply
-// hard limits (timeout, max body size; getGuarded caps redirects) so a
-// misbehaving server can't stall or OOM the run.
-// Otherwise, non-JSON responses are stringified (text pass-through).
-// Returns `{ result: "error", message }` on failure.
-const FETCH_BINARY_DEFAULTS = {
-  responseType: "arraybuffer" as const,
-  timeout: 30_000,
-  maxContentLength: 50 * 1024 * 1024,
-  maxBodyLength: 50 * 1024 * 1024,
-};
-
-// The same limits for text bodies, such as OpenAPI descriptions and their
-// $refs. "text" also stops axios from parsing JSON on its own.
-const FETCH_TEXT_DEFAULTS = { ...FETCH_BINARY_DEFAULTS, responseType: "text" as const };
 
 // Replace characters that are invalid in filenames on Windows (and often
 // problematic on other platforms) with `_`. Keeps dots, hyphens, and
