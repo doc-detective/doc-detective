@@ -195,14 +195,15 @@ Highlight important information with admonitions. Make sure you use the appropri
 
 ### Run automated checks locally (optional)
 
-If you're working locally, run these commands before submitting. To set up Vale, see [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
+If you're working locally, run these commands from the repository root before submitting. To set up Vale and the `mdx2vast` parser it needs for `.mdx` files, see [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
 
 ```bash
 # Build the documentation
 npm run build
 
-# Run style checks (if Vale is installed)
-vale --config=docs/.vale.ini docs/
+# Run style checks (if Vale is installed) from the docs/ directory.
+# The glob skips the generated schema reference pages, which CI also skips.
+(cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 ```
 
 Don't worry if you skip these. The CI/CD pipeline runs them automatically.
