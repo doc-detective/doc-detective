@@ -142,10 +142,10 @@ export function packageRoot(): string | undefined {
 
 /** doc-detective's own version, from the package.json packageRoot() found. */
 export function ownVersion(): string | undefined {
-  return packageRoot() && cachedPkg?.version;
+  return packageRoot() && cachedPkg!.version;
 }
 
-function readShimPackageJson(): ShimPackageJson {
+export function readShimPackageJson(): ShimPackageJson {
   if (!packageRoot()) throw new Error("doc-detective's package.json not found");
   return cachedPkg as ShimPackageJson;
 }

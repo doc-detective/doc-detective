@@ -6,13 +6,10 @@ import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
-import { packageRoot } from "../runtime/heavyDeps.js";
+import { packageRoot, ownVersion } from "../runtime/heavyDeps.js";
 import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browsers.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
 
@@ -652,21 +649,6 @@ async function loadDescriptions(config: any) {
       );
     }
   }
-}
-
-// doc-detective's own version. Walks up rather than using a fixed
-// `../../package.json`: this module runs from dist/core/ (ESM) and from the
-// dist/index.cjs bundle, one level shallower.
-let cachedOwnVersion: string | undefined;
-function ownVersion(): string | undefined {
-  for (let dir = __dirname; !cachedOwnVersion; dir = path.dirname(dir)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
-      if (pkg.name === "doc-detective") cachedOwnVersion = pkg.version;
-    } catch {}
-    if (path.dirname(dir) === dir) break;
-  }
-  return cachedOwnVersion;
 }
 
 // Detect aspects of the environment running Doc Detective.
