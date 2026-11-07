@@ -289,7 +289,9 @@ describe("runner-entrypoint: finalizeBodyFor", () => {
     assert.deepEqual(finalizeBodyFor(143, false), {
       status: "canceled", exit_code: 143, summary: { reason: "sigterm" },
     });
-    assert.equal(finalizeBodyFor(0, true).summary.reason, "sigterm");
+    assert.deepEqual(finalizeBodyFor(0, true), {
+      status: "canceled", exit_code: 0, summary: { reason: "sigterm" },
+    });
   });
 
   it("any other code → failed with nonzero_exit", () => {
