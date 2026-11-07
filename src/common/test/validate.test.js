@@ -2471,6 +2471,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
       }
 
+      // Version 4 took the whole click_v3 object here. Now the object only says
+      // how to click, and a whole variable can't stand in for it.
+      for (const click of [{ selector: "#b" }, { button: "right", timeout: 100 }, "$BTN"]) {
+        it(`rejects find.click: ${JSON.stringify(click)}`, function () {
+          expect(check({ find: { selector: "#a", click } }).valid).to.be.false;
+        });
+      }
+
       it("rejects a find.click string that isn't a button", function () {
         const result = check({ find: { selector: "#a", click: "Submit" } });
         expect(result.valid).to.be.false;
