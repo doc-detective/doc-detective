@@ -45,9 +45,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-45066cf3acebf85241f306ad0e4938aabe267956548d9943337c39cca8b294fb
       source:
         file: src/common/test/validate.test.js
-        lines: 5776-5799
+        lines: 5882-5905
         integrity: sha256-5f2190779c1aca3aed48afa520ee0ee0874658754c18423a93d720c5496ce3f1
-        commit-sha: c8a67440285e17e83980d339b5c8ca88ae93cea5
+        commit-sha: 8815210cd58f7dee82f7ca9ade3ce988a55f2641
     - id: image-path-relative
       claim:
         integrity: sha256-3d8760b22271c6797f47665e3bf0fd7a33f4621fe787fa1993f04f9a6341c9a2
