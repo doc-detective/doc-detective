@@ -58,13 +58,13 @@
     },
     "statusCode": {
       "type": "integer",
-      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
     },
     "useExample": {
       "type": [
         "string"
       ],
-      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
       "enum": [
         "request",
         "response",
@@ -79,12 +79,21 @@
       "default": ""
     },
     "headers": {
-      "type": "object",
-      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-      "additionalProperties": {
-        "type": "string"
-      },
-      "title": "OpenAPI request headers"
+      "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+      "title": "OpenAPI request headers",
+      "anyOf": [
+        {
+          "title": "Request headers (object)",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        {
+          "title": "Request headers (string)",
+          "type": "string"
+        }
+      ]
     }
   },
   "components": {
@@ -106,6 +115,11 @@
     {
       "name": "Reqres",
       "operationId": "getUserById"
+    },
+    {
+      "name": "Reqres",
+      "operationId": "getUserById",
+      "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
     },
     {
       "descriptionPath": "https://api.example.com/openapi.json",

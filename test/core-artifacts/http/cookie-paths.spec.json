@@ -1,0 +1,42 @@
+{
+  "specId": "cookie-paths",
+  "description": "Where cookie files go (ADR 01174), through the real CLI. One spec saves cookies and a spec in another folder loads them: the string form and an object `path` without `directory` use `outputDir`, and `directory` resolves against the spec file. The two specs run one after the other in their own runs, so the order holds under concurrent runners. Uses the 8092 test server's /cookies routes and headless Firefox.",
+  "tests": [
+    {
+      "testId": "save-then-load",
+      "description": "Saves in one spec, loads in another, then checks where each file landed. One test, so its steps run in order.",
+      "steps": [
+        {
+          "description": "Write the two specs and their config.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-cookie-paths';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d+'/save',{recursive:true});fs.mkdirSync(d+'/load',{recursive:true});const w=(f,o)=>fs.writeFileSync(d+'/'+f,JSON.stringify(o));const at=(p)=>({goTo:'http://localhost:8092'+p});w('config.json',{runOn:[{platforms:['windows','mac','linux'],browsers:[{name:'firefox',headless:true}]}],telemetry:{send:false}});w('save/save.spec.json',{tests:[{steps:[at('/cookies/set/dd_str/1'),at('/cookies/set/dd_obj/1'),at('/cookies/set/dd_dir/1'),{saveCookie:'dd_str.txt'},{saveCookie:{name:'dd_obj',path:'dd_obj.txt'}},{saveCookie:{name:'dd_dir',path:'dd_dir.txt',directory:'../shared'}}]}]});w('load/load.spec.json',{tests:[{steps:[at('/'),{loadCookie:'dd_str.txt'},{loadCookie:{name:'dd_obj',path:'dd_obj.txt'}},{loadCookie:{name:'dd_dir',path:'dd_dir.txt',directory:'../shared'}},at('/cookies'),{find:'/dd_str=1/'},{find:'/dd_obj=1/'},{find:'/dd_dir=1/'}]}]});\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "description": "Save the string, object, and directory forms.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cookie-paths/save/save.spec.json --config .tmp/fixture-cookie-paths/config.json --output-dir .tmp/fixture-cookie-paths/out",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        },
+        {
+          "description": "Load them from a spec in another folder. Its finds pass only when the browser sends all three cookies.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-cookie-paths/load/load.spec.json --config .tmp/fixture-cookie-paths/config.json --output-dir .tmp/fixture-cookie-paths/out",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        },
+        {
+          "description": "The string and object forms wrote to outputDir, and the directory form to the folder beside the specs.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-cookie-paths/';for(const f of ['out/dd_str.txt','out/dd_obj.txt','shared/dd_dir.txt'])if(!fs.existsSync(d+f))throw new Error(f+' is missing.');if(fs.existsSync(d+'save/dd_obj.txt'))throw new Error('dd_obj.txt landed beside the spec.');\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}
