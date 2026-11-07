@@ -377,6 +377,16 @@ describe("normalization", function () {
       expect(output).to.not.equal(list);
     });
 
+    it("copies closeSurface's object references, in a list or alone", function () {
+      const target = { process: "web" };
+      const [fromList] = normalizers.closeSurface([target], "closeSurface", false, {});
+      const [alone] = normalizers.closeSurface(target, "closeSurface", false, {});
+      for (const output of [fromList, alone]) {
+        expect(output).to.deep.equal(target);
+        expect(output).to.not.equal(target);
+      }
+    });
+
     it("copies a type key list, never keeping the authored one", function () {
       const keys = ["a", "b"];
       const output = normalizers.type(keys, "type", false, {});
