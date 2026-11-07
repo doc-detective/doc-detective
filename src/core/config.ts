@@ -16,16 +16,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
 
-// Rename deprecated config keys in place, before validation (ADR 01169). The CLI
-// and the API both call this, so the alias works either way and warns once.
-function renameDeprecatedConfigKeys(config: any, warn: (message: string) => void) {
-  if (config?.beforeAny === undefined) return;
-  if (config.beforeAll !== undefined) {
-    throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
+// Rename deprecated config keys in place, in each config source before they're
+// merged, so a later source wins whichever name either one uses (ADR 01169).
+// Setting both names in one source is an error. Warns once for all the sources.
+function renameDeprecatedConfigKeys(sources: any[], warn: (message: string) => void) {
+  let renamed = false;
+  for (const config of sources) {
+    if (config?.beforeAny === undefined) continue;
+    if (config.beforeAll !== undefined) {
+      throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
+    }
+    config.beforeAll = config.beforeAny;
+    delete config.beforeAny;
+    renamed = true;
   }
-  warn("`beforeAny` is deprecated. Rename it to `beforeAll`.");
-  config.beforeAll = config.beforeAny;
-  delete config.beforeAny;
+  if (renamed) warn("`beforeAny` is deprecated. Rename it to `beforeAll`.");
 }
 
 /**
@@ -145,6 +150,7 @@ async function setConfig({ config, detectApps = true }: any) {
   config = replaceEnvs(JSON.parse(JSON.stringify(config)));
 
   // Apply config overrides from DOC_DETECTIVE environment variable
+  let envOverrides: any;
   if (process.env.DOC_DETECTIVE) {
     try {
       const docDetectiveEnv = JSON.parse(process.env.DOC_DETECTIVE);
@@ -152,7 +158,7 @@ async function setConfig({ config, detectApps = true }: any) {
         docDetectiveEnv.config &&
         typeof docDetectiveEnv.config === "object"
       ) {
-        config = deepMerge(config, docDetectiveEnv.config);
+        envOverrides = docDetectiveEnv.config;
       }
     } catch (error: any) {
       log(
@@ -162,8 +168,9 @@ async function setConfig({ config, detectApps = true }: any) {
       );
     }
   }
-
-  renameDeprecatedConfigKeys(config, (message) => log(config, "warning", message));
+  // Rename each source before the merge, so the override wins whichever name it uses.
+  renameDeprecatedConfigKeys([config, envOverrides], (message) => log(config, "warning", message));
+  if (envOverrides) config = deepMerge(config, envOverrides);
 
   // Validate inbound `config`.
   const validityCheck = validate({ schemaKey: "config_v3", object: config });

@@ -713,6 +713,30 @@ describe("config.ts — setConfig", function () {
     assert.deepEqual(warnings, ["Warning: `beforeAny` is deprecated. Rename it to `beforeAll`."]);
   });
 
+  // Each source is renamed on its own, so a DOC_DETECTIVE override wins over the
+  // config whichever name either one uses.
+  for (const [configKey, envKey] of [["beforeAny", "beforeAll"], ["beforeAll", "beforeAny"]]) {
+    it(`lets a DOC_DETECTIVE ${envKey} override a config ${configKey}`, async function () {
+      const saved = process.env.DOC_DETECTIVE;
+      process.env.DOC_DETECTIVE = JSON.stringify({ config: { [envKey]: "./b.json" } });
+      const errors = sinon.stub(console, "error");
+      let config;
+      try {
+        config = await setConfig({
+          config: { logLevel: "warning", dryRun: true, input: "./README.md", [configKey]: "./a.json" },
+        });
+      } finally {
+        errors.restore();
+        if (saved === undefined) delete process.env.DOC_DETECTIVE;
+        else process.env.DOC_DETECTIVE = saved;
+      }
+      assert.deepEqual(config.beforeAll, ["./b.json"]);
+      assert.equal("beforeAny" in config, false);
+      const warnings = errors.args.map(([line]) => line).filter((line) => /beforeAny/.test(line));
+      assert.equal(warnings.length, 1);
+    });
+  }
+
   it("rejects a config that sets both beforeAll and beforeAny", async function () {
     await assert.rejects(
       setConfig({

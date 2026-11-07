@@ -15,7 +15,7 @@ describe("unknown keys through the CLI", function () {
   this.timeout(60000);
   let cwd;
 
-  function run(args) {
+  function run(args, envConfig = {}) {
     const env = { ...process.env };
     for (const key of ["CI", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete env[key];
     return spawnSync(process.execPath, [CLI, ...args], {
@@ -25,7 +25,7 @@ describe("unknown keys through the CLI", function () {
       env: {
         ...env,
         DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
-        DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+        DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false, ...envConfig }),
       },
     });
   }
@@ -128,6 +128,19 @@ describe("unknown keys through the CLI", function () {
       expect(JSON.parse(r.stdout).specs.map((spec) => spec.specId)).to.deep.equal(["last", "main", "first"]);
       const warnings = r.stderr.split("\n").filter((line) => line.includes("`beforeAny` is deprecated"));
       expect(warnings).to.have.lengthOf(key === "beforeAny" ? 1 : 0);
+    });
+  }
+
+  for (const [fileKey, envKey] of [["beforeAny", "beforeAll"], ["beforeAll", "beforeAny"]]) {
+    it(`lets DOC_DETECTIVE_CONFIG ${envKey} override a config file ${fileKey}`, function () {
+      write("file.spec.json", { specId: "file", tests: [{ steps: [echo] }] });
+      write("env.spec.json", { specId: "env", tests: [{ steps: [echo] }] });
+      write("main.spec.json", { specId: "main", tests: [{ steps: [echo] }] });
+      write(".doc-detective.json", { input: "main.spec.json", [fileKey]: "file.spec.json" });
+      const r = run(["-c", ".doc-detective.json", "--json"], { [envKey]: "env.spec.json" });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).specs.map((spec) => spec.specId)).to.deep.equal(["env", "main"]);
+      expect(r.stderr.split("\n").filter((line) => line.includes("`beforeAny` is deprecated"))).to.have.lengthOf(1);
     });
   }
 

@@ -2222,19 +2222,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     };
 
     const PHASES = ["beforeAll", "main", "afterAll"];
+    // Constrain to the known set before indexing: a programmatic caller could
+    // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+    // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw. A plan
+    // resolved before ADR 01169 still says "beforeAny", which is "beforeAll".
+    const phaseOf = (spec: any) => {
+      const phase = spec?._phase === "beforeAny" ? "beforeAll" : spec?._phase;
+      return PHASES.includes(phase) ? phase : "main";
+    };
     const jobsByPhase: { [phase: string]: any[] } = {
       beforeAll: [],
       main: [],
       afterAll: [],
     };
     for (const job of jobs) {
-      // Constrain to the known set before indexing: a programmatic caller could
-      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
-      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
-      const phase = PHASES.includes(job.spec?._phase)
-        ? job.spec._phase
-        : "main";
-      jobsByPhase[phase].push(job);
+      jobsByPhase[phaseOf(job.spec)].push(job);
     }
     // Routed specs are conceptually main-phase work too, so bucket them by the
     // same `_phase` and run each phase's routed specs right after that phase's
@@ -2256,10 +2258,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       afterAll: [],
     };
     for (const entry of routedSpecs) {
-      const phase = PHASES.includes(entry.spec?._phase)
-        ? entry.spec._phase
-        : "main";
-      routedByPhase[phase].push(entry);
+      routedByPhase[phaseOf(entry.spec)].push(entry);
     }
     for (const phase of PHASES) {
       if (limit > 1) {
@@ -2475,7 +2474,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *     does NOT stop its siblings — exactly like the flat pool.
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
  *
-
  * goToTest jumps the cursor to the target test within this spec (first-occurrence
  * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
  * bounded by a per-spec visit cap (also a FAIL marker). A re-run test's report

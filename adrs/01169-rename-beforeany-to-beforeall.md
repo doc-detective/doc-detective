@@ -38,15 +38,21 @@ Chosen option: **A**, following the shared deprecated-alias contract.
 
 - `config_v3` gains `beforeAll`, with the same string-or-array shape. `beforeAny` stays a property, with
   `"deprecated": true` and the description ``Deprecated: use `beforeAll`.``
-- `renameDeprecatedConfigKeys` in `src/core/config.ts` renames `beforeAny` to `beforeAll` before validation. The
-  CLI's `setConfig` calls it after merging the user, project, and environment config, so the path resolves
-  relative to the config file. The core `setConfig` calls it too, so API callers get the alias. The CLI renames
-  first, so a run warns once.
-- The warning goes to stderr: ``Warning: `beforeAny` is deprecated. Rename it to `beforeAll`.``
-- Setting both is a usage error, and the CLI exits 2:
+- `renameDeprecatedConfigKeys` in `src/core/config.ts` renames `beforeAny` to `beforeAll` in each config source
+  on its own, before the sources merge and before validation. The CLI's `setConfig` passes the user config, the
+  project config file, and `DOC_DETECTIVE_CONFIG`. The core `setConfig` passes the config and the
+  `DOC_DETECTIVE` override, so API callers get the alias too.
+- Because each source is renamed first, the normal precedence holds whichever name a source uses. When a file
+  sets `beforeAny` and `DOC_DETECTIVE_CONFIG` sets `beforeAll`, the run uses the environment's value. A hosted
+  runner that layers a snapshot over the repository config relies on that.
+- The warning goes to stderr once per call, however many sources used the old name. It reads
+  ``Warning: `beforeAny` is deprecated. Rename it to `beforeAll`.`` The CLI renames before core sees the config,
+  so a CLI run warns once.
+- Setting both names in one source is a usage error, and the CLI exits 2:
   ``Error: Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.``
 - The runner, detection, path resolution, hints, and the v2 config upgrade read `beforeAll` only. The internal run
-  phase is named `beforeAll` too.
+  phase is named `beforeAll` too. The runner maps a `_phase` of `beforeAny` in a plan resolved before this change
+  to `beforeAll`, so setup still runs first.
 - The alias is removed at the next major.
 
 ### Consequences
@@ -61,9 +67,13 @@ Chosen option: **A**, following the shared deprecated-alias contract.
 - `src/common/test/validate.test.js` ("beforeAll") accepts `beforeAll` as a string and an array, and checks that
   `beforeAny` is marked deprecated with the contract's description. The v2 transform yields `beforeAll`.
 - `test/config-coverage.test.js` and `test/cli-output-units.test.js` assert that both `setConfig`s rename
-  `beforeAny`, warn exactly once, and reject a config that sets both.
-- `test/strict-keys.test.js` runs the real CLI: `beforeAll` and `beforeAny` both keep the setup, main, cleanup
-  order, only `beforeAny` warns, and setting both exits 2.
+  `beforeAny`, warn exactly once, and reject a source that sets both. An environment override wins over the
+  config in both directions: `beforeAny` over `beforeAll`, and `beforeAll` over `beforeAny`.
+- `test/strict-keys.test.js` runs the real CLI. `beforeAll` and `beforeAny` both keep the setup, main, cleanup
+  order, and only `beforeAny` warns. A `DOC_DETECTIVE_CONFIG` value wins over the file's in both directions.
+  Setting both in one file exits 2.
+- `test/core-ordering.test.js` runs a pre-resolved plan whose setup spec has `_phase: "beforeAny"`, and asserts it
+  runs first.
 - `test/core-artifacts/cli/before-all.spec.json` runs the string, array, alias, and conflict permutations as a
   fixture.
 

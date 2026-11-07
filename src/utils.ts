@@ -328,17 +328,17 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
   // Project config beats user config. Both lose to the environment and to flags.
   const userConfig = await readUserConfig();
-  if (userConfig) config = { ...userConfig, ...config };
-
   // Check for DOC_DETECTIVE_CONFIG environment variable
   const envConfig = await getConfigFromEnv();
+  // Rename each source before the merge, so a later source wins whichever name it uses.
+  renameDeprecatedConfigKeys([userConfig, config, envConfig], (message) => log(message, "warning", config));
+  if (userConfig) config = { ...userConfig, ...config };
   if (envConfig) {
     // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
     config = { ...config, ...envConfig };
   }
 
   readCredentialFiles(config);
-  renameDeprecatedConfigKeys(config, (message) => log(message, "warning", config));
 
   // Validate config
   const validation = validate({

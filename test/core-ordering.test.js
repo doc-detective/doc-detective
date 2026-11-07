@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
+import { runSpecs } from "../dist/core/tests.js";
+import { getEnvironment } from "../dist/core/config.js";
 
 // Advanced ordering under concurrentRunners: beforeAll / setup(before) /
 // cleanup(after) / afterAll. These exercise the local runner end-to-end with
@@ -197,6 +199,29 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(steps[1].result, "FAIL"); // first cleanup step
       assert.equal(steps[2].runShell, "echo cleanup2-done");
       assert.equal(steps[2].result, "PASS"); // second cleanup step still ran
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // ADR 01169: a plan resolved before the rename tags setup specs "beforeAny".
+  it("runs a pre-resolved spec tagged with the old beforeAny phase first", async () => {
+    const dir = mkTempDir();
+    try {
+      const log = path.join(dir, "order.log");
+      const spec = (specId, token, phase) => ({
+        specId,
+        ...(phase ? { _phase: phase } : {}),
+        tests: [{ testId: specId, contexts: [{ contextId: specId, steps: [appendStep(dir, log, token)] }] }],
+      });
+      await runSpecs({
+        resolvedTests: {
+          config: { logLevel: "silent", telemetry: { send: false }, environment: getEnvironment(), concurrentRunners: 1 },
+          specs: [spec("main", "main"), spec("setup", "setup", "beforeAny")],
+        },
+      });
+      const tokens = fs.readFileSync(log, "utf8").split("\n").filter(Boolean);
+      assert.deepEqual(tokens, ["setup", "main"]);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

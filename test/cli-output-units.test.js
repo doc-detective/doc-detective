@@ -366,6 +366,24 @@ describe("beforeAll in the CLI config", function () {
     ]);
   });
 
+  // Each source is renamed on its own, so DOC_DETECTIVE_CONFIG wins over the file
+  // whichever name either one uses.
+  for (const [fileKey, envKey] of [["beforeAny", "beforeAll"], ["beforeAll", "beforeAny"]]) {
+    it(`lets DOC_DETECTIVE_CONFIG ${envKey} override a file ${fileKey}`, async function () {
+      const saved = process.env.DOC_DETECTIVE_CONFIG;
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ [envKey]: "b.spec.json" });
+      try {
+        const { result, lines } = await captureErrors(() => withConfig({ [fileKey]: "a.spec.json" }));
+        expect(result.beforeAll).to.equal(path.join(dir, "b.spec.json"));
+        expect(result).to.not.have.property("beforeAny");
+        expect(lines.filter((line) => line.includes("beforeAny"))).to.have.lengthOf(1);
+      } finally {
+        if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+        else process.env.DOC_DETECTIVE_CONFIG = saved;
+      }
+    });
+  }
+
   it("rejects a config that sets both", async function () {
     let message = "";
     await withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }).catch((error) => {
