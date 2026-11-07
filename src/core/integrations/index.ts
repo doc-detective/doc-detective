@@ -114,16 +114,13 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     const uploader = getUploader(file.sourceIntegration);
 
     if (!uploader) {
-      log(
-        config,
-        "warning",
-        `No uploader found for integration type: ${file.sourceIntegration.type}`
-      );
+      const why = `no uploader handles integration type \`${file.sourceIntegration.type}\`.`;
+      log(config, "warning", `Couldn't upload ${file.localPath}: ${why}`);
       results.skipped++;
       results.details.push({
         localPath: file.localPath,
         status: "SKIPPED",
-        reason: `No uploader for type: ${file.sourceIntegration.type}`,
+        reason: `Skipped: ${why}`,
       });
       continue;
     }
@@ -135,16 +132,13 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     );
 
     if (!integrationConfig) {
-      log(
-        config,
-        "warning",
-        `No integration config found for: ${file.sourceIntegration.integrationName}`
-      );
+      const why = `no \`${file.sourceIntegration.integrationName}\` integration is configured.`;
+      log(config, "warning", `Couldn't upload ${file.localPath}: ${why}`);
       results.skipped++;
       results.details.push({
         localPath: file.localPath,
         status: "SKIPPED",
-        reason: `No integration config found for: ${file.sourceIntegration.integrationName}`,
+        reason: `Skipped: ${why}`,
       });
       continue;
     }

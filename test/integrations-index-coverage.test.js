@@ -184,10 +184,16 @@ describe("integrations/index — uploadChangedFiles orchestration", function () 
       assert.equal(results.details.length, 1);
       assert.equal(results.details[0].status, "SKIPPED");
       assert.equal(results.details[0].localPath, "/tmp/no-uploader.png");
-      assert.ok(results.details[0].reason.includes("unregistered-cms"));
+      assert.equal(
+        results.details[0].reason,
+        "Skipped: no uploader handles integration type `unregistered-cms`."
+      );
       assert.ok(
         log.entries.some(
-          (e) => e.level === "warning" && e.message.includes("No uploader found")
+          (e) =>
+            e.level === "warning" &&
+            e.message ===
+              "Couldn't upload /tmp/no-uploader.png: no uploader handles integration type `unregistered-cms`."
         )
       );
     });
@@ -216,12 +222,16 @@ describe("integrations/index — uploadChangedFiles orchestration", function () 
       assert.equal(results.total, 1);
       assert.equal(results.skipped, 1);
       assert.equal(results.details[0].status, "SKIPPED");
-      assert.ok(results.details[0].reason.includes("No integration config found"));
+      assert.equal(
+        results.details[0].reason,
+        "Skipped: no `missing-name` integration is configured."
+      );
       assert.ok(
         log.entries.some(
           (e) =>
             e.level === "warning" &&
-            e.message.includes("No integration config found")
+            e.message ===
+              "Couldn't upload /tmp/no-config.png: no `missing-name` integration is configured."
         )
       );
     });
