@@ -186,6 +186,19 @@ describe("summarizeSchemaErrors", function () {
     expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
   });
 
+  it("names keys that can't be used together as a choice, not as false schemas", function () {
+    const markup = { link: {}, image: {}, actions: ["find"] };
+    const config = { fileTypes: [{ name: "docs", extensions: ["md"], markup: [markup] }] };
+    expect(summarize(config, "config_v3")).to.equal("fileTypes[0].markup[0]: set only one of image, link.");
+  });
+
+  it("says a key a schema forbids isn't allowed, not that a schema is false", function () {
+    const errorObjects = [
+      { instancePath: "/a/b", keyword: "false schema", params: {}, schemaPath: "#/properties/a/properties/b/false schema", message: "boolean schema is false" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { a: { b: 1 } }, "config_v3")).to.equal("a.b: isn't allowed here.");
+  });
+
   it("falls back to compound errors' own messages rather than print nothing", function () {
     const errorObjects = [
       { instancePath: "/tests/0", keyword: "oneOf", params: { passingSchemas: null }, schemaPath: "#/oneOf", message: "must match exactly one schema in oneOf" },

@@ -1280,8 +1280,17 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
       ? { ...error, message: error.keyword === "not" ? "must NOT be valid" : error.keyword }
       : error
   );
+  // A `false` schema forbids a key. Collect those per parent object here, so
+  // they print as a choice or a "not allowed", never as AJV's "boolean schema
+  // is false". The rest group by path.
+  const forbidden = new Map<string, Set<string>>();
   const byPath = new Map<string, any[]>();
   for (const error of errorObjects) {
+    if (error.keyword === "false schema") {
+      const parent = error.instancePath.replace(/\/[^/]*$/, "");
+      forbidden.set(parent, (forbidden.get(parent) ?? new Set()).add(error.instancePath));
+      continue;
+    }
     byPath.set(error.instancePath, [...(byPath.get(error.instancePath) ?? []), error]);
   }
   const partsOf = (instancePath: string) =>
@@ -1292,6 +1301,13 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     return place ? `${place}: ` : "";
   };
   const lines: string[] = [];
+  // Two forbidden keys under one object are branches of a choice (each branch
+  // forbids the others), so only one of them may be set.
+  for (const [parent, paths] of forbidden) {
+    const keys = [...paths].map((forbiddenPath) => partsOf(forbiddenPath).at(-1));
+    if (keys.length > 1) lines.push(`${prefixOf(partsOf(parent))}set only one of ${keys.sort().join(", ")}.`);
+    else lines.push(`${prefixOf(partsOf([...paths][0]))}isn't allowed here.`);
+  }
   for (const [instancePath, errors] of byPath) {
     const before = lines.length;
     const parts = partsOf(instancePath);

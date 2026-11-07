@@ -468,14 +468,14 @@ const cases = {
     config: { fileTypes: [md({ markup: [{ link: {}, image: {}, actions: ["find"] }] })] },
     content: "x\n",
     exit: 2,
-    stderr: "must match exactly one schema in oneOf",
+    stderr: "fileTypes[0].markup[0]: set only one of image, link.",
   },
   "reject-unknown-key": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ codeBlok: "bash", actions: ["find"] }] })] },
     content: "x\n",
     exit: 2,
-    stderr: '"additionalProperty":"codeBlok"',
+    stderr: "fileTypes[0].markup[0]: unknown key 'codeBlok'. Did you mean codeBlock?",
   },
   "reject-bad-pattern": {
     file: "doc.md",
