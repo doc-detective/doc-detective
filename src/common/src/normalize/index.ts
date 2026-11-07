@@ -3,7 +3,8 @@
 // deprecated keys renamed, scalars canonicalized, and defaults filled.
 //
 // Each action has one normalizer, in this folder, named for the action. It gets
-// the action's value and that value's path, and returns the normalized value.
+// the action's value, that value's path, and the step (read-only: a capture
+// names its file for `stepId`), and returns the normalized value.
 // In order, it:
 //   1. expands shorthand to the object form;
 //   2. renames deprecated aliases (renameAliases);
@@ -40,8 +41,9 @@ import { isWholeVariable } from "./helpers.js";
 
 export { NormalizeError } from "./helpers.js";
 
-// `literal` is normalize()'s: true only after `$VAR` substitution.
-export const normalizers: Record<string, (value: any, path: string, literal: boolean) => any> = {
+// `literal` is normalize()'s: true only after `$VAR` substitution. `step` is the
+// whole step, read-only: a capture names its file for `stepId`.
+export const normalizers: Record<string, (value: any, path: string, literal: boolean, step: any) => any> = {
   annotate,
   checkLink,
   click,
@@ -72,7 +74,7 @@ export const normalizers: Record<string, (value: any, path: string, literal: boo
 function normalizeStep(step: any, path: string, literal: boolean) {
   const action = Object.keys(normalizers).find((name) => name in step)!;
   if (!literal && isWholeVariable(step[action])) return;
-  step[action] = normalizers[action](step[action], path + action, literal);
+  step[action] = normalizers[action](step[action], path + action, literal, step);
 }
 
 // Authored steps only. A test's `contexts` hold resolved steps from a report.

@@ -74,8 +74,11 @@ templates), and reports aren't walked.
   only your action's file. In order, it expands shorthand to the object form, renames deprecated aliases with
   `renameAliases`, canonicalizes scalars, and applies defaults. Plain defaults come from the schema's object
   branch via `applyDefaults`. Conditional ones are coded, often as `applyDefaults`'s `skip` list.
-- A normalizer is idempotent. It never touches `$VAR` or `$$` values, paths, config, or runtime state. Step-level
-  `unsafe`, `breakpoint`, `outputs`, and `variables` stay as authored.
+- A normalizer gets the action's value, its path, `literal`, and the step, which it only reads. It's idempotent.
+  It never touches `$VAR` or `$$` values, paths, config, or runtime state. The one path it writes is a capture's
+  default file name, `<stepId>.png` or `<stepId>.mp4`. The runner then places it under `outputDir`
+  ([ADR 01173](../../adrs/01173-capture-paths-default-under-outputdir.md)). Step-level `unsafe`, `breakpoint`,
+  `outputs`, and `variables` stay as authored.
 - A normalizer gets a value from `validate()`'s own clone, never the caller's object, so it may change that value
   in place and return it. The runner's literal pass after substitution also works on the object `validate()`
   returned.

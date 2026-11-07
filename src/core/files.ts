@@ -172,11 +172,14 @@ async function resolvePaths({
       return relativePath;
     }
 
-    // Check if filePath exists and is a file
+    // Check if filePath exists and is a file. A trailing separator marks a
+    // folder that may not exist yet, even one with a dot in its name.
     const fileExists = fs.existsSync(filePath);
-    const isFile = fileExists
-      ? fs.lstatSync(filePath).isFile()
-      : path.parse(filePath).ext !== "";
+    const isFile = /[\\/]$/.test(filePath)
+      ? false
+      : fileExists
+        ? fs.lstatSync(filePath).isFile()
+        : path.parse(filePath).ext !== "";
 
     // Use directory of filePath if it's a file (or looks like one)
     const basePath = isFile ? path.dirname(filePath) : filePath;
@@ -249,7 +252,9 @@ async function resolvePaths({
             property === "path" &&
             object.directory &&
             path.isAbsolute(object.directory)
-              ? resolve(relativePathBase, item, object.directory)
+              ? // Append sep so resolve() treats it as a folder even if it doesn't
+                // exist yet or has a dot in its name (ADR 01173).
+                resolve(relativePathBase, item, object.directory + path.sep)
               : resolve(relativePathBase, item, filePath);
           object[property][i] = resolved;
         }
@@ -292,10 +297,11 @@ async function resolvePaths({
           const directory = path.isAbsolute(object.directory)
             ? object.directory
             : resolve(relativePathBase, object.directory, filePath);
+          // `directory` is a folder, even before it exists.
           object[property] = resolve(
             relativePathBase,
             object[property],
-            directory
+            directory + path.sep
           );
         } else {
           object[property] = resolve(

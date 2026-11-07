@@ -556,13 +556,17 @@ function getTypeString(schema) {
       return getTypeString(options[0]);
     }
 
-    // Multiple options
+    // Multiple options. Any option with a list of types lists each type on its
+    // own line, on purpose for every schema, not only stopRecord's
+    // `["boolean", "null"]`. It prints bare type names, so it suits primitive
+    // types only. A list that mixes in "object" or "array" would lose that
+    // branch's constraints here: give it its own option instead.
     return (
       "one of:<br/>" +
       options
-        .map((option) => {
-          return `- ${getTypeString(option)}`;
-        })
+        .flatMap((option) =>
+          Array.isArray(option.type) ? option.type.map((type) => `- ${type}`) : [`- ${getTypeString(option)}`]
+        )
         .join("<br/>")
     );
   }

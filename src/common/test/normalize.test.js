@@ -192,6 +192,87 @@ describe("normalization", function () {
     });
   });
 
+  // ADR 01173: a capture with no path is named for its step. The runner
+  // resolves a relative path against outputDir; validate() never does.
+  describe("captures", function () {
+    const SHOT = { maxVariation: 0.05, overwrite: "aboveVariation" };
+
+    for (const [name, value] of [
+      ["true", true],
+      ["{}", {}],
+    ]) {
+      it(`names screenshot: ${name} for its step`, function () {
+        const result = effective({ stepId: "shot", screenshot: value });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.screenshot).to.deep.equal({ path: "shot.png", ...SHOT });
+      });
+    }
+
+    it("expands a screenshot path", function () {
+      expect(effective({ stepId: "shot", screenshot: "x.png" }).object.screenshot).to.deep.equal({ path: "x.png", ...SHOT });
+    });
+
+    it("names a screenshot in a directory for its step", function () {
+      expect(effective({ stepId: "shot", screenshot: { directory: "shots" } }).object.screenshot).to.deep.equal({
+        directory: "shots",
+        path: "shot.png",
+        ...SHOT,
+      });
+    });
+
+    it("leaves the path unset until the step has an ID", function () {
+      expect(effective({ screenshot: true }).object.screenshot).to.deep.equal(SHOT);
+      expect(effective({ record: true }).object.record).to.deep.equal({ overwrite: "false" });
+    });
+
+    it("keeps false, which disables the step", function () {
+      expect(effective({ stepId: "s", screenshot: false }).object.screenshot).to.equal(false);
+      expect(effective({ stepId: "s", record: false }).object.record).to.equal(false);
+      expect(effective({ stopRecord: false }).object.stopRecord).to.equal(false);
+    });
+
+    it("names record: true for its step", function () {
+      expect(effective({ stepId: "demo", record: true }).object.record).to.deep.equal({ path: "demo.mp4", overwrite: "false" });
+    });
+
+    it("accepts a recording path with folders", function () {
+      const result = effective({ stepId: "demo", record: "sub/demo.mp4" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.record).to.deep.equal({ path: "sub/demo.mp4", overwrite: "false" });
+    });
+
+    it("accepts a recording extension in any case", function () {
+      const result = effective({ stepId: "demo", record: "Demo.MP4" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.record).to.deep.equal({ path: "Demo.MP4", overwrite: "false" });
+    });
+
+    it("leaves the authored capture object unchanged", function () {
+      for (const action of ["screenshot", "record"]) {
+        const value = { directory: "d" };
+        const output = normalizers[action](value, action, false, { stepId: "s" });
+        expect(value, action).to.deep.equal({ directory: "d" });
+        expect(output, action).to.include({ directory: "d" }).and.have.property("path");
+      }
+      const stop = { name: "demo" };
+      const output = normalizers.stopRecord(stop, "stopRecord", false, {});
+      expect(output).to.deep.equal(stop);
+      expect(output).to.not.equal(stop);
+    });
+
+    it("keeps stopRecord: false through type coercion", function () {
+      const result = effective({ stopRecord: false });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.stopRecord).to.equal(false);
+    });
+
+    it("expands a stopRecord name, and makes null an untargeted stop", function () {
+      expect(effective({ stopRecord: "demo" }).object.stopRecord).to.deep.equal({ name: "demo" });
+      expect(effective({ stopRecord: null }).object.stopRecord).to.equal(true);
+      expect(effective({ stopRecord: true }).object.stopRecord).to.equal(true);
+    });
+  });
+
   describe("process and surface actions", function () {
     const OUTPUT = { args: [], exitCodes: [0], maxVariation: 0, overwrite: "aboveVariation", timeout: 60000 };
 
@@ -424,6 +505,11 @@ describe("normalization", function () {
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
       ["httpRequest with a request", { httpRequest: { url: "https://x.com", request: {} } }],
+      ["screenshot: true", { stepId: "s", screenshot: true }],
+      ["screenshot without an ID", { screenshot: true }],
+      ["record path", { stepId: "s", record: "x.mp4" }],
+      ["stopRecord name", { stopRecord: "demo" }],
+      ["stopRecord null", { stopRecord: null }],
       ["click", { click: { elementText: "Go" } }],
       ["find with click and type", { find: { selector: "#a", click: "right", type: "x", elementClass: "b" } }],
       ["type shorthand", { type: "abc" }],
@@ -490,6 +576,8 @@ describe("normalization", function () {
       checkLink: { url: "https://example.com" },
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
+      screenshot: {},
+      record: {},
       runShell: { command: "echo hi" },
       runCode: { language: "python", code: "print(1)" },
       runBrowserScript: { script: "return 1;" },
@@ -500,6 +588,7 @@ describe("normalization", function () {
       swipe: { direction: "up" },
       loadCookie: { name: "session", variable: "session" },
       saveCookie: { name: "session", path: "session.txt" },
+      stopRecord: { name: "demo" },
       startSurface: [
         ["processDescriptor", { process: "node server.js", name: "api" }],
         ["appDescriptor", { app: "notepad" }],
@@ -523,14 +612,15 @@ describe("normalization", function () {
     // other moved action needs a MINIMAL entry, or this test fails. Passthroughs,
     // like loadVariables, skip on their own.
     const NO_OBJECT_FORM = ["wait", "closeSurface"];
-    // Where an action's own defaults live, when it isn't the `object` component:
+    // Where an action's own defaults live, when it isn't the `object` component (or
+    // screenshot's `objectShape`, since its object branch is allOf[$ref objectShape, guard]):
     // dragAndDrop is always an object, and swipe's directional form has the most.
     const BRANCH = {
       dragAndDrop: (schema) => ({ properties: schema.properties }),
       swipe: (schema) => schema.components.schemas.directional,
     };
     // Moved actions whose schemas declare no defaults.
-    const NO_DEFAULTS = ["loadCookie"];
+    const NO_DEFAULTS = ["loadCookie", "stopRecord"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
         if (normalizers[action] === passthrough || NO_OBJECT_FORM.includes(action)) this.skip();
@@ -542,11 +632,11 @@ describe("normalization", function () {
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
         const cases = Array.isArray(MINIMAL[action])
           ? MINIMAL[action].map(([component, minimal]) => [component, schema.components.schemas[component], minimal])
-          : [["object", (BRANCH[action] ?? ((s) => s.components.schemas.object))(schema), MINIMAL[action]]];
+          : [["object", (BRANCH[action] ?? ((s) => s.components.schemas.objectShape ?? s.components.schemas.object))(schema), MINIMAL[action]]];
         for (const [component, node, minimal] of cases) {
           const defaults = plainDefaultsOf(node);
           expect(defaults, `no defaults found in ${component}`).to.not.be.empty;
-          const output = normalizers[action](structuredClone(minimal), action);
+          const output = normalizers[action](structuredClone(minimal), action, false, {});
           for (const [keys, value] of defaults) {
             expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
           }

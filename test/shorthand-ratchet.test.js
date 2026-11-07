@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import { normalizers } from "../dist/common/src/normalize/index.js";
 
-const CEILING = 2;
+const CEILING = 0;
 const HANDLERS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "core", "tests");
 
 const step = String.raw`\b\w*[sS]tep\.(?:${Object.keys(normalizers).join("|")})\b`;
