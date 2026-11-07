@@ -28,6 +28,7 @@ function renameDeprecatedConfigKeys(
   let renamed = false;
   for (const config of sources) {
     if (config?.beforeAny == null) continue; // null means absent
+    // The same goes for beforeAll: only a non-null value conflicts.
     if (config.beforeAll != null) {
       // The schema's own message; config-coverage's "ends the both-set error"
       // test keeps the two aligned.
