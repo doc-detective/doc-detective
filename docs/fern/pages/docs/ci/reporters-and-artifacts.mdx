@@ -184,7 +184,7 @@ The `runFolder` reporter archives each run into its own folder so you can attach
             └── recordings/<contextId>.mp4
 ```
 
-The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too, named `<stepId>_<timestamp>_` plus the URL's filename. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too, named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
 
 ## Step 6: Fail CI when tests fail
 
