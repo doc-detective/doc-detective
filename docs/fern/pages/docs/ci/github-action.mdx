@@ -38,18 +38,20 @@ By default, the action runs from the repository root and uses the config file Do
 ```yaml
 - uses: doc-detective/github-action@v1
   with:
-    version: latest
+    version: 4
     config: .doc-detective.json
     input: ./docs
 ```
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `latest` | Doc Detective version to run, as a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
+| `version` | `4` | Doc Detective version to run, as a version number, a range, or an npm tag. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `ios` | `auto` | Cache the WebDriverAgent build on macOS runners so `ios`-platform tests skip the slow cold compile. `auto` caches only when your specs use an `ios` platform, `true` always caches, and `false` never does. No effect off macOS. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+
+Action `@v1` runs Doc Detective 4 and earlier. It refuses `latest` and any version or range that can install version 5 or later, such as `5`, `^5`, or the open-ended `>=4`. A refused version fails the job with a pointer to `doc-detective/github-action@v2`. To stay on `@v1`, set `version` to a 4.x version or range, such as `4`, `^4`, or `4.41.5`. For other npm tags, such as `next`, it logs a warning and runs anyway, because it can't tell which version the tag installs. An empty `version` skips this check.
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
@@ -57,13 +59,15 @@ Leave `version` empty to skip the registry install and run whatever `doc-detecti
 
 ## Step 3: Fail the build when tests fail
 
-By default, the action doesn't fail the job when tests fail. It reports the results and exits cleanly. To make a failing test fail the workflow and block the pull request, set `exit_on_fail` to `true`:
+By default, the action doesn't fail the job when tests fail. It reports the results and logs a notice that `exit_on_fail` isn't set. To keep this behavior without the notice, set `exit_on_fail` to `false`. To make a failing test fail the workflow and block the pull request, set `exit_on_fail` to `true`:
 
 ```yaml
 - uses: doc-detective/github-action@v1
   with:
     exit_on_fail: true
 ```
+
+Whatever `exit_on_fail` says, the job fails when Doc Detective itself exits with a non-zero code, such as when it crashes or rejects your config. The action still sets the `results` output and runs the issue and pull request steps before it fails the job. If Doc Detective writes no results file, the job fails right away.
 
 <Note>
 This is the action's main advantage over running the CLI directly in a workflow. The standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid, never because a test failed. A script that relies on its exit code therefore reports success even when documentation tests failed. The action reads the results and exits non-zero for you. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the CLI behavior in detail.
@@ -137,7 +141,7 @@ jobs:
 |---|---|---|
 | `create_issue_on_fail` | `false` | Open an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the prompt text. |
+| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the prompt text. If the body would exceed GitHub's 65,536-character limit, the action cuts `$RESULTS` to fit and adds a link to the workflow run. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
@@ -296,7 +300,7 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### The job passes even though a test failed
 
-**Cause:** `exit_on_fail` defaults to `false`, so the action reports failures without failing the job.
+**Cause:** `exit_on_fail` isn't set to `true`, so the action reports failures without failing the job. The job log shows a notice when `exit_on_fail` isn't set.
 
 **Solution:** Set `exit_on_fail` to `true` so failing tests fail the workflow. See [Step 3](#step-3-fail-the-build-when-tests-fail).
 
