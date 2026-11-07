@@ -11,7 +11,8 @@
 //   3. canonicalizes scalars;
 //   4. applies defaults: plain ones from the schema (applyDefaults), and
 //      conditional ones in code.
-// It must be idempotent, and it never touches $VAR or $$ values, paths, config,
+// It must be idempotent and pure: it copies an object value before it changes
+// anything. It never touches $VAR or $$ values, paths, config,
 // or runtime state. Step-level keys stay as authored. A whole-variable action
 // value, such as "goTo": "$URL", never reaches the normalizer before
 // substitution (normalizeStep).

@@ -299,7 +299,7 @@ function validateObject(
     if (normalizeSteps) {
       normalize(
         schemaKey,
-        addDefaults || validationObject !== object ? validationObject : cloneForValidation(validationObject),
+        (addDefaults || validationObject !== object) ? validationObject : cloneForValidation(validationObject),
       );
     }
   } catch (error) {

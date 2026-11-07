@@ -25,6 +25,11 @@ export function isWholeVariable(value: unknown): boolean {
 
 const warned = new Set<string>();
 
+/** Forget which deprecations have warned, so each test run starts fresh. */
+export function _resetWarnedForTest(): void {
+  warned.clear();
+}
+
 /**
  * Rename deprecated keys on `value` in place, old → new, and warn once per run
  * for each. Setting both is an error. `path` names `value` in that error.

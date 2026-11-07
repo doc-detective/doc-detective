@@ -22,5 +22,6 @@ function fill(descriptor: any): any {
 // A single descriptor stays single: the runner reports it differently from an
 // array of descriptors.
 export default function startSurface(value: any): any {
-  return Array.isArray(value) ? value.map(fill) : fill(value);
+  const copy = structuredClone(value);
+  return Array.isArray(copy) ? copy.map(fill) : fill(copy);
 }

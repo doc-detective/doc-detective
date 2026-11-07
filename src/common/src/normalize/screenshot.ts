@@ -7,7 +7,7 @@ import { applyDefaults } from "./helpers.js";
 // `false` disables the step, so it stays as authored.
 export default function screenshot(value: any, _path: string, _literal: boolean, step: any): any {
   if (value === false) return value;
-  const shot = value === true ? {} : typeof value === "string" ? { path: value } : { ...value };
+  const shot = value === true ? {} : typeof value === "string" ? { path: value } : structuredClone(value);
   if (shot.path === undefined && step.stepId) shot.path = `${step.stepId}.png`;
   return applyDefaults(shot, "screenshot");
 }

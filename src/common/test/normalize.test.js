@@ -7,7 +7,7 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { validate, schemas } from "../dist/index.js";
 import { normalize, normalizers, NormalizeError } from "../dist/normalize/index.js";
-import { isWholeVariable, passthrough, renameAliases } from "../dist/normalize/helpers.js";
+import { _resetWarnedForTest, isWholeVariable, passthrough, renameAliases } from "../dist/normalize/helpers.js";
 
 const SRC_SCHEMAS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "schemas", "src_schemas");
 const effective = (object, schemaKey = "step_v3") => validate({ schemaKey, object });
@@ -247,12 +247,55 @@ describe("normalization", function () {
       expect(result.object.record).to.deep.equal({ path: "Demo.MP4", overwrite: "false" });
     });
 
-    it("leaves the authored capture object unchanged", function () {
+    // Every normalizer is pure: it copies before it changes anything, nested
+    // objects included. Each sample takes the paths that rewrite or fill.
+    const AUTHORED = {
+      annotate: { text: "Hi", target: { elementText: "Save" } },
+      checkLink: { url: "https://x.com", statusCodes: 200 },
+      click: { elementText: "Save", elementClass: "primary" },
+      closeSurface: ["chrome"],
+      dragAndDrop: { source: "a", target: "b" },
+      find: { elementText: "Save", click: { button: "right" }, type: "abc", elementClass: "primary" },
+      goTo: { url: "https://x.com", waitUntil: { domIdleTime: 0 } },
+      httpRequest: { url: "https://x.com", statusCodes: 200, request: { headers: {} }, response: {} },
+      loadCookie: { name: "session", path: "session.txt" },
+      loadVariables: "vars.env",
+      record: { directory: "d" },
+      runBrowserScript: { script: "return 1" },
+      runCode: { language: "python", code: "print(1)", background: {} },
+      runShell: { command: "echo hi", background: {} },
+      saveCookie: { name: "session" },
+      screenshot: { directory: "d", crop: { selector: "#a" } },
+      startSurface: [{ browser: "chrome" }],
+      stopRecord: { name: "demo" },
+      swipe: { direction: "up" },
+      type: { keys: "abc", elementClass: "field" },
+      wait: 500,
+    };
+    for (const action of Object.keys(normalizers)) {
+      it(`leaves the authored ${action} value unchanged`, function () {
+        expect(AUTHORED, `add an authored ${action} sample`).to.have.property(action);
+        const value = AUTHORED[action];
+        const snapshot = structuredClone(value);
+        normalizers[action](value, action, false, { stepId: "s" });
+        expect(value).to.deep.equal(snapshot);
+      });
+    }
+
+    it("leaves an authored OpenAPI request and a single surface unchanged", function () {
+      const http = { openApi: "getUsers" };
+      normalizers.httpRequest(http, "httpRequest", false, {});
+      expect(http).to.deep.equal({ openApi: "getUsers" });
+      const surface = { browser: "chrome" };
+      normalizers.startSurface(surface, "startSurface", false, {});
+      expect(surface).to.deep.equal({ browser: "chrome" });
+    });
+
+    it("returns a capture with its path, and a copy of a stopRecord object", function () {
       for (const action of ["screenshot", "record"]) {
-        const value = { directory: "d" };
-        const output = normalizers[action](value, action, false, { stepId: "s" });
-        expect(value, action).to.deep.equal({ directory: "d" });
-        expect(output, action).to.include({ directory: "d" }).and.have.property("path");
+        expect(normalizers[action]({ directory: "d" }, action, false, { stepId: "s" }), action)
+          .to.include({ directory: "d" })
+          .and.have.property("path");
       }
       const stop = { name: "demo" };
       const output = normalizers.stopRecord(stop, "stopRecord", false, {});
@@ -674,6 +717,7 @@ describe("normalization", function () {
   describe("deprecated aliases", function () {
     let warn;
     beforeEach(function () {
+      _resetWarnedForTest();
       warn = sinon.stub(console, "warn");
     });
     afterEach(function () {
