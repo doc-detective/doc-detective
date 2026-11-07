@@ -4,6 +4,7 @@ import { applyDefaults } from "./helpers.js";
 // otherwise. `workingDirectory` has no default, as in runShell.
 export default function runCode(value: any): any {
   const code = applyDefaults(structuredClone(value), "runCode");
+  // Coded, not a schema default: it applies only when there's a background.
   if (code.background) code.background.tty ??= false;
   return code;
 }
