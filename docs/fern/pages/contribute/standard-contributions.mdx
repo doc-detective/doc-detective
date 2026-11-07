@@ -120,7 +120,7 @@ Include
 
 The repository's tests check `json` and `yaml` examples that look like a Doc Detective spec, test, step, or config against the Doc Detective schemas. See [Example validation](#example-validation).
 
-To show a deliberately incomplete or wrong example, add `invalid` after the block's title, in a `json` or `yaml` block. The check skips that block, and the title hides the marker on the rendered page:
+To show a deliberately incomplete or wrong example in a `json` or `yaml` block, add `invalid` to the fence's info string and pair it with a `title`. The check skips that block, and the title hides the marker on the rendered page:
 
 ````markdown
 ```json title="broken-step.json" invalid
@@ -130,7 +130,7 @@ To show a deliberately incomplete or wrong example, add `invalid` after the bloc
 ```
 ````
 
-Always pair `invalid` with a `title`. Without one, the page shows "invalid" as the block's title.
+Without a `title`, the page shows "invalid" as the block's title.
 
 ### Links and references
 
