@@ -126,8 +126,18 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out, null);
     sinon.assert.calledWith(
       logged,
-      "(WARNING) Couldn't read https://example.test/x.json. network down"
+      "(WARNING) Couldn't read https://example.test/x.json. network down."
     );
+  });
+
+  it("readFile doesn't double a cause's own final punctuation", async function () {
+    const logged = sinon.stub(console, "log");
+    const get = sinon.stub(axios, "get");
+    for (const cause of ["network down.", "network down!", "network down?"]) {
+      get.rejects(new Error(cause));
+      await readFile({ fileURLOrPath: "https://example.test/x.json" });
+      sinon.assert.calledWith(logged, `(WARNING) Couldn't read https://example.test/x.json. ${cause}`);
+    }
   });
 
   it("readFile returns null and warns on a non-ENOENT local read error", async function () {
@@ -139,7 +149,7 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out, null);
     sinon.assert.calledWith(
       logged,
-      `(WARNING) Couldn't read ${path.resolve("some/file.txt")}. perm`
+      `(WARNING) Couldn't read ${path.resolve("some/file.txt")}. perm.`
     );
   });
 

@@ -4,6 +4,10 @@ import { validate } from "../common/src/validate.js";
 import { requireYaml } from "./lazyYaml.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
+// An error's message as a sentence: a final period, unless it already ends in
+// `.`, `!` or `?`.
+const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
+
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
  *
@@ -39,7 +43,7 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
       const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
-      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}. ${error.message}`);
+      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}. ${sentence(error.message)}`);
       return null;
     }
   } else {
@@ -52,7 +56,7 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
         "warning",
         error.code === "ENOENT"
           ? `Couldn't read ${absolute}: the file doesn't exist.`
-          : `Couldn't read ${absolute}. ${error.message}`
+          : `Couldn't read ${absolute}. ${sentence(error.message)}`
       );
       return null;
     }
