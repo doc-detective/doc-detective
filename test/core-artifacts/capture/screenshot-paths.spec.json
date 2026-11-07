@@ -1,10 +1,10 @@
 {
   "specId": "screenshot-paths",
-  "description": "Where each screenshot path form lands (ADR 01173). A screenshot the runner names goes to outputDir, which the fixture configs set to test/core-artifacts. A path you write resolves against this spec file, or against `directory`. A spec loaded from a URL resolves its relative paths against outputDir. Each capture is followed by a check that reads its path from the step's outputs through process.env.",
+  "description": "Where each screenshot path form lands, and that false skips (ADR 01173). A screenshot the runner names goes to outputDir, which the fixture configs set to test/core-artifacts. A path you write resolves against this spec file, or against `directory`. A spec loaded from a URL resolves its relative paths against outputDir. Each capture is followed by a check that reads its path from the step's outputs through process.env.",
   "tests": [
     {
       "testId": "screenshot-paths-local",
-      "description": "true, {}, a path, a directory, and a path in a directory.",
+      "description": "true, {}, a path, a directory, a path in a directory, and false.",
       "steps": [
         {
           "goTo": "http://localhost:8092"
@@ -82,6 +82,18 @@
           "runShell": {
             "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_BOTH;const ok=require('fs').existsSync(f)&&p.relative(process.cwd(),f)==='both.png';if(!ok){console.error(f);process.exit(1)}\"",
             "workingDirectory": "screenshot-paths"
+          }
+        },
+        {
+          "description": "screenshot: false skips the step.",
+          "stepId": "screenshot-paths-false",
+          "screenshot": false
+        },
+        {
+          "description": "No <outputDir>/<stepId>.png was written.",
+          "runShell": {
+            "command": "node -e \"process.exit(require('fs').existsSync('screenshot-paths-false.png') ? 1 : 0)\"",
+            "workingDirectory": ".."
           }
         }
       ]
