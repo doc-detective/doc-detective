@@ -1495,6 +1495,10 @@ function envFlag(name: string): boolean {
   return /^(1|true|yes|on)$/i.test((process.env[name] ?? "").trim());
 }
 
+// A guarded fetch's own error: a refusal, or conflicting switches. Its
+// message is complete, so callers report it as is.
+class UrlGuardError extends Error {}
+
 // What the guarded fetches (screenshot reference images, OpenAPI `$ref`s) may
 // reach (ADR 01162). Env only, so a repository's config can't loosen it.
 //   "hops"  (default) local URLs are fine; a public-to-private redirect or
@@ -1505,7 +1509,7 @@ function localUrlPolicy(): "hops" | "allow" | "block" {
   const allow = envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS");
   const block = envFlag("DOC_DETECTIVE_BLOCK_LOCAL_URLS");
   if (allow && block) {
-    throw new Error(
+    throw new UrlGuardError(
       "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
     );
   }
@@ -1557,10 +1561,6 @@ async function privateAddressOf(
   const isPrivate = every ? privates.length === addresses.length : privates.length > 0;
   return isPrivate ? privates[0]?.address : undefined;
 }
-
-// A guarded fetch's own refusal. Its message already names the URL and the
-// cause, so callers report it as is.
-class UrlGuardError extends Error {}
 
 function strictModeError(url: string): Error {
   return new UrlGuardError(

@@ -543,7 +543,7 @@ async function captureScreenshot({
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      // Guard refusals already name the URL and the cause; don't wrap them.
+      // A guard error's message is complete; don't wrap it.
       const msg = fetched.message?.message ?? String(fetched.message);
       result.description = fetched.message instanceof UrlGuardError
         ? msg

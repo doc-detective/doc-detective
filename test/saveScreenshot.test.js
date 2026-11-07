@@ -371,15 +371,19 @@ describeIfSharp("saveScreenshot unified assertions", function () {
 // it, however it's worded.
 describeIfSharp("saveScreenshot remote reference failures", function () {
   const BLOCK = "DOC_DETECTIVE_BLOCK_LOCAL_URLS";
+  const ALLOW = "DOC_DETECTIVE_ALLOW_LOCAL_URLS";
   let saved;
   beforeEach(function () {
-    saved = process.env[BLOCK];
+    saved = { [BLOCK]: process.env[BLOCK], [ALLOW]: process.env[ALLOW] };
     process.env[BLOCK] = "1";
+    delete process.env[ALLOW];
   });
   afterEach(function () {
     sinon.restore();
-    if (saved === undefined) delete process.env[BLOCK];
-    else process.env[BLOCK] = saved;
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   });
 
   const shoot = (url) =>
@@ -396,6 +400,16 @@ describeIfSharp("saveScreenshot remote reference failures", function () {
       result.description,
       "Couldn't fetch http://127.0.0.1:9/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n" +
         "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+    );
+  });
+
+  it("reports conflicting local-URL switches without wrapping them", async function () {
+    process.env[ALLOW] = "1";
+    const result = await shoot("http://127.0.0.1:9/ref.png");
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
     );
   });
 
