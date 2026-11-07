@@ -71,7 +71,8 @@ export function listClasses(locator: any, literal: boolean): any {
 // Defaults under anyOf/oneOf, or in nested objects with required keys, depend on
 // the rest of the step, so the action's normalizer codes them by hand. allOf
 // merges one level only: its parts' own properties count, but an allOf inside
-// one of those parts doesn't, so code such a default by hand too.
+// one of those parts doesn't, so code such a default by hand too. A part with
+// no `properties` (an if/then, say) contributes nothing.
 function plainDefaults(node: any, prefix = ""): [string, any][] {
   const properties = Object.assign({}, node.properties, ...(node.allOf ?? []).map((part: any) => part.properties));
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
