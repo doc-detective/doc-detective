@@ -99,7 +99,7 @@ realities around them.
 ## Major releases
 
 A `major` on main fails in `scripts/verify-major-release.js`, before anything publishes, unless the
-`ALLOW_MAJOR_RELEASE` repository variable is `true` ([ADR 01147](../../adrs/01147-prepare-4x-users-for-5-0.md)).
+`ALLOW_MAJOR_RELEASE` repository variable is exactly `true`, in lowercase, since `True` or `TRUE` still fails ([ADR 01147](../../adrs/01147-prepare-4x-users-for-5-0.md)).
 Unset is the normal state. Prerelease channels are exempt.
 
 - **Intended major:** set the variable to `true`, rerun the release, then unset it.

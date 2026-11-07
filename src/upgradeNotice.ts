@@ -12,7 +12,8 @@ const REMOVED_BINS = {
 
 // Each exact message prints once per process. Spec rows name their file, so a
 // later `runTests` call in the same process still warns about a new file, but
-// not about the same issue in a file it already warned about.
+// not about the same issue in a file it already warned about. Every caller
+// shares this set, including programmatic `runTests` calls.
 const warned = new Set<string>();
 
 // The Action's legacy path runs v4 on purpose and has its own notice.
@@ -105,6 +106,8 @@ export function flagWarnings(args: Record<string, unknown>): string[] {
   }
   for (const flag of ["test", "spec"]) {
     const values = args[flag];
+    // Relies on yargs collecting a repeated `type: "string"` option (`-t a -t b`) into an
+    // array; the "setup rows prints them from the CLI" test guards that.
     if (Array.isArray(values) && values.length > 1) {
       messages.push(
         `\`--${flag}\` is given more than once, so 4.x ignores it and Doc Detective 5.0 exits with a usage error. Give one comma-separated value, \`--${flag} ${values.join(",")}\`, which works today.`
