@@ -1,4 +1,4 @@
-// A match on screen standing in for an element (ADR 01146). It has the methods the
+// A match on screen standing in for an element (ADR 01164). It has the methods the
 // callers of findElementByCriteria use, so find, click, moveTo, and type work
 // without a branch per caller. Paths that hand an element to `driver.execute`
 // check `isVisualMatch` first, because there's no DOM node behind it.
