@@ -24,7 +24,7 @@ export interface SelfUpdateDeps {
 const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !RUNTIME_DEBUG) return;
-  if (level === "error") console.error(msg);
+  if (level === "error" || level === "warn") console.error(msg);
   else console.log(msg);
 };
 
