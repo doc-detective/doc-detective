@@ -1,3 +1,10 @@
+## [4.41.6](https://github.com/doc-detective/doc-detective/compare/v4.41.5...v4.41.6) (2026-11-05)
+
+
+### Bug Fixes
+
+* **hints:** link hints and README to live docs pages ([957e201](https://github.com/doc-detective/doc-detective/commit/957e201ac47fddf83c180f49ffb6dc18c290e9ac))
+
 ## [4.41.5](https://github.com/doc-detective/doc-detective/compare/v4.41.4...v4.41.5) (2026-10-31)
 
 

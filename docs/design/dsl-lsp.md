@@ -1,5 +1,8 @@
 # Design: a language server for the Doc Detective test DSL
 
+**Changing in 5.0:** [ADR 01146](../../adrs/01146-cli-v5-contract.md) removes the `doc-detective-lsp`
+bin, leaving `doc-detective lsp`, which keeps accepting `--stdio`. This page describes 4.x.
+
 Status: **Phases 0–5 landed in this repo.** That covers the schema-association
 contract, the `doc-detective lsp` server with JSON diagnostics, and
 action-registry completion and hover. It covers YAML diagnostics parity with a

@@ -65,7 +65,7 @@ Tests are defined in `.spec.json` files, typically placed alongside the document
       "description": "Verify the your-feature documentation is accurate",
       "steps": [
         {
-          "goTo": "https://doc-detective.com/docs/your-feature"
+          "goTo": "https://docs.doc-detective.com/docs/your-feature"
         },
         {
           "find": {
@@ -207,7 +207,7 @@ Test that documented content exists:
 
 ```json
 {
-  "goTo": "https://doc-detective.com/docs/your-page"
+  "goTo": "https://docs.doc-detective.com/docs/your-page"
 },
 {
   "find": {
@@ -258,7 +258,7 @@ Test that documented links work:
 
 ```json
 {
-  "checkLink": "https://doc-detective.com/reference"
+  "checkLink": "https://docs.doc-detective.com/reference/schemas/config"
 }
 ```
 
@@ -268,7 +268,7 @@ Take screenshots for documentation:
 
 ```json
 {
-  "goTo": "https://doc-detective.com/docs/get-started"
+  "goTo": "https://docs.doc-detective.com/docs/get-started/introduction"
 },
 {
   "screenshot": "static/img/screenshots/get-started.png"

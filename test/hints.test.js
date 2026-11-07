@@ -2107,6 +2107,18 @@ describe("hints/hints (registry)", function () {
     }
   });
 
+  it("no hint links to the bare doc-detective.com host", function () {
+    // doc-detective.com redirects to the docs home and drops the path, so a
+    // deep link there lands on the wrong page. Docs live on the docs. subdomain.
+    for (const h of HINTS) {
+      for (const [, url] of h.markdown.matchAll(/\]\((https?:[^)]+)\)/g)) {
+        expect(new URL(url).host, `${h.id}: ${url}`).to.not.match(
+          /^(www\.)?doc-detective\.com$/
+        );
+      }
+    }
+  });
+
   it("every registry hint has a dedicated predicate test", function () {
     // Replaces a hardcoded `expect(HINTS.length).to.equal(N)`. That count was
     // a magic number that collided across concurrent PRs: two branches that
