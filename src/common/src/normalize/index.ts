@@ -41,7 +41,9 @@ import { isWholeVariable } from "./helpers.js";
 
 export { NormalizeError } from "./helpers.js";
 
-export const normalizers: Record<string, (value: any, path: string, step: any) => any> = {
+// `literal` is normalize()'s: true only after `$VAR` substitution. `step` is the
+// whole step, read-only: a capture names its file for `stepId`.
+export const normalizers: Record<string, (value: any, path: string, literal: boolean, step: any) => any> = {
   annotate,
   checkLink,
   click,
@@ -72,7 +74,7 @@ export const normalizers: Record<string, (value: any, path: string, step: any) =
 function normalizeStep(step: any, path: string, literal: boolean) {
   const action = Object.keys(normalizers).find((name) => name in step)!;
   if (!literal && isWholeVariable(step[action])) return;
-  step[action] = normalizers[action](step[action], path + action, step);
+  step[action] = normalizers[action](step[action], path + action, literal, step);
 }
 
 // Authored steps only. A test's `contexts` hold resolved steps from a report.

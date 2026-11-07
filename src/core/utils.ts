@@ -1196,6 +1196,15 @@ const ONE_ACTION_MESSAGE = "a step can only have one action.";
 function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, string[]>();
   const unknownByPath = new Map<string, string[]>();
+  // A schema's own `errorMessage` (ajv-errors) is written to be read as is, so
+  // keep each one whole. AJV prints it as `<path> <message> ({"errors":[…]})`.
+  // Removing the first error leaves the next one's `, ` separator in front.
+  errors = errors
+    .replace(/(?:^|, )(\/\S*)? ?((?:(?!, \/).)+?) \(\{"errors":\[.*?\]\}\)(?=, |$)/g, (_, instancePath = "", message) => {
+      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), `${message}.`]);
+      return "";
+    })
+    .replace(/^, /, "");
   for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
     const [, instancePath = "", message, params = ""] = match;
     if (/"passingSchemas":\[/.test(params)) {

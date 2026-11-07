@@ -24,7 +24,7 @@ export type TypeKeysDetailed = {
    */
   waitUntil?: ProcessReadiness | BrowserReadiness | AppReadiness;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
+   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**

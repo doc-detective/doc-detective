@@ -21,9 +21,12 @@ function specFixtures(dir) {
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
 }
 
-// uuid dynamic defaults differ run to run; compare them as a placeholder.
+// uuid dynamic defaults differ run to run; compare them as a placeholder. A
+// schemaPath differs between the $ref and inlined forms by design, and
+// ajv-errors nests the replaced error, schemaPath included, in its params.
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
-const normalize = (value) => JSON.parse(JSON.stringify(value).replace(UUID, "<uuid>"));
+const normalize = (value) =>
+  JSON.parse(JSON.stringify(value).replace(UUID, "<uuid>").replace(/"schemaPath":"[^"]*",/g, ""));
 
 function run(check, object) {
   const data = JSON.parse(JSON.stringify(object));

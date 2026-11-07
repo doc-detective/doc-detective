@@ -250,12 +250,12 @@ describe("normalization", function () {
     it("leaves the authored capture object unchanged", function () {
       for (const action of ["screenshot", "record"]) {
         const value = { directory: "d" };
-        const output = normalizers[action](value, action, { stepId: "s" });
+        const output = normalizers[action](value, action, false, { stepId: "s" });
         expect(value, action).to.deep.equal({ directory: "d" });
         expect(output, action).to.include({ directory: "d" }).and.have.property("path");
       }
       const stop = { name: "demo" };
-      const output = normalizers.stopRecord(stop, "stopRecord", {});
+      const output = normalizers.stopRecord(stop, "stopRecord", false, {});
       expect(output).to.deep.equal(stop);
       expect(output).to.not.equal(stop);
     });
@@ -271,6 +271,76 @@ describe("normalization", function () {
       expect(effective({ stopRecord: null }).object.stopRecord).to.equal(true);
       expect(effective({ stopRecord: true }).object.stopRecord).to.equal(true);
     });
+  });
+
+  // ADR 01175: the browser actions move their shorthand and defaults here.
+  describe("browser actions", function () {
+    const action = (step) => effective(step).object;
+    const TYPE = { inputDelay: 100, timeout: 5000 };
+
+    it("leaves click and find strings as they are, since they search by any identifier", function () {
+      expect(action({ click: "Submit" })).to.deep.equal({ click: "Submit" });
+      expect(action({ find: "Submit" })).to.deep.equal({ find: "Submit" });
+    });
+
+    it("fills click's defaults", function () {
+      expect(action({ click: { selector: "#a" } }).click).to.deep.equal({ selector: "#a", timeout: 5000, button: "left" });
+      expect(action({ click: { selector: "#a", button: "right", timeout: 0 } }).click).to.include({ button: "right", timeout: 0 });
+    });
+
+    for (const [click, expected] of [
+      [true, { button: "left" }],
+      ["left", { button: "left" }],
+      ["right", { button: "right" }],
+      ["middle", { button: "middle" }],
+      [{ duration: 800 }, { button: "left", duration: 800 }],
+      [{ button: "middle" }, { button: "middle" }],
+      [false, false],
+    ]) {
+      it(`makes find.click ${JSON.stringify(click)} the click it performs`, function () {
+        expect(action({ find: { selector: "#a", click } }).find.click).to.deep.equal(expected);
+      });
+    }
+
+    // validate() turns a null click into false before this, but the normalizer
+    // never reads null as a click.
+    it("doesn't turn a null find.click into a click", function () {
+      expect(normalizers.find({ selector: "#a", click: null }, "find", false).click).to.equal(null);
+    });
+
+    it("fills find's defaults and lists its classes", function () {
+      expect(action({ find: { elementClass: "btn" } }).find).to.deep.equal({ elementClass: ["btn"], timeout: 5000, moveTo: false });
+    });
+
+    it("normalizes find.type like a type step", function () {
+      expect(action({ find: { selector: "#a", type: "x" } }).find.type).to.deep.equal({ keys: ["x"], ...TYPE });
+    });
+
+    for (const [type, expected] of [
+      ["abc", { keys: ["abc"], ...TYPE }],
+      [["a", "$ENTER$"], { keys: ["a", "$ENTER$"], ...TYPE }],
+      [{ keys: "a", inputDelay: 0 }, { keys: ["a"], inputDelay: 0, timeout: 5000 }],
+      [{ keys: ["a"], selector: "#a", elementClass: "x" }, { keys: ["a"], selector: "#a", elementClass: ["x"], ...TYPE }],
+    ]) {
+      it(`expands type ${JSON.stringify(type)}`, function () {
+        expect(action({ type }).type).to.deep.equal(expected);
+      });
+    }
+
+    it("fills dragAndDrop's duration and keeps an authored 0", function () {
+      expect(action({ dragAndDrop: { source: "a", target: "b" } }).dragAndDrop.duration).to.equal(1000);
+      expect(action({ dragAndDrop: { source: "a", target: "b", duration: 0 } }).dragAndDrop.duration).to.equal(0);
+    });
+
+    for (const [swipe, expected] of [
+      ["up", { direction: "up", distance: 0.5, duration: 500 }],
+      [{ direction: "left", distance: 0.8 }, { direction: "left", distance: 0.8, duration: 500 }],
+      [{ from: { x: 1, y: 2 }, to: { x: 3, y: 4 } }, { from: { x: 1, y: 2 }, to: { x: 3, y: 4 }, duration: 500 }],
+    ]) {
+      it(`expands swipe ${JSON.stringify(swipe)}`, function () {
+        expect(action({ swipe }).swipe).to.deep.equal(expected);
+      });
+    }
   });
 
   // A whole-variable value can hold the whole action, even an object, so
@@ -305,6 +375,23 @@ describe("normalization", function () {
       expect(step.goTo).to.deep.equal({ ...GO_TO, url: "$UNSET" });
     });
 
+    // Inside an action too: a variable where a list goes can hold the list, so
+    // it isn't wrapped in one until it's literal text (ADR 01175).
+    for (const [step, read, literal] of [
+      [{ type: { keys: "$K" } }, (s) => s.type.keys, ["$K"]],
+      [{ find: { selector: "#a", elementClass: "$C" } }, (s) => s.find.elementClass, ["$C"]],
+      [{ click: { selector: "#a", elementClass: "$C" } }, (s) => s.click.elementClass, ["$C"]],
+      [{ find: { selector: "#a", type: "$K" } }, (s) => s.find.type, { keys: ["$K"], inputDelay: 100, timeout: 5000 }],
+      [{ find: { selector: "#a", type: { keys: "$K" } } }, (s) => s.find.type.keys, ["$K"]],
+    ]) {
+      it(`keeps ${JSON.stringify(step)} until it's literal`, function () {
+        const before = effective(step).object;
+        expect(read(before)).to.equal(read(step));
+        normalize("step_v3", before, { literal: true });
+        expect(read(before)).to.deep.equal(literal);
+      });
+    }
+
     it("matches whole variable references only", function () {
       expect(["$URL", "$my_var", "$1"].map(isWholeVariable)).to.deep.equal([true, true, true]);
       expect(["URL", "$", "$URL/x", "a $URL", "$$URL", 5, null].map(isWholeVariable)).to.deep.equal(
@@ -324,6 +411,12 @@ describe("normalization", function () {
       ["record path", { stepId: "s", record: "x.mp4" }],
       ["stopRecord name", { stopRecord: "demo" }],
       ["stopRecord null", { stopRecord: null }],
+      ["click", { click: { elementText: "Go" } }],
+      ["find with click and type", { find: { selector: "#a", click: "right", type: "x", elementClass: "b" } }],
+      ["type shorthand", { type: "abc" }],
+      ["dragAndDrop", { dragAndDrop: { source: "a", target: "b" } }],
+      ["swipe shorthand", { swipe: "down" }],
+      ["swipe point to point", { swipe: { from: { x: 1, y: 2 }, to: { x: 3, y: 4 } } }],
       ["httpRequest with an operation ID", { httpRequest: { openApi: "getUsers", statusCodes: 200 } }],
       ["checkLink shorthand", { checkLink: "https://example.com" }],
       ["checkLink scalar statusCodes", { checkLink: { url: "https://x.com", statusCodes: 200 } }],
@@ -384,9 +477,21 @@ describe("normalization", function () {
       httpRequest: { url: "https://example.com" },
       screenshot: {},
       record: {},
+      click: { selector: "#a" },
+      find: { selector: "#a" },
+      type: { keys: ["a"] },
+      dragAndDrop: { source: "a", target: "b" },
+      swipe: { direction: "up" },
       loadCookie: { name: "session", variable: "session" },
       saveCookie: { name: "session", path: "session.txt" },
       stopRecord: { name: "demo" },
+    };
+    // Where an action's own defaults live, when it isn't the `object` component (or
+    // screenshot's `objectShape`, since its object branch is allOf[$ref objectShape, guard]):
+    // dragAndDrop is always an object, and swipe's directional form has the most.
+    const BRANCH = {
+      dragAndDrop: (schema) => ({ properties: schema.properties }),
+      swipe: (schema) => schema.components.schemas.directional,
     };
     // Moved actions whose schemas declare no defaults.
     const NO_DEFAULTS = ["loadCookie", "stopRecord"];
@@ -399,17 +504,15 @@ describe("normalization", function () {
         }
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
         const defaults = [];
-        // screenshot's object branch is allOf[$ref objectShape, guard], so walk the shape.
-        const branch = schema.components.schemas.objectShape ?? schema.components.schemas.object;
         (function walk(node, trail) {
           if (!node || typeof node !== "object") return;
           if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
             defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
           }
           for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
-        })(branch, []);
+        })((BRANCH[action] ?? ((s) => s.components.schemas.objectShape ?? s.components.schemas.object))(schema), []);
         expect(defaults, "no defaults found").to.not.be.empty;
-        const output = normalizers[action](structuredClone(MINIMAL[action]), action, {});
+        const output = normalizers[action](structuredClone(MINIMAL[action]), action, false, {});
         for (const [keys, value] of defaults) {
           expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
         }

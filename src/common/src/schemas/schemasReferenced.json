@@ -2034,6 +2034,7 @@
                   },
                   "inputDelay": {
                     "type": "number",
+                    "minimum": 0,
                     "default": 100
                   },
                   "surface": {
@@ -4246,6 +4247,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               }
             }
@@ -4753,6 +4755,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               }
             }
@@ -6133,6 +6136,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               },
               "moveTo": {
@@ -6142,13 +6146,18 @@
               "click": {
                 "anyOf": [
                   {
-                    "$ref": "click_v3.nodefaults.schema.json#"
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button",
+                    "default": "left"
                   },
                   {
                     "type": "object",
                     "properties": {
                       "button": {
-                        "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
+                        "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button",
+                        "default": "left"
                       },
                       "duration": {
                         "$ref": "click_v3.nodefaults.schema.json#/components/schemas/duration"
@@ -6167,14 +6176,77 @@
                     "not": {
                       "type": "object",
                       "required": [
-                        "selector",
-                        "elementText",
-                        "elementId",
-                        "elementTestId",
-                        "elementClass",
-                        "elementAttribute",
+                        "selector"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `selector` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementText"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementText` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementTestId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementTestId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementClass"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementClass` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAttribute"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAttribute` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
                         "elementAria"
                       ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAria` (`find` already locates the element)"
                     }
                   }
                 ]
@@ -6187,18 +6259,27 @@
     },
     "click_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
+      "allOf": [
         {
-          "enum": [
-            true,
-            false
+          "not": {
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "errorMessage": {
+            "not": "must be string or object (got ${0}). To click an element whose text is \"${0}\", quote it: \"click\": \"${0}\""
+          }
+        },
+        {
+          "anyOf": [
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+            },
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+            }
           ]
-        },
-        {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
         }
       ],
       "components": {
@@ -6212,7 +6293,8 @@
               "left",
               "right",
               "middle"
-            ]
+            ],
+            "default": "left"
           },
           "duration": {
             "type": "integer",
@@ -6261,10 +6343,12 @@
             "properties": {
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               },
               "button": {
-                "$ref": "#/components/schemas/button"
+                "$ref": "#/components/schemas/button",
+                "default": "left"
               },
               "duration": {
                 "$ref": "#/components/schemas/duration"
@@ -9963,7 +10047,8 @@
                     "$ref": "type_v3.nodefaults.schema.json#/components/schemas/keys"
                   },
                   "inputDelay": {
-                    "type": "number"
+                    "type": "number",
+                    "minimum": 0
                   },
                   "surface": {
                     "$ref": "surface_v3.nodefaults.schema.json#"
@@ -12136,7 +12221,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -12637,7 +12723,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           }
@@ -13982,7 +14069,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "moveTo": {
                 "type": "boolean"
@@ -13990,7 +14078,10 @@
               "click": {
                 "anyOf": [
                   {
-                    "$ref": "click_v3.nodefaults.schema.json#"
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
                   },
                   {
                     "type": "object",
@@ -14015,14 +14106,77 @@
                     "not": {
                       "type": "object",
                       "required": [
-                        "selector",
-                        "elementText",
-                        "elementId",
-                        "elementTestId",
-                        "elementClass",
-                        "elementAttribute",
+                        "selector"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `selector` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementText"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementText` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementTestId"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementTestId` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementClass"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementClass` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
+                        "elementAttribute"
+                      ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAttribute` (`find` already locates the element)"
+                    }
+                  },
+                  {
+                    "not": {
+                      "type": "object",
+                      "required": [
                         "elementAria"
                       ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set `elementAria` (`find` already locates the element)"
                     }
                   }
                 ]
@@ -14035,18 +14189,27 @@
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
+      "allOf": [
         {
-          "enum": [
-            true,
-            false
+          "not": {
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "errorMessage": {
+            "not": "must be string or object (got ${0}). To click an element whose text is \"${0}\", quote it: \"click\": \"${0}\""
+          }
+        },
+        {
+          "anyOf": [
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+            },
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+            }
           ]
-        },
-        {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
         }
       ],
       "components": {
@@ -14108,7 +14271,8 @@
             ],
             "properties": {
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "button": {
                 "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"

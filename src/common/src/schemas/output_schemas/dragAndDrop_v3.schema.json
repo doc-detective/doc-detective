@@ -106,7 +106,8 @@
             },
             "timeout": {
               "type": "integer",
-              "description": "Max duration in milliseconds to wait for the element to exist.",
+              "minimum": 0,
+              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
               "default": 5000
             }
           }
@@ -210,7 +211,8 @@
             },
             "timeout": {
               "type": "integer",
-              "description": "Max duration in milliseconds to wait for the element to exist.",
+              "minimum": 0,
+              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
               "default": 5000
             }
           }
@@ -476,7 +478,8 @@
               },
               "timeout": {
                 "type": "integer",
-                "description": "Max duration in milliseconds to wait for the element to exist.",
+                "minimum": 0,
+                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                 "default": 5000
               }
             }
@@ -577,7 +580,8 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "minimum": 0,
+            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
             "default": 5000
           }
         }
