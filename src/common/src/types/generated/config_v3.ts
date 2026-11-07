@@ -15447,7 +15447,8 @@ export interface EnvironmentDetails {
   /**
    * The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.
    */
-  arch?: "arm" | "arm64" | "ia32" | "x64" | "ppc64" | "s390x" | "riscv64" | "loong64";
+  arch?:
+    "arm" | "arm64" | "ia32" | "loong64" | "mips" | "mipsel" | "ppc" | "ppc64" | "riscv64" | "s390" | "s390x" | "x64";
   /**
    * The version of Doc Detective that ran, for example `4.42.0`.
    */

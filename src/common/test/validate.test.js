@@ -5906,7 +5906,20 @@ import { schemas } from "../dist/index.js";
   });
 
   describe("config environment arch", function () {
-    for (const arch of ["arm", "arm64", "ia32", "x64", "ppc64", "s390x", "riscv64", "loong64"]) {
+    for (const arch of [
+      "arm",
+      "arm64",
+      "ia32",
+      "loong64",
+      "mips",
+      "mipsel",
+      "ppc",
+      "ppc64",
+      "riscv64",
+      "s390",
+      "s390x",
+      "x64",
+    ]) {
       it(`accepts Node's os.arch() value ${arch}`, function () {
         const result = validate({
           schemaKey: "config_v3",

@@ -67529,11 +67529,15 @@
               "arm",
               "arm64",
               "ia32",
-              "x64",
+              "loong64",
+              "mips",
+              "mipsel",
+              "ppc",
               "ppc64",
-              "s390x",
               "riscv64",
-              "loong64"
+              "s390",
+              "s390x",
+              "x64"
             ]
           },
           "docDetectiveVersion": {
@@ -68201,11 +68205,15 @@
                 "arm",
                 "arm64",
                 "ia32",
-                "x64",
+                "loong64",
+                "mips",
+                "mipsel",
+                "ppc",
                 "ppc64",
-                "s390x",
                 "riscv64",
-                "loong64"
+                "s390",
+                "s390x",
+                "x64"
               ]
             },
             "docDetectiveVersion": {
@@ -196237,11 +196245,15 @@
                   "arm",
                   "arm64",
                   "ia32",
-                  "x64",
+                  "loong64",
+                  "mips",
+                  "mipsel",
+                  "ppc",
                   "ppc64",
-                  "s390x",
                   "riscv64",
-                  "loong64"
+                  "s390",
+                  "s390x",
+                  "x64"
                 ]
               },
               "docDetectiveVersion": {
@@ -196909,11 +196921,15 @@
                     "arm",
                     "arm64",
                     "ia32",
-                    "x64",
+                    "loong64",
+                    "mips",
+                    "mipsel",
+                    "ppc",
                     "ppc64",
-                    "s390x",
                     "riscv64",
-                    "loong64"
+                    "s390",
+                    "s390x",
+                    "x64"
                   ]
                 },
                 "docDetectiveVersion": {
@@ -371154,11 +371170,15 @@
               "arm",
               "arm64",
               "ia32",
-              "x64",
+              "loong64",
+              "mips",
+              "mipsel",
+              "ppc",
               "ppc64",
-              "s390x",
               "riscv64",
-              "loong64"
+              "s390",
+              "s390x",
+              "x64"
             ]
           },
           "docDetectiveVersion": {
