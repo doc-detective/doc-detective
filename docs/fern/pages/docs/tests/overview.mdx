@@ -513,7 +513,7 @@ Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detectiv
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number. That's `2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
 <Note>
-At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `goToTest` in a step's routing, so move it to the test's routing now.
+At the step level, the `goToTest` action is valid in routing entries but isn't active. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `goToTest` in a step's routing, so move it to the test's routing now.
 </Note>
 
 ## Route between tests

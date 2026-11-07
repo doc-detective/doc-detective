@@ -39,7 +39,7 @@ The `reporters` list replaces the defaults, so name every reporter you want. Thi
 
 On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
 
-On GitLab, add `junit` to the `reporters` list in your config:
+On GitLab, add `junit` to the `reporters` list in your existing `.doc-detective.json` rather than creating a second config file:
 
 ```json title=".doc-detective.json"
 {
@@ -59,7 +59,7 @@ doc-tests:
       junit: reports/junit.xml
 ```
 
-On GitHub Actions, add `markdown` to the `reporters` list in your config:
+On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc-detective.json`. If you also run on GitLab, keep `junit` in the list too:
 
 ```json title=".doc-detective.json"
 {
