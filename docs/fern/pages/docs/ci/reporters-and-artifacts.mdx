@@ -52,7 +52,7 @@ Select reporters on the command line:
 doc-detective --input api.spec.json --reporters terminal json html
 ```
 
-Or set them in your config file so every run uses the same combination:
+Several values after `--reporters` work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter. To set reporters in a way that works on both versions, use your config file. Every run then uses the same combination:
 
 ```json title=".doc-detective.json"
 {

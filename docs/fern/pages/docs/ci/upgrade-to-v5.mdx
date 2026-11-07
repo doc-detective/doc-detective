@@ -19,24 +19,25 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `--concurrent-runners` with no value | Needs a value. Use `--concurrent-runners true` |
 | The `doc-detective-lsp` bin | Removed. Use `doc-detective lsp --stdio` |
 | The `doc-detective-runner` bin | Replaced by a `doc-detective runner` command |
-| `-r terminal html` | Takes one comma-separated value, like `-r terminal,html` |
+| `-r terminal html` | Takes one comma-separated value, like `-r terminal,html`, which 4.x reports as an unknown reporter. Use `reporters` in your config file |
 | `-t` or `-s` given twice, which 4.x ignores | A usage error. Use one comma-separated value, like `-t a,b` |
 | A `config` object in the `DOC_DETECTIVE` env var | Deprecated, and it merges below `DOC_DETECTIVE_CONFIG` and flags. Use `DOC_DETECTIVE_CONFIG` |
 | A `container` key in the `DOC_DETECTIVE` env var of your own Docker image allows unsafe steps | It doesn't. Use `allowUnsafeSteps: true`. The official images handle this for you |
-| Each boolean `DOC_DETECTIVE_*` env var reads values its own way | All of them read `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, `off`, or empty as off |
-| Browsers load from a `browser-snapshots` folder if one exists | Doc Detective ignores that folder, and browsers install into `<cacheDir>/browsers` |
+| Each boolean `DOC_DETECTIVE_*` env var reads values its own way | All of them read `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, `off`, or empty as off. To get the same result on both, set `1` for on and unset the variable for off. Two exceptions: set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` for on, and `DOC_DETECTIVE_AUTOINSTALL=0` for off |
+| Browsers load from a `browser-snapshots` folder if one exists | Doc Detective ignores that folder, and browsers install into `<cacheDir>/browsers`. To switch now, delete the folder or set `cacheDir` |
 | `beforeAny` | Renamed `beforeAll`. `beforeAny` still works, with a warning |
 | `reporters` names in any case, like `JSON` | Exits `2`. Use `terminal`, `json`, `html`, `runFolder`, `junit`, or `markdown` |
-| `stop: "spec"`, `stop: "run"`, or `goToTest` in a step's routing, and `stop: "run"`, `retry`, or `goToStep` in a test's | Exits `2` |
+| `stop: "spec"`, `stop: "run"`, or `goToTest` in a step's routing | Exits `2`. Use `stop: "test"` on the step, and `stop: "spec"` in the test's handler for the same result, such as `onFail`. Move `goToTest` to the test's routing |
+| `stop: "run"`, `retry`, or `goToStep` in a test's routing | Exits `2`. Use `stop: "spec"`, which is what 4.x does, and remove `retry` and `goToStep` or move them to a step |
 | `"click": true` clicks the text `true` | Exits `2`. Use `"click": "true"` for that text |
-| `browser: "edge"` on a surface, and a device's `orientation`, `udid`, and `provider` | Removed |
-| `timeout: 0` on an operation, and negative durations, delays, and timeouts | Exits `2` |
+| `browser: "edge"` on a surface, and a device's `orientation`, `udid`, and `provider` | Removed. Use another `browser`, such as `chrome`, and remove the device keys |
+| `timeout: 0` on an operation, and negative durations, delays, and timeouts | Exits `2`. Remove `timeout` for the default, or set it to `1` millisecond or more, and use positive values |
 | `screenshot: false` takes a screenshot | Skips the step. Use `screenshot: true` for a screenshot |
-| `find.click` set to text, or to an object with keys other than `button` and `duration` | Exits `2` |
+| `find.click` set to text other than `left`, `right`, or `middle`, or to an object with keys other than `button` and `duration` | Exits `2`. Use `click: true` to click the found element, or a separate `click` step |
 | A locator such as `selector` inside `find.type` | Exits `2`. Use a separate `type` step |
-| A `goTo` or `httpRequest` URL that starts with a `$VAR`, like `$URL/docs` | Exits `2`. A URL starts with `http://`, `https://`, or `/`, or is a whole `$VAR` |
-| A `saveCookie` or `loadCookie` path with a `/` that doesn't end in `.txt` | Exits `2` |
-| An app's `workingDirectory: "."` | Fails the step |
+| A `goTo` or `httpRequest` URL that starts with a `$VAR`, like `$URL/docs` | Exits `2`. A URL starts with `http://`, `https://`, or `/`, or is a whole `$VAR`. Put the whole URL in one variable |
+| A `saveCookie` or `loadCookie` path with a `/` that doesn't end in `.txt` | Exits `2`. End the path in `.txt` |
+| An app's `workingDirectory: "."` | Fails the step. Remove `workingDirectory` |
 
 Logs also move to stderr, so stdout carries only results.
 
@@ -50,7 +51,7 @@ npx doc-detective --exit-on-fail
 
 To keep exit code `0` after you upgrade, set `--no-exit-on-fail`, or `exitOnFail: false` in your config. Either one also works today, and it silences the warnings about exit codes.
 
-The other replacements in the table that say "use" already work on 4.x, except `--output-dir`, which arrives with 5.0.
+The fixes in the table already work on 4.x, except `--output-dir`, which arrives with 5.0, and `beforeAll`, which 4.x rejects.
 
 ## What's next
 
