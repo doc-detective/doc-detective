@@ -248,6 +248,19 @@ describe("summarizeSchemaErrors", function () {
     expect(knownKeysAt(["x"], schema)).to.deep.equal([]);
   });
 
+  it("follows items into an array's entries", function () {
+    const schema = { type: "array", items: { type: "object", properties: { foo: {}, bar: {} } } };
+    expect(knownKeysAt(["0"], schema)).to.deep.equal(["foo", "bar"]);
+    expect(knownKeysAt(["tests", "0"], "spec_v3")).to.include("steps");
+  });
+
+  it("names the keyword when AJV leaves an error without a message", function () {
+    const at = (keyword) => [{ instancePath: "/concurrentRunners", keyword, params: {}, schemaPath: `#/${keyword}` }];
+    expect(summarizeSchemaErrors(at("minimum"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: minimum.");
+    expect(summarizeSchemaErrors(at("not"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: not.");
+    expect(summarizeSchemaErrors(at("oneOf"), { concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: oneOf.");
+  });
+
   it("finds keys a conditional branch defines", function () {
     const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
     expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);
