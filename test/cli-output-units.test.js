@@ -360,6 +360,13 @@ describe("credentials from files", function () {
     });
     expect(config.integrations.heretto[0].apiToken).to.equal("secret");
   });
+  it("accepts a partial config source, whose required keys have defaults", async function () {
+    const file = path.join(dir, "config.json");
+    fs.writeFileSync(file, JSON.stringify({ logLevel: "info", telemetry: { userId: "x" }, hints: {} }));
+    const config = await setConfig({ configPath: file, args: {} });
+    expect(config.telemetry).to.deep.equal({ userId: "x", send: true });
+    expect(config.hints.enabled).to.equal(true);
+  });
   it("names the file it couldn't read", async function () {
     let message = "";
     await withConfig({ docDetectiveApi: { apiKeyFile: path.join(dir, "nope") } }).catch((error) => {

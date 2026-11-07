@@ -94,17 +94,18 @@ One formatter, `summarizeSchemaErrors`, now reads AJV's structured errors (`vali
 for every config source and every spec. Each problem is one line:
 
 - `<path>: <message>`. `<path>` is dotted, with `[n]` indexes, and is left out at the root.
-- Unknown key: `unknown key '<k>'.`, plus ` Did you mean <near>?` when the nearest valid key at that path, at
-  any depth, is under 3 edits and under half the word's length away. The half-length rule keeps `nope` from
-  suggesting `type`.
+- Unknown key: `unknown key '<k>'.`, plus ` Did you mean <near>?` for the nearest valid key at that path. That
+  works at any depth. The key must be under 3 edits and under half the word's length away. The half-length rule
+  keeps `nope` from suggesting `type`.
 - Enum: `must be one of <a>, <b> (got "<v>").`
 - Type: `must be <t1> or <t2> (got "<v>").`
 - Required: `missing required key '<k>'.` It's left out when an unknown key's suggestion already names `<k>`.
 - An `anyOf` of required keys: `needs one of <a>, <b>.`
 - Anything else: AJV's message, plus `.`
 - `anyOf`, `oneOf`, and `if` summary lines are dropped. So are the errors of branches the value didn't take:
-  type errors when something else at the path says what's wrong, a key or a value list another branch allows,
-  and everything at a path that has an error deeper down.
+  - type errors, when something else at the path says what's wrong;
+  - a key or a value list that another branch allows;
+  - everything at a path that has an error deeper down.
 - At most 5 lines, then `and N more`.
 
 Config errors name their source, end with a link to the reference, exit `2`, and print once:

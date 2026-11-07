@@ -265,6 +265,9 @@ async function readUserConfig() {
 }
 
 // Validate one config source on its own, so an error names where it came from.
+// `addDefaults: false` only picks which object validate() returns: it still
+// validates a defaulted clone, so a partial source such as
+// `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
 function assertValidConfig(config: any, source: string) {
   const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
   if (!validation.valid) throw new Error(configErrorMessage(source, validation.errorObjects, config));
