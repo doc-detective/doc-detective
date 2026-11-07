@@ -80,6 +80,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       result.description = `OpenAPI definition not found.`;
       return result;
     }
+    // The schema's default, applied after the merge so that an integration's
+    // own value wins (validate() leaves it unset; ADR 01174).
+    step.httpRequest.openApi.validateAgainstSchema ??= "both";
 
     operation = await getOperation(
       openApiDefinition,

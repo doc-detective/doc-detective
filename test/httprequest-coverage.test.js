@@ -1300,6 +1300,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
         step: {
           httpRequest: {
             openApi: { name: "MyApi", operationId: "createUser", statusCode: 201 },
+            request: { body: { name: "Jo" } },
           },
         },
       });
@@ -1330,11 +1331,52 @@ describe("httpRequest coverage (stubbed axios)", function () {
         step: {
           httpRequest: {
             openApi: { operationId: "createUser", statusCode: 201 },
+            request: { body: { name: "Jo" } },
           },
         },
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(lastRequestConfig.url, "http://api.example.com/users");
+    });
+
+    // validateAgainstSchema defaults to `both` after the step's openApi merges
+    // over any integration, so an integration's own value still wins.
+    for (const [lookup, openApi, definitions] of [
+      ["descriptionPath", (p) => ({ descriptionPath: p, operationId: "createUser" }), () => []],
+      ["name", () => ({ name: "MyApi", operationId: "createUser" }), () => [{ name: "MyApi", definition: sampleDefinition() }]],
+      ["operationId", () => ({ operationId: "createUser" }), () => [{ name: "MyApi", definition: sampleDefinition() }]],
+    ]) {
+      it(`validates against the schema by default when found by ${lookup}`, async function () {
+        stubResponse({ status: 201, data: { id: 7 } });
+        const result = await httpRequest({
+          config,
+          openApiDefinitions: definitions(),
+          step: {
+            httpRequest: {
+              openApi: openApi(writeDefinition(sampleDefinition())),
+              request: { body: { nope: 1 } },
+            },
+          },
+        });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /Request body didn't match the OpenAPI schema/);
+        assert.equal(lastRequestConfig, undefined);
+      });
+    }
+
+    it("keeps an integration's own validateAgainstSchema", async function () {
+      stubResponse({ status: 201, data: { id: 7 } });
+      const result = await httpRequest({
+        config,
+        openApiDefinitions: [{ name: "MyApi", definition: sampleDefinition(), validateAgainstSchema: "none" }],
+        step: {
+          httpRequest: {
+            openApi: { name: "MyApi", operationId: "createUser", statusCode: 201 },
+            request: { body: { nope: 1 } },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
     });
 
     it("FAILs when no OpenAPI definition can be resolved", async function () {

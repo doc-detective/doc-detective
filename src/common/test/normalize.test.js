@@ -324,6 +324,19 @@ describe("normalization", function () {
         }
       });
     }
+
+    // Exempt from the parity check above, by name: httpRequest's openApi
+    // defaults. A step's openApi spreads over the config or spec integration it
+    // names or shares an operation with, at run time, so a default filled here
+    // would override the integration's own value. The handler applies
+    // `validateAgainstSchema`'s default after that merge.
+    it("leaves httpRequest's openApi defaults to the run-time merge", function () {
+      const properties = schemas.openApi_v3.properties;
+      const defaulted = Object.keys(properties).filter((key) => "default" in properties[key]);
+      expect(defaulted).to.include("validateAgainstSchema");
+      const { openApi } = effective({ httpRequest: { openApi: { operationId: "getUsers" } } }).object.httpRequest;
+      expect(openApi).to.not.have.any.keys(...defaulted);
+    });
   });
 
   describe("deprecated aliases", function () {
