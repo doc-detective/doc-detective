@@ -1,19 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "wait",
-  "description": "Pause (in milliseconds) before performing the next action.",
+  "description": "Pause before the next action, in milliseconds. `true` pauses for 5000 milliseconds, and `false` skips the step.",
   "default": 5000,
   "anyOf": [
     {
-      "type": "number",
-      "title": "Wait (simple)"
+      "type": ["number", "boolean"],
+      "title": "Wait (simple)",
+      "$comment": "One type array: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so true stays true and 1 stays 1. Number is listed first because the LSP offers the first listed type as the value kind. As separate branches, a leading number branch turned true into 1, and a leading boolean branch would turn 1 into true. Strings still coerce: \"5000\" becomes 5000 and \"true\" becomes true. See ADR 01161.",
+      "minimum": 0
     },
     {
       "$ref": "#/components/schemas/string"
-    },
-    {
-      "type": "boolean",
-      "title": "Wait (boolean)"
     }
   ],
   "components": {

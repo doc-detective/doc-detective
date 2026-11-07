@@ -15,13 +15,19 @@ description: "Reference for the `screenshot` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-screenshot | one of:<br/>- string<br/>- object([Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed))<br/>- boolean | Required. Takes a screenshot in PNG format. | —
+screenshot | one of:<br/>- boolean<br/>- string<br/>- object([Capture screenshot (detailed)](/reference/schemas/capture-screenshot-detailed)) | Required. Takes a screenshot in PNG format. | —
 
 ## Examples
 
 ```json
 {
   "screenshot": true
+}
+```
+
+```json
+{
+  "screenshot": false
 }
 ```
 

@@ -6,7 +6,11 @@ description: Pause before performing the next action.
 
 The `wait` action pauses test execution for a specified duration before proceeding to the next step. This is useful for adding delays, for example, to allow time for animations to complete or to make recordings easier to follow.
 
-The value assigned to the `wait` key is the duration to pause in milliseconds. You can provide a number directly.
+The value assigned to the `wait` key is the duration to pause in milliseconds, `0` or more. You can also set it to:
+
+- `true` to pause for 5000 milliseconds. Reports show the step as `"wait": 5000`.
+- `false` to skip the step.
+- An environment variable, such as `"$WAIT_DURATION"`, that holds a number of milliseconds.
 
 > For comprehensive options, see the [`wait`](/reference/schemas/wait) reference.
 

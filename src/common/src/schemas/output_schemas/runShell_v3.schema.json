@@ -45,8 +45,7 @@
         },
         "workingDirectory": {
           "type": "string",
-          "description": "Working directory for the command.",
-          "default": "."
+          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
         },
         "exitCodes": {
           "type": "array",
@@ -72,7 +71,7 @@
         },
         "directory": {
           "type": "string",
-          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
         },
         "maxVariation": {
           "type": "number",
@@ -94,6 +93,7 @@
         "timeout": {
           "type": "integer",
           "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+          "minimum": 1,
           "default": 60000
         },
         "background": {
@@ -196,8 +196,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Working directory for the command.",
-            "default": "."
+            "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "exitCodes": {
             "type": "array",
@@ -223,7 +222,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
@@ -245,6 +244,7 @@
           "timeout": {
             "type": "integer",
             "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+            "minimum": 1,
             "default": 60000
           },
           "background": {

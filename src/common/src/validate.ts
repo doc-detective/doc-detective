@@ -1,5 +1,6 @@
 import type { ValidateFunction, ErrorObject } from "ajv";
 import validators from "./schemas/validators.cjs";
+import { normalize, NormalizeError } from "./normalize/index.js";
 
 // Validators are precompiled at build time from `schemasReferenced` ($refs
 // intact) by Ajv standalone code generation (createAjv/standaloneValidatorFiles
@@ -86,6 +87,13 @@ type CompatibleSchemaKey = keyof typeof compatibleSchemas;
 export interface ValidateOptions {
   schemaKey: string;
   object: any;
+  /**
+   * When true (the default), return the effective (normalized) object instead
+   * of your own: a validated clone with schema defaults applied, and every step
+   * in it normalized (shorthand expanded, defaults filled). When false, a valid
+   * object comes back as your own object, unchanged, except that a v2 object
+   * comes back upgraded to v3. ADR 01167.
+   */
   addDefaults?: boolean;
   /**
    * When true, `ValidateResult.errorObjects` is populated with the raw AJV
@@ -142,17 +150,22 @@ function escapeRegExp(string: string): string {
  * @param options - Validation options
  * @param options.schemaKey - The key identifying the target JSON schema.
  * @param options.object - The object to validate.
- * @param options.addDefaults - Whether to include default values in the returned object.
+ * @param options.addDefaults - Whether to return the effective (normalized) object instead of your own.
  * @returns Validation result, error messages, and the validated (and possibly transformed) object.
  *
  * @throws {Error} If {@link schemaKey} or {@link object} is missing.
  */
-export function validate({
-  schemaKey,
-  object,
-  addDefaults = true,
-  structuredErrors = false,
-}: ValidateOptions): ValidateResult {
+export function validate(options: ValidateOptions): ValidateResult {
+  return validateObject(options, true);
+}
+
+// transformToSchemaKey validates without normalizing, so a v2 upgrade keeps its
+// authored steps, and the IDs hashed from them, until the caller's validate()
+// call decides what to return.
+function validateObject(
+  { schemaKey, object, addDefaults = true, structuredErrors = false }: ValidateOptions,
+  normalizeSteps: boolean,
+): ValidateResult {
   if (!schemaKey) {
     throw new Error("Schema key is required.");
   }
@@ -278,6 +291,34 @@ export function validate({
       }
       /* c8 ignore stop */
     }
+  }
+  // Normalize the steps (ADR 01167). It runs in both modes, so validity doesn't
+  // depend on addDefaults: an alias set twice is invalid in each. Without
+  // addDefaults, a v2 upgrade is returned as is, so normalize a copy of it.
+  try {
+    if (normalizeSteps) {
+      normalize(
+        schemaKey,
+        (addDefaults || validationObject !== object) ? validationObject : cloneForValidation(validationObject),
+      );
+    }
+  } catch (error) {
+    if (!(error instanceof NormalizeError)) throw error;
+    result.valid = false;
+    result.errors = error.message;
+    if (structuredErrors) {
+      result.errorObjects = [
+        {
+          instancePath: "/" + error.path.split(/[.[\]]+/).filter(Boolean).join("/"),
+          schemaPath: "#",
+          keyword: "normalize",
+          params: {},
+          message: error.detail,
+        },
+      ];
+    }
+    result.object = object;
+    return result;
   }
   if (addDefaults) {
     result.object = validationObject;
@@ -468,10 +509,7 @@ export function transformToSchemaKey({
     } else if (currentSchema === "wait_v2") {
       transformedObject.wait = object.duration ?? 5000;
     }
-    const result = validate({
-      schemaKey: "step_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "step_v3", object: transformedObject }, false);
     if (!result.valid) {
       throw new Error(`Failed to transform object to step.\nErrors: ${result.errors}`);
     }
@@ -647,10 +685,7 @@ export function transformToSchemaKey({
       }),
     );
 
-    const result = validate({
-      schemaKey: "spec_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "spec_v3", object: transformedObject }, false);
     // Defensive: nested transforms validate; this is unreachable
     /* c8 ignore next 3 */
     if (!result.valid) {
@@ -691,10 +726,7 @@ export function transformToSchemaKey({
       }),
     );
 
-    const result = validate({
-      schemaKey: "test_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "test_v3", object: transformedObject }, false);
     // Defensive: nested transforms validate; this is unreachable
     /* c8 ignore next 3 */
     if (!result.valid) {

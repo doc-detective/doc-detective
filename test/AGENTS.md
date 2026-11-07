@@ -24,6 +24,12 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `ss -ltnp 'sport = :8092'` or `lsof -iTCP:8092 -sTCP:LISTEN` on Linux and macOS. Then inspect the
   owning process's command line. It may be mocha from a sibling `.claude/worktrees/*` checkout, or a
   days-old orphan. Wait or kill only orphaned listeners, then rerun.
+- **Don't `spawnSync` a CLI run that browses a server in the mocha process.** The 8092 and 8093
+  servers live in mocha's own process, and `spawnSync` blocks its event loop. A spawned
+  `doc-detective` run that loads one of their pages never gets an answer, so the test hangs and holds
+  the ports for every other session. Spawn asynchronously, with a kill timer, and serve from your
+  own server on port `0`. The effective-step test in [cli-contract.test.js](cli-contract.test.js)
+  shows the pattern.
 - **Browserless worktrees fail the browser-dependent tests.** Consider a worktree with no Chrome,
   Firefox, or Appium installed, and no network to lazy-provision them. Browser-dependent tests fail
   with "Chrome browser is not available", or with step-count assertions (`0 !== 1`,

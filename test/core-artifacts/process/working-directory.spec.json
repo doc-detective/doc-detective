@@ -1,0 +1,34 @@
+{
+  "specId": "process-working-directory",
+  "description": "Where runShell and runCode run: an omitted workingDirectory is the folder Doc Detective runs from, and a relative one resolves against the spec file. A nested run makes each folder known: the setup writes a spec and a marker file per folder, and each nested step checks for its marker.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the nested spec, its folders, and one marker file per folder.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),p=require('path'),d='.tmp/fixture-wd';fs.rmSync(d,{recursive:true,force:true});for(const s of ['sub','abs'])fs.mkdirSync(p.join(d,s),{recursive:true});for(const f of ['marker-dot','sub/marker-sub','abs/marker-abs'])fs.writeFileSync(p.join(d,f),'');const sh=(command,workingDirectory)=>({runShell:workingDirectory===undefined?{command}:{command,workingDirectory}});const code=(c,workingDirectory)=>({runCode:workingDirectory===undefined?{language:'bash',code:c}:{language:'bash',code:c,workingDirectory}});fs.writeFileSync(p.join(d,'wd.spec.json'),JSON.stringify({tests:[{testId:'omitted',steps:[sh('test -f bin/doc-detective.js'),code('test -f bin/doc-detective.js')]},{testId:'dot',steps:[sh('test -f marker-dot','.')]},{testId:'sub',steps:[sh('test -f marker-sub','sub'),code('test -f marker-sub','sub')]},{testId:'absolute',steps:[sh('test -f marker-abs',p.resolve(d,'abs'))]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "nested-run",
+      "description": "Runs the nested spec from the repository root. Omitted runs in the root, '.' in the spec's folder, 'sub' in the spec's sub folder, and an absolute path where it points. Any wrong folder fails a nested step, so the run exits 1.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-wd/wd.spec.json --output-dir .tmp/fixture-wd/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 120000
+          }
+        }
+      ]
+    }
+  ]
+}
