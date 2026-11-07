@@ -619,6 +619,28 @@ describe("checkLink timeout", function () {
     }
     assert.deepEqual(seen, [10000]);
   });
+
+  it("gives the HEAD fallback the same per-attempt timeout", async function () {
+    const axios = (await import("axios")).default;
+    const request = axios.request;
+    const seen = [];
+    axios.request = function (cfg) {
+      seen.push([String(cfg.method).toLowerCase(), cfg.timeout]);
+      return request.call(this, cfg);
+    };
+    try {
+      // GET answers 429 on every attempt, so checkLink falls back to HEAD.
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: { url: `http://localhost:${serverPort}/method-sensitive/head-timeout`, timeout: 4321 } },
+      });
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      axios.request = request;
+    }
+    assert.ok(seen.some(([method]) => method === "head"), JSON.stringify(seen));
+    assert.ok(seen.every(([, timeout]) => timeout === 4321), JSON.stringify(seen));
+  });
 });
 
 describe("checkLink base backoff test seam", function () {

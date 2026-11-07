@@ -6119,6 +6119,9 @@ async function spawnAppiumServer(
     ],
     {
       windowsHide: true,
+      // Appium finds its drivers through APPIUM_HOME and its own module paths,
+      // so cwd is incidental. An unknown package root (undefined) makes spawn
+      // use process.cwd(), which still runs; failing here would only add a failure.
       cwd: packageRoot(),
       env,
     }
@@ -6551,6 +6554,8 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
+      // As in spawnAppiumServer: cwd is incidental to Appium, so an unknown
+      // package root (undefined) lets spawn use process.cwd() rather than fail.
       cwd: packageRoot(),
     }
   );
