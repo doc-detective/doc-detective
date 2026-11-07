@@ -237,15 +237,18 @@ function generateSchemaMarkdown(schemaId, schema) {
   }
 
   // Fields
-  const fields = [
-    "## Fields",
-    "",
-    "Field | Type | Description | Default",
-    ":-- | :-- | :-- | :--",
-  ];
+  const fields = ["## Fields", ""];
 
   // Process fields (merged across allOf branches)
   const effectiveFields = getEffectiveProperties(schema);
+  // validate() fills these defaults, so results show them too (ADR 01167).
+  if (
+    effectiveFields &&
+    Object.values(effectiveFields.properties).some((prop) => prop.default !== undefined)
+  ) {
+    fields.push("Validation applies the defaults shown here.", "");
+  }
+  fields.push("Field | Type | Description | Default", ":-- | :-- | :-- | :--");
   if (effectiveFields) {
     const parentForRequired = { required: effectiveFields.required };
     for (const [propName, propSchema] of Object.entries(

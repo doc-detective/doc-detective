@@ -1255,7 +1255,7 @@ function buildStep(step, idx, ctxId, keyIdx) {
   var ak = actionKey(step);
   var sk = stepKey(step, ctxId, keyIdx == null ? idx : keyIdx);
   var primary = step.description
-    || (step.goTo && "Go to " + step.goTo)
+    || (step.goTo && "Go to " + (step.goTo.url || step.goTo))
     || (step.httpRequest && (step.httpRequest.method || "GET") + " " + (step.httpRequest.url || ""))
     || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
     || step.resultDescription || "(step)";

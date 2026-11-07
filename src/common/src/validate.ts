@@ -1,5 +1,6 @@
 import type { ValidateFunction, ErrorObject } from "ajv";
 import validators from "./schemas/validators.cjs";
+import { normalize, NormalizeError } from "./normalize/index.js";
 
 // Validators are precompiled at build time from `schemasReferenced` ($refs
 // intact) by Ajv standalone code generation (createAjv/standaloneValidatorFiles
@@ -86,6 +87,13 @@ type CompatibleSchemaKey = keyof typeof compatibleSchemas;
 export interface ValidateOptions {
   schemaKey: string;
   object: any;
+  /**
+   * When true (the default), return the effective (normalized) object instead
+   * of your own: a validated clone with schema defaults applied, and every step
+   * in it normalized (shorthand expanded, defaults filled). When false, a valid
+   * object comes back as your own object, unchanged, except that a v2 object
+   * comes back upgraded to v3. ADR 01167.
+   */
   addDefaults?: boolean;
   /**
    * When true, `ValidateResult.errorObjects` is populated with the raw AJV
@@ -142,7 +150,7 @@ function escapeRegExp(string: string): string {
  * @param options - Validation options
  * @param options.schemaKey - The key identifying the target JSON schema.
  * @param options.object - The object to validate.
- * @param options.addDefaults - Whether to include default values in the returned object.
+ * @param options.addDefaults - Whether to return the effective (normalized) object instead of your own.
  * @returns Validation result, error messages, and the validated (and possibly transformed) object.
  *
  * @throws {Error} If {@link schemaKey} or {@link object} is missing.
@@ -278,6 +286,17 @@ export function validate({
       }
       /* c8 ignore stop */
     }
+  }
+  // Normalize the steps on the clone (ADR 01167). It runs in both modes, so
+  // validity doesn't depend on addDefaults: an alias set twice is invalid in each.
+  try {
+    normalize(schemaKey, validationObject);
+  } catch (error) {
+    if (!(error instanceof NormalizeError)) throw error;
+    result.valid = false;
+    result.errors = error.message;
+    result.object = object;
+    return result;
   }
   if (addDefaults) {
     result.object = validationObject;

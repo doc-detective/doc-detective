@@ -164,6 +164,25 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 **What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
 
+## Results show the effective step
+
+**What changed:** Each step in the results shows the step that ran, in its object form with every default filled. Version 4 showed the step as you wrote it. For example, a step written as `{"goTo": "https://example.com"}` now appears in the results as:
+
+```json
+{
+  "goTo": {
+    "url": "https://example.com",
+    "params": {},
+    "timeout": 30000,
+    "waitUntil": { "networkIdleTime": 500, "domIdleTime": 1000 }
+  }
+}
+```
+
+Steps that skip, such as the ones after a failure, show it too. Step-level fields that you didn't set, such as `unsafe` or `variables`, stay out of the results. Step and test IDs don't change.
+
+**What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
+
 ## `--output` is a results file
 
 **What changed:** `--output` and the `output` config key always name the JSON results file. Doc Detective overwrites that file on each run, and `-` writes it to stdout. A folder that exists, or a path ending in a slash, exits `2`. Any other path becomes a file, even with no extension. A new `--output-dir` flag and `outputDir` config key set the folder that holds the run folder and the `html`, `junit`, and `markdown` reports.

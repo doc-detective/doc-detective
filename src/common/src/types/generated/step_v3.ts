@@ -6324,7 +6324,7 @@ export interface RequestBodyObject {
 export interface Response {
   headers?: ResponseHeaders;
   /**
-   * JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.
+   * JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.
    */
   body?: ResponseBodyObject | ResponseBodyArray | ResponseBodyString;
   /**

@@ -184,43 +184,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: the object form with its defaults filled (ADR 01167).
+  // `response.body` has no default, so an unset body skips the body check.
   step = isValidStep.object;
-  // Resolve to object
-  if (typeof step.httpRequest === "string") {
-    step.httpRequest = { url: step.httpRequest };
-  }
-  // Set default values
-  step.httpRequest = {
-    ...step.httpRequest,
-    method: step.httpRequest.method || "get",
-    statusCodes: step.httpRequest.statusCodes || [200, 201],
-    request: step.httpRequest.request || {
-      params: {},
-      headers: {},
-      body: {},
-    },
-    // NOTE: `body` is deliberately NOT defaulted here (unlike `headers`/
-    // `required`). Defaulting it to `{}` used to make the body-match check
-    // below run unconditionally -- even when the step never asked for a body
-    // assertion -- and silently required the response to be a JSON object,
-    // failing any non-JSON (or empty) response. Leaving `body` genuinely
-    // `undefined` when unset lets the existing `typeof !== "undefined"` guard
-    // skip the check entirely, matching the documented "$$bodyMatches ...
-    // when response.body is set" contract. See ADR on this fix.
-    response: {
-      headers: {},
-      required: [],
-      ...(step.httpRequest.response || {}),
-    },
-    allowAdditionalFields:
-      typeof step.httpRequest.allowAdditionalFields !== "undefined"
-        ? step.httpRequest.allowAdditionalFields
-        : true,
-    overwrite: step.httpRequest.overwrite || "aboveVariation",
-    maxVariation: step.httpRequest.maxVariation || 0,
-    timeout: step.httpRequest.timeout || 60000,
-  };
 
   // Standardize step values
   // request.headers from string to object

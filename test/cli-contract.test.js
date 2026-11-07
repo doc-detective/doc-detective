@@ -1,11 +1,13 @@
 // The 5.0 CLI contract (ADR 01146), asserted through the real bin: exit code,
 // stdout, stderr, and escape sequences. Each later step of the rollout adds rows.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
+import treeKill from "tree-kill";
 import { validate } from "../dist/common/src/index.js";
 import { outputResults } from "../dist/utils.js";
 
@@ -23,19 +25,23 @@ describe("CLI contract", function () {
       JSON.stringify({ specId: name, tests: [{ testId: `${name}-t`, steps: [step] }] })
     );
 
-  function run(args, { env = {}, input } = {}) {
+  function childEnv(env = {}) {
     const baseEnv = { ...process.env };
     for (const key of ["CI", "NO_COLOR", "FORCE_COLOR", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete baseEnv[key];
+    return {
+      ...baseEnv,
+      DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+      ...env,
+    };
+  }
+
+  function run(args, { env = {}, input } = {}) {
     return spawnSync(process.execPath, [CLI, ...args], {
       cwd,
       encoding: "utf8",
       input: input ?? "",
-      env: {
-        ...baseEnv,
-        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
-        DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
-        ...env,
-      },
+      env: childEnv(env),
     });
   }
 
@@ -319,6 +325,49 @@ describe("CLI contract", function () {
         expect(result.valid, result.errors).to.equal(true);
       });
     }
+
+    // ADR 01167: the report echoes the effective step, not the authored shorthand.
+    // The page server lives in this process, so the CLI runs asynchronously
+    // (spawnSync would block the server it browses) and is killed if it stalls.
+    it("reports the effective goTo and httpRequest steps", async function () {
+      this.timeout(180000);
+      const server = http.createServer((req, res) => res.end("<html><body>ok</body></html>"));
+      await new Promise((resolve) => server.listen(0, resolve));
+      const url = `http://localhost:${server.address().port}`;
+      try {
+        fs.writeFileSync(
+          path.join(cwd, "effective.spec.json"),
+          JSON.stringify({
+            specId: "effective",
+            tests: [
+              {
+                testId: "effective-t",
+                runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
+                steps: [{ goTo: url }, { httpRequest: url }],
+              },
+            ],
+          })
+        );
+        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json"], {
+          cwd,
+          env: childEnv(),
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk) => (stdout += chunk));
+        child.stderr.on("data", (chunk) => (stderr += chunk));
+        const stall = setTimeout(() => treeKill(child.pid), 150000);
+        const status = await new Promise((resolve) => child.on("close", resolve));
+        clearTimeout(stall);
+        expect(status, stderr).to.equal(0);
+        const [goTo, httpRequest] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
+        expect(goTo.goTo).to.include({ url, timeout: 30000 });
+        expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });
+      } finally {
+        server.close();
+      }
+    });
 
     it("names the platform and browser in the fourth --plain column", async function () {
       const counts = { pass: 1, fail: 0, warning: 0, skipped: 0 };

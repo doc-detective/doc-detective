@@ -12,6 +12,8 @@ description: "Reference for the `Process descriptor` schema."
 
 ## Fields
 
+Validation applies the defaults shown here.
+
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 process | string | Required. Shell command to start as a long-running background process (same shell semantics as runShell: pipes, `&&`, globbing, environment-variable expansion). Equivalent to a `runShell` step with `background` — both forms remain valid.<br/><br/>Minimum length: 1. Pattern: `\S` | —

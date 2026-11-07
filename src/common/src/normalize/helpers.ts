@@ -1,0 +1,66 @@
+import { schemas } from "../schemas/index.js";
+
+/** An error that makes `validate()` report the object as invalid. */
+export class NormalizeError extends Error {}
+
+/** The normalizer for an action whose normalization still lives in its handler. */
+export function passthrough(value: any): any {
+  return value;
+}
+
+const warned = new Set<string>();
+
+/**
+ * Rename deprecated keys on `value` in place, old → new, and warn once per run
+ * for each. Setting both is an error. `path` names `value` in that error.
+ */
+export function renameAliases(value: any, aliases: Record<string, string>, path: string): any {
+  for (const [old, key] of Object.entries(aliases)) {
+    if (!(old in value)) continue;
+    if (key in value) throw new NormalizeError(`${path}: set \`${key}\` or \`${old}\`, not both.`);
+    value[key] = value[old];
+    delete value[old];
+    const warning = `Warning: \`${old}\` is deprecated. Rename it to \`${key}\`.`;
+    if (!warned.has(warning)) {
+      warned.add(warning);
+      console.warn(warning);
+    }
+  }
+  return value;
+}
+
+// Every plain default in a schema node's properties, as [dotted path, value].
+// Defaults under anyOf/oneOf, or in nested objects with required keys, depend on
+// the rest of the step, so the action's normalizer codes them by hand.
+function plainDefaults(node: any, prefix = ""): [string, any][] {
+  const properties = Object.assign({}, node.properties, ...(node.allOf ?? []).map((part: any) => part.properties));
+  return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
+    const path = prefix + key;
+    if ("default" in property) return [[path, property.default]];
+    if (property.type === "object" && !property.required && !property.anyOf) return plainDefaults(property, `${path}.`);
+    return [];
+  });
+}
+
+const cache = new Map<string, [string, any][]>();
+
+/**
+ * Fill each plain default from `<action>_v3`'s object branch that `value` leaves
+ * unset, except the dotted paths in `skip`. Creates the parent objects a nested
+ * default needs. An authored value, including `0`, `false` and `null`, stays.
+ */
+export function applyDefaults(value: any, action: string, skip: string[] = []): any {
+  if (!cache.has(action)) {
+    const branch = (schemas as any)[`${action}_v3`].anyOf.find((part: any) => part.properties || part.allOf);
+    cache.set(action, plainDefaults(branch));
+  }
+  for (const [path, fallback] of cache.get(action)!) {
+    if (skip.includes(path)) continue;
+    const keys = path.split(".");
+    const last = keys.pop()!;
+    let target = value;
+    for (const key of keys) target = target[key] ??= {};
+    if (target[last] === undefined) target[last] = structuredClone(fallback);
+  }
+  return value;
+}

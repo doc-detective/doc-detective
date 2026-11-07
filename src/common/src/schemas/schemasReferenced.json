@@ -5657,8 +5657,7 @@
                       {
                         "type": "string"
                       }
-                    ],
-                    "default": {}
+                    ]
                   },
                   "required": {
                     "type": "array",

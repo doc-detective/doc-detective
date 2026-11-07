@@ -12,6 +12,8 @@ description: "Reference for the `Capture screenshot (detailed)` schema."
 
 ## Fields
 
+Validation applies the defaults shown here.
+
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
 surface | one of:<br/>- string<br/>- object([Browser surface](/reference/schemas/browser-surface))<br/>- object([App surface](/reference/schemas/app-surface)) | Optional. The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form (&#123; "app": … &#125;). App captures don't support `crop` yet. | —

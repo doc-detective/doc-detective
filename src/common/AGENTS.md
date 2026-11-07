@@ -55,7 +55,28 @@ When `validate()` is called:
 - `coerceTypes: true` - Auto-converts strings to numbers, etc. Inside an `anyOf`, Ajv coerces into the
   first branch that can take the value, so `anyOf: [{ type: "string" }, { const: true }]` turns `true` into
   `"true"`. List the untyped `const: true` branch first, as `selectorAttributes` in `config_v3` does.
-- `useDefaults: true` - Applies default values from schema
+- `useDefaults: true` - Applies schema defaults, but only outside unions. Ajv skips defaults under
+  `anyOf`/`oneOf`, so it applies none inside a step: `step_v3` is a `oneOf`, and every action root is an
+  `anyOf` of shorthand and object. Step defaults come from the normalization pass below.
+
+**Step normalization ([ADR 01167](../../adrs/01167-validate-returns-the-effective-step.md)):**
+after the schema check passes, `validate()` normalizes every step in a `step_v3`, `test_v3`, or `spec_v3`
+object on its own clone, never the caller's. A test's resolved `contexts`, configs (including markup
+templates), and reports aren't walked.
+- `addDefaults: true` (the default) returns the effective object. `addDefaults: false` returns the caller's
+  object unchanged when it's valid, except that a v2 object comes back upgraded to v3.
+- Normalization runs in both modes, so validity doesn't depend on `addDefaults`. A `NormalizeError` makes the
+  object invalid, with its message as `errors`.
+- Each action has one normalizer, `src/normalize/<action>.ts`, registered in `src/normalize/index.ts`. Edit
+  only your action's file. In order, it expands shorthand to the object form, renames deprecated aliases with
+  `renameAliases`, canonicalizes scalars, and applies defaults. Plain defaults come from the schema's object
+  branch via `applyDefaults`. Conditional ones are coded, often as `applyDefaults`'s `skip` list.
+- A normalizer is idempotent. It never touches `$VAR` or `$$` values, paths, config, or runtime state. Step-level
+  `unsafe`, `breakpoint`, `outputs`, and `variables` stay as authored.
+- When you move an action, delete its handler's shorthand and default handling, add its minimal step to the
+  parity test in `test/normalize.test.js`, and lower `CEILING` in the root `test/shorthand-ratchet.test.js`.
+- A plain default the handler never applied is a wrong default. Remove it from the schema, as
+  `httpRequest.response.body` did.
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
@@ -302,10 +323,10 @@ so whichever branch is first wins.
 **Rule:** in schema `anyOf` unions, order narrow scalar types (integer, boolean) BEFORE string
 branches, and note the reasoning in the schema description.
 
-Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
-consumer's validated objects. Keep shared schemas default-free unless every consumer wants the
-default (this is why `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its
-own).
+Also, a shared/`$ref`'d schema's `default:` values reach every consumer. Outside unions, Ajv's
+`useDefaults: true` injects them. Inside a step, `applyDefaults` reads them from the action's object
+branch. Keep shared schemas default-free unless every consumer wants the default (this is why
+`waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its own).
 
 ### Selector match spans
 

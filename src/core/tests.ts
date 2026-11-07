@@ -52,6 +52,7 @@ import {
   loadAxios,
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
+import { validate } from "../common/src/validate.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -247,6 +248,7 @@ export {
   runSpecs,
   runViaApi,
   getRunner,
+  useEffectiveStep,
   ensureChromeAvailable,
   ensureContextBrowserInstalled,
   combinationKey,
@@ -4871,6 +4873,9 @@ async function runContext({
         step.stepId = stepId;
       }
       usedStepIds.add(step.stepId);
+      // After the ID, which hashes the authored step: steps that never run
+      // still report their effective form (ADR 01167).
+      useEffectiveStep(step);
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
     // so a duplicated stepId routes to the earliest one).
@@ -5634,6 +5639,16 @@ async function stopAllRecordings({
   }
 }
 
+// Make a step its effective form, the one validate() returns: shorthand
+// expanded and defaults filled (ADR 01167). In place, so the report that spreads
+// this step echoes it and the runner's markers (`__autoRecord`, the hidden
+// `_fromAfter`) survive. An invalid step stays as it is; its handler says why.
+function useEffectiveStep(step: any) {
+  const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
+  const validation = validate({ schemaKey: "step_v3", object: authored });
+  if (validation.valid) Object.assign(step, validation.object);
+}
+
 // Run a specific step
 async function runStep({
   config = {},
@@ -5659,6 +5674,9 @@ async function runStep({
   let actionResult: any;
   // Load values from environment variables
   step = replaceEnvs(step);
+  // Again, after substitution: a variable can hold a whole action's value, and
+  // getRunner() callers hand runStep authored steps.
+  useEffectiveStep(step);
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
       config: config,

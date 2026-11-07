@@ -21205,7 +21205,7 @@
                                           "title": "Response headers"
                                         },
                                         "body": {
-                                          "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                                          "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                                           "anyOf": [
                                             {
                                               "type": "object",
@@ -21225,8 +21225,7 @@
                                               "description": "String expected in the response.",
                                               "type": "string"
                                             }
-                                          ],
-                                          "default": {}
+                                          ]
                                         },
                                         "required": {
                                           "type": "array",
@@ -21604,7 +21603,7 @@
                                             "title": "Response headers"
                                           },
                                           "body": {
-                                            "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                                            "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                                             "anyOf": [
                                               {
                                                 "type": "object",
@@ -21624,8 +21623,7 @@
                                                 "description": "String expected in the response.",
                                                 "type": "string"
                                               }
-                                            ],
-                                            "default": {}
+                                            ]
                                           },
                                           "required": {
                                             "type": "array",
@@ -78621,7 +78619,7 @@
                                                 "title": "Response headers"
                                               },
                                               "body": {
-                                                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                                                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                                                 "anyOf": [
                                                   {
                                                     "type": "object",
@@ -78641,8 +78639,7 @@
                                                     "description": "String expected in the response.",
                                                     "type": "string"
                                                   }
-                                                ],
-                                                "default": {}
+                                                ]
                                               },
                                               "required": {
                                                 "type": "array",
@@ -79020,7 +79017,7 @@
                                                   "title": "Response headers"
                                                 },
                                                 "body": {
-                                                  "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                                                  "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                                                   "anyOf": [
                                                     {
                                                       "type": "object",
@@ -79040,8 +79037,7 @@
                                                       "description": "String expected in the response.",
                                                       "type": "string"
                                                     }
-                                                  ],
-                                                  "default": {}
+                                                  ]
                                                 },
                                                 "required": {
                                                   "type": "array",
