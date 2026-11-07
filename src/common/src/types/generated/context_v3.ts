@@ -59,6 +59,10 @@ export interface Browser {
    */
   explicit?: boolean;
   /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   */
+  version?: string;
+  /**
    * If `true`, runs the browser in headless mode.
    */
   headless?: boolean;
@@ -103,6 +107,10 @@ export interface Browser1 {
    * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
    */
   explicit?: boolean;
+  /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   */
+  version?: string;
   /**
    * If `true`, runs the browser in headless mode.
    */
