@@ -31,6 +31,16 @@ before(async function () {
       return;
     }
 
+    // "/slow/<ms>" -> waits <ms>, then returns 200 (query string ignored)
+    const slowMatch = url.split("?")[0].match(/^\/slow\/(\d+)$/);
+    if (slowMatch) {
+      setTimeout(() => {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("Status 200");
+      }, parseInt(slowMatch[1], 10));
+      return;
+    }
+
     const flakyMatch = url.match(/^\/flaky\/([^/]+)\/(\d+)\/(\d+)\/(\d+)$/);
     if (flakyMatch) {
       const [, id, failCountStr, failCodeStr, finalCodeStr] = flakyMatch;
@@ -539,6 +549,60 @@ describe("checkLink live smoke (portal.prove.com)", function () {
     );
     // Diagnostic, not a regression gate.
     assert.ok(result.status === "PASS" || result.status === "FAIL");
+  });
+});
+
+describe("checkLink timeout", function () {
+  this.timeout(30000);
+
+  it("FAILs fast with a named message when an attempt outlives `timeout`", async function () {
+    // Mocha adds the Windows CI freeze allowance (ADR 01105) to this bound.
+    this.timeout(1000);
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: `http://localhost:${serverPort}/slow/200?token=secret`,
+          timeout: 50,
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    // The query string is redacted from the message.
+    assert.equal(
+      result.description,
+      `Couldn't reach http://localhost:${serverPort}/slow/200: no response within 50 ms (ECONNABORTED).`
+    );
+  });
+
+  it("PASSes when the response arrives within `timeout`", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: { url: `http://localhost:${serverPort}/slow/50`, timeout: 5000 },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+  });
+
+  it("gives each attempt 10000 ms by default", async function () {
+    const axios = (await import("axios")).default;
+    const request = axios.request;
+    const seen = [];
+    axios.request = function (cfg) {
+      seen.push(cfg.timeout);
+      return request.call(this, cfg);
+    };
+    try {
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: `http://localhost:${serverPort}/200` },
+      });
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      axios.request = request;
+    }
+    assert.deepEqual(seen, [10000]);
   });
 });
 

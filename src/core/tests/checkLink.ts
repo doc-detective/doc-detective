@@ -1,5 +1,10 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams, loadAxios } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  loadAxios,
+  redactUrlForOutput,
+} from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -106,19 +111,24 @@ function shouldRetry(statusCode: number | null): boolean {
   return statusCode === 429 || statusCode >= 500;
 }
 
-type AttemptResult = { statusCode: number | null; retryAfter: number | null };
+type AttemptResult = {
+  statusCode: number | null;
+  retryAfter: number | null;
+  errorCode?: string;
+};
 
 async function attemptRequest(
   method: "get" | "head",
   url: string,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  timeout: number
 ): Promise<AttemptResult> {
   try {
     const res = await (await loadAxios()).request({
       method,
       url,
       headers,
-      timeout: 10000,
+      timeout,
       maxRedirects: 5,
       validateStatus: () => true,
     });
@@ -136,7 +146,7 @@ async function attemptRequest(
         ),
       };
     }
-    return { statusCode: null, retryAfter: null };
+    return { statusCode: null, retryAfter: null, errorCode: error?.code };
   }
 }
 
@@ -213,6 +223,8 @@ async function checkLink({ config, step }: { config: any; step: any }) {
 
   const headers = mergeHeaders(step.checkLink.headers);
   const url = step.checkLink.url;
+  // The validator doesn't apply schema defaults inside the anyOf, so mirror it.
+  const timeout: number = step.checkLink.timeout ?? 10000;
 
   const acceptedCodes: number[] = step.checkLink.statusCodes;
   const isAccepted = (code: number | null) =>
@@ -222,7 +234,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // Short-circuit retries if the response is already an accepted status code.
   let last: AttemptResult = { statusCode: null, retryAfter: null };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    last = await attemptRequest("get", url, headers);
+    last = await attemptRequest("get", url, headers, timeout);
     if (isAccepted(last.statusCode)) break;
     if (!shouldRetry(last.statusCode)) break;
     if (attempt < MAX_ATTEMPTS - 1) {
@@ -238,7 +250,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     !isAccepted(last.statusCode) &&
     (last.statusCode === 429 || last.statusCode === 403)
   ) {
-    const headResult = await attemptRequest("head", url, headers);
+    const headResult = await attemptRequest("head", url, headers, timeout);
     if (isAccepted(headResult.statusCode)) {
       last = headResult;
     }
@@ -249,7 +261,10 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // mirroring runShell's treatment of timeouts/spawn failures.
   if (last.statusCode === null) {
     result.status = "FAIL";
-    result.description = `Invalid or unresolvable URL: ${url}`;
+    result.description =
+      last.errorCode === "ECONNABORTED"
+        ? `Couldn't reach ${redactUrlForOutput(url)}: no response within ${timeout} ms (ECONNABORTED).`
+        : `Invalid or unresolvable URL: ${url}`;
     return result;
   }
 

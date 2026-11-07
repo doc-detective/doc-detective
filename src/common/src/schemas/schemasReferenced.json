@@ -6317,6 +6317,11 @@
                   308
                 ]
               },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 10000
+              },
               "headers": {
                 "default": {},
                 "anyOf": [
@@ -13582,6 +13587,10 @@
                     }
                   }
                 ]
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
               },
               "headers": {
                 "anyOf": [
