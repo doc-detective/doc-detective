@@ -553,6 +553,15 @@ describe("runtime helpers extra coverage", function () {
         expect(logs).to.include("npm i doc-detective@5");
       });
 
+      it("logs the new-major notice as a warning, so --log-level warning still shows it", async function () {
+        const levels = [];
+        await checkForUpdate("4.41.5", {
+          logger: (msg, level) => /npm i doc-detective@5/.test(msg) && levels.push(level),
+          http: { get: async () => ({ data: { "dist-tags": { latest: "5.0.0" } } }) },
+        });
+        expect(levels).to.deep.equal(["warn"]);
+      });
+
       it("newer major with a newer maintenance tag: updates through the tag", async function () {
         const { res, logs } = await check("4.41.5", { latest: "5.0.0", "release-4.x": "4.41.6" });
         expect(res).to.deep.equal({ latest: "4.41.6", newer: true });

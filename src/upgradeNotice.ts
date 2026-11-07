@@ -79,7 +79,7 @@ export function namesFolder(raw: unknown, resolved: string): boolean {
 export function outputWarnings(raw: unknown, resolved: string): string[] {
   return namesFolder(raw, resolved)
     ? [
-        `\`output\` names a folder ('${raw}'). In Doc Detective 5.0, \`--output\` and \`output\` name the results file, and a folder needs \`--output-dir\`.`,
+        `\`output\` names a folder ('${raw}'): 4.x treats a path without a file extension as a folder. In Doc Detective 5.0, \`--output\` and \`output\` name the results file, and a folder needs \`--output-dir\`.`,
       ]
     : [];
 }
@@ -393,7 +393,7 @@ export function runResultWarnings(exitOnFail: boolean | undefined, failed: boole
     !results || (!!specs && [specs.pass, specs.fail, specs.warning, specs.skipped].every((n) => !n));
   if (testedNothing) {
     return [
-      "This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. To keep exit 0, set `--no-exit-on-fail`.",
+      "This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. To allow empty runs, set `--no-exit-on-fail`, which also stops failed tests from failing the run. Otherwise, make sure your inputs always find tests.",
     ];
   }
   if (failed && exitOnFail === undefined) {

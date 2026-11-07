@@ -133,7 +133,7 @@ export async function checkForUpdate(
       // current within this major through its maintenance tag, if it has one.
       logger(
         `Doc Detective ${majorOf(latest)} is available. Upgrade when you're ready: npm i doc-detective@${majorOf(latest)}`,
-        "info"
+        "warn"
       );
       const maintenance: unknown = tags[`release-${currentMajor}.x`];
       if (

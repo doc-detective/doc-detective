@@ -111,6 +111,7 @@ describe("upgrade warnings", function () {
         const r = runCli(["--input", empty(), "--output", out(), ...flags]);
         expect(r.status).to.equal(0);
         expect(r.stderr).to.include("exit 2").and.include(URL);
+        expect(r.stderr).to.include("make sure your inputs always find tests");
       }
     });
 
@@ -124,6 +125,7 @@ describe("upgrade warnings", function () {
     it("warns for a --output folder", function () {
       const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", dir]);
       expect(r.stderr).to.include("--output-dir").and.include(URL);
+      expect(r.stderr).to.include("without a file extension");
     });
 
     it("warns for an output folder from a config file", function () {
