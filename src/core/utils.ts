@@ -1234,7 +1234,8 @@ const disjunction = new Intl.ListFormat("en", { type: "disjunction" });
 const orList = (items: unknown[]) => disjunction.format(items.map(String));
 
 // A value as JSON, cut to 40 characters. The cut counts the encoded text and
-// never splits an escape such as `\n` or `é`. A string keeps both quotes.
+// never splits an escape such as `\n` or `é`. A string keeps both quotes; a cut
+// object or array ends at `…` without its closing `}` or `]`, by design.
 // Only a JS API caller can pass what JSON can't show: a function or an object
 // JSON can't encode (a cycle, a nested bigint) is named, and undefined, a
 // symbol, or a bigint falls back to String().
@@ -1365,6 +1366,8 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
         lines.push(`${prefix}missing required key '${keys[0]}'.`);
       }
     }
+    // Only type and enum lines from here. Required and unknown-key lines were
+    // emitted above, so keep this check below them.
     if (deeper) continue;
     // An object never matches a list of scalars, so that list came from another branch.
     const isObject = value !== null && typeof value === "object";
@@ -1384,11 +1387,12 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
   }
   // Never hide every error: fall back to AJV's own messages.
   if (lines.length === 0) {
+    const raw = new Set<string>();
     for (const error of errorObjects) {
       if (["anyOf", "oneOf", "if"].includes(error.keyword)) continue;
-      const line = `${prefixOf(partsOf(error.instancePath))}${error.message}.`;
-      if (!lines.includes(line)) lines.push(line);
+      raw.add(`${prefixOf(partsOf(error.instancePath))}${error.message}.`);
     }
+    lines.push(...raw);
   }
   const shown = lines.slice(0, 5);
   if (lines.length > shown.length) shown.push(`and ${lines.length - shown.length} more`);

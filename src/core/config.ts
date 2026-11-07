@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage } from "./utils.js";
-import { setEnvWarningSink } from "../envFlag.js";
+import { clearPendingEnvWarnings, setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -102,6 +102,9 @@ function fileTypeObject(fileType: any) {
 }
 
 async function setConfig({ config, detectApps = true }: any) {
+  // An earlier run that failed before it had a sink left its warnings queued.
+  clearPendingEnvWarnings();
+
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables, { override: false });
 
@@ -140,9 +143,6 @@ async function setConfig({ config, detectApps = true }: any) {
     } else {
       config.afterAll = [config.afterAll];
     }
-  }
-  if (typeof config.fileTypes === "string") {
-    config.fileTypes = [config.fileTypes];
   }
   config.fileTypes = config.fileTypes.map((fileType: any) => {
     if (fileType.inlineStatements) {

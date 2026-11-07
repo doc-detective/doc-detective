@@ -98,7 +98,9 @@ Chosen option: **A**, with the order below.
   ``Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.``.
   With both on, it ends `Both are on.`
 - **Warnings respect the log level.** Environment warnings wait until `setConfig` knows the level, then go
-  through `log()`. `-q`, `-l error`, and `-l silent` hide them.
+  through `log()`. `-q`, `-l error`, and `-l silent` hide them. Each warning prints once per process, so a
+  JS API caller that runs `runTests()` again doesn't see it twice. Each core `setConfig` drops warnings an
+  earlier run queued but never sent, so they don't pile up.
 
 Ladder (exit 0 unless noted):
 

@@ -126,3 +126,20 @@ describe("importing the runtime modules", function () {
     expect(JSON.parse(r.stdout)).to.deep.equal([]);
   });
 });
+
+describe("repeated runTests calls in one process", function () {
+  afterEach(() => resetEnvFlagWarnings());
+
+  it("don't pile up warnings an earlier run queued and never sent", async function () {
+    const { setConfig } = await import("../dist/core/config.js");
+    resetEnvFlagWarnings();
+    // Each run queues a warning, then fails validation before it has a sink.
+    for (const name of ["DOC_DETECTIVE_TEST_ONE", "DOC_DETECTIVE_TEST_TWO"]) {
+      envFlag(name, { [name]: "maybe" });
+      await setConfig({ config: { logLevel: "silent", notAKey: true } }).catch(() => {});
+    }
+    const flushed = [];
+    setEnvWarningSink((message) => flushed.push(message));
+    expect(flushed).to.deep.equal([]);
+  });
+});

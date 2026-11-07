@@ -1,6 +1,12 @@
 // One grammar for every DOC_DETECTIVE_* boolean (ADR 01165). A leaf module, so
 // the runtime modules can read it without importing the CLI or the runner.
 
+/**
+ * Process-wide state. Each warning prints once per process, not once per run:
+ * a JS API caller that calls `runTests()` again sees it only the first time.
+ * Each core `setConfig()` drops warnings queued but never sent, so a run that
+ * failed before it had a sink doesn't pass them to the next.
+ */
 const warned = new Set<string>();
 let pending: string[] = [];
 let sink: ((message: string) => void) | null = null;
@@ -21,6 +27,11 @@ export function setEnvWarningSink(next: (message: string) => void) {
   const queued = pending;
   pending = [];
   queued.forEach((message) => next(message));
+}
+
+// Drop warnings queued but never sent. Keeps what was warned, so none repeats.
+export function clearPendingEnvWarnings() {
+  pending = [];
 }
 
 // For tests: forget what was warned, queued, and where warnings go.
