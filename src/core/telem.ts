@@ -1,23 +1,7 @@
 import os from "node:os";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { PostHog } from "posthog-node";
 import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
-
-// doc-detective's own version. Walks up rather than using a fixed
-// `../../package.json`: this module runs from dist/core/ (ESM) and from the
-// dist/index.cjs bundle, one level shallower. Matching the name keeps it off a
-// user's package.json.
-function ownVersion(): string | undefined {
-  for (let dir = path.dirname(fileURLToPath(import.meta.url)); ; dir = path.dirname(dir)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
-      if (pkg.name === "doc-detective") return pkg.version;
-    } catch {}
-    if (path.dirname(dir) === dir) return undefined;
-  }
-}
+import { ownVersion } from "../runtime/heavyDeps.js";
 
 const platformMap: Record<string, string> = {
   win32: "windows",

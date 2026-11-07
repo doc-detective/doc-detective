@@ -7,9 +7,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   buildYargs,
@@ -176,7 +174,7 @@ function buildYargs(args: any): any {
         "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
       type: "boolean",
     })
-    .version(require("../package.json").version)
+    .version(ownVersion() as string)
     .help()
     .alias("help", "h");
 }
@@ -1392,9 +1390,8 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion();
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1408,8 +1405,7 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    const mainPackage: any = readShimPackageJson();
     const versionData: any = {
       main: {
         "doc-detective": {
