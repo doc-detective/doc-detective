@@ -343,14 +343,14 @@ describe("CLI contract", function () {
               {
                 testId: "effective-t",
                 runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
-                steps: [{ goTo: url }, { httpRequest: url }],
+                steps: [{ goTo: url }, { httpRequest: url }, { goTo: "$DD_CONTRACT_URL" }],
               },
             ],
           })
         );
         const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json"], {
           cwd,
-          env: childEnv(),
+          env: childEnv({ DD_CONTRACT_URL: url }),
           stdio: ["ignore", "pipe", "pipe"],
         });
         let stdout = "";
@@ -361,9 +361,11 @@ describe("CLI contract", function () {
         const status = await new Promise((resolve) => child.on("close", resolve));
         clearTimeout(stall);
         expect(status, stderr).to.equal(0);
-        const [goTo, httpRequest] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
+        const [goTo, httpRequest, wholeVariable] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
         expect(goTo.goTo).to.include({ url, timeout: 30000 });
         expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });
+        // A whole-variable action is normalized after substitution.
+        expect(wholeVariable.goTo).to.include({ url, timeout: 30000 });
       } finally {
         server.close();
       }
