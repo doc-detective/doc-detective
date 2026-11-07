@@ -33,6 +33,7 @@ export function _resetWarnedForTest(): void {
 /**
  * Rename deprecated keys on `value` in place, old → new, and warn once per run
  * for each. Setting both is an error. `path` names `value` in that error.
+ * Pass your own copy: a normalizer never changes the authored value.
  */
 export function renameAliases(value: any, aliases: Record<string, string>, path: string): any {
   for (const [old, key] of Object.entries(aliases)) {

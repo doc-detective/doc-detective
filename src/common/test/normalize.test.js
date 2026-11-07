@@ -482,6 +482,12 @@ describe("normalization", function () {
       expect(action({ dragAndDrop: { source: "a", target: "b", duration: 0 } }).dragAndDrop.duration).to.equal(0);
     });
 
+    it("lists a dragAndDrop locator's elementClass, as find does", function () {
+      const { source, target } = action({ dragAndDrop: { source: { elementClass: "btn" }, target: "b" } }).dragAndDrop;
+      expect(source.elementClass).to.deep.equal(["btn"]);
+      expect(target).to.equal("b");
+    });
+
     for (const [swipe, expected] of [
       ["up", { direction: "up", distance: 0.5, duration: 500 }],
       [{ direction: "left", distance: 0.8 }, { direction: "left", distance: 0.8, duration: 500 }],
