@@ -85,7 +85,12 @@ async function loadDescription(descriptionPath: string = "") {
           if (isPrivate && referrer) {
             throw refused(redactUrlForOutput(file.url), referrer, "a private address");
           }
-          const data = Buffer.from((await getGuarded(file.url)).data);
+          // From a public referrer, the connection must not land on a private
+          // address either (DNS rebinding).
+          const refuse = referrer
+            ? () => refused(redactUrlForOutput(file.url), referrer, "a private address")
+            : undefined;
+          const data = Buffer.from((await getGuarded(file.url, undefined, refuse)).data);
           if (guard && !isPrivate) {
             // Remember what this public document refers to, so a private
             // target is refused when the parser reads it next.

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
+import dnsCallback from "node:dns";
 import net from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
@@ -1502,28 +1503,65 @@ async function privateAddressOf(fileURL: string): Promise<string | undefined> {
     ?.address;
 }
 
-async function refuseInStrictMode(url: string): Promise<void> {
-  if (await privateAddressOf(url)) {
-    throw new Error(
-      `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
-        "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
-    );
-  }
+function strictModeError(url: string): Error {
+  return new Error(
+    `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+      "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+  );
+}
+
+function redirectError(from: string, address: string): Error {
+  return new Error(
+    `Couldn't follow the redirect from ${redactUrlForOutput(from)}: it leads to ${address}, a private address, from a public one.\n` +
+      "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
+  );
 }
 
 const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
 
 // GET for the guarded fetches. Follows up to 5 redirects by hand so each hop
-// is checked against localUrlPolicy() before it's requested.
-async function getGuarded(url: string, opts: object = FETCH_BINARY_DEFAULTS) {
+// is checked against localUrlPolicy(), both before it's requested and again
+// when it connects: a name can answer public to privateAddressOf() and private
+// to the connection (DNS rebinding). `refuseFirst`, from a caller whose
+// referrer is public, makes the first request refuse a private address too.
+async function getGuarded(
+  url: string,
+  opts: object = FETCH_BINARY_DEFAULTS,
+  refuseFirst?: (address: string) => Error
+) {
   const policy = localUrlPolicy();
   const axios = await loadAxios();
-  if (policy === "block") await refuseInStrictMode(url);
+  const [{ default: http }, { default: https }] = await Promise.all([
+    import("node:http"),
+    import("node:https"),
+  ]);
   let current = url;
+  let refuse = policy === "hops" ? refuseFirst : undefined;
   for (let hops = 0; ; hops++) {
+    if (policy === "block") {
+      if (await privateAddressOf(current)) throw strictModeError(current);
+      const target = current;
+      refuse = () => strictModeError(target);
+    }
+    // Fresh agents per request, so no pooled socket skips the lookup. It
+    // notes whether the connection resolved to a private address, and
+    // refuses one when `refuse` is set.
+    const seen: { resolved?: boolean; private?: string } = {};
+    const guard = refuse;
+    const lookup = (hostname: string, options: any, callback: any) =>
+      dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
+        if (error) return callback(error, address, family);
+        const answers = Array.isArray(address) ? address : [{ address }];
+        seen.resolved = true;
+        seen.private = answers.find((a: any) => isPrivateOrLoopbackAddress(a.address))?.address;
+        if (seen.private && guard) return callback(guard(seen.private));
+        callback(null, address, family);
+      });
     const response = await axios.get(current, {
       ...opts,
       maxRedirects: 0,
+      httpAgent: new http.Agent({ lookup } as any),
+      httpsAgent: new https.Agent({ lookup } as any),
       validateStatus: (status: number) =>
         (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
     });
@@ -1537,14 +1575,17 @@ async function getGuarded(url: string, opts: object = FETCH_BINARY_DEFAULTS) {
       );
     }
     const next = new URL(location, current).toString();
-    if (policy === "block") await refuseInStrictMode(next);
     if (policy === "hops") {
-      const address = await privateAddressOf(next);
-      if (address && !(await privateAddressOf(current))) {
-        throw new Error(
-          `Couldn't follow the redirect from ${redactUrlForOutput(current)}: it leads to ${address}, a private address, from a public one.\n` +
-            "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
-        );
+      // The hop comes from a public origin when either lookup of the current
+      // host saw a public address.
+      const fromPublic =
+        (seen.resolved && !seen.private) || !(await privateAddressOf(current));
+      refuse = undefined;
+      if (fromPublic) {
+        const address = await privateAddressOf(next);
+        if (address) throw redirectError(current, address);
+        const from = current;
+        refuse = (address: string) => redirectError(from, address);
       }
     }
     current = next;

@@ -112,8 +112,13 @@ caller words its own message.
   case the guard exists for, and the hint names the opt-out.
 * Neutral: the parser reads each URL once. When a local description and a public document both
   `$ref` the same private URL, the public document's `$ref` wins and the read is refused.
-* Neutral: DNS rebinding can still race the check, as before. Pinning the connection to the checked
-  address would close that.
+* Good: DNS rebinding can't slip past the check. A name can answer public when it's checked and
+  private when the request connects. So a request that must not reach a private address checks
+  again at connect time, through its own DNS lookup, and refuses a private answer. That covers a
+  redirect hop from a public origin, a `$ref` from a public document, and every request in strict
+  mode. Each request gets fresh agents, so no pooled socket skips the lookup. Direct local URLs in
+  default mode get no refusing lookup. Turning off the parser's `safeUrlResolver` dropped its own
+  pinning, and this replaces it.
 
 ### Confirmation
 
@@ -128,6 +133,8 @@ answers so `public.example.test` looks public to the guard but connects locally.
   description's sibling public and private `$ref`s still load;
 * a local file `$ref` fails from a public description, in default and strict mode, and through a
   public document. It loads from a local description;
+* a name that answers public to the check and private at connect time is refused. That holds on a
+  redirect hop from a public origin, on a public description's `$ref`, and in strict mode;
 * `BLOCK=1` refuses a direct local image, the switch grammar, and the both-set error and exit 2;
 * `checkLink` and `httpRequest` to `127.0.0.1:8092` still pass, even with `BLOCK=1`.
 

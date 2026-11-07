@@ -189,6 +189,9 @@ describe("local URL guard (ADR 01162)", function () {
       } else if (req.url.split("?")[0] === "/redirect") {
         res.writeHead(302, { Location: `http://127.0.0.1:${port}/ref.png` });
         res.end();
+      } else if (req.url === "/to-rebind") {
+        res.writeHead(302, { Location: `http://rebind.example.test:${port}/ref.png` });
+        res.end();
       } else if (req.url === "/loop") {
         res.writeHead(307, { Location: "/loop" });
         res.end();
@@ -280,26 +283,46 @@ describe("local URL guard (ADR 01162)", function () {
     ].join("\n");
   }
 
+  // Every *.example.test name answers public to the guard's check
+  // (dns/promises) and private when the connection resolves it (dns, callback
+  // form): the shape of a DNS rebinding attack. Requests that must not reach
+  // a private address are refused at connect time; the rest land locally.
   function fakePublicHost() {
     const realPromisesLookup = dnsPromises.lookup.bind(dnsPromises);
     const realLookup = dns.lookup.bind(dns);
+    const fake = (host) => host.endsWith(".example.test");
     sinon.stub(dnsPromises, "lookup").callsFake((host, opts) =>
-      host === "public.example.test"
+      fake(host)
         ? Promise.resolve([{ address: "93.184.216.34", family: 4 }])
         : realPromisesLookup(host, opts)
     );
     sinon.stub(dns, "lookup").callsFake((host, opts, cb) => {
       if (typeof opts === "function") [cb, opts] = [opts, {}];
-      if (host !== "public.example.test") return realLookup(host, opts, cb);
+      if (!fake(host)) return realLookup(host, opts, cb);
       if (opts && opts.all) return cb(null, [{ address: "127.0.0.1", family: 4 }]);
       return cb(null, "127.0.0.1", 4);
     });
   }
 
-  it("fetches a reference image on 127.0.0.1 with no setting", async function () {
-    const result = await fetchFile(`http://127.0.0.1:${port}/ref.png`, { binary: true });
-    assert.equal(result.result, "success", String(result.message));
-    assert.ok(png.equals(fs.readFileSync(result.path)));
+  it("fetches a reference image on 127.0.0.1 or localhost with no setting", async function () {
+    for (const host of ["127.0.0.1", "localhost"]) {
+      const result = await fetchFile(`http://${host}:${port}/ref.png`, { binary: true });
+      assert.equal(result.result, "success", `${host}: ${result.message}`);
+      assert.ok(png.equals(fs.readFileSync(result.path)));
+    }
+  });
+
+  it("refuses a redirect hop that rebinds to a private address at connect time", async function () {
+    fakePublicHost();
+    const result = await fetchFile(`http://public.example.test:${port}/to-rebind`, {
+      binary: true,
+    });
+    assert.equal(result.result, "error");
+    assert.equal(
+      result.message.message,
+      `Couldn't follow the redirect from http://public.example.test:${port}/to-rebind: it leads to 127.0.0.1, a private address, from a public one.\n` +
+        "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
+    );
   });
 
   it("refuses a public host's redirect to 127.0.0.1, with a hint", async function () {
@@ -341,14 +364,15 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
-  it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a redirect hop to a local address", async function () {
+  it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a host that rebinds to a private address at connect time", async function () {
     fakePublicHost();
     process.env[BLOCK] = "1";
-    const result = await fetchFile(`http://public.example.test:${port}/redirect`, { binary: true });
+    const result = await fetchFile(`http://public.example.test:${port}/ref.png`, { binary: true });
     assert.equal(result.result, "error");
-    assert.match(
+    assert.equal(
       result.message.message,
-      new RegExp(`^Couldn't fetch http://127\\.0\\.0\\.1:${port}/ref\\.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses`)
+      `Couldn't fetch http://public.example.test:${port}/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+        "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
     );
   });
 
@@ -494,26 +518,32 @@ describe("local URL guard (ADR 01162)", function () {
     assert.equal(schema.type, "boolean");
   });
 
-  it("refuses a private $ref two documents deep under a public description", async function () {
+  // A public description's $ref to a public-looking host: the connection
+  // resolves it to 127.0.0.1, so the read is refused at connect time, before
+  // that document's own private $ref is reached.
+  it("refuses a public description's $ref that rebinds to a private address at connect time", async function () {
     fakePublicHost();
     await assert.rejects(
       () => loadDescription(`http://public.example.test:${port}/openapi-chain.yaml`),
       {
         message: refMessage(
-          `http://127.0.0.1:${port}/schema.json`,
-          `http://public.example.test:${port}/public-doc.yaml`
+          `http://public.example.test:${port}/public-doc.yaml`,
+          `http://public.example.test:${port}/openapi-chain.yaml`
         ),
       }
     );
   });
 
-  it("leaves checkLink and httpRequest to 127.0.0.1:8092 unguarded, even in strict mode", async function () {
+  // This suite's own server, not the shared 8092 one, so a concurrent run
+  // holding that port can't stall the test.
+  it("leaves checkLink and httpRequest to 127.0.0.1 unguarded, even in strict mode", async function () {
     process.env[BLOCK] = "1";
-    const link = await checkLink({ config: {}, step: { checkLink: { url: "http://127.0.0.1:8092" } } });
+    const url = `http://127.0.0.1:${port}/ref.png`;
+    const link = await checkLink({ config: {}, step: { checkLink: { url } } });
     assert.equal(link.status, "PASS", link.description);
     const request = await httpRequest({
       config: {},
-      step: { httpRequest: { url: "http://127.0.0.1:8092/", method: "get" } },
+      step: { httpRequest: { url, method: "get" } },
     });
     assert.equal(request.status, "PASS", request.description);
   });
