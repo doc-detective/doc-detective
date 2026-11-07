@@ -53,6 +53,7 @@ import {
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { validate } from "../common/src/validate.js";
+import { normalize } from "../common/src/normalize/index.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -4878,7 +4879,7 @@ async function runContext({
       usedStepIds.add(step.stepId);
       // After the ID, which hashes the authored step: steps that never run
       // still report their effective form (ADR 01167).
-      useEffectiveStep(step, { beforeSubstitution: true });
+      useEffectiveStep(step);
       placeCapturePaths(step, config);
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
@@ -5648,15 +5649,16 @@ async function stopAllRecordings({
 // expanded and defaults filled (ADR 01167). In place, so the report that spreads
 // this step echoes it and the runner's markers (`__autoRecord`, the hidden
 // `_fromAfter`) survive. An invalid step stays as it is; its handler says why.
-// Before $VAR substitution, a step with a whole-variable value, such as
-// `"goTo": "$NAV"`, waits: the variable can hold the whole action object.
-function useEffectiveStep(step: any, { beforeSubstitution = false } = {}) {
-  if (beforeSubstitution && Object.values(step).some((value) => typeof value === "string" && /^\$[A-Za-z0-9_]+$/.test(value))) {
-    return;
-  }
+// validate() leaves a whole-variable action, such as `"goTo": "$NAV"`, as
+// authored, because the variable can hold the whole action object. After
+// substitution, `substituted` normalizes one that's left, an unset variable, as
+// text.
+function useEffectiveStep(step: any, { substituted = false } = {}) {
   const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
   const validation = validate({ schemaKey: "step_v3", object: authored });
-  if (validation.valid) Object.assign(step, validation.object);
+  if (!validation.valid) return;
+  if (substituted) normalize("step_v3", validation.object, { literal: true });
+  Object.assign(step, validation.object);
 }
 
 // Place a capture's relative path under its `directory`, else outputDir, in
@@ -5698,7 +5700,7 @@ async function runStep({
   step = replaceEnvs(step);
   // Again, after substitution: this pass normalizes whole-variable actions, and
   // getRunner() callers hand runStep authored steps.
-  useEffectiveStep(step);
+  useEffectiveStep(step, { substituted: true });
   placeCapturePaths(step, config);
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
