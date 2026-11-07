@@ -746,6 +746,16 @@ describe("config.ts — setConfig", function () {
     assert.equal(warn.callCount, 0);
   });
 
+  it("renames beforeAny in every source that uses it, and warns once", function () {
+    const warn = sinon.spy();
+    const file = { beforeAny: "./file.json" };
+    const env = { beforeAny: "./env.json" };
+    renameDeprecatedConfigKeys([file, env], warn);
+    assert.deepEqual(file, { beforeAll: "./file.json" });
+    assert.deepEqual(env, { beforeAll: "./env.json" });
+    assert.equal(warn.callCount, 1);
+  });
+
   it("accepts beforeAll beside a null beforeAny", async function () {
     const config = await setConfig({
       config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: null },
