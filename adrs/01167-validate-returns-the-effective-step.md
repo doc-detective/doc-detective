@@ -56,9 +56,11 @@ Chosen option: **A**.
   ``Warning: `<old>` is deprecated. Rename it to `<new>`.``. Setting both is invalid:
   ``<path>: set `<new>` or `<old>`, not both.``
 - The runner applies the effective step to each step after it assigns step IDs, so IDs still hash the authored
-  step. It applies it again in `runStep` after environment variables are substituted, so a variable can hold a
-  whole action, and `getRunner()` callers can pass authored steps. Handlers receive effective steps and contain
-  no shorthand or default handling.
+  step. That first pass runs before environment variables are substituted, so it skips a step with a
+  whole-variable value, such as `"goTo": "$NAV"`, because the variable can hold the whole action object. The
+  runner applies the effective step again in `runStep` after substitution. That pass normalizes those steps, and
+  it lets `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
+  or default handling.
 - The report echoes the effective step. That changes a report field's shape, for example `goTo` from a string
   to an object, so it ships in 5.0.
 - This change moves `goTo` and `httpRequest`. The other 19 actions are registered as passthroughs, and their
