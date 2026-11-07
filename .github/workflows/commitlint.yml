@@ -23,6 +23,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      # Needs no dependencies. The checkout is the PR merge commit, so ADRs the
+      # base gained since the branch point are in the tree too.
+      - name: Check ADR numbers
+        run: node scripts/check-adr-numbers.cjs ${{ github.event.pull_request.base.sha }}
+
       - run: npm ci --ignore-scripts
         env:
           # Husky installs the commit-msg hook via `prepare`. The lint job
