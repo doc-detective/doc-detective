@@ -26,7 +26,9 @@ jobs:
       # Needs no dependencies. The checkout is the PR merge commit, so ADRs the
       # base gained since the branch point are in the tree too.
       - name: Check ADR numbers
-        run: node scripts/check-adr-numbers.cjs ${{ github.event.pull_request.base.sha }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-adr-numbers.cjs "$BASE_SHA"
 
       - run: npm ci --ignore-scripts
         env:
