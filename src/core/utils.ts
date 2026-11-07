@@ -1289,6 +1289,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     const parts = partsOf(instancePath);
     const prefix = prefixOf(parts);
     const value = parts.reduce((current: any, part) => current?.[part], object);
+    // Ends the sentence: a line that uses it adds no period of its own.
     const got = ` (got ${shortJson(value)}).`;
     const of = (keyword: string) => errors.filter((error) => error.keyword === keyword);
     const required = of("required");
@@ -1365,6 +1366,9 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
       // A suggestion that names a missing key already says it.
       if (keys.some((key) => suggested.has(key))) continue;
       if (keys.length > 1) {
+        // An anyOf of required keys constrains this object, so its choice still
+        // stands beside a deeper error. A oneOf's branches are alternative
+        // shapes, and a deeper error means the value took another one.
         if (!deeper || branch === "anyOf") lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
       } else if (!deeper || !branch) {
         lines.push(`${prefix}missing required key '${keys[0]}'.`);

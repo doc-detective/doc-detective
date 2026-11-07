@@ -100,5 +100,6 @@ export function isDebugRequested(env: NodeJS.ProcessEnv = process.env): boolean 
   return String(env.DEBUG ?? "")
     .split(",")
     .map((pattern) => pattern.trim())
-    .some((pattern) => /^(1|true|\*|doc-detective(:?\*)?)$/i.test(pattern));
+    // doc-detective, doc-detective*, or doc-detective:* (an optional colon, then *).
+    .some((pattern) => /^(1|true|\*|doc-detective(?::?\*)?)$/i.test(pattern));
 }
