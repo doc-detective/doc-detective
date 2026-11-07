@@ -608,6 +608,18 @@ describe("elementImage matching", function () {
       near((await once(await page({ items: [{ svg, x: 300, y: 40 }, { svg, x: 40, y: 40 }] }), file)).match, 40, 40);
     });
 
+    it("image-first-match: a score within 0.01 of the best ties, and a lower one doesn't", async function () {
+      const file = { base64: b64(icon(GEAR, "#333333", 24)) };
+      const exact = { svg: icon(GEAR, "#333333", 24), x: 200, y: 200 };
+      // A slightly heavier stroke on top scores 0.994, and a heavier one 0.982.
+      for (const [stroke, winner] of [[2.2, [40, 40]], [2.4, [200, 200]]]) {
+        const found = await once(await page({ items: [{ svg: icon(GEAR, "#333333", 24, stroke), x: 40, y: 40 }, exact] }), file);
+        const top = found.matches.find((m) => Math.abs(m.y - 40) <= 2);
+        expect(top.score, `stroke ${stroke}`).to.be.below(1);
+        near(found.match, ...winner);
+      }
+    });
+
     it("image-first-match: a copy at another size doesn't compete", async function () {
       const file = { base64: b64(icon(GEAR, "#333333", 24)) };
       const shot = await page({
