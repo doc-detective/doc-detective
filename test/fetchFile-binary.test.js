@@ -223,6 +223,8 @@ describe("local URL guard (ADR 01162)", function () {
     const redirects = {
       "/redirect": () => [302, secret().replace("schema.json", "ref.png")],
       "/to-rebind": () => [302, `http://rebind.example.test:${port}/ref.png`],
+      "/to-public": () => [302, `http://public.example.test:${port}/public-doc.json`],
+      "/to-public-root.yaml": () => [302, `http://public.example.test:${port}/openapi.yaml`],
       "/loop": () => [307, "/loop"],
       "/no-location": () => [302, undefined],
     };
@@ -292,10 +294,11 @@ describe("local URL guard (ADR 01162)", function () {
 
   // Fake DNS for *.example.test names, so a local server can stand in for
   // public hosts:
-  //   - the guard's check (dns/promises) answers public for every one;
+  //   - the guard's check (dns/promises) answers public for every one, except
+  //     rootrebind.example.test, which answers 127.0.0.1;
   //   - the connection's lookup (dns, callback form) answers public too,
-  //     except rebind.example.test, which answers 127.0.0.1: the shape of a
-  //     DNS rebinding attack;
+  //     except rebind.example.test, which answers 127.0.0.1. Those two are
+  //     the shapes of a DNS rebinding attack;
   //   - whatever the lookup answers, the socket then connects to this
   //     suite's server on 127.0.0.1.
   function fakePublicHost() {
@@ -306,7 +309,12 @@ describe("local URL guard (ADR 01162)", function () {
       opts && opts.all ? cb(null, [{ address, family: 4 }]) : cb(null, address, 4);
     sinon.stub(dnsPromises, "lookup").callsFake((host, opts) =>
       fake(host)
-        ? Promise.resolve([{ address: "93.184.216.34", family: 4 }])
+        ? Promise.resolve([
+            {
+              address: host === "rootrebind.example.test" ? "127.0.0.1" : "93.184.216.34",
+              family: 4,
+            },
+          ])
         : realPromisesLookup(host, opts)
     );
     sinon.stub(dns, "lookup").callsFake((host, opts, cb) => {
@@ -571,6 +579,43 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
+  it("counts a root description as public by the address it connected to", async function () {
+    fakePublicHost();
+    const doc = `http://rootrebind.example.test:${port}/openapi.yaml`;
+    await assert.rejects(() => loadDescription(doc), {
+      message: refMessage(`http://127.0.0.1:${port}/schema.json`, doc),
+    });
+  });
+
+  it("refuses a private $ref under a private root that redirects to a public one", async function () {
+    fakePublicHost();
+    await assert.rejects(
+      () => loadDescription(`http://127.0.0.1:${port}/to-public-root.yaml`),
+      {
+        message: refMessage(
+          `http://127.0.0.1:${port}/schema.json`,
+          `http://public.example.test:${port}/openapi.yaml`
+        ),
+      }
+    );
+  });
+
+  it("loads a localhost description with a localhost $ref", async function () {
+    const definition = await loadDescription(`http://localhost:${port}/openapi.yaml`);
+    const schema =
+      definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+    assert.equal(schema.properties.id.type, "integer");
+  });
+
+  it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a private root description", async function () {
+    process.env[BLOCK] = "1";
+    await assert.rejects(() => loadDescription(`http://127.0.0.1:${port}/openapi.yaml`), {
+      message: new RegExp(
+        `^${escapeRegExp(`Couldn't fetch http://127.0.0.1:${port}/openapi.yaml: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses`)}`
+      ),
+    });
+  });
+
   it("refuses a public description's $ref that rebinds to a private address at connect time", async function () {
     fakePublicHost();
     await assert.rejects(
@@ -608,6 +653,18 @@ describe("local URL guard (ADR 01162)", function () {
       const schema =
         definition.paths["/items"].get.responses["200"].content["application/json"].schema;
       assert.equal(schema.type, "string");
+    });
+
+    it("refuses a private $ref after a local $ref redirects to a public document", async function () {
+      fakePublicHost();
+      const file = path.join(tmpDir, "openapi-proxy-redirect.yaml");
+      fs.writeFileSync(file, openApiYaml(`http://127.0.0.1:${port}/to-public`));
+      await assert.rejects(() => loadDescription(file), {
+        message: refMessage(
+          `http://127.0.0.1:${port}/schema.json`,
+          `http://public.example.test:${port}/public-doc.json`
+        ),
+      });
     });
 
     it("still checks each address before a proxied request", async function () {

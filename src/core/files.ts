@@ -56,7 +56,17 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
     }
   }
 
-  // Parse based on file extension
+  return parseFileContent(content, fileURLOrPath);
+}
+
+/**
+ * Parses file content by the extension of its URL or path: JSON, YAML, or as is.
+ *
+ * @param {any} content - The raw content, or a remote JSON body axios already parsed.
+ * @param {string} fileURLOrPath - The URL or path the content came from.
+ * @returns {Object|string} Parsed object for JSON or YAML files, the content otherwise.
+ */
+function parseFileContent(content: any, fileURLOrPath: string) {
   const ext = fileURLOrPath.split(".").pop()?.toLowerCase();
 
   if (ext === "json") {
@@ -296,4 +306,4 @@ async function resolvePaths({
   return object;
 }
 
-export { readFile, resolvePaths };
+export { readFile, parseFileContent, resolvePaths };

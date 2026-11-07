@@ -5,7 +5,7 @@ import {
   getGuarded,
   redactUrlForOutput,
 } from "./utils.js";
-import { readFile } from "./files.js";
+import { readFile, parseFileContent } from "./files.js";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
 // were previously imported at module load — and `createGenerator` even ran at
@@ -40,21 +40,30 @@ async function loadDescription(descriptionPath: string = "") {
     throw new Error("Description is required.");
   }
 
-  // Load the definition from the URL or local file path
-  const definition = await readFile({ fileURLOrPath: descriptionPath });
-
   // Fail closed (ADR 01162): once the dereference has read any public
   // document, every later private or local-file read is refused, whichever
   // document asked for it. `lastPublic` is the most recent public document,
-  // named in the message. The root counts as public unless every one of its
-  // addresses is private, and so does a failed lookup.
+  // named in the message. Every document, the root included, counts as public
+  // when any hop of its fetch reached a public address.
   const guard = localUrlPolicy() !== "allow";
-  let lastPublic: string | undefined =
-    guard &&
-    /^https?:\/\//i.test(descriptionPath) &&
-    !(await privateAddressOf(descriptionPath, { every: true }).catch(() => undefined))
-      ? descriptionPath
-      : undefined;
+  let lastPublic: string | undefined;
+  let definition: any;
+  if (guard && /^https?:\/\//i.test(descriptionPath)) {
+    // A remote root goes through the same guarded fetch as its $refs, so its
+    // redirects are checked and strict mode refuses a private one.
+    const root = await getGuarded(descriptionPath);
+    const text = Buffer.from(root.data).toString("utf8");
+    let content: any = text;
+    try {
+      content = JSON.parse(text); // as axios does for readFile's remote fetch
+    } catch {
+      // Not JSON: parse by extension below.
+    }
+    definition = parseFileContent(content, descriptionPath);
+    if (root.reachedPublic) lastPublic = root.url;
+  } else {
+    definition = await readFile({ fileURLOrPath: descriptionPath });
+  }
   const refused = (ref: string, doc: string, target: string) =>
     new Error(
       `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: a public document can't refer to ${target}.\n` +
@@ -85,20 +94,12 @@ async function loadDescription(descriptionPath: string = "") {
           }
           // After a public document, the connection must not land on a
           // private address either (DNS rebinding).
-          const { data, reachedPublic } = await getGuarded(
+          const { data, url, reachedPublic } = await getGuarded(
             file.url,
             undefined,
             doc ? () => refused(ref, doc, "a private address") : undefined
           );
-          // Public by the address the request connected to. When that's
-          // unknown (a proxy), public unless every address is private.
-          if (
-            guard &&
-            (reachedPublic ??
-              !(await privateAddressOf(file.url, { every: true }).catch(() => undefined)))
-          ) {
-            lastPublic = file.url.split("#")[0];
-          }
+          if (guard && reachedPublic) lastPublic = url.split("#")[0];
           return Buffer.from(data);
         },
       },

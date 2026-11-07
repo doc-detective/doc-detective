@@ -1548,13 +1548,13 @@ function proxyConfigured(): boolean {
 // when it connects: a name can answer public to privateAddressOf() and private
 // to the connection (DNS rebinding). `refuseFirst`, from a caller whose
 // referrer is public, makes the first request refuse a private address too.
-// Returns the body, and whether any hop connected to a public address
-// (undefined when that's unknown).
+// Returns the body, the final URL, and whether any hop reached a public
+// address.
 async function getGuarded(
   url: string,
   opts: object = FETCH_BINARY_DEFAULTS,
   refuseFirst?: (address: string) => Error
-): Promise<{ data: any; reachedPublic: boolean | undefined }> {
+): Promise<{ data: any; url: string; reachedPublic: boolean }> {
   const policy = localUrlPolicy();
   const axios = await loadAxios();
   const [{ default: http }, { default: https }] = await Promise.all([
@@ -1563,7 +1563,7 @@ async function getGuarded(
   ]);
   let current = url;
   let refuse = policy === "hops" ? refuseFirst : undefined;
-  let reachedPublic: boolean | undefined = false;
+  let reachedPublic = false;
   for (let hops = 0; ; hops++) {
     if (policy === "block") {
       if (await privateAddressOf(current)) throw strictModeError(current);
@@ -1602,16 +1602,18 @@ async function getGuarded(
         (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
     });
     // An IP literal skips the lookup, so classify it directly. A name the
-    // lookup never saw (a proxy) leaves this hop unknown.
-    const hopPublic = seen.resolved
+    // lookup never saw (a proxy) is public unless every address is private.
+    let hopPublic = seen.resolved
       ? seen.public
       : net.isIP(target)
         ? !isPrivateOrLoopbackAddress(target)
         : undefined;
+    if (hopPublic === undefined && policy !== "allow") {
+      hopPublic = !(await privateAddressOf(current, { every: true }).catch(() => undefined));
+    }
     if (hopPublic) reachedPublic = true;
-    else if (hopPublic === undefined && reachedPublic === false) reachedPublic = undefined;
     if (!REDIRECT_STATUSES.includes(response.status)) {
-      return { data: response.data, reachedPublic };
+      return { data: response.data, url: current, reachedPublic };
     }
     const location = response.headers?.location;
     if (!location || hops >= 5) {

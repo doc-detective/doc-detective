@@ -59,10 +59,12 @@ from a public address to a private one:
   out of public documents is itself attack surface: alias bombs, recursive anchors, and odd
   spellings of the same URL. Doc Detective turns off the parser's own `safeUrlResolver` and
   reads HTTP `$ref`s through the same guarded fetch.
-  * The dereference starts "public" when the root description is a URL, unless every address of
-    its host is private. A failed lookup counts as public.
-  * A fetched document counts as public by the address its request connected to. When that's
-    unknown, as through a proxy, it counts as public unless every address of its host is private.
+  * A remote root description goes through the same guarded fetch as its `$ref`s, so its redirects
+    are checked and strict mode refuses a private one.
+  * Every fetched document, the root included, counts as public when any hop of its fetch reached a
+    public address. That's judged by the address the request connected to. A hop whose address is
+    unknown, as through a proxy, counts as public unless every address of its host is private. A
+    failed lookup counts as public. The message names the final URL after redirects.
   * From then on, every private, loopback or link-local HTTP read and every local file read is
     refused, in default and strict mode. The message names the most recent public document. File
     reads include `file://` refs, and relative refs in a public root, which resolve against the
