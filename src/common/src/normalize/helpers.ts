@@ -58,7 +58,10 @@ export function asList(value: any, literal: boolean): any {
   return typeof value === "string" && (literal || !isWholeVariable(value)) ? [value] : value;
 }
 
-/** A locator's `elementClass` as a list (asList). */
+/**
+ * A locator's `elementClass` as a list (asList), set on `locator` in place.
+ * Pass your own copy: a normalizer never changes the authored value.
+ */
 export function listClasses(locator: any, literal: boolean): any {
   if (locator.elementClass !== undefined) locator.elementClass = asList(locator.elementClass, literal);
   return locator;
@@ -79,6 +82,8 @@ function plainDefaults(node: any, prefix = ""): [string, any][] {
   });
 }
 
+// Each action's plain defaults, read once. The bundled schemas never change at
+// run time, and no test edits them, so nothing needs to clear this.
 const cache = new Map<string, [string, any][]>();
 
 /**

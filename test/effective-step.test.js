@@ -53,6 +53,9 @@ describe("useEffectiveStep", function () {
     ["find", { selector: "#a", timeout: 50 }, "moveTo"],
     ["type", { keys: ["a"], inputDelay: 0 }, "timeout"],
     ["swipe", { direction: "up", duration: 100 }, "distance"],
+    ["runShell", { command: "echo hi" }, "exitCodes"],
+    ["runCode", { language: "javascript", code: "console.log(1)" }, "exitCodes"],
+    ["click", { selector: "#a" }, "button"],
   ]) {
     it(`normalizes a whole-variable ${action} after substitution`, function () {
       process.env.DD_EFFECTIVE_STEP = JSON.stringify(value);
