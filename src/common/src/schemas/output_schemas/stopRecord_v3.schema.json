@@ -42,6 +42,7 @@
   ],
   "examples": [
     true,
+    null,
     "demo",
     {
       "name": "demo"
