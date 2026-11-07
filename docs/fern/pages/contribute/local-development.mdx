@@ -144,6 +144,12 @@ vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
 vale fern/pages/path/to/file.mdx
 ```
 
+These commands cover the docs site pages. The pull request check lints every Markdown and MDX file in the repository. If you also edit a file outside `fern/pages/`, such as an ADR or `CLAUDE.md`, check it from the repository root with the same configuration:
+
+```bash
+vale --config=docs/.vale.ini adrs/path/to/file.md
+```
+
 **Interpret results:**
 
 - **Error**: Fix it. Any error fails the pull request check.
