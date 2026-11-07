@@ -201,8 +201,8 @@ If you're working locally, run these commands from the repository root before su
 # Validate the Fern configuration and pages
 (cd docs && npx fern check)
 
-# Run style checks from the docs/ directory.
-# The glob skips the generated schema reference pages, which CI also skips.
+# Run style checks from the docs/ directory
+# The glob skips the generated schema reference pages, which CI also skips
 (cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 ```
 
