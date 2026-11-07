@@ -2,7 +2,7 @@ import os from "node:os";
 import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
-import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
+import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage } from "./utils.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -151,34 +151,19 @@ async function setConfig({ config, detectApps = true }: any) {
     }
   }
 
-  // Validate inbound `config`.
-  const validityCheck = validate({ schemaKey: "config_v3", object: config });
+  // Validate inbound `config`. Thrown, not logged: the caller prints it once.
+  const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
   if (!validityCheck.valid) {
-    // TODO: Improve error message reporting.
-    log(
-      config,
-      "error",
-      `Invalid config object: ${validityCheck.errors}. Exiting.`
-    );
-    throw new Error(`Invalid config object: ${validityCheck.errors}. Exiting.`);
+    throw new Error(configErrorMessage("", validityCheck.errorObjects, config));
   }
   config = validityCheck.object;
 
-  // Replace fileType strings with objects. Copy the default: the normalizing
-  // below mutates entries in place, and common's table is shared by every run.
-  config.fileTypes = config.fileTypes.map((fileType: any) => {
-    if (typeof fileType === "object") return fileType;
-    const fileTypeObject = defaultFileTypes[fileType];
-    if (typeof fileTypeObject !== "undefined") return structuredClone(fileTypeObject);
-    log(
-      config,
-      "error",
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-    throw new Error(
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-  });
+  // Replace fileType strings with objects. The schema limits the strings to the
+  // built-in names. Copy the default: the normalizing below mutates entries in
+  // place, and common's table is shared by every run.
+  config.fileTypes = config.fileTypes.map((fileType: any) =>
+    typeof fileType === "object" ? fileType : structuredClone(defaultFileTypes[fileType])
+  );
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];

@@ -11,7 +11,8 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent, summarizeSpecErrors } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors } from "./utils.js";
+import { displayPath } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -115,7 +116,7 @@ function noteInvalidSpec(config: any, source: string, reason = "It isn't valid J
   if (!config._invalidSpecs) {
     Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
   }
-  config._invalidSpecs.push(`${source}\n${reason}`);
+  config._invalidSpecs.push(`${displayPath(source)}\n${reason}`);
 }
 
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
@@ -163,12 +164,13 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       schemaKey: "spec_v3",
       object: content,
       addDefaults: false,
+      structuredErrors: true,
     });
     if (!validation.valid) {
       // A JSON or YAML file with no `tests` key and a plain name is just another
       // data file, such as package.json, so it isn't reported as a broken spec.
       const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
-      const summary = summarizeSpecErrors(validation.errors, content);
+      const summary = summarizeSchemaErrors(validation.errorObjects, content);
       if (looksLikeSpec) noteInvalidSpec(config, source, summary);
       log(config, "debug", validation);
       // In a strict run, the error that stops the run carries this instead.
@@ -754,6 +756,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             schemaKey: `step_v3`,
             object: stepForValidation,
             addDefaults: false,
+            structuredErrors: true,
           });
           if (!validation.valid) {
             log(
@@ -764,7 +767,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             noteInvalidSpec(
               config,
               file,
-              `Step ${JSON.stringify(stepForValidation)}: ${summarizeSpecErrors(validation.errors, stepForValidation, "step_v3")}`
+              `Step ${JSON.stringify(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
             );
             return [];
           }
@@ -787,6 +790,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         schemaKey: "spec_v3",
         object: content,
         addDefaults: false,
+        structuredErrors: true,
       });
       if (!validation.valid) {
         log(config, "warning", validation);
@@ -795,7 +799,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           "warning",
           `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
         );
-        noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, content));
+        noteInvalidSpec(config, file, summarizeSchemaErrors(validation.errorObjects, content));
         return null;
       }
       content = validation.object;
@@ -932,7 +936,11 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         filePath: file,
         testIdBase: id,
         onInvalid: (reason: string, details?: { schemaKey: string; object: any }) => {
-          const summary = summarizeSpecErrors(reason, details?.object ?? {}, details?.schemaKey) || reason;
+          // Common hands over AJV's string; validate again for the structured errors.
+          const errorObjects = details
+            ? validate({ ...details, addDefaults: false, structuredErrors: true }).errorObjects
+            : [];
+          const summary = (details && summarizeSchemaErrors(errorObjects, details.object, details.schemaKey)) || reason;
           noteInvalidSpec(config, file, details ? `${JSON.stringify(details.object)}: ${summary}` : summary);
         },
       });
@@ -948,6 +956,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         schemaKey: "spec_v3",
         object: spec,
         addDefaults: false,
+        structuredErrors: true,
       });
       if (!validation.valid) {
         log(
@@ -957,7 +966,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         );
         // A document with no tests in it is just a document.
         if (spec.tests.length > 0) {
-          noteInvalidSpec(config, file, summarizeSpecErrors(validation.errors, spec));
+          noteInvalidSpec(config, file, summarizeSchemaErrors(validation.errorObjects, spec));
         }
       } else {
         spec = await resolvePaths({

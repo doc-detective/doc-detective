@@ -72,12 +72,26 @@ Review the output before sharing. Secrets are redacted by name (like `TOKEN`, `S
 
 ## Diagnose configuration errors
 
-If your configuration file has validation errors, the dump still runs and shows what went wrong:
+An invalid config stops the run with exit code `2`. The error names where the config came from: the file, `DOC_DETECTIVE_CONFIG`, or your user config. It then gives one line per problem, as `<key path>: <problem>`, and links to the [configuration reference](/reference/schemas/config):
+
+```
+Error: Invalid config in .doc-detective.json:
+unknown key 'logLevl'. Did you mean logLevel?
+concurrentRunners: must be integer or boolean (got "lots").
+shell: must be one of bash, cmd, powershell (got "zsh").
+See https://docs.doc-detective.com/reference/schemas/config
+```
+
+A line with no key path is about the top level of the config. Nested keys use dots and `[n]` indexes, such as `integrations.heretto[0]`. Invalid test specifications use the same line format. Only the first five problems are listed, followed by `and N more`.
+
+If your configuration file has validation errors, the dump still runs and shows the same error:
 
 ```
 -- Config -----------------------------------------------------------
   === CONFIG INVALID ===
-  Invalid value at path: runOn[0].browsers[0] - must be a string or object
+  Invalid config in .doc-detective.json:
+  runOn[0].browsers[0]: must be one of chrome, firefox, safari, webkit (got 123).
+  See https://docs.doc-detective.com/reference/schemas/config
 
   Best-effort raw config (validation failed):
   {

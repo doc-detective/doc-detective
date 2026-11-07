@@ -610,6 +610,82 @@ describe("CLI contract", function () {
       expect(r.stderr).to.not.include("must be object");
     });
 
+    it("summarizes an invalid config file, once, with a link to its reference", function () {
+      fs.writeFileSync(
+        path.join(cwd, "bad.json"),
+        JSON.stringify({ logLevl: "info", concurrentRunners: "lots", shell: "zsh" })
+      );
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in bad.json:",
+          "unknown key 'logLevl'. Did you mean logLevel?",
+          'concurrentRunners: must be integer or boolean (got "lots").',
+          'shell: must be one of bash, cmd, powershell (got "zsh").',
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("names DOC_DETECTIVE_CONFIG when it's the invalid config", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevl: 1 }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
+          "unknown key 'logLevl'. Did you mean logLevel?",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("names the user config when it's the invalid config", function () {
+      const home = path.join(cwd, "xdg");
+      fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+      const file = path.join(home, "doc-detective", "config.json");
+      fs.writeFileSync(file, JSON.stringify({ shell: "zsh" }));
+      const r = run(["-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include(`Error: Invalid config in user config ${file}:\nshell: must be one of`);
+    });
+
+    it("prints a config error once, even when the runner finds it", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { shell: "zsh" } }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr.split("Invalid config").length - 1).to.equal(1);
+      expect(r.stderr).to.include('shell: must be one of bash, cmd, powershell (got "zsh").');
+    });
+
+    it("summarizes invalid specs with nested suggestions and allowed values", function () {
+      fs.writeFileSync(
+        path.join(cwd, "enum.spec.json"),
+        JSON.stringify({
+          tests: [
+            {
+              stepz: [],
+              steps: [{ click: { selector: "#go", button: "middle-ish" } }, { runShell: { comand: "echo hi" } }],
+            },
+          ],
+        })
+      );
+      const r = run(["-i", "enum.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid test specifications, so nothing ran:",
+          "enum.spec.json",
+          "tests[0]: unknown key 'stepz'. Did you mean steps?",
+          'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").',
+          "tests[0].steps[1].runShell: unknown key 'comand'. Did you mean command?",
+          "Fix them, or pass --no-exit-on-fail to skip them.",
+          "",
+        ].join("\n")
+      );
+    });
+
     it("points an empty bare run at --help", function () {
       fs.rmSync(path.join(cwd, "pass.spec.json"));
       fs.rmSync(path.join(cwd, "fail.spec.json"));

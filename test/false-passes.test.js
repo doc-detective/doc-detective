@@ -7,7 +7,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateAssertion, resolveExpression } from "../dist/core/expressions.js";
-import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { summarizeSchemaErrors } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/index.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(ROOT, "bin", "doc-detective.js");
@@ -74,14 +75,11 @@ describe("expressions outside conditions stay literal", function () {
   });
 });
 
-describe("summarizeSpecErrors with several actions", function () {
+describe("summarizeSchemaErrors with several actions", function () {
   it("says a step can only have one action", function () {
-    const errors =
-      '/tests/0/steps/0 must match exactly one schema in oneOf ({"passingSchemas":[0,3]})';
-    assert.equal(
-      summarizeSpecErrors(errors, { tests: [{ steps: [{}] }] }),
-      "tests[0].steps[0]: a step can only have one action."
-    );
+    const object = { tests: [{ steps: [{ goTo: "https://example.com", runShell: "echo hi" }] }] };
+    const { errorObjects } = validate({ schemaKey: "spec_v3", object, addDefaults: false, structuredErrors: true });
+    assert.equal(summarizeSchemaErrors(errorObjects, object), "tests[0].steps[0]: a step can only have one action.");
   });
 });
 

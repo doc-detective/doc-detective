@@ -6,7 +6,8 @@ import { expect } from "chai";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
-import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { summarizeSchemaErrors } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/index.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
 import { checkForUpdate } from "../dist/runtime/selfUpdate.js";
@@ -20,6 +21,10 @@ describe("nearestCommand", function () {
   });
   it("leaves distant words alone", function () {
     expect(nearestCommand("docs/guide.md", names)).to.equal(undefined);
+  });
+  it("doesn't stretch a short word to a different one", function () {
+    expect(nearestCommand("nope", ["type"])).to.equal(undefined);
+    expect(nearestCommand("typo", ["type"])).to.equal("type");
   });
 });
 
@@ -57,32 +62,69 @@ describe("verdictLine", function () {
   });
 });
 
-describe("summarizeSpecErrors", function () {
-  const required = (key) => `/tests/0/steps/0 must have required property '${key}' ({"missingProperty":"${key}"})`;
+// One line format for every schema error, config and spec alike (ADR 01150).
+describe("summarizeSchemaErrors", function () {
+  const summarize = (object, schemaKey = "spec_v3") =>
+    summarizeSchemaErrors(
+      validate({ schemaKey, object, addDefaults: false, structuredErrors: true }).errorObjects,
+      object,
+      schemaKey
+    );
+  const spec = (step) => ({ tests: [{ steps: [step] }] });
 
   it("names an unknown action and the nearest real one", function () {
-    const errors = [required("goTo"), required("find"), "/tests/0/steps/0 must match a schema in anyOf ({})"].join(", ");
-    const object = { tests: [{ steps: [{ goToo: "x" }] }] };
-    expect(summarizeSpecErrors(errors, object)).to.equal(
-      "tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?"
-    );
-  });
-
-  it("collapses anyOf noise and drops parameter dumps", function () {
-    const errors = `/tests/0/steps/0/goTo must be string ({"type":"string"}), /tests/0 must match a schema in anyOf ({})`;
-    const object = { tests: [{ steps: [{ goTo: 1 }] }] };
-    expect(summarizeSpecErrors(errors, object)).to.equal("tests[0].steps[0].goTo: must be string");
+    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?");
   });
 
   it("handles a step with no recognizable key", function () {
-    const errors = required("goTo");
-    expect(summarizeSpecErrors(errors, { tests: [{ steps: [{}] }] })).to.include("tests[0].steps[0]: no action");
+    expect(summarize(spec({}))).to.include("tests[0].steps[0]: no action");
   });
 
-  it("falls back to the message for a root error", function () {
-    expect(summarizeSpecErrors(` must have required property 'tests' ({"missingProperty":"tests"})`, {})).to.equal(
-      "must have required property 'tests'"
+  it("names a missing required key", function () {
+    expect(summarize({})).to.equal("missing required key 'tests'.");
+  });
+
+  it("lists every allowed type, and the value it got", function () {
+    expect(summarize(spec({ goTo: [] }))).to.equal("tests[0].steps[0].goTo: must be string or object (got []).");
+    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal(
+      'concurrentRunners: must be integer or boolean (got "lots").'
     );
+  });
+
+  it("lists the allowed values, and drops the other branches' type errors", function () {
+    expect(summarize(spec({ click: { selector: "#go", button: "middle-ish" } }))).to.equal(
+      'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").'
+    );
+  });
+
+  it("suggests a nested key, in place of the missing key it means", function () {
+    expect(summarize(spec({ runShell: { comand: "echo hi" } }))).to.equal(
+      "tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?"
+    );
+    expect(summarize(spec({ goTo: { url: "https://example.com", waitUntil: { netwrkIdleTime: 1 } } }))).to.equal(
+      "tests[0].steps[0].goTo.waitUntil: unknown key 'netwrkIdleTime'. Did you mean networkIdleTime?"
+    );
+  });
+
+  it("names the alternatives when one of several keys is required", function () {
+    const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
+    expect(summarize(object, "config_v3")).to.equal(
+      [
+        "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?",
+        "integrations.heretto[0]: needs one of apiToken, apiTokenFile.",
+      ].join("\n")
+    );
+  });
+
+  it("ends any other message with a period", function () {
+    expect(summarize({ concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must be >= 1.");
+  });
+
+  it("shows five lines, then a count", function () {
+    const object = { a1: 1, a2: 1, a3: 1, a4: 1, a5: 1, a6: 1, a7: 1 };
+    const lines = summarize(object, "config_v3").split("\n");
+    expect(lines).to.have.lengthOf(6);
+    expect(lines[5]).to.equal("and 2 more");
   });
 });
 

@@ -2,7 +2,7 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
+import { configErrorMessage, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -176,12 +176,11 @@ async function getConfigFromEnv() {
     const envValidation = validate({
       schemaKey: "config_v3",
       object: envConfig,
+      structuredErrors: true,
     });
 
     if (!envValidation.valid) {
-      throw new Error(
-        `Invalid config from DOC_DETECTIVE_CONFIG environment variable. ${envValidation.errors}`
-      );
+      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, envConfig));
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
@@ -261,7 +260,14 @@ async function readUserConfig() {
   if (config === null || typeof config !== "object") {
     throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
   }
+  assertValidConfig(config, `user config ${file}`);
   return config;
+}
+
+// Validate one config source on its own, so an error names where it came from.
+function assertValidConfig(config: any, source: string) {
+  const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
+  if (!validation.valid) throw new Error(configErrorMessage(source, validation.errorObjects, config));
 }
 
 // Secrets can come from a file rather than the config or environment, where they
@@ -323,6 +329,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     if (typeof config !== "object") {
       throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
     }
+    assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
   }
 
   // Project config beats user config. Both lose to the environment and to flags.
@@ -338,13 +345,14 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
   readCredentialFiles(config);
 
-  // Validate config
+  // Validate config. Each source passed on its own, so this rarely fails.
   const validation = validate({
     schemaKey: "config_v3",
     object: config,
+    structuredErrors: true,
   });
   if (!validation.valid) {
-    throw new Error(`Invalid config. ${validation.errors}`);
+    throw new Error(configErrorMessage("", validation.errorObjects, config));
   }
 
   // Accept coerced and defaulted values

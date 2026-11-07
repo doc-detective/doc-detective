@@ -570,7 +570,7 @@ describe("config.ts — setConfig", function () {
         setConfig({
           config: { logLevel: "silent", concurrentRunners: "not-a-number-or-bool-or-int" },
         }),
-      /Invalid config object/
+      /Invalid config:\nconcurrentRunners: must be integer or boolean/
     );
   });
 
@@ -652,7 +652,7 @@ describe("config.ts — setConfig", function () {
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
     // AJV's config_v3 enum guard fires before setConfig's own
     // defaultFileTypes[fileType] undefined check, so an unknown fileType
-    // string surfaces as an "Invalid config object" schema error.
+    // string surfaces as an "Invalid config:" schema error.
     await assert.rejects(
       () =>
         setConfig({
@@ -663,7 +663,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: ["totally-not-a-filetype"],
           },
         }),
-      /Invalid config object/
+      /Invalid config:\nfileTypes\[0\]: must be one of markdown, asciidoc, html, dita/
     );
   });
 
@@ -821,7 +821,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /\/fileTypes\/0\/extends must be equal to one of the allowed values/
+      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita \(got "nope-nope"\)\./
     );
   });
 

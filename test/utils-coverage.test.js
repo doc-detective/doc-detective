@@ -884,7 +884,7 @@ describe("utils.ts coverage", function () {
 
     it("throws when DOC_DETECTIVE_CONFIG fails schema validation", async function () {
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: 12345 });
-      await assert.rejects(setConfig({ args: {} }), /Invalid config from DOC_DETECTIVE_CONFIG/);
+      await assert.rejects(setConfig({ args: {} }), /Invalid config in DOC_DETECTIVE_CONFIG:\nlogLevel: must be one of/);
     });
 
     it("throws a clear error when the config file path cannot be read", async function () {

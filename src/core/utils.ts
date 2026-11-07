@@ -77,7 +77,8 @@ export {
   selectSpecsForRun,
   shouldFailRun,
   runExitCode,
-  summarizeSpecErrors,
+  summarizeSchemaErrors,
+  configErrorMessage,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -1179,62 +1180,78 @@ function specSchemas() {
   return (loadedSpecSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
 }
 
-// The keys valid at a spec, test, or step. Anything deeper gets no suggestion.
+// Every schema node that can describe the value at `parts`, following
+// properties and items through anyOf, oneOf, and allOf. The bundled schemas are
+// dereferenced, so there's no $ref left to follow.
+function schemasAt(parts: string[], rootSchemaKey: string): any[] {
+  const expand = (node: any): any[] =>
+    node && typeof node === "object"
+      ? [node, ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])].flatMap(expand)]
+      : [];
+  let nodes = expand(specSchemas()[rootSchemaKey]);
+  for (const part of parts) {
+    nodes = nodes.flatMap((node) => expand(/^\d+$/.test(part) ? node.items : node.properties?.[part]));
+  }
+  return nodes;
+}
+
+// The keys valid at a path, for "did you mean".
 function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
-  const parent = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]) ? parts[parts.length - 2] : undefined;
-  const schemaKey = parts.length === 0 ? rootSchemaKey : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
-  return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
+  return [...new Set(schemasAt(parts, rootSchemaKey).flatMap((node) => Object.keys(node.properties ?? {})))];
 }
 
 const ONE_ACTION_MESSAGE = "a step can only have one action.";
 
-// Turn AJV's error string into something a person can act on: one line per
-// problem, with `anyOf` branches collapsed, and the nearest real key named when
-// something is unknown. Raw errors stay available at debug level.
-function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
-  const byPath = new Map<string, string[]>();
-  const unknownByPath = new Map<string, string[]>();
-  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
-    const [, instancePath = "", message, params = ""] = match;
-    if (/"passingSchemas":\[/.test(params)) {
-      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), ONE_ACTION_MESSAGE]);
-      continue;
-    }
-    if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
-    byPath.set(instancePath, byPath.get(instancePath) ?? []);
-    const unknownKey = /"additionalProperty":"([^"]+)"/.exec(params)?.[1];
-    if (unknownKey) {
-      unknownByPath.set(instancePath, [...(unknownByPath.get(instancePath) ?? []), unknownKey]);
-    } else {
-      byPath.get(instancePath)!.push(message);
-    }
+// "a or b", "a, b, or c".
+const orList = (items: unknown[]) => new Intl.ListFormat("en", { type: "disjunction" }).format(items.map(String));
+
+// Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
+// something a person can act on: one `<path>: <message>` line per problem, with
+// the noise of anyOf/oneOf branches the value didn't take dropped, and the
+// nearest real key named when something is unknown. Config and specs read the
+// same (ADR 01150). Raw errors stay available at debug level.
+function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchemaKey = "spec_v3"): string {
+  const byPath = new Map<string, any[]>();
+  for (const error of errorObjects) {
+    byPath.set(error.instancePath, [...(byPath.get(error.instancePath) ?? []), error]);
   }
-  const lines: string[] = [];
-  for (const [instancePath, messages] of byPath) {
-    const parts = instancePath.split("/").filter(Boolean);
+  const partsOf = (instancePath: string) =>
+    instancePath.split("/").slice(1).map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"));
+  // `tests[0].steps[1]: `, or nothing at the root.
+  const prefixOf = (parts: string[]) => {
     const place = parts.reduce((all, part) => (/^\d+$/.test(part) ? `${all}[${part}]` : all ? `${all}.${part}` : part), "");
-    const prefix = place ? `${place}: ` : "";
-    const actions = messages
-      .map((message) => /required property '([^']+)'/.exec(message)?.[1])
-      .filter(Boolean) as string[];
-    const unknownKeys = [...new Set(unknownByPath.get(instancePath) ?? [])];
+    return place ? `${place}: ` : "";
+  };
+  const lines: string[] = [];
+  for (const [instancePath, errors] of byPath) {
+    const before = lines.length;
+    const parts = partsOf(instancePath);
+    const prefix = prefixOf(parts);
+    const value = parts.reduce((current: any, part) => current?.[part], object);
+    const got = ` (got ${JSON.stringify(value)}).`;
+    const of = (keyword: string) => errors.filter((error) => error.keyword === keyword);
+    const required = of("required");
     // The other branches' "required" errors are only noise once two matched.
-    if (messages.includes(ONE_ACTION_MESSAGE)) {
+    if (of("oneOf").some((error) => Array.isArray(error.params.passingSchemas))) {
       lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
       continue;
     }
+    // anyOf, oneOf, and if only summarize the errors around them.
+    const rest = errors.filter(
+      (error) => !["required", "additionalProperties", "anyOf", "oneOf", "if"].includes(error.keyword)
+    );
+    let unknownKeys = [...new Set(of("additionalProperties").map((error) => error.params.additionalProperty))];
     const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
-    if (isStep && actions.length > 0 && actions.length === messages.length) {
-      const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
+    if (isStep && required.length > 0 && rest.length === 0) {
+      const actions = required.map((error) => error.params.missingProperty);
       const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
       const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+      const keys = Object.keys(value ?? {});
       // A real action whose value is wrong has its own, more useful errors.
-      if (!unknownKeys.length && Object.keys(value).some((key) => stepKeys.has(key) && !metadata.has(key))) {
+      if (!unknownKeys.length && keys.some((key) => stepKeys.has(key) && !metadata.has(key))) {
         continue;
       }
-      const unknown = unknownKeys.length
-        ? unknownKeys
-        : Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      const unknown = unknownKeys.length ? unknownKeys : keys.filter((key) => !metadata.has(key) && !actions.includes(key));
       if (unknown.length === 0) {
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
@@ -1243,16 +1260,65 @@ function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_
       }
       continue;
     }
-    const known = knownKeysAt(parts, rootSchemaKey);
+    // A key some branch allows was only rejected by a branch the value didn't take.
+    const known = unknownKeys.length ? knownKeysAt(parts, rootSchemaKey) : [];
+    unknownKeys = unknownKeys.filter((key) => !known.includes(key));
+    const suggested = new Set<string>();
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
+      if (near) suggested.add(near);
       lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
     }
-    for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
+    // An error deeper down means the value took a branch that got further, so
+    // the rest of what's here came from the branches it didn't take.
+    if (errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`))) continue;
+    // Requireds from the branches of one anyOf are a choice: "needs one of".
+    const choices = new Map<string, string[]>();
+    for (const error of required) {
+      const group = error.schemaPath.replace(/\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/, "/$1");
+      choices.set(group, [...(choices.get(group) ?? []), error.params.missingProperty]);
+    }
+    for (const keys of choices.values()) {
+      if (keys.length > 1) lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
+      // A suggestion for the missing key already says it.
+      else if (!suggested.has(keys[0])) lines.push(`${prefix}missing required key '${keys[0]}'.`);
+    }
+    // An object never matches a list of scalars, so that list came from another branch.
+    const isObject = value !== null && typeof value === "object";
+    const allowed = [
+      ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
+    ].filter(() => !isObject);
+    if (allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
+    const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
+    for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
+    // A type error only matters when nothing else here says what's wrong.
+    const types = [...new Set(of("type").flatMap((error) => error.params.type))];
+    const said = lines.length > before;
+    if (types.length && !said) lines.push(`${prefix}must be ${orList(types)}${got}`);
+    // AJV's "must NOT be valid" helps only when it's all there is.
+    else if (!said && of("not").length) lines.push(`${prefix}${of("not")[0].message}.`);
+  }
+  // Never hide every error: fall back to AJV's own messages.
+  if (lines.length === 0) {
+    for (const error of errorObjects) {
+      if (["anyOf", "oneOf", "if"].includes(error.keyword)) continue;
+      const line = `${prefixOf(partsOf(error.instancePath))}${error.message}.`;
+      if (!lines.includes(line)) lines.push(line);
+    }
   }
   const shown = lines.slice(0, 5);
   if (lines.length > shown.length) shown.push(`and ${lines.length - shown.length} more`);
   return shown.join("\n");
+}
+
+// An invalid config, from any source, as one message: the source, one line per
+// problem, and where to read about each key.
+function configErrorMessage(source: string, errorObjects: any[] | undefined, object: any): string {
+  return `Invalid config${source ? ` in ${source}` : ""}:\n${summarizeSchemaErrors(
+    errorObjects,
+    object,
+    "config_v3"
+  )}\nSee https://docs.doc-detective.com/reference/schemas/config`;
 }
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec

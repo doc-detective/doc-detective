@@ -209,12 +209,14 @@ function distance(a: string, b: string): number {
   return previous[b.length];
 }
 
+// Under 3 edits, and fewer than half the word's letters, so a short word like
+// `nope` isn't stretched into a different one like `type`.
 export function nearestCommand(word: string, names: string[]): string | undefined {
   let best: string | undefined;
   let bestDistance = 3;
   for (const name of names) {
     const d = distance(word.toLowerCase(), name.toLowerCase());
-    if (d < bestDistance) {
+    if (d < bestDistance && d * 2 < word.length) {
       best = name;
       bestDistance = d;
     }
