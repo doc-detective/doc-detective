@@ -2794,8 +2794,9 @@ function getRunOutputDir(
 //
 // The reporter gate mirrors outputResults *exactly* so the gate never reserves
 // a folder the reporter won't write to (which would leave it empty). Like
-// outputResults: a non-empty `reporters` array is the override, otherwise the
-// default set (`["terminal", "json", "runFolder"]`) applies; tokens are matched
+// outputResults: a `reporters` array is the override, and an empty one means
+// none, as when `--json` replaces the only reporter; otherwise the default set
+// (`["terminal", "json", "runFolder"]`) applies; tokens are matched
 // verbatim (no trimming — outputResults doesn't trim, so a padded `" runFolder "`
 // runs no reporter); the `runFolder` shorthand matches case-insensitively (its
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
@@ -2824,9 +2825,7 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
     return true;
   }
   const active =
-    Array.isArray(config?.reporters) && config.reporters.length > 0
-      ? config.reporters
-      : ["terminal", "json", "runFolder"];
+    Array.isArray(config?.reporters) ? config.reporters : ["terminal", "json", "runFolder"];
   return active.some(
     (reporter: any) =>
       typeof reporter === "string" &&

@@ -249,7 +249,8 @@ function resolveResultsFile(output: string, base = process.cwd()): string {
 }
 
 // Write the run's results to the file `--output` names, replacing any file there.
-// An empty run has no results to write.
+// A run that found no tests writes its empty report, so `--output` always
+// gets a file.
 function writeResultsFile(outputFile: string | undefined, results: any) {
   if (!outputFile || !results) return;
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
@@ -1210,17 +1211,17 @@ function reporterKey(reporter: string): string {
 }
 
 async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
-  // Config is the source of truth. Fall back to options.reporters for
-  // programmatic callers that pass them directly, then to defaults.
+  // Config is the source of truth, and an empty list means no reporters, as
+  // when `--json` replaces the only one. Fall back to options.reporters for
+  // programmatic callers that pass them directly, then to defaults. The run
+  // folder gate, runArchivesArtifacts, follows the same rule.
   const defaultReporters = ["terminal", "runFolder"];
   // `--json` and `--plain` add their stdout reporters here, not to `reporters`.
   const stdoutReporters: string[] = config?._stdoutReporters ?? [];
-  const configured = [...(Array.isArray(config?.reporters) ? config.reporters : []), ...stdoutReporters];
 
-  let activeReporters =
-    (configured.length > 0 ? configured : null) ||
-    options.reporters ||
-    defaultReporters;
+  let activeReporters = Array.isArray(config?.reporters)
+    ? [...config.reporters, ...stdoutReporters]
+    : options.reporters || defaultReporters;
 
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {

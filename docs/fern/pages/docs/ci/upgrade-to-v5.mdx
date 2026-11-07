@@ -206,6 +206,7 @@ doc-detective --concurrent-runners auto
 
 - `--reporters` no longer takes space-separated names. `-r terminal html` exits `2`, because `html` reads as a command, and the error shows the comma form. `-r json docs/` used to treat `docs/` as a reporter name. `run -r json docs/` now tests `docs/`.
 - Repeating one of these flags exits `2`. A repeated `-i a -i b` used to keep only `b`.
+- An empty `reporters` list means no reporters. With `--json`, `--plain`, or `--output -`, `-r terminal` leaves only the stdout output and no run folder.
 - `--agent` no longer takes space-separated or repeated IDs.
 
 **What to do:** Join the values with commas:
@@ -322,7 +323,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 `runTests()` also changed:
 
-- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`.
+- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.

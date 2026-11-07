@@ -785,6 +785,21 @@ describe("CLI contract", function () {
       );
     });
 
+    it("writes an empty report to --output when it finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-i", "empty.md", "-o", "out.json"]);
+      expect(r.status).to.equal(2);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "out.json"), "utf8")).specs).to.deep.equal([]);
+    });
+
+    for (const mode of [["--json"], ["--plain"], ["-o", "-"]]) {
+      it(`leaves no run folder for ${mode.join(" ")} -r terminal`, function () {
+        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, ".doc-detective"))).to.equal(false);
+      });
+    }
+
     it("takes --agent as one comma-separated list", function () {
       const r = run(["install", "agents", "--agent", "claude,copilot", "--scope", "project", "--yes", "--dry-run", "--json"]);
       expect(r.status, r.stderr).to.equal(0);

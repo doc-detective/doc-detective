@@ -56,6 +56,9 @@ Chosen option: **A**.
 - Config `reporters` is an enum of the six public names. `"JSON"` and `"plainReporter"` fail with the shared
   error format from [ADR 01150](01150-reject-unknown-keys-on-specs-and-steps.md). `--json` and `--plain` carry
   their stdout reporters on a hidden `config._stdoutReporters`, so they never reach validation.
+- An empty `reporters` list means no reporters, in `outputResults` and in the run-folder gate alike. So
+  `--json -r terminal` prints only the JSON and leaves no empty run folder.
+- The postinstall prompt passes its agents as one `--agent` list.
 - The dead warn-and-ignore blocks, the reporter check, and the `fileTypes` fallback are deleted.
 - The runtime log level `"warn"` becomes `"warning"`, the level `log()` already uses, and the three mapping
   shims go.
