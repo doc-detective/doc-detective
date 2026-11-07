@@ -47,9 +47,11 @@ async function loadDescription(descriptionPath: string = "") {
   // named in the message. Every document, the root included, counts as public
   // when any hop of its fetch reached a public address.
   // The parser resolves sibling $refs concurrently and tells a read only its
-  // URL, not its parent. So `lastPublic` can name a sibling rather than the
-  // document that asked; that only changes which document the message names,
-  // never whether a read is refused.
+  // URL, not its parent. Refusal starts once a public document has been read:
+  // under a local root, a private sibling $ref can resolve before a public
+  // sibling sets `lastPublic`, and that's intended, since local descriptions
+  // are trusted. And `lastPublic` can name a sibling rather than the document
+  // that asked, which only changes the message.
   const guard = localUrlPolicy() !== "allow";
   let lastPublic: string | undefined;
   let definition: any;
@@ -106,8 +108,17 @@ async function loadDescription(descriptionPath: string = "") {
         async read(file: { url: string }) {
           const ref = redactUrlForOutput(file.url);
           const doc = lastPublic;
-          if (doc && (await privateAddressOf(file.url))) {
-            throw refused(ref, doc, "a private address");
+          if (doc) {
+            let address: string | undefined;
+            try {
+              address = await privateAddressOf(file.url);
+            } catch (error: any) {
+              if (!error.host) throw error;
+              throw new Error(
+                `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: couldn't resolve host ${error.host} (${error.code}).`
+              );
+            }
+            if (address) throw refused(ref, doc, "a private address");
           }
           // After a public document, the connection must not land on a
           // private address either (DNS rebinding).

@@ -1541,8 +1541,10 @@ async function privateAddressOf(
   try {
     addresses = await dns.lookup(host, { all: true });
   } catch (error) {
-    throw new Error(
-      `Couldn't resolve host ${host}: ${(error as Error).message}`
+    // `host` and `code` let callers word their own message.
+    throw Object.assign(
+      new Error(`Couldn't resolve host ${host}: ${(error as Error).message}`),
+      { host, code: (error as any).code ?? (error as Error).message }
     );
   }
   const privates = addresses.filter(({ address }) => isPrivateOrLoopbackAddress(address));

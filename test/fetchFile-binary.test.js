@@ -203,6 +203,7 @@ describe("local URL guard (ADR 01162)", function () {
         json({ openapi: "3.0.0", info: { title: "t", version: "1" }, paths: {} }),
       "/openapi-chain.yaml": () => text(openApiYaml(`http://public.example.test:${port}/public-doc.yaml`)),
       "/openapi-rebind.yaml": () => text(openApiYaml(`http://rebind.example.test:${port}/plain.json`)),
+      "/openapi-gone.yaml": () => text(openApiYaml(`http://gone.example.test:${port}/plain.json?token=s3cret`)),
       "/openapi-public-refs.yaml": () => text(openApiYaml(`http://other.example.test:${port}/plain.json`)),
       // Relative refs in a description resolve against the working directory.
       "/openapi-file.yaml": () => text(openApiYaml("./local-secret.json")),
@@ -319,7 +320,11 @@ describe("local URL guard (ADR 01162)", function () {
     const reply = (address, opts, cb) =>
       opts && opts.all ? cb(null, [{ address, family: 4 }]) : cb(null, address, 4);
     sinon.stub(dnsPromises, "lookup").callsFake((host, opts) =>
-      fake(host)
+      host === "gone.example.test"
+        ? Promise.reject(
+            Object.assign(new Error(`getaddrinfo ENOTFOUND ${host}`), { code: "ENOTFOUND" })
+          )
+        : fake(host)
         ? Promise.resolve([
             {
               address: host === "rootrebind.example.test" ? "127.0.0.1" : "93.184.216.34",
@@ -644,6 +649,18 @@ describe("local URL guard (ADR 01162)", function () {
           `http://127.0.0.1:${port}/schema.json`,
           `http://public.example.test:${port}/openapi.yaml`
         ),
+      }
+    );
+  });
+
+  it("names the $ref and the document when a $ref's host doesn't resolve", async function () {
+    fakePublicHost();
+    await assert.rejects(
+      () => loadDescription(`http://public.example.test:${port}/openapi-gone.yaml`),
+      {
+        message:
+          `Couldn't resolve $ref http://gone.example.test:${port}/plain.json in ` +
+          `http://public.example.test:${port}/openapi-gone.yaml: couldn't resolve host gone.example.test (ENOTFOUND).`,
       }
     );
   });
