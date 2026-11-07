@@ -44,7 +44,7 @@ function sendTelemetry(config: any, command: string, results: any) {
       : {};
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
-  telemetryData.core_version = ownVersion();
+  telemetryData.core_version = ownVersion() ?? "unknown";
   telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
   telemetryData.core_platform = platformMap[os.platform()] || os.platform();
   telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
