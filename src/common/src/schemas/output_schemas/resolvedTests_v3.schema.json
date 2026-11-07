@@ -20336,9 +20336,34 @@
                                                                 }
                                                               },
                                                               "tty": {
-                                                                "type": "boolean",
                                                                 "default": false,
-                                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                                "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "boolean"
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                      "cols": {
+                                                                        "type": "integer",
+                                                                        "minimum": 1,
+                                                                        "maximum": 1000,
+                                                                        "default": 120,
+                                                                        "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                      },
+                                                                      "rows": {
+                                                                        "type": "integer",
+                                                                        "minimum": 1,
+                                                                        "maximum": 1000,
+                                                                        "default": 30,
+                                                                        "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                ]
                                                               }
                                                             }
                                                           }
@@ -20487,9 +20512,34 @@
                                                                   }
                                                                 },
                                                                 "tty": {
-                                                                  "type": "boolean",
                                                                   "default": false,
-                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                                  "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "boolean"
+                                                                    },
+                                                                    {
+                                                                      "type": "object",
+                                                                      "additionalProperties": false,
+                                                                      "properties": {
+                                                                        "cols": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 120,
+                                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                        },
+                                                                        "rows": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 30,
+                                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  ]
                                                                 }
                                                               }
                                                             }
@@ -20577,6 +20627,19 @@
                                                           }
                                                         },
                                                         "timeout": 60000
+                                                      },
+                                                      {
+                                                        "command": "my-tui",
+                                                        "background": {
+                                                          "name": "tui",
+                                                          "tty": {
+                                                            "cols": 80,
+                                                            "rows": 24
+                                                          },
+                                                          "waitUntil": {
+                                                            "stdio": "/Ready/"
+                                                          }
+                                                        }
                                                       }
                                                     ]
                                                   }
@@ -21675,9 +21738,34 @@
                                                                 }
                                                               },
                                                               "tty": {
-                                                                "type": "boolean",
                                                                 "default": false,
-                                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                                "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "boolean"
+                                                                  },
+                                                                  {
+                                                                    "type": "object",
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                      "cols": {
+                                                                        "type": "integer",
+                                                                        "minimum": 1,
+                                                                        "maximum": 1000,
+                                                                        "default": 120,
+                                                                        "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                      },
+                                                                      "rows": {
+                                                                        "type": "integer",
+                                                                        "minimum": 1,
+                                                                        "maximum": 1000,
+                                                                        "default": 30,
+                                                                        "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                ]
                                                               }
                                                             }
                                                           }
@@ -21818,9 +21906,34 @@
                                                                   }
                                                                 },
                                                                 "tty": {
-                                                                  "type": "boolean",
                                                                   "default": false,
-                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                                  "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "boolean"
+                                                                    },
+                                                                    {
+                                                                      "type": "object",
+                                                                      "additionalProperties": false,
+                                                                      "properties": {
+                                                                        "cols": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 120,
+                                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                        },
+                                                                        "rows": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 30,
+                                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  ]
                                                                 }
                                                               }
                                                             }
@@ -43961,9 +44074,34 @@
                                                             "description": "Working directory for the process."
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           },
                                                           "waitUntil": {
                                                             "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -44378,9 +44516,34 @@
                                                                   "description": "Working directory for the process."
                                                                 },
                                                                 "tty": {
-                                                                  "type": "boolean",
                                                                   "default": false,
-                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                                  "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "type": "boolean"
+                                                                    },
+                                                                    {
+                                                                      "type": "object",
+                                                                      "additionalProperties": false,
+                                                                      "properties": {
+                                                                        "cols": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 120,
+                                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                        },
+                                                                        "rows": {
+                                                                          "type": "integer",
+                                                                          "minimum": 1,
+                                                                          "maximum": 1000,
+                                                                          "default": 30,
+                                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  ]
                                                                 },
                                                                 "waitUntil": {
                                                                   "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -44537,9 +44700,34 @@
                                                               "description": "Working directory for the process."
                                                             },
                                                             "tty": {
-                                                              "type": "boolean",
                                                               "default": false,
-                                                              "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                              "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                              "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "boolean"
+                                                                },
+                                                                {
+                                                                  "type": "object",
+                                                                  "additionalProperties": false,
+                                                                  "properties": {
+                                                                    "cols": {
+                                                                      "type": "integer",
+                                                                      "minimum": 1,
+                                                                      "maximum": 1000,
+                                                                      "default": 120,
+                                                                      "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                    },
+                                                                    "rows": {
+                                                                      "type": "integer",
+                                                                      "minimum": 1,
+                                                                      "maximum": 1000,
+                                                                      "default": 30,
+                                                                      "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                    }
+                                                                  }
+                                                                }
+                                                              ]
                                                             },
                                                             "waitUntil": {
                                                               "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -58070,9 +58258,34 @@
                                         }
                                       },
                                       "tty": {
-                                        "type": "boolean",
                                         "default": false,
-                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                        "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "cols": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000,
+                                                "default": 120,
+                                                "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                              },
+                                              "rows": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000,
+                                                "default": 30,
+                                                "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                              }
+                                            }
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -58221,9 +58434,34 @@
                                           }
                                         },
                                         "tty": {
-                                          "type": "boolean",
                                           "default": false,
-                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                          "anyOf": [
+                                            {
+                                              "type": "boolean"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                "cols": {
+                                                  "type": "integer",
+                                                  "minimum": 1,
+                                                  "maximum": 1000,
+                                                  "default": 120,
+                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                },
+                                                "rows": {
+                                                  "type": "integer",
+                                                  "minimum": 1,
+                                                  "maximum": 1000,
+                                                  "default": 30,
+                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                }
+                                              }
+                                            }
+                                          ]
                                         }
                                       }
                                     }
@@ -58311,6 +58549,19 @@
                                   }
                                 },
                                 "timeout": 60000
+                              },
+                              {
+                                "command": "my-tui",
+                                "background": {
+                                  "name": "tui",
+                                  "tty": {
+                                    "cols": 80,
+                                    "rows": 24
+                                  },
+                                  "waitUntil": {
+                                    "stdio": "/Ready/"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -78732,9 +78983,34 @@
                                                   }
                                                 },
                                                 "tty": {
-                                                  "type": "boolean",
                                                   "default": false,
-                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                  "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "boolean"
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "properties": {
+                                                        "cols": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 120,
+                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                        },
+                                                        "rows": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 30,
+                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
                                                 }
                                               }
                                             }
@@ -78883,9 +79159,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -78973,6 +79274,19 @@
                                             }
                                           },
                                           "timeout": 60000
+                                        },
+                                        {
+                                          "command": "my-tui",
+                                          "background": {
+                                            "name": "tui",
+                                            "tty": {
+                                              "cols": 80,
+                                              "rows": 24
+                                            },
+                                            "waitUntil": {
+                                              "stdio": "/Ready/"
+                                            }
+                                          }
                                         }
                                       ]
                                     }
@@ -80071,9 +80385,34 @@
                                                   }
                                                 },
                                                 "tty": {
-                                                  "type": "boolean",
                                                   "default": false,
-                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                  "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "boolean"
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "properties": {
+                                                        "cols": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 120,
+                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                        },
+                                                        "rows": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 30,
+                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
                                                 }
                                               }
                                             }
@@ -80214,9 +80553,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -102357,9 +102721,34 @@
                                               "description": "Working directory for the process."
                                             },
                                             "tty": {
-                                              "type": "boolean",
                                               "default": false,
-                                              "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                              "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                              "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                              "anyOf": [
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "cols": {
+                                                      "type": "integer",
+                                                      "minimum": 1,
+                                                      "maximum": 1000,
+                                                      "default": 120,
+                                                      "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                    },
+                                                    "rows": {
+                                                      "type": "integer",
+                                                      "minimum": 1,
+                                                      "maximum": 1000,
+                                                      "default": 30,
+                                                      "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                    }
+                                                  }
+                                                }
+                                              ]
                                             },
                                             "waitUntil": {
                                               "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -102774,9 +103163,34 @@
                                                     "description": "Working directory for the process."
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   },
                                                   "waitUntil": {
                                                     "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -102933,9 +103347,34 @@
                                                 "description": "Working directory for the process."
                                               },
                                               "tty": {
-                                                "type": "boolean",
                                                 "default": false,
-                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                "anyOf": [
+                                                  {
+                                                    "type": "boolean"
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "cols": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 120,
+                                                        "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                      },
+                                                      "rows": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 30,
+                                                        "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                      }
+                                                    }
+                                                  }
+                                                ]
                                               },
                                               "waitUntil": {
                                                 "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -139435,9 +139874,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -139586,9 +140050,34 @@
                                                       }
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     }
                                                   }
                                                 }
@@ -139676,6 +140165,19 @@
                                               }
                                             },
                                             "timeout": 60000
+                                          },
+                                          {
+                                            "command": "my-tui",
+                                            "background": {
+                                              "name": "tui",
+                                              "tty": {
+                                                "cols": 80,
+                                                "rows": 24
+                                              },
+                                              "waitUntil": {
+                                                "stdio": "/Ready/"
+                                              }
+                                            }
                                           }
                                         ]
                                       }
@@ -140774,9 +141276,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -140917,9 +141444,34 @@
                                                       }
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     }
                                                   }
                                                 }
@@ -163060,9 +163612,34 @@
                                                 "description": "Working directory for the process."
                                               },
                                               "tty": {
-                                                "type": "boolean",
                                                 "default": false,
-                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                "anyOf": [
+                                                  {
+                                                    "type": "boolean"
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "cols": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 120,
+                                                        "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                      },
+                                                      "rows": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 30,
+                                                        "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                      }
+                                                    }
+                                                  }
+                                                ]
                                               },
                                               "waitUntil": {
                                                 "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -163477,9 +164054,34 @@
                                                       "description": "Working directory for the process."
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     },
                                                     "waitUntil": {
                                                       "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -163636,9 +164238,34 @@
                                                   "description": "Working directory for the process."
                                                 },
                                                 "tty": {
-                                                  "type": "boolean",
                                                   "default": false,
-                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                  "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "boolean"
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "properties": {
+                                                        "cols": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 120,
+                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                        },
+                                                        "rows": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 30,
+                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
                                                 },
                                                 "waitUntil": {
                                                   "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -196519,9 +197146,34 @@
                                                           }
                                                         },
                                                         "tty": {
-                                                          "type": "boolean",
                                                           "default": false,
-                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "boolean"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "additionalProperties": false,
+                                                              "properties": {
+                                                                "cols": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 120,
+                                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                },
+                                                                "rows": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 30,
+                                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
                                                         }
                                                       }
                                                     }
@@ -196670,9 +197322,34 @@
                                                             }
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           }
                                                         }
                                                       }
@@ -196760,6 +197437,19 @@
                                                     }
                                                   },
                                                   "timeout": 60000
+                                                },
+                                                {
+                                                  "command": "my-tui",
+                                                  "background": {
+                                                    "name": "tui",
+                                                    "tty": {
+                                                      "cols": 80,
+                                                      "rows": 24
+                                                    },
+                                                    "waitUntil": {
+                                                      "stdio": "/Ready/"
+                                                    }
+                                                  }
                                                 }
                                               ]
                                             }
@@ -197858,9 +198548,34 @@
                                                           }
                                                         },
                                                         "tty": {
-                                                          "type": "boolean",
                                                           "default": false,
-                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "boolean"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "additionalProperties": false,
+                                                              "properties": {
+                                                                "cols": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 120,
+                                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                },
+                                                                "rows": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 30,
+                                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
                                                         }
                                                       }
                                                     }
@@ -198001,9 +198716,34 @@
                                                             }
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           }
                                                         }
                                                       }
@@ -220144,9 +220884,34 @@
                                                       "description": "Working directory for the process."
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     },
                                                     "waitUntil": {
                                                       "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -220561,9 +221326,34 @@
                                                             "description": "Working directory for the process."
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           },
                                                           "waitUntil": {
                                                             "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -220720,9 +221510,34 @@
                                                         "description": "Working directory for the process."
                                                       },
                                                       "tty": {
-                                                        "type": "boolean",
                                                         "default": false,
-                                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                        "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "boolean"
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                              "cols": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 1000,
+                                                                "default": 120,
+                                                                "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                              },
+                                                              "rows": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 1000,
+                                                                "default": 30,
+                                                                "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                              }
+                                                            }
+                                                          }
+                                                        ]
                                                       },
                                                       "waitUntil": {
                                                         "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
