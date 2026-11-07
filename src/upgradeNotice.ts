@@ -105,7 +105,7 @@ export function flagWarnings(args: Record<string, unknown>): string[] {
   }
   for (const flag of ["test", "spec"]) {
     const values = args[flag];
-    if (Array.isArray(values)) {
+    if (Array.isArray(values) && values.length > 1) {
       messages.push(
         `\`--${flag}\` is given more than once, so 4.x ignores it and Doc Detective 5.0 exits with a usage error. Give one comma-separated value, \`--${flag} ${values.join(",")}\`, which works today.`
       );
@@ -231,8 +231,7 @@ function testWarnings(test: any, where: string): string[] {
 }
 
 // Subtrees that hold the user's own data, where a `timeout` key isn't one of ours.
-// Keep this in sync with the schemas' free-form boundaries: request and response
-// bodies, headers and params, `elementAttribute`, `variables`, and `outputs`.
+// Keep this in sync with the schemas' free-form boundaries.
 const FREE_FORM = new Set([
   "request",
   "response",

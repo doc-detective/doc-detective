@@ -266,6 +266,7 @@ describe("upgrade warnings", function () {
       expect(test).to.include("`--test a,b`");
       expect(spec).to.include("`--spec foo,bar`");
       expect(flagWarnings({ test: "a,b", spec: "c" })).to.deep.equal([]);
+      expect(flagWarnings({ test: [], spec: ["c"] })).to.deep.equal([]);
     });
 
     it("a DOC_DETECTIVE_* boolean whose meaning flips, or that 5.0 won't read", function () {
