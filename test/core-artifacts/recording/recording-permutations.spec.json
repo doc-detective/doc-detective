@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "rec-perm-record-true",
-      "description": "record: true (boolean) auto-resolves to the browser engine on headed Chrome, and writes <outputDir>/<stepId>.mp4 (ADR 01173). The fixture configs set outputDir to test/core-artifacts.",
+      "description": "record: true (boolean) auto-resolves to the browser engine on headed Chrome, and writes <outputDir>/<stepId>.mp4 (ADR 01173). The check reads outputDir from config.groups.json, the config the fixture jobs run with.",
       "runOn": [
         {
           "platforms": [
@@ -24,7 +24,7 @@
         {
           "description": "Remove the last run's file, which record's default overwrite: \"false\" would skip on. After goTo: a browser-engine recording whose context starts with runShell times out its download.",
           "runShell": {
-            "command": "node -e \"require('fs').rmSync('rec-perm-record-true.mp4',{force:true})\"",
+            "command": "node -e \"const p=require('path'),out=p.resolve(require('./config.groups.json').outputDir);require('fs').rmSync(p.join(out,'rec-perm-record-true.mp4'),{force:true})\"",
             "workingDirectory": ".."
           }
         },
@@ -47,7 +47,7 @@
         {
           "description": "The recording is <outputDir>/<stepId>.mp4.",
           "runShell": {
-            "command": "node -e \"const p=require('path'),f=process.env.REC_TRUE_PATH;const ok=require('fs').existsSync(f)&&p.relative(process.cwd(),f)==='rec-perm-record-true.mp4';if(!ok){console.error(f);process.exit(1)}\"",
+            "command": "node -e \"const p=require('path'),f=process.env.REC_TRUE_PATH,out=p.resolve(require('./config.groups.json').outputDir);const ok=require('fs').existsSync(f)&&p.relative(out,f)==='rec-perm-record-true.mp4';if(!ok){console.error(f,'not in',out);process.exit(1)}\"",
             "workingDirectory": ".."
           }
         }
