@@ -12,7 +12,7 @@ Configuration options for Doc Detective operations.
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-$schema | string | Optional. JSON Schema for this object.<br/><br/>Accepted values: `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json` | —
+$schema | string | Optional. JSON Schema URL for editor support. Doc Detective ignores it.<br/><br/>Minimum length: 1 | —
 configId | string | Optional. Identifier for the configuration. | —
 configPath | string | ReadOnly. Path to the configuration file. | —
 input | one of:<br/>- string<br/>- array of string | Optional. Path(s) to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. | `.`

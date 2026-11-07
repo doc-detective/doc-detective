@@ -9,11 +9,9 @@
   },
   "properties": {
     "$schema": {
-      "description": "JSON Schema for this object.",
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
       "type": "string",
-      "enum": [
-        "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-      ]
+      "minLength": 1
     },
     "configId": {
       "description": "Identifier for the configuration.",
@@ -579,12 +577,20 @@
             ]
           },
           "arch": {
-            "description": "The processor architecture of the system running Doc Detective.",
+            "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
             "type": "string",
             "enum": [
-              "arm32",
+              "arm",
               "arm64",
-              "x32",
+              "ia32",
+              "loong64",
+              "mips",
+              "mipsel",
+              "ppc",
+              "ppc64",
+              "riscv64",
+              "s390",
+              "s390x",
               "x64"
             ]
           },

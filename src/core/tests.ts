@@ -2421,35 +2421,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     process.off("SIGTERM", onSignal);
   }
 
-  // Upload changed files back to source integrations (best-effort)
-  // This automatically syncs any changed screenshots back to their source CMS
-  // Only upload if uploadOnChange is enabled (defaults to true for backward compatibility)
-  // Check both global config.uploadOnChange and per-integration uploadOnChange settings
-  const herettoConfigs = config?.integrations?.heretto || [];
-  const hasUploadEnabledIntegration = herettoConfigs.some(
-    (h: any) => h.uploadOnChange !== false // Default to true if not explicitly set to false
-  );
-  const globalUploadOnChange = config?.uploadOnChange ?? true;
-  if (globalUploadOnChange && hasUploadEnabledIntegration && herettoConfigs.length > 0) {
-    try {
-      const uploadResults = await uploadChangedFiles({ config, report, log });
-      report.uploadResults = uploadResults;
-    } catch (error: any) {
-      log(config, "warning", `Failed to upload changed files: ${error.message}`);
-      report.uploadResults = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-        error: error.message,
-      };
-    }
-  }
+  // An absent `report.uploadResults` means no integration opted in, so no
+  // upload was attempted.
+  const uploadResults = await uploadChangedFilesIfEnabled({ config, report, log });
+  if (uploadResults) report.uploadResults = uploadResults;
 
   // Stamped last, after teardown and any Heretto upload, so the number matches
   // the elapsed time a user actually observes.
   report.durationMs = Date.now() - runStart;
   return report;
+}
+
+/**
+ * Upload changed files back to their source integrations (best-effort). Opt-in:
+ * runs only when some integration, of any type, sets `uploadOnChange: true`
+ * (schema default false); uploadChangedFiles then skips files from
+ * integrations that didn't. Returns undefined when nothing opted in. A thrown
+ * upload still returns the success shape, with empty `details` and `error`.
+ * `upload` is injectable for tests.
+ */
+export async function uploadChangedFilesIfEnabled({
+  config,
+  report,
+  log: logFn,
+  upload = uploadChangedFiles,
+}: {
+  config: any;
+  report: any;
+  log: any;
+  upload?: typeof uploadChangedFiles;
+}): Promise<any> {
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (!integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
+    return undefined;
+  }
+  try {
+    return await upload({ config, report, log: logFn });
+  } catch (error: any) {
+    logFn(config, "warning", `Failed to upload changed files: ${error.message}`);
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: error.message,
+    };
+  }
 }
 
 /**

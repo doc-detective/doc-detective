@@ -9,11 +9,9 @@
   },
   "properties": {
     "$schema": {
-      "description": "JSON Schema for this object.",
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
       "type": "string",
-      "enum": [
-        "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-      ]
+      "minLength": 1
     },
     "configId": {
       "description": "Identifier for the configuration.",
@@ -198,11 +196,9 @@
             },
             "properties": {
               "$schema": {
-                "description": "JSON Schema for this object.",
+                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                 "type": "string",
-                "enum": [
-                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
-                ]
+                "minLength": 1
               },
               "contextId": {
                 "type": "string",
@@ -1112,11 +1108,9 @@
                                           },
                                           "properties": {
                                             "$schema": {
-                                              "description": "JSON Schema for this object.",
+                                              "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                               "type": "string",
-                                              "enum": [
-                                                "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                              ]
+                                              "minLength": 1
                                             },
                                             "stepId": {
                                               "type": "string",
@@ -2884,11 +2878,9 @@
                                           }
                                         },
                                         "$schema": {
-                                          "description": "JSON Schema for this object.",
+                                          "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                           "type": "string",
-                                          "enum": [
-                                            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                          ]
+                                          "minLength": 1
                                         },
                                         "stepId": {
                                           "type": "string",
@@ -2998,11 +2990,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -4180,11 +4170,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -5839,11 +5827,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -14971,11 +14957,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -17088,11 +17072,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -18265,15 +18247,18 @@
                                                         ]
                                                       },
                                                       "statusCodes": {
-                                                        "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                                        "type": "array",
-                                                        "items": {
-                                                          "anyOf": [
-                                                            {
+                                                        "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "integer"
+                                                          },
+                                                          {
+                                                            "type": "array",
+                                                            "items": {
                                                               "type": "integer"
                                                             }
-                                                          ]
-                                                        },
+                                                          }
+                                                        ],
                                                         "default": [
                                                           200,
                                                           201
@@ -18664,15 +18649,18 @@
                                                           ]
                                                         },
                                                         "statusCodes": {
-                                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                                          "type": "array",
-                                                          "items": {
-                                                            "anyOf": [
-                                                              {
+                                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "integer"
+                                                            },
+                                                            {
+                                                              "type": "array",
+                                                              "items": {
                                                                 "type": "integer"
                                                               }
-                                                            ]
-                                                          },
+                                                            }
+                                                          ],
                                                           "default": [
                                                             200,
                                                             201
@@ -19043,11 +19031,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -20455,11 +20441,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -21803,11 +21787,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -23243,11 +23225,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -27193,11 +27173,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -35976,11 +35954,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -37182,11 +37158,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -39050,11 +39024,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -40062,11 +40034,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -42312,11 +42282,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -44747,11 +44715,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -45717,11 +45683,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -47304,11 +47268,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -48493,11 +48455,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -50826,11 +50786,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -51828,11 +51786,9 @@
                                             },
                                             "properties": {
                                               "$schema": {
-                                                "description": "JSON Schema for this object.",
+                                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                                 "type": "string",
-                                                "enum": [
-                                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                                ]
+                                                "minLength": 1
                                               },
                                               "stepId": {
                                                 "type": "string",
@@ -58393,12 +58349,20 @@
           ]
         },
         "arch": {
-          "description": "The processor architecture of the system running Doc Detective.",
+          "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
           "type": "string",
           "enum": [
-            "arm32",
+            "arm",
             "arm64",
-            "x32",
+            "ia32",
+            "loong64",
+            "mips",
+            "mipsel",
+            "ppc",
+            "ppc64",
+            "riscv64",
+            "s390",
+            "s390x",
             "x64"
           ]
         },
@@ -59061,12 +59025,20 @@
             ]
           },
           "arch": {
-            "description": "The processor architecture of the system running Doc Detective.",
+            "description": "The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.",
             "type": "string",
             "enum": [
-              "arm32",
+              "arm",
               "arm64",
-              "x32",
+              "ia32",
+              "loong64",
+              "mips",
+              "mipsel",
+              "ppc",
+              "ppc64",
+              "riscv64",
+              "s390",
+              "s390x",
               "x64"
             ]
           },
@@ -59179,11 +59151,9 @@
                             },
                             "properties": {
                               "$schema": {
-                                "description": "JSON Schema for this object.",
+                                "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                 "type": "string",
-                                "enum": [
-                                  "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                ]
+                                "minLength": 1
                               },
                               "stepId": {
                                 "type": "string",
@@ -60951,11 +60921,9 @@
                             }
                           },
                           "$schema": {
-                            "description": "JSON Schema for this object.",
+                            "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                             "type": "string",
-                            "enum": [
-                              "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                            ]
+                            "minLength": 1
                           },
                           "stepId": {
                             "type": "string",
@@ -61065,11 +61033,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -62247,11 +62213,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -63906,11 +63870,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -73038,11 +73000,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -75155,11 +75115,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -76332,15 +76290,18 @@
                                           ]
                                         },
                                         "statusCodes": {
-                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                          "type": "array",
-                                          "items": {
-                                            "anyOf": [
-                                              {
+                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                          "anyOf": [
+                                            {
+                                              "type": "integer"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
                                                 "type": "integer"
                                               }
-                                            ]
-                                          },
+                                            }
+                                          ],
                                           "default": [
                                             200,
                                             201
@@ -76731,15 +76692,18 @@
                                             ]
                                           },
                                           "statusCodes": {
-                                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
+                                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                            "anyOf": [
+                                              {
+                                                "type": "integer"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "integer"
                                                 }
-                                              ]
-                                            },
+                                              }
+                                            ],
                                             "default": [
                                               200,
                                               201
@@ -77110,11 +77074,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -78522,11 +78484,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -79870,11 +79830,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -81310,11 +81268,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -85260,11 +85216,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -94043,11 +93997,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -95249,11 +95201,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -97117,11 +97067,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -98129,11 +98077,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -100379,11 +100325,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -102814,11 +102758,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -103784,11 +103726,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -105371,11 +105311,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -106560,11 +106498,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -108893,11 +108829,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",
@@ -109895,11 +109829,9 @@
                               },
                               "properties": {
                                 "$schema": {
-                                  "description": "JSON Schema for this object.",
+                                  "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
                                   "type": "string",
-                                  "enum": [
-                                    "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-                                  ]
+                                  "minLength": 1
                                 },
                                 "stepId": {
                                   "type": "string",

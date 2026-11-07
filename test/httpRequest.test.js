@@ -107,6 +107,36 @@ describe("httpRequest non-2xx status code regression", function () {
     assert.match(result.description, /Returned 500/);
   });
 
+  it("treats a scalar statusCodes as a one-element list (PASS on match)", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/404`,
+          method: "get",
+          statusCodes: 404,
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 404/);
+  });
+
+  it("treats a scalar statusCodes as a one-element list (FAIL on mismatch)", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/201`,
+          method: "get",
+          statusCodes: 200,
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Expected one of \[200\]/);
+  });
+
   it("should FAIL for unresolvable URL", async function () {
     const result = await httpRequest({
       config: {},
@@ -165,6 +195,22 @@ describe("httpRequest openApi string shorthand", function () {
       "PASS",
       `Expected PASS but got: ${result.description}`
     );
+  });
+
+  it("merges a scalar statusCodes with openApi.statusCode", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          openApi: { operationId: "getUsers", statusCode: 200 },
+          statusCodes: 404,
+          response: {},
+        },
+      },
+      openApiDefinitions: definitions(),
+    });
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 200/);
   });
 
   it("string shorthand matches the object form { operationId }", async function () {

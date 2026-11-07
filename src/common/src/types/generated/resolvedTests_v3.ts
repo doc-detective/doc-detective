@@ -1726,9 +1726,9 @@ export type HTTPRequestDetailed = (
   url?: HTTPRequestSimple1;
   openApi?: (string & OperationID) | (OpenApi & OpenAPIDefinitionHttpRequest);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
@@ -6631,6 +6631,10 @@ export type Test = (
     }
 ) & {
   /**
+   * JSON Schema URL for editor support. Doc Detective ignores it.
+   */
+  $schema?: string;
+  /**
    * Unique identifier for the test.
    */
   testId?: string;
@@ -8633,9 +8637,9 @@ export type HTTPRequestDetailed1 = (
   url?: HTTPRequestSimple3;
   openApi?: (string & OperationID1) | (OpenApi4 & OpenAPIDefinitionHttpRequest1);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
@@ -15151,9 +15155,9 @@ export type HTTPRequestDetailed2 = (
   url?: HTTPRequestSimple5;
   openApi?: (string & OperationID2) | (OpenApi6 & OpenAPIDefinitionHttpRequest2);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
@@ -19959,9 +19963,9 @@ export interface ResolvedTests {
  */
 export interface Config {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json";
+  $schema?: string;
   /**
    * Identifier for the configuration.
    */
@@ -20105,9 +20109,9 @@ export interface Config {
  */
 export interface Context {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */
@@ -20380,9 +20384,9 @@ export interface MarkupDefinition {
 }
 export interface Common {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -20644,9 +20648,9 @@ export interface RequestHeadersObject {
 }
 export interface Common1 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -20940,9 +20944,9 @@ export interface ByCriteria2 {
 }
 export interface Common2 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -21437,9 +21441,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
 }
 export interface Common3 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -21721,9 +21725,9 @@ export interface NewWindowConflictsWithASurfaceWindowOrTabSelector {
 }
 export interface Common4 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -22021,9 +22025,9 @@ export interface ResponseBodyObject {
 }
 export interface Common5 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -22340,9 +22344,9 @@ export interface RunShellCommandDetailed {
 }
 export interface Common6 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -22660,9 +22664,9 @@ export interface RunCodeDetailed {
 }
 export interface Common7 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -22974,9 +22978,9 @@ export interface ByCriteria15 {
 }
 export interface Common8 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -23322,9 +23326,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness1 {
 }
 export interface Common9 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -24156,9 +24160,9 @@ export interface AppCapturesDonTSupportCropYet {
 }
 export interface Common10 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -24383,9 +24387,9 @@ export interface SaveCookie {
 }
 export interface Common11 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -24754,9 +24758,9 @@ export interface RecordingCheckpointsDetailed {
 }
 export interface Common12 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -24987,9 +24991,9 @@ export interface StopRecordDetailed {
 }
 export interface Common13 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -25364,9 +25368,9 @@ export interface ByCriteria30 {
 }
 export interface Common14 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -25997,9 +26001,9 @@ export interface ProcessDescriptor1 {
 }
 export interface Common15 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -26224,9 +26228,9 @@ export interface LoadVariables1 {
 }
 export interface Common16 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -26521,9 +26525,9 @@ export interface ByCriteria32 {
 }
 export interface Common17 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -26748,9 +26752,9 @@ export interface LoadCookie {
 }
 export interface Common18 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -27166,9 +27170,9 @@ export interface ByCriteria38 {
 }
 export interface Common19 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -27393,9 +27397,9 @@ export interface Wait {
 }
 export interface Common20 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -28834,9 +28838,10 @@ export interface EnvironmentDetails {
    */
   platform: "linux" | "mac" | "windows";
   /**
-   * The processor architecture of the system running Doc Detective.
+   * The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.
    */
-  arch?: "arm32" | "arm64" | "x32" | "x64";
+  arch?:
+    "arm" | "arm64" | "ia32" | "loong64" | "mips" | "mipsel" | "ppc" | "ppc64" | "riscv64" | "s390" | "s390x" | "x64";
   /**
    * The version of Doc Detective that ran, for example `4.42.0`.
    */
@@ -29191,9 +29196,9 @@ export interface AnnotationTransition3 {
 }
 export interface Specification {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the test specification.
    */
@@ -29242,9 +29247,9 @@ export interface Specification {
  */
 export interface Context1 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */
@@ -30129,9 +30134,9 @@ export interface AnnotationTransition5 {
  */
 export interface Context2 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */
@@ -30403,9 +30408,9 @@ export interface Retry87 {
 }
 export interface Common21 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -30667,9 +30672,9 @@ export interface RequestHeadersObject2 {
 }
 export interface Common22 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -30963,9 +30968,9 @@ export interface ByCriteria41 {
 }
 export interface Common23 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -31460,9 +31465,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness2 {
 }
 export interface Common24 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -31744,9 +31749,9 @@ export interface NewWindowConflictsWithASurfaceWindowOrTabSelector1 {
 }
 export interface Common25 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -32044,9 +32049,9 @@ export interface ResponseBodyObject1 {
 }
 export interface Common26 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -32363,9 +32368,9 @@ export interface RunShellCommandDetailed2 {
 }
 export interface Common27 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -32683,9 +32688,9 @@ export interface RunCodeDetailed1 {
 }
 export interface Common28 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -32997,9 +33002,9 @@ export interface ByCriteria54 {
 }
 export interface Common29 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -33345,9 +33350,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness3 {
 }
 export interface Common30 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -34179,9 +34184,9 @@ export interface AppCapturesDonTSupportCropYet1 {
 }
 export interface Common31 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -34406,9 +34411,9 @@ export interface SaveCookie2 {
 }
 export interface Common32 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -34777,9 +34782,9 @@ export interface RecordingCheckpointsDetailed1 {
 }
 export interface Common33 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -35010,9 +35015,9 @@ export interface StopRecordDetailed1 {
 }
 export interface Common34 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -35387,9 +35392,9 @@ export interface ByCriteria69 {
 }
 export interface Common35 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -36020,9 +36025,9 @@ export interface ProcessDescriptor3 {
 }
 export interface Common36 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -36247,9 +36252,9 @@ export interface LoadVariables3 {
 }
 export interface Common37 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -36544,9 +36549,9 @@ export interface ByCriteria71 {
 }
 export interface Common38 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -36771,9 +36776,9 @@ export interface LoadCookie2 {
 }
 export interface Common39 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -37189,9 +37194,9 @@ export interface ByCriteria77 {
 }
 export interface Common40 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -37416,9 +37421,9 @@ export interface Wait2 {
 }
 export interface Common41 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -38711,9 +38716,9 @@ export interface OpenAPIDescriptionTest3 {
 }
 export interface Common42 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -38975,9 +38980,9 @@ export interface RequestHeadersObject4 {
 }
 export interface Common43 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -39271,9 +39276,9 @@ export interface ByCriteria80 {
 }
 export interface Common44 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -39768,9 +39773,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness4 {
 }
 export interface Common45 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -40052,9 +40057,9 @@ export interface NewWindowConflictsWithASurfaceWindowOrTabSelector2 {
 }
 export interface Common46 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -40352,9 +40357,9 @@ export interface ResponseBodyObject2 {
 }
 export interface Common47 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -40671,9 +40676,9 @@ export interface RunShellCommandDetailed3 {
 }
 export interface Common48 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -40991,9 +40996,9 @@ export interface RunCodeDetailed2 {
 }
 export interface Common49 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -41305,9 +41310,9 @@ export interface ByCriteria93 {
 }
 export interface Common50 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -41653,9 +41658,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness5 {
 }
 export interface Common51 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -42487,9 +42492,9 @@ export interface AppCapturesDonTSupportCropYet2 {
 }
 export interface Common52 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -42714,9 +42719,9 @@ export interface SaveCookie4 {
 }
 export interface Common53 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -43085,9 +43090,9 @@ export interface RecordingCheckpointsDetailed2 {
 }
 export interface Common54 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -43318,9 +43323,9 @@ export interface StopRecordDetailed2 {
 }
 export interface Common55 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -43695,9 +43700,9 @@ export interface ByCriteria108 {
 }
 export interface Common56 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -44328,9 +44333,9 @@ export interface ProcessDescriptor5 {
 }
 export interface Common57 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -44555,9 +44560,9 @@ export interface LoadVariables5 {
 }
 export interface Common58 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -44852,9 +44857,9 @@ export interface ByCriteria110 {
 }
 export interface Common59 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -45079,9 +45084,9 @@ export interface LoadCookie4 {
 }
 export interface Common60 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -45497,9 +45502,9 @@ export interface ByCriteria116 {
 }
 export interface Common61 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -45724,9 +45729,9 @@ export interface Wait4 {
 }
 export interface Common62 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
