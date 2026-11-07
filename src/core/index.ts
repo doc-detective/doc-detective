@@ -12,6 +12,7 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import { specWarnings, warnUpgrade } from "../upgradeNotice.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -99,6 +100,9 @@ async function runTestsAndReport(config: any, options: any) {
     resolvedTests.config = config;
   }
 
+  // Upgrade warnings go to stderr, so they keep the caller's level in a dry run.
+  const callerLogLevel = config?.logLevel;
+
   // Dry-run requires clean stdout so the JSON dump can be piped through
   // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
   // detectAndResolveTests below) and skip the telemetry notice — both would
@@ -152,6 +156,7 @@ async function runTestsAndReport(config: any, options: any) {
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
     }
+    warnUpgrade(specWarnings(resolvedTests), callerLogLevel);
     // Browser detection, deferred from setConfig so a run whose contexts
     // can't use it skips it (ADR 01133). Any run that can still gets the same
     // environment.apps, as do API-dispatched runs, which send the resolved

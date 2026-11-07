@@ -19,6 +19,24 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | `--concurrent-runners` with no value | Needs a value. Use `--concurrent-runners true` |
 | The `doc-detective-lsp` bin | Removed. Use `doc-detective lsp --stdio` |
 | The `doc-detective-runner` bin | Replaced by a `doc-detective runner` command |
+| `-r terminal html` | Takes one comma-separated value, like `-r terminal,html` |
+| `-t` or `-s` given twice, which 4.x ignores | A usage error. Use one comma-separated value, like `-t a,b` |
+| A `config` object in the `DOC_DETECTIVE` env var | Deprecated, and it merges below `DOC_DETECTIVE_CONFIG` and flags. Use `DOC_DETECTIVE_CONFIG` |
+| A `container` key in the `DOC_DETECTIVE` env var allows unsafe steps | It doesn't. Use `allowUnsafeSteps: true` |
+| Each boolean `DOC_DETECTIVE_*` env var reads values its own way | All of them read `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, `off`, or empty as off |
+| Browsers load from a `browser-snapshots` folder if one exists | Doc Detective ignores that folder, and browsers install into `<cacheDir>/browsers` |
+| `beforeAny` | Renamed `beforeAll`. `beforeAny` still works, with a warning |
+| `reporters` names in any case, like `JSON` | Exits `2`. Use `terminal`, `json`, `html`, `runFolder`, `junit`, or `markdown` |
+| `stop: "spec"`, `stop: "run"`, or `goToTest` in a step's routing, and `stop: "run"`, `retry`, or `goToStep` in a test's | Exits `2` |
+| `"click": true` clicks the text `true` | Exits `2`. Use `"click": "true"` for that text |
+| `browser: "edge"` on a surface, and a device's `orientation`, `udid`, and `provider` | Removed |
+| `timeout: 0` on an operation, and negative durations, delays, and timeouts | Exits `2` |
+| `screenshot: false` takes a screenshot | Skips the step. Use `screenshot: true` for a screenshot |
+| `find.click` set to text, or to an object with keys other than `button` and `duration` | Exits `2` |
+| A locator such as `selector` inside `find.type` | Exits `2`. Use a separate `type` step |
+| A `goTo` or `httpRequest` URL that starts with a `$VAR`, like `$URL/docs` | Exits `2`. A URL starts with `http://`, `https://`, or `/`, or is a whole `$VAR` |
+| A `saveCookie` or `loadCookie` path with a `/` that doesn't end in `.txt` | Exits `2` |
+| An app's `workingDirectory: "."` | Fails the step |
 
 Logs also move to stderr, so stdout carries only results.
 

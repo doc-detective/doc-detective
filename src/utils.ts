@@ -3,7 +3,16 @@ import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
-import { concurrentRunnersWarnings, outputWarnings, warnUpgrade } from "./upgradeNotice.js";
+import {
+  browsersDirWarnings,
+  concurrentRunnersWarnings,
+  configWarnings,
+  envWarnings,
+  flagWarnings,
+  outputWarnings,
+  warnUpgrade,
+} from "./upgradeNotice.js";
+import { getBrowsersDir } from "./runtime/cacheDir.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -533,6 +542,10 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     [
       ...outputWarnings(outputSetting, String(config.output)),
       ...concurrentRunnersWarnings(args.concurrentRunners),
+      ...flagWarnings(args),
+      ...envWarnings(process.env, config),
+      ...configWarnings(config),
+      ...browsersDirWarnings(getBrowsersDir({ cacheDir: config.cacheDir })),
     ],
     config.logLevel
   );

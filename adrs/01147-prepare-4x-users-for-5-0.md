@@ -60,10 +60,28 @@ Each warning goes to stderr once per process, and links
 | `install --silent` | Removed; use `--quiet` |
 | `--concurrent-runners` with no value | Removed; use `--concurrent-runners true` |
 | The `doc-detective-lsp` bin | Removed. Only this bin warns, because hosted images are the only callers of `doc-detective-runner` |
+| `-r` with several values, or `-t` or `-s` given twice | One comma-separated value; a repeat is a usage error |
+| A `config` object in `DOC_DETECTIVE` | Deprecated; use `DOC_DETECTIVE_CONFIG` |
+| A `container` key in `DOC_DETECTIVE`, and `allowUnsafeSteps` unset | Doesn't allow unsafe steps |
+| A boolean `DOC_DETECTIVE_*` env var whose meaning flips, or that 5.0 doesn't accept | One grammar for every boolean env var |
+| Browsers load from a `browser-snapshots` folder | Ignored |
+| `beforeAny` | Renamed `beforeAll` |
+| A `reporters` name that isn't exact | Exits `2` |
+| Spec content that 5.0 rejects or reads differently | Exits `2`, fails the step, or skips it |
 
 An output path names a folder when it ends in a slash, is an existing directory, or has no file
 extension. 4.x itself treats that last case as a folder. It's stricter than 5.0's check, so
 a first run to a new `--output results` warns too.
+
+Spec rows come from `runTests` right after it resolves tests, so they print before any step runs,
+in a dry run too. That makes them the only rows a programmatic `runTests` call can print. Each names
+the spec file, not the line. They read resolved steps, which keep the values as written, so a
+`"click": true` still reads as a boolean. Inline steps in Markdown get the same checks.
+Every check is a key lookup on a step, a test, or its routing entries, plus one scan for negative
+`timeout`, `duration`, `delay`, and `wait` values. No row runs another schema validation.
+
+The `container` row fires on every run in the 4.x Docker images, which set `DOC_DETECTIVE`, until the
+user sets `allowUnsafeSteps` either way.
 
 Warnings stay quiet at `logLevel: silent`, and when `DOC_DETECTIVE_META.dist_interface` is
 `github-actions`, because Action v1.7 has its own notice. The runner sets neither, so the

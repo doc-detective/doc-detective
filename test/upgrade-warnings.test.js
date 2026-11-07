@@ -4,7 +4,16 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { commandWarnings, namesFolder, runResultWarnings } from "../dist/upgradeNotice.js";
+import {
+  browsersDirWarnings,
+  commandWarnings,
+  configWarnings,
+  envWarnings,
+  flagWarnings,
+  namesFolder,
+  runResultWarnings,
+  specWarnings,
+} from "../dist/upgradeNotice.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -14,8 +23,9 @@ before(async function () {
 const URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 const ACTION_META = JSON.stringify({ dist_interface: "github-actions" });
 
-function run(script, args, { env = {}, cwd, timeout = 60000 } = {}) {
-  const { DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
+function run(script, args, { env = {}, cwd, timeout = 60000, unset = [] } = {}) {
+  const { DOC_DETECTIVE, DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
+  for (const key of unset) delete hostEnv[key];
   return spawnSync(process.execPath, [path.resolve(script), ...args], {
     env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", ...env },
     encoding: "utf8",
@@ -203,6 +213,189 @@ describe("upgrade warnings", function () {
     it("stays quiet in the Action", function () {
       const r = run("bin/doc-detective-lsp.js", ["--stdio"], { env: { DOC_DETECTIVE_META: ACTION_META }, timeout: 5000 });
       expect(r.stderr).to.not.include(URL);
+    });
+  });
+
+  describe("setup rows", function () {
+    it("DOC_DETECTIVE with a config object", function () {
+      expect(envWarnings({ DOC_DETECTIVE: '{"config":{"logLevel":"debug"}}' }, {})[0]).to.include(
+        "`DOC_DETECTIVE_CONFIG`"
+      );
+      expect(envWarnings({ DOC_DETECTIVE: '{"version":"4.0.0"}' }, {})).to.deep.equal([]);
+      expect(envWarnings({ DOC_DETECTIVE: "not json" }, {})).to.deep.equal([]);
+    });
+
+    it("DOC_DETECTIVE container, unless allowUnsafeSteps is set", function () {
+      const env = { DOC_DETECTIVE: '{"container":"docdetective/docdetective:linux"}' };
+      expect(envWarnings(env, {})[0]).to.include("`allowUnsafeSteps: true`");
+      expect(envWarnings(env, { allowUnsafeSteps: false })).to.deep.equal([]);
+      expect(envWarnings(env, { allowUnsafeSteps: true })).to.deep.equal([]);
+    });
+
+    it("browsers from a legacy browser-snapshots folder", function () {
+      expect(browsersDirWarnings(path.join(dir, "browser-snapshots"))[0]).to.include("`cacheDir`");
+      expect(browsersDirWarnings(path.join(dir, "browsers"))).to.deep.equal([]);
+    });
+
+    it("more than one reporter after -r, or a repeated -r", function () {
+      expect(flagWarnings({ reporters: ["terminal", "html"] })[0]).to.include("`-r terminal,html`");
+      expect(flagWarnings({ reporters: ["terminal"] })).to.deep.equal([]);
+    });
+
+    it("a repeated -t or -s", function () {
+      const [test, spec] = flagWarnings({ test: ["a", "b"], spec: ["c", "d"] });
+      expect(test).to.include("`--test a,b`");
+      expect(spec).to.include("`--spec a,b`");
+      expect(flagWarnings({ test: "a,b", spec: "c" })).to.deep.equal([]);
+    });
+
+    it("a DOC_DETECTIVE_* boolean whose meaning flips, or that 5.0 won't read", function () {
+      const [flip] = envWarnings({ DOC_DETECTIVE_SKIP_AUTO_UPDATE: "false" }, {});
+      expect(flip).to.include("on today and off in Doc Detective 5.0");
+      expect(envWarnings({ DOC_DETECTIVE_RUNTIME_DEBUG: "true" }, {})[0]).to.include("off today and on");
+      expect(envWarnings({ DOC_DETECTIVE_DEBUG: "maybe" }, {})[0]).to.include("doesn't accept");
+      expect(envWarnings({ DOC_DETECTIVE_ALLOW_LOCAL_URLS: "1" }, {})[0]).to.include("`true` for on");
+      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("`0` for off");
+      const same = {
+        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
+        DOC_DETECTIVE_DEBUG: "0",
+        DOC_DETECTIVE_RUNTIME_DEBUG: "1",
+        DOC_DETECTIVE_ALLOW_LOCAL_URLS: "true",
+        DOC_DETECTIVE_REUSE_APPIUM: "true",
+        DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: "",
+        DOC_DETECTIVE_AUTOINSTALL: "off",
+        DOC_DETECTIVE_CACHE_DIR: "no",
+      };
+      expect(envWarnings(same, {})).to.deep.equal([]);
+    });
+
+    it("beforeAny in config", function () {
+      expect(configWarnings({ beforeAny: "setup.spec.json" })[0]).to.include("`beforeAll`");
+      expect(configWarnings({ afterAll: "teardown.spec.json" })).to.deep.equal([]);
+    });
+
+    it("reporters that aren't exact public names", function () {
+      expect(configWarnings({ reporters: ["JSON", "terminal"] })[0]).to.include("'JSON'");
+      expect(configWarnings({ reporters: ["plainReporter"] })[0]).to.include("'plainReporter'");
+      expect(configWarnings({ reporters: ["terminal", "json", "html", "runFolder", "junit", "markdown"] })).to.deep.equal([]);
+    });
+
+    it("prints them from the CLI", function () {
+      const config = spec("config.json", { beforeAny: spec("setup.spec.json", PASSING_SPEC), reporters: ["JSON"] });
+      const r = runCli(
+        ["--config", config, "--input", spec("p.spec.json", PASSING_SPEC), "--dry-run", "-t", "a", "-t", "b"],
+        { env: { DOC_DETECTIVE: '{"config":{}}', DOC_DETECTIVE_SKIP_AUTO_UPDATE: "no" } }
+      );
+      expect(r.status).to.equal(0);
+      for (const text of ["`DOC_DETECTIVE_CONFIG`", "`DOC_DETECTIVE_SKIP_AUTO_UPDATE`", "`--test a,b`", "`beforeAll`", "'JSON'"]) {
+        expect(r.stderr).to.include(text);
+      }
+      expect(() => JSON.parse(r.stdout)).to.not.throw();
+    });
+
+    it("prints the browser-snapshots row from the CLI", function () {
+      fs.mkdirSync(path.join(dir, "browser-snapshots"));
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--dry-run"], {
+        cwd: dir,
+        unset: ["DOC_DETECTIVE_CACHE_DIR"],
+      });
+      expect(r.stderr).to.include("browser-snapshots").and.include(URL);
+    });
+  });
+
+  describe("spec rows", function () {
+    const resolved = (steps, test = {}) => ({
+      specs: [{ contentPath: path.resolve("docs", "a.spec.json"), tests: [{ ...test, contexts: [{ steps }] }] }],
+    });
+    const warns = (steps, test) => specWarnings(resolved(steps, test));
+
+    it("routing a step or test can't perform", function () {
+      expect(warns([{ wait: 1, onFail: [{ stop: "spec" }] }])[0]).to.include('`stop: "spec"`');
+      expect(warns([{ wait: 1, onPass: [{ stop: "run" }] }])[0]).to.include('`stop: "run"`');
+      expect(warns([{ wait: 1, onFail: [{ goToTest: "t2" }] }])[0]).to.include("`goToTest`");
+      expect(warns([{ wait: 1 }], { onFail: [{ stop: "run" }] })[0]).to.include('`stop: "run"`');
+      expect(warns([{ wait: 1 }], { onFail: [{ retry: { limit: 1 } }] })[0]).to.include("`retry`");
+      expect(warns([{ wait: 1 }], { onWarning: [{ goToStep: "s1" }] })[0]).to.include("`goToStep`");
+      expect(
+        warns([{ wait: 1, onSkip: [{ retry: { limit: 1 } }], onFail: [{ stop: "test" }, { goToStep: "s1" }] }], {
+          onFail: [{ stop: "spec" }, { goToTest: "t2" }],
+        })
+      ).to.deep.equal([]);
+    });
+
+    it("names the spec file", function () {
+      expect(warns([{ screenshot: false }])[0]).to.include(`'${path.join("docs", "a.spec.json")}'`);
+    });
+
+    it("a boolean click", function () {
+      expect(warns([{ click: true }])[0]).to.include('`"click": "true"`');
+      expect(warns([{ click: false }])).to.have.length(1);
+      expect(warns([{ click: "true" }, { find: { selector: "#a", click: true } }])).to.deep.equal([]);
+    });
+
+    it("an edge surface, and removed device keys", function () {
+      expect(warns([{ startSurface: { browser: "edge" } }])[0]).to.include('`browser: "edge"`');
+      expect(warns([{ closeSurface: [{ browser: "edge" }] }])).to.have.length(1);
+      const device = { app: "com.example", device: { platform: "android", orientation: "landscape" } };
+      expect(warns([{ startSurface: device }])[0]).to.include("`orientation`");
+      expect(warns([{ startSurface: { browser: "chrome" } }, { closeSurface: "main" }])).to.deep.equal([]);
+    });
+
+    it("timeout 0 on operations, and negative durations", function () {
+      expect(warns([{ runShell: { command: "echo", timeout: 0 } }])[0]).to.include("`timeout: 0`");
+      expect(warns([{ startSurface: { process: "npm", name: "p", timeout: 0 } }])).to.have.length(1);
+      expect(warns([{ wait: -1 }])[0]).to.include("negative `wait`");
+      expect(warns([{ type: { keys: "a", inputDelay: -5 } }])[0]).to.include("negative `inputDelay`");
+      expect(
+        warns([{ runShell: { command: "echo", timeout: 1 } }, { find: { selector: "#a", timeout: 0 } }, { wait: 0 }])
+      ).to.deep.equal([]);
+    });
+
+    it("screenshot: false", function () {
+      expect(warns([{ screenshot: false }])[0]).to.include("`screenshot: true`");
+      expect(warns([{ screenshot: true }])).to.deep.equal([]);
+    });
+
+    it("find.click that isn't a boolean, a button, or {button, duration}", function () {
+      expect(warns([{ find: { selector: "#a", click: "Submit" } }])[0]).to.include("`find.click`");
+      expect(warns([{ find: { selector: "#a", click: { button: "left", selector: "#b" } } }])).to.have.length(1);
+      expect(
+        warns([
+          { find: { selector: "#a", click: "right" } },
+          { find: { selector: "#a", click: { button: "left", duration: 500 } } },
+        ])
+      ).to.deep.equal([]);
+    });
+
+    it("find.type with its own locator", function () {
+      expect(warns([{ find: { selector: "#a", type: { keys: "x", selector: "#b" } } }])[0]).to.include("`find.type`");
+      expect(warns([{ find: { selector: "#a", type: { keys: "x" } } }, { find: { selector: "#a", type: "x" } }])).to.deep.equal([]);
+    });
+
+    it("goTo and httpRequest URLs 5.0 won't accept", function () {
+      expect(warns([{ goTo: "$URL/docs" }])[0]).to.include("'$URL/docs'");
+      expect(warns([{ httpRequest: { url: "$API/users" } }])).to.have.length(1);
+      expect(
+        warns([{ goTo: "$URL" }, { goTo: "/docs" }, { goTo: { url: "https://example.com" } }, { httpRequest: "http://a.b" }])
+      ).to.deep.equal([]);
+    });
+
+    it("a cookie path with a slash that doesn't end in .txt", function () {
+      expect(warns([{ saveCookie: "auth/session" }])[0]).to.include("`.txt`");
+      expect(warns([{ loadCookie: "auth/session.json" }])).to.have.length(1);
+      expect(warns([{ saveCookie: "auth/session.txt" }, { loadCookie: "session" }])).to.deep.equal([]);
+    });
+
+    it('an app with workingDirectory: "."', function () {
+      expect(warns([{ startSurface: { app: "notepad", workingDirectory: "." } }])[0]).to.include('`workingDirectory: "."`');
+      expect(warns([{ startSurface: [{ app: "notepad", workingDirectory: "C:\\work" }] }])).to.deep.equal([]);
+    });
+
+    it("prints them from the CLI, also with --dry-run", function () {
+      const file = spec("s.spec.json", { tests: [{ steps: [{ wait: 1 }, { screenshot: false }] }] });
+      const r = runCli(["--input", file, "--dry-run"]);
+      expect(r.stderr).to.include("`screenshot: true`").and.include("s.spec.json").and.include(URL);
+      expect(() => JSON.parse(r.stdout)).to.not.throw();
     });
   });
 
