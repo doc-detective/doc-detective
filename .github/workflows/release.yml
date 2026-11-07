@@ -9,6 +9,9 @@
 #
 # Prerelease branches (`next`, `feat/**`) publish to their own dist-tag and
 # skip smoke/promote/docker — those channels don't feed @latest.
+#
+# The `4.x` maintenance branch publishes to `release-4.x` and skips them too,
+# because promote runs only on main.
 
 name: Release
 
@@ -16,6 +19,7 @@ on:
   push:
     branches:
       - main
+      - 4.x
       - next
       - 'feat/**'
     paths-ignore:
@@ -89,6 +93,9 @@ jobs:
           # our @semantic-release/exec publishCmd relies on.
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Unset is the normal, locked state: verify-major-release.js fails a
+          # major on main unless a maintainer sets this repository variable.
+          ALLOW_MAJOR_RELEASE: ${{ vars.ALLOW_MAJOR_RELEASE }}
         run: npx semantic-release
 
   # Tail of the chain (smoke-test → promote → docker) lives in the

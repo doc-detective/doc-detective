@@ -104,6 +104,21 @@ describe("runtime/selfUpdate", function () {
       expect(res.newer).to.equal(false);
     });
 
+    it("the default logger sends the new-major notice to stderr, not stdout", async function () {
+      const out = [], err = [];
+      const { log, error } = console;
+      console.log = (m) => out.push(m);
+      console.error = (m) => err.push(m);
+      try {
+        await checkForUpdate("4.5.0", { http: fakeHttp({ "dist-tags": { latest: "5.0.0" } }) });
+      } finally {
+        console.log = log;
+        console.error = error;
+      }
+      expect(out.join(" ")).to.not.include("npm i doc-detective@5");
+      expect(err.join(" ")).to.include("npm i doc-detective@5");
+    });
+
     it("falls back to the default logger when deps.logger is omitted", async function () {
       // Exercises the `deps.logger ?? defaultLogger` fallback with an injected
       // http so no real network call happens.
