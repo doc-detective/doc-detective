@@ -25,7 +25,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "steps[0].onFail[0].stop"
+            "stdio": "tests[0].steps[0].onFail[0].stop"
           }
         },
         {
@@ -35,7 +35,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "steps[0].onFail[0].stop"
+            "stdio": "tests[0].steps[0].onFail[0].stop"
           }
         },
         {
@@ -45,7 +45,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "steps[0].onFail[0]: unknown key 'goToTest'"
+            "stdio": "tests[0].steps[0].onFail[0]: unknown key 'goToTest'"
           }
         }
       ]
