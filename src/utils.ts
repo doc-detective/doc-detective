@@ -207,8 +207,7 @@ function readLegacyEnvConfig() {
   const config = legacy?.config;
   if (config === null || typeof config !== "object" || Array.isArray(config)) return null;
   warnOnce("DOC_DETECTIVE", '`DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
-  assertValidConfig(config, "DOC_DETECTIVE");
-  return anchorPaths(config, process.cwd());
+  return anchorPaths(assertValidConfig(config, "DOC_DETECTIVE"), process.cwd());
 }
 
 // A relative `output` or `cacheDir` resolves against the source that set it:
@@ -298,19 +297,22 @@ async function readUserConfig() {
   if (config === null || typeof config !== "object") {
     throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
   }
-  assertValidConfig(config, `user config ${file}`);
-  return anchorPaths(config, configFileBase(config, file));
+  const valid = assertValidConfig(config, `user config ${file}`);
+  return anchorPaths(valid, configFileBase(valid, file));
 }
 
 // Validate one config source on its own, so an error names where it came from.
 // `addDefaults: false` only picks which object validate() returns: it still
 // validates a defaulted clone, so a partial source such as
 // `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
-function assertValidConfig(config: any, source: string) {
+// Returns the source to merge: the caller's own object, or a v2 config's v3
+// form, so the merge never mixes v2 keys into a v3 config.
+function assertValidConfig(config: any, source: string): any {
   const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
   if (!validation.valid) {
     throw new Error(configErrorMessage(source, validation.errorObjects, config), { cause: validation.errors });
   }
+  return validation.object;
 }
 
 // Secrets can come from a file rather than the config or environment, where they
@@ -397,7 +399,7 @@ async function setConfig({
     if (typeof config !== "object") {
       throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
     }
-    assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
+    config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
     config = anchorPaths(config, configFileBase(config, configPath));
   }
 

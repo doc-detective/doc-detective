@@ -672,6 +672,21 @@ describe("CLI contract", function () {
       expect(r.stderr).to.include(`Error: Invalid config in user config ${file}:\nshell: must be one of`);
     });
 
+    it("merges a v2 project config as v3, beside a user config", function () {
+      // The Docker image ships a user config, so a v2 project config meets one
+      // there. Merging its raw v2 keys made the combined config invalid.
+      const home = path.join(cwd, "xdg-v2");
+      fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+      fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ allowUnsafeSteps: true }));
+      fs.writeFileSync(
+        path.join(cwd, "v2.json"),
+        JSON.stringify({ envVariables: "", input: ".", runTests: { detectSteps: false }, telemetry: { send: false } })
+      );
+      const r = run(["-c", "v2.json", "-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
+      expect(r.stderr).to.not.include("Invalid config");
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
     it("prints a config error once, even when the runner finds it", function () {
       const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { shell: "zsh" } }) } });
       expect(r.status).to.equal(2);
