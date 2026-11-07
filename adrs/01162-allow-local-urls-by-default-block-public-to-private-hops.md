@@ -54,15 +54,21 @@ from a public address to a private one:
 
 * a redirect from a public host to a private, loopback or link-local address. The guarded fetch
   follows redirects by hand (up to 5) and checks each hop;
-* an external HTTP `$ref` in a public OpenAPI document that points at a private address. That's a
-  publicly hosted description, or any public document a `$ref` reaches, at any depth. Doc Detective
-  turns off the parser's own `safeUrlResolver` and reads `$ref`s through the same guarded fetch.
-  After it reads a public document, it records the `$ref`s inside it. A private read that one of
-  those `$ref`s asked for is refused, and the message names that public document. A local
-  description can still `$ref` a public document and a private one side by side.
-* a local file `$ref` in a public OpenAPI document, by the same rule, in default and strict mode.
-  That covers `file://` refs, and relative refs in a public root, which resolve against the working
-  directory. A local description can still `$ref` local files.
+* an OpenAPI `$ref` to a private address or a local file once a public document is in play. The
+  rule fails closed and doesn't track which document asked for which `$ref`. Parsing `$ref` values
+  out of public documents is itself attack surface: alias bombs, recursive anchors, and odd
+  spellings of the same URL. Doc Detective turns off the parser's own `safeUrlResolver` and
+  reads HTTP `$ref`s through the same guarded fetch.
+  * The dereference starts "public" when the root description is a URL, unless every address of
+    its host is private. A failed lookup counts as public.
+  * A fetched document counts as public by the address its request connected to. When that's
+    unknown, as through a proxy, it counts as public unless every address of its host is private.
+  * From then on, every private, loopback or link-local HTTP read and every local file read is
+    refused, in default and strict mode. The message names the most recent public document. File
+    reads include `file://` refs, and relative refs in a public root, which resolve against the
+    working directory.
+  * A local description can `$ref` local files and private addresses until it reads a public
+    document.
 
 A local document that redirects or refers to local addresses is fine. Step requests stay unguarded.
 
@@ -110,8 +116,9 @@ caller words its own message.
   `on`.
 * Bad: a public URL that redirects to a private address now fails where it used to pass. That's the
   case the guard exists for, and the hint names the opt-out.
-* Neutral: the parser reads each URL once. When a local description and a public document both
-  `$ref` the same private URL, the public document's `$ref` wins and the read is refused.
+* Bad: failing closed refuses some safe documents. A local description that `$ref`s a public
+  document and also a private one can be refused, depending on which the parser reads first. The
+  hint names the fixes: download the public document, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1`.
 * Good: DNS rebinding can't slip past the check. A name can answer public when it's checked and
   private when the request connects. So a request that must not reach a private address checks
   again at connect time, through its own DNS lookup, and refuses a private answer. That covers a
@@ -129,10 +136,12 @@ answers so `public.example.test` looks public to the guard but connects locally.
 * a public host's redirect to `127.0.0.1` fails with the redirect message, and loads with `ALLOW=1`;
 * a local OpenAPI description with a local `$ref` loads, and a public one fails with the `$ref`
   message;
-* a private `$ref` reached through a public document fails and names that document. A local
-  description's sibling public and private `$ref`s still load;
+* a private `$ref` reached through a public document fails and names that document. That holds when
+  the `$ref` has a trailing space, when the public document has 101 YAML aliases, and when it has a
+  recursive anchor. A private `$ref` read before any public document loads;
 * a local file `$ref` fails from a public description, in default and strict mode, and through a
-  public document. It loads from a local description;
+  public document. That covers a `file://` URL, one with a trailing space, and a Windows or POSIX
+  path. It loads from a local description;
 * a name that answers public to the check and private at connect time is refused. That holds on a
   redirect hop from a public origin, on a public description's `$ref`, and in strict mode;
 * `BLOCK=1` refuses a direct local image, the switch grammar, and the both-set error and exit 2;

@@ -6,7 +6,6 @@ import {
   redactUrlForOutput,
 } from "./utils.js";
 import { readFile } from "./files.js";
-import { requireYaml } from "./lazyYaml.js";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
 // were previously imported at module load — and `createGenerator` even ran at
@@ -44,20 +43,21 @@ async function loadDescription(descriptionPath: string = "") {
   // Load the definition from the URL or local file path
   const definition = await readFile({ fileURLOrPath: descriptionPath });
 
-  // A public document may not $ref a private address or a local file (ADR
-  // 01162). That covers a public root, and any public document a $ref reaches.
+  // Fail closed (ADR 01162): once the dereference has read any public
+  // document, every later private or local-file read is refused, whichever
+  // document asked for it. `lastPublic` is the most recent public document,
+  // named in the message. The root counts as public unless every one of its
+  // addresses is private, and so does a failed lookup.
   const guard = localUrlPolicy() !== "allow";
-  const rootPublic =
+  let lastPublic: string | undefined =
     guard &&
     /^https?:\/\//i.test(descriptionPath) &&
-    !(await privateAddressOf(descriptionPath));
-  // URL (no fragment) → the public document that $refs it.
-  const publicReferrers = new Map<string, string>();
-  const publicReferrerOf = (url: string) =>
-    publicReferrers.get(url) ?? (rootPublic ? descriptionPath : undefined);
-  const refused = (ref: string, referrer: string, target: string) =>
+    !(await privateAddressOf(descriptionPath, { every: true }).catch(() => undefined))
+      ? descriptionPath
+      : undefined;
+  const refused = (ref: string, doc: string, target: string) =>
     new Error(
-      `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(referrer)}: a public document can't refer to ${target}.\n` +
+      `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: a public document can't refer to ${target}.\n` +
         "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
 
@@ -69,8 +69,7 @@ async function loadDescription(descriptionPath: string = "") {
     resolve: {
       file: {
         async read(file: { url: string }) {
-          const referrer = publicReferrerOf(withoutHash(file.url));
-          if (referrer) throw refused(withoutHash(file.url), referrer, "a local file");
+          if (lastPublic) throw refused(file.url.split("#")[0], lastPublic, "a local file");
           return (FileResolver.read as (file: unknown) => Promise<Buffer>)(file);
         },
       },
@@ -79,63 +78,34 @@ async function loadDescription(descriptionPath: string = "") {
         // local description. getGuarded applies Doc Detective's policy instead.
         safeUrlResolver: false,
         async read(file: { url: string }) {
-          const url = withoutHash(file.url);
-          const isPrivate = guard && !!(await privateAddressOf(url));
-          const referrer = publicReferrerOf(url);
-          if (isPrivate && referrer) {
-            throw refused(redactUrlForOutput(file.url), referrer, "a private address");
+          const ref = redactUrlForOutput(file.url);
+          const doc = lastPublic;
+          if (doc && (await privateAddressOf(file.url))) {
+            throw refused(ref, doc, "a private address");
           }
-          // From a public referrer, the connection must not land on a private
-          // address either (DNS rebinding).
-          const refuse = referrer
-            ? () => refused(redactUrlForOutput(file.url), referrer, "a private address")
-            : undefined;
-          const data = Buffer.from((await getGuarded(file.url, undefined, refuse)).data);
-          if (guard && !isPrivate) {
-            // Remember what this public document refers to, so a private
-            // target is refused when the parser reads it next.
-            // Fragment-only refs map back to this document, which is public,
-            // so they never match a private read; no need to skip them.
-            for (const ref of refsIn(parseDocument(data.toString("utf8")))) {
-              const target = URL.parse(ref, url);
-              if (!target) continue;
-              const key = withoutHash(target.href);
-              if (!publicReferrers.has(key)) publicReferrers.set(key, url);
-            }
+          // After a public document, the connection must not land on a
+          // private address either (DNS rebinding).
+          const { data, reachedPublic } = await getGuarded(
+            file.url,
+            undefined,
+            doc ? () => refused(ref, doc, "a private address") : undefined
+          );
+          // Public by the address the request connected to. When that's
+          // unknown (a proxy), public unless every address is private.
+          if (
+            guard &&
+            (reachedPublic ??
+              !(await privateAddressOf(file.url, { every: true }).catch(() => undefined)))
+          ) {
+            lastPublic = file.url.split("#")[0];
           }
-          return data;
+          return Buffer.from(data);
         },
       },
     },
   } as any);
 
   return dereferencedDefinition;
-}
-
-function withoutHash(url: string): string {
-  return url.split("#")[0];
-}
-
-// JSON, else YAML, else nothing (a document neither parses has no $refs to track).
-function parseDocument(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    try {
-      return requireYaml().parse(text);
-    } catch {
-      return undefined;
-    }
-  }
-}
-
-// Every string `$ref` value in a parsed document, at any depth.
-function refsIn(node: any, refs: string[] = []): string[] {
-  if (node && typeof node === "object") {
-    if (typeof node.$ref === "string") refs.push(node.$ref);
-    for (const value of Object.values(node)) refsIn(value, refs);
-  }
-  return refs;
 }
 
 /**

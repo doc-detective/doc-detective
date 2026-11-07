@@ -1461,13 +1461,13 @@ function localUrlPolicy(): "hops" | "allow" | "block" {
 }
 
 // The private, loopback or link-local address a URL points at, or undefined
-// when it's public. A hostname counts as private when any of its addresses is.
-//
-// Note: this is a best-effort check. DNS rebinding and TOCTOU races are
-// possible between resolution and connect; for true SSRF-grade isolation,
-// wire in an agent that validates the actual remote address at connect
-// time. This guard covers the common misuse cases.
-async function privateAddressOf(fileURL: string): Promise<string | undefined> {
+// when it's public. A hostname counts as private when any of its addresses is,
+// or with `every`, only when all of them are. Names can resolve differently
+// at connect time; getGuarded checks again there.
+async function privateAddressOf(
+  fileURL: string,
+  { every = false }: { every?: boolean } = {}
+): Promise<string | undefined> {
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1499,8 +1499,9 @@ async function privateAddressOf(fileURL: string): Promise<string | undefined> {
       `Couldn't resolve host ${host}: ${(error as Error).message}`
     );
   }
-  return addresses.find(({ address }) => isPrivateOrLoopbackAddress(address))
-    ?.address;
+  const privates = addresses.filter(({ address }) => isPrivateOrLoopbackAddress(address));
+  const isPrivate = every ? privates.length === addresses.length : privates.length > 0;
+  return isPrivate ? privates[0]?.address : undefined;
 }
 
 function strictModeError(url: string): Error {
@@ -1524,11 +1525,13 @@ const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
 // when it connects: a name can answer public to privateAddressOf() and private
 // to the connection (DNS rebinding). `refuseFirst`, from a caller whose
 // referrer is public, makes the first request refuse a private address too.
+// Returns the body, and whether any hop connected to a public address
+// (undefined when that's unknown).
 async function getGuarded(
   url: string,
   opts: object = FETCH_BINARY_DEFAULTS,
   refuseFirst?: (address: string) => Error
-) {
+): Promise<{ data: any; reachedPublic: boolean | undefined }> {
   const policy = localUrlPolicy();
   const axios = await loadAxios();
   const [{ default: http }, { default: https }] = await Promise.all([
@@ -1537,6 +1540,7 @@ async function getGuarded(
   ]);
   let current = url;
   let refuse = policy === "hops" ? refuseFirst : undefined;
+  let reachedPublic: boolean | undefined = false;
   for (let hops = 0; ; hops++) {
     if (policy === "block") {
       if (await privateAddressOf(current)) throw strictModeError(current);
@@ -1546,7 +1550,7 @@ async function getGuarded(
     // Fresh agents per request, so no pooled socket skips the lookup. It
     // notes whether the connection resolved to a private address, and
     // refuses one when `refuse` is set.
-    const seen: { resolved?: boolean; private?: string } = {};
+    const seen: { resolved?: boolean; private?: string; public?: boolean } = {};
     const guard = refuse;
     const lookup = (hostname: string, options: any, callback: any) =>
       dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
@@ -1554,6 +1558,7 @@ async function getGuarded(
         const answers = Array.isArray(address) ? address : [{ address }];
         seen.resolved = true;
         seen.private = answers.find((a: any) => isPrivateOrLoopbackAddress(a.address))?.address;
+        seen.public = answers.some((a: any) => !isPrivateOrLoopbackAddress(a.address));
         if (seen.private && guard) return callback(guard(seen.private));
         callback(null, address, family);
       });
@@ -1565,7 +1570,19 @@ async function getGuarded(
       validateStatus: (status: number) =>
         (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
     });
-    if (!REDIRECT_STATUSES.includes(response.status)) return response;
+    // An IP literal skips the lookup, so classify it directly. A name the
+    // lookup never saw leaves this hop unknown.
+    const host = new URL(current).hostname.replace(/^\[|\]$/g, "");
+    const hopPublic = seen.resolved
+      ? seen.public
+      : net.isIP(host)
+        ? !isPrivateOrLoopbackAddress(host)
+        : undefined;
+    if (hopPublic) reachedPublic = true;
+    else if (hopPublic === undefined && reachedPublic === false) reachedPublic = undefined;
+    if (!REDIRECT_STATUSES.includes(response.status)) {
+      return { data: response.data, reachedPublic };
+    }
     const location = response.headers?.location;
     if (!location || hops >= 5) {
       throw new Error(
@@ -1576,10 +1593,11 @@ async function getGuarded(
     }
     const next = new URL(location, current).toString();
     if (policy === "hops") {
-      // The hop comes from a public origin when either lookup of the current
-      // host saw a public address.
+      // Fail closed: the hop comes from a public origin unless both the
+      // connection and a fresh lookup say every address is private.
       const fromPublic =
-        (seen.resolved && !seen.private) || !(await privateAddressOf(current));
+        hopPublic ||
+        !(await privateAddressOf(current, { every: true }).catch(() => undefined));
       refuse = undefined;
       if (fromPublic) {
         const address = await privateAddressOf(next);

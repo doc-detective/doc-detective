@@ -163,6 +163,10 @@ describe("fetchFile binary mode", function () {
 // address to a private one. `public.example.test` stands in for a public
 // host: the guard's DNS check sees a public address, while the connection
 // itself lands on the local server.
+// Escape every regex metacharacter, backslash included, so a literal string
+// (a URL, a Windows path) matches only itself.
+const escapeRegExp = (s) => s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+
 describe("local URL guard (ADR 01162)", function () {
   const ALLOW = "DOC_DETECTIVE_ALLOW_LOCAL_URLS";
   const BLOCK = "DOC_DETECTIVE_BLOCK_LOCAL_URLS";
@@ -175,6 +179,7 @@ describe("local URL guard (ADR 01162)", function () {
   let httpRequest;
   let saved;
   let tmpDir;
+  let localFile;
   let localFileUrl;
 
   before(async function () {
@@ -182,62 +187,64 @@ describe("local URL guard (ADR 01162)", function () {
     ({ loadDescription } = await import("../dist/core/openapi.js"));
     ({ checkLink } = await import("../dist/core/tests/checkLink.js"));
     ({ httpRequest } = await import("../dist/core/tests/httpRequest.js"));
+    const secret = () => `http://127.0.0.1:${port}/schema.json`;
+    const json = (body) => ["application/json", JSON.stringify(body)];
+    const text = (body) => ["text/plain", body];
+    const refTo = (ref) => json({ type: "object", properties: { item: { $ref: ref } } });
+    // Path → [content type, body]. Matching on the pathname also answers
+    // requests sent through a proxy, which carry the absolute URL.
+    const routes = {
+      "/ref.png": () => ["image/png", png],
+      "/schema.json": () => json({ type: "object", properties: { id: { type: "integer" } } }),
+      "/plain.json": () => json({ type: "string" }),
+      "/openapi.yaml": () => text(openApiYaml(secret())),
+      "/openapi-chain.yaml": () => text(openApiYaml(`http://public.example.test:${port}/public-doc.yaml`)),
+      "/openapi-rebind.yaml": () => text(openApiYaml(`http://rebind.example.test:${port}/plain.json`)),
+      "/openapi-public-refs.yaml": () => text(openApiYaml(`http://other.example.test:${port}/plain.json`)),
+      // Relative refs in a description resolve against the working directory.
+      "/openapi-file.yaml": () => text(openApiYaml("./local-secret.json")),
+      "/public-doc.yaml": () =>
+        text(`type: object\nproperties:\n  item:\n    $ref: '${secret()}'\n`),
+      "/public-doc.json": () => refTo(secret()),
+      "/p-space.json": () => refTo(`${secret()} `),
+      "/p-alias.yaml": () =>
+        text(
+          "x: &x 1\n" +
+            Array.from({ length: 101 }, (_, i) => `k${i}: *x`).join("\n") +
+            `\nleak:\n  $ref: '${secret()}'\n`
+        ),
+      "/p-cycle.yaml": () => text(`a: &a\n  b: *a\nleak:\n  $ref: '${secret()}'\n`),
+      "/p-file-url.json": () => refTo(localFileUrl),
+      "/p-file-url-space.json": () => refTo(`${localFileUrl} `),
+      "/p-file-back.json": () => refTo(localFile),
+      "/p-file-fwd.json": () => refTo(localFile.split(path.sep).join("/")),
+      "/private-then-public.json": () => refTo(`http://public.example.test:${port}/plain.json`),
+    };
+    const redirects = {
+      "/redirect": () => [302, secret().replace("schema.json", "ref.png")],
+      "/to-rebind": () => [302, `http://rebind.example.test:${port}/ref.png`],
+      "/loop": () => [307, "/loop"],
+      "/no-location": () => [302, undefined],
+    };
     server = http.createServer((req, res) => {
-      if (req.url === "/ref.png") {
-        res.writeHead(200, { "Content-Type": "image/png" });
-        res.end(png);
-      } else if (req.url.split("?")[0] === "/redirect") {
-        res.writeHead(302, { Location: `http://127.0.0.1:${port}/ref.png` });
-        res.end();
-      } else if (req.url === "/to-rebind") {
-        res.writeHead(302, { Location: `http://rebind.example.test:${port}/ref.png` });
-        res.end();
-      } else if (req.url === "/loop") {
-        res.writeHead(307, { Location: "/loop" });
-        res.end();
-      } else if (req.url === "/no-location") {
-        res.writeHead(302);
-        res.end();
-      } else if (req.url === "/schema.json") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ type: "object", properties: { id: { type: "integer" } } }));
-      } else if (req.url === "/openapi.yaml") {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end(openApiYaml(`http://127.0.0.1:${port}/schema.json`));
-      } else if (req.url === "/openapi-chain.yaml") {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end(openApiYaml(`http://public.example.test:${port}/public-doc.yaml`));
-      } else if (req.url === "/public-doc.yaml") {
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end(`type: object\nproperties:\n  item:\n    $ref: 'http://127.0.0.1:${port}/schema.json'\n`);
-      } else if (req.url === "/public-doc.json") {
-        // A public schema that refers to a private address.
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            type: "object",
-            properties: { item: { $ref: `http://127.0.0.1:${port}/schema.json` } },
-          })
-        );
-      } else if (req.url === "/openapi-file.yaml") {
-        // Relative refs resolve against the working directory.
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end(openApiYaml("./local-secret.json"));
-      } else if (req.url === "/public-file-ref.json") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ properties: { x: { $ref: localFileUrl } } }));
-      } else if (req.url === "/plain.json") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ type: "string" }));
-      } else {
-        res.writeHead(404);
-        res.end();
+      const pathname = new URL(req.url, "http://x").pathname;
+      if (redirects[pathname]) {
+        const [status, location] = redirects[pathname]();
+        res.writeHead(status, location ? { Location: location } : {});
+        return res.end();
       }
+      if (!routes[pathname]) {
+        res.writeHead(404);
+        return res.end();
+      }
+      const [type, body] = routes[pathname]();
+      res.writeHead(200, { "Content-Type": type });
+      res.end(body);
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     port = server.address().port;
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-local-urls-"));
-    const localFile = path.join(tmpDir, "local.json");
+    localFile = path.join(tmpDir, "local.json");
     fs.writeFileSync(localFile, JSON.stringify({ type: "boolean" }));
     localFileUrl = pathToFileURL(localFile).href;
   });
@@ -283,14 +290,20 @@ describe("local URL guard (ADR 01162)", function () {
     ].join("\n");
   }
 
-  // Every *.example.test name answers public to the guard's check
-  // (dns/promises) and private when the connection resolves it (dns, callback
-  // form): the shape of a DNS rebinding attack. Requests that must not reach
-  // a private address are refused at connect time; the rest land locally.
+  // Fake DNS for *.example.test names, so a local server can stand in for
+  // public hosts:
+  //   - the guard's check (dns/promises) answers public for every one;
+  //   - the connection's lookup (dns, callback form) answers public too,
+  //     except rebind.example.test, which answers 127.0.0.1: the shape of a
+  //     DNS rebinding attack;
+  //   - whatever the lookup answers, the socket then connects to this
+  //     suite's server on 127.0.0.1.
   function fakePublicHost() {
     const realPromisesLookup = dnsPromises.lookup.bind(dnsPromises);
     const realLookup = dns.lookup.bind(dns);
     const fake = (host) => host.endsWith(".example.test");
+    const reply = (address, opts, cb) =>
+      opts && opts.all ? cb(null, [{ address, family: 4 }]) : cb(null, address, 4);
     sinon.stub(dnsPromises, "lookup").callsFake((host, opts) =>
       fake(host)
         ? Promise.resolve([{ address: "93.184.216.34", family: 4 }])
@@ -299,8 +312,14 @@ describe("local URL guard (ADR 01162)", function () {
     sinon.stub(dns, "lookup").callsFake((host, opts, cb) => {
       if (typeof opts === "function") [cb, opts] = [opts, {}];
       if (!fake(host)) return realLookup(host, opts, cb);
-      if (opts && opts.all) return cb(null, [{ address: "127.0.0.1", family: 4 }]);
-      return cb(null, "127.0.0.1", 4);
+      return reply(host === "rebind.example.test" ? "127.0.0.1" : "93.184.216.34", opts, cb);
+    });
+    const realCreateConnection = http.Agent.prototype.createConnection;
+    sinon.stub(http.Agent.prototype, "createConnection").callsFake(function (options, cb) {
+      const lookup = options.lookup || dns.lookup;
+      const local = (host, opts, done) =>
+        lookup(host, opts, (error) => (error ? done(error) : reply("127.0.0.1", opts, done)));
+      return realCreateConnection.call(this, { ...options, lookup: local }, cb);
     });
   }
 
@@ -367,11 +386,11 @@ describe("local URL guard (ADR 01162)", function () {
   it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a host that rebinds to a private address at connect time", async function () {
     fakePublicHost();
     process.env[BLOCK] = "1";
-    const result = await fetchFile(`http://public.example.test:${port}/ref.png`, { binary: true });
+    const result = await fetchFile(`http://rebind.example.test:${port}/ref.png`, { binary: true });
     assert.equal(result.result, "error");
     assert.equal(
       result.message.message,
-      `Couldn't fetch http://public.example.test:${port}/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+      `Couldn't fetch http://rebind.example.test:${port}/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
         "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
     );
   });
@@ -467,27 +486,46 @@ describe("local URL guard (ADR 01162)", function () {
     });
   });
 
-  it("allows a local description's sibling $refs to a public and a private document", async function () {
+  // Fail closed: once any public document has been read, every later private
+  // read is refused, however the $ref spells it.
+  for (const [name, doc] of [
+    ["a trailing space", "p-space.json"],
+    ["101 YAML aliases", "p-alias.yaml"],
+    ["a recursive YAML anchor", "p-cycle.yaml"],
+  ]) {
+    it(`refuses a private $ref with ${name} in a public document`, async function () {
+      fakePublicHost();
+      const file = path.join(tmpDir, `openapi-${doc}.yaml`);
+      fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/${doc}`));
+      await assert.rejects(() => loadDescription(file), {
+        message: new RegExp(
+          `^${escapeRegExp(`Couldn't resolve $ref http://127.0.0.1:${port}/schema.json`)}\\S* ` +
+            escapeRegExp(
+              `in http://public.example.test:${port}/${doc}: a public document can't refer to a private address.\n`
+            )
+        ),
+      });
+    });
+  }
+
+  it("allows a private $ref read before any public document", async function () {
     fakePublicHost();
-    const file = path.join(tmpDir, "openapi-siblings.yaml");
-    fs.writeFileSync(
-      file,
-      openApiYaml(
-        `http://public.example.test:${port}/plain.json`,
-        `http://127.0.0.1:${port}/schema.json`
-      )
-    );
+    const file = path.join(tmpDir, "openapi-private-first.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://127.0.0.1:${port}/private-then-public.json`));
     const definition = await loadDescription(file);
     const schema =
       definition.paths["/items"].get.responses["200"].content["application/json"].schema;
-    assert.equal(schema.properties.p0.type, "string");
-    assert.equal(schema.properties.p1.properties.id.type, "integer");
+    assert.equal(schema.properties.item.type, "string");
   });
 
   const fileRefMessage = (doc) =>
     new RegExp(
-      `^Couldn't resolve \\$ref \\S*local(-secret)?\\.json in ${doc.replace(/[.]/g, "\\.")}: a public document can't refer to a local file\\.\\n` +
-        "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy\\.$"
+      `^${escapeRegExp("Couldn't resolve $ref ")}.*local(-secret)?\\.json\\s* ` +
+        escapeRegExp(
+          `in ${doc}: a public document can't refer to a local file.\n` +
+            "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
+        ) +
+        "$"
     );
 
   it("refuses a public description's $ref to a local file, in default and strict mode", async function () {
@@ -500,14 +538,16 @@ describe("local URL guard (ADR 01162)", function () {
     }
   });
 
-  it("refuses a local file $ref reached through a public document", async function () {
-    fakePublicHost();
-    const file = path.join(tmpDir, "openapi-file-via-public.yaml");
-    fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/public-file-ref.json`));
-    await assert.rejects(() => loadDescription(file), {
-      message: fileRefMessage(`http://public.example.test:${port}/public-file-ref.json`),
+  for (const doc of ["p-file-url.json", "p-file-url-space.json", "p-file-back.json", "p-file-fwd.json"]) {
+    it(`refuses a local file $ref reached through a public document (${doc})`, async function () {
+      fakePublicHost();
+      const file = path.join(tmpDir, `openapi-${doc}.yaml`);
+      fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/${doc}`));
+      await assert.rejects(() => loadDescription(file), {
+        message: fileRefMessage(`http://public.example.test:${port}/${doc}`),
+      });
     });
-  });
+  }
 
   it("lets a local description $ref a local file", async function () {
     const file = path.join(tmpDir, "openapi-local-file.yaml");
@@ -518,17 +558,27 @@ describe("local URL guard (ADR 01162)", function () {
     assert.equal(schema.type, "boolean");
   });
 
-  // A public description's $ref to a public-looking host: the connection
-  // resolves it to 127.0.0.1, so the read is refused at connect time, before
-  // that document's own private $ref is reached.
-  it("refuses a public description's $ref that rebinds to a private address at connect time", async function () {
+  it("refuses a private $ref two documents deep under a public description", async function () {
     fakePublicHost();
     await assert.rejects(
       () => loadDescription(`http://public.example.test:${port}/openapi-chain.yaml`),
       {
         message: refMessage(
-          `http://public.example.test:${port}/public-doc.yaml`,
-          `http://public.example.test:${port}/openapi-chain.yaml`
+          `http://127.0.0.1:${port}/schema.json`,
+          `http://public.example.test:${port}/public-doc.yaml`
+        ),
+      }
+    );
+  });
+
+  it("refuses a public description's $ref that rebinds to a private address at connect time", async function () {
+    fakePublicHost();
+    await assert.rejects(
+      () => loadDescription(`http://public.example.test:${port}/openapi-rebind.yaml`),
+      {
+        message: refMessage(
+          `http://rebind.example.test:${port}/plain.json`,
+          `http://public.example.test:${port}/openapi-rebind.yaml`
         ),
       }
     );
