@@ -699,7 +699,7 @@
                       },
                       "version": {
                         "type": "string",
-                        "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+                        "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                         "readOnly": true
                       },
                       "headless": {
@@ -783,7 +783,7 @@
                             },
                             "version": {
                               "type": "string",
-                              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+                              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                               "readOnly": true
                             },
                             "headless": {
@@ -1099,7 +1099,7 @@
                     },
                     "version": {
                       "type": "string",
-                      "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+                      "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                       "readOnly": true
                     },
                     "headless": {
@@ -58980,7 +58980,7 @@
           "startedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the FINAL attempt's start, matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.",
+            "description": "When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the start of the FINAL attempt — the attempt the reported `result` describes — matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.",
             "readOnly": true
           },
           "driver": {
@@ -59033,7 +59033,7 @@
               },
               "version": {
                 "type": "string",
-                "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+                "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                 "readOnly": true
               },
               "headless": {

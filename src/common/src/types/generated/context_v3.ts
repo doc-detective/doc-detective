@@ -59,7 +59,7 @@ export interface Browser {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**
@@ -108,7 +108,7 @@ export interface Browser1 {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**

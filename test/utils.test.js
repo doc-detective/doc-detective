@@ -1431,6 +1431,9 @@ describe("runSpecs filter short-circuit", function () {
     expect(result.summary.tests.warning).to.equal(0);
     expect(result.summary.tests.skipped).to.equal(0);
     expect(result.summary.specs.pass).to.equal(0);
+    // Run metadata is present even when nothing ran (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 
@@ -1460,6 +1463,9 @@ describe("runViaApi filter short-circuit", function () {
     expect(result.specs).to.deep.equal([]);
     expect(result.summary.tests.pass).to.equal(0);
     expect(result.summary.tests.fail).to.equal(0);
+    // Run metadata matches runSpecs' short-circuit (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 

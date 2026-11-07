@@ -56,6 +56,25 @@ describe("sessionVersions", function () {
 
   it("returns nothing when there's no session to read", () => {
     assert.deepEqual(sessionVersions({}), {});
+    assert.deepEqual(sessionVersions({ capabilities: null }), {});
+  });
+
+  it("ignores non-string versions rather than throwing", () => {
+    // It runs after the driver started, so an odd capability must never throw.
+    assert.deepEqual(
+      sessionVersions({
+        capabilities: { browserVersion: 131, chrome: { chromedriverVersion: 42 } },
+        app: { name: "chrome", version: 7 },
+      }),
+      {}
+    );
+    assert.deepEqual(
+      sessionVersions({
+        capabilities: { browserVersion: {}, chrome: 5, "moz:geckodriverVersion": {} },
+        app: { name: "firefox", version: ["161"], driver: 5 },
+      }),
+      { driver: { name: "geckodriver" } }
+    );
   });
 });
 
@@ -124,6 +143,36 @@ describe("Run metadata on reports", function () {
         );
       }
     }
+  });
+
+  it("doesn't report an authored browser.version for a context that never started a browser", async () => {
+    // `version` is readOnly but validates in runOn; resolution must drop it so
+    // only the session sets it. A context on another platform skips before any
+    // browser starts, so its report shows exactly what resolution handed on.
+    const other = report.environment.platform === "linux" ? "windows" : "linux";
+    const input = path.resolve("./.tmp/temp-run-metadata-authored.json");
+    fs.writeFileSync(
+      input,
+      JSON.stringify({
+        tests: [
+          {
+            testId: "authored-version",
+            runOn: [{ platforms: other, browsers: { name: "chrome", version: "120" } }],
+            steps: [{ goTo: "http://localhost:8092" }],
+          },
+        ],
+      })
+    );
+    let skipped;
+    try {
+      skipped = await runTests({ input });
+    } finally {
+      fs.unlinkSync(input);
+    }
+    const context = skipped.specs[0].tests[0].contexts[0];
+    assert.equal(context.result, "SKIPPED");
+    assert.equal(context.browser?.name, "chrome");
+    assert.equal(context.browser?.version, undefined);
   });
 
   it("omits browser and driver versions when no browser ran", () => {

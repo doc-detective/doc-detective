@@ -94,8 +94,11 @@ geckodriver's. A context that never started a browser has neither field. Mobile 
 what the device session reports. There's no desktop app entry to fall back on.
 
 `browser.version` lives on the context's existing `browser` object, so `browser` gains an optional
-`readOnly` `version` in `context_v3`. The runner writes a copy, so the version never feeds back into
-the context's launch settings.
+`readOnly` `version` in `context_v3`. Validation doesn't enforce `readOnly`, so an authored
+`runOn` browser can carry a `version`. Context resolution drops it when it clones each browser, so
+only the session sets it. Otherwise a context that skipped before Chrome started would report the
+authored value. The runner writes a copy, so the version never feeds back into the context's launch
+settings.
 
 ### Start times (amends ADR 01083)
 
@@ -104,9 +107,11 @@ schema declares `format: "date-time"`.
 
 * **Run.** The same clock as `run.durationMs`: the start of the execution phase inside `runSpecs`.
   A run whose `--spec` or `--test` filters matched nothing still carries it, along with
-  `environment`.
+  `environment`. That holds for the local runner and for the orchestration API path, which
+  returns before sending anything.
 * **Context.** Stamped in `runContextWithRetries`, beside `durationMs`, so all of `runContext`'s
-  exits get it. A retried context reports its final attempt's start, matching its `durationMs`.
+  exits get it. A context re-run by the `retries` policy reports the start of its final attempt,
+  the attempt its `result` describes, matching its `durationMs`.
 * **Step.** Stamped where each attempt runs, and by the recording-teardown sweep. A retried step
   reports its final attempt's start.
 * **Spec and test** don't get one. Their `durationMs` is a sum of children (ADR 01083), not a span,
@@ -127,8 +132,8 @@ folder. Read startedAt for the time.`
 * Good: steps across concurrent contexts can be ordered and lined up with external logs.
 * Good: consumers have a supported timestamp, so they can stop parsing `runId`.
 * Neutral: config's resolved `environment` also shows the three versions. It's the same host.
-* Neutral: `browser.version` on an authored context validates and is ignored, like the other
-  `readOnly` fields.
+* Neutral: `browser.version` on an authored context validates and is ignored. Resolution drops it,
+  so it never reaches the report.
 * Bad: the Firefox browser version is Doc Detective's detected build ID, not one the browser
   reported. It still changes exactly when Firefox does, which is what drift detection needs.
 * Bad: tests that compare two reports for equality must strip `startedAt`, as they already strip
@@ -141,10 +146,15 @@ folder. Read startedAt for the time.`
   unknown `environment` key, a non-date `startedAt`, and a driver without a name are each invalid.
 * `test/run-metadata.test.js` runs the real pipeline over a shell-only spec. It checks
   `environment.nodeVersion === process.versions.node`, `docDetectiveVersion` against
-  `package.json`, `osRelease` against `os.release()`, no `workingDirectory`, ISO timestamps on the
-  run, every context, and every step, and each step starting at or after its context. It checks that
-  no browser or driver version appears without a browser. The emitted metadata validates against
-  `report_v3`. Unit cases cover `sessionVersions()` for each engine.
+  `package.json`, `osRelease` against `os.release()`, and no `workingDirectory`. It checks ISO
+  timestamps on the run, every context, and every step, with each step starting at or after its
+  context. No browser or driver version appears without a browser. An authored `browser.version`
+  doesn't reach the report of a context that skipped. The emitted metadata validates against
+  `report_v3`. Unit cases cover `sessionVersions()` for each engine. They also cover `null` and
+  non-string capabilities, which it ignores rather than throwing on.
+* `test/utils.test.js`: both filter short-circuits, `runSpecs` and `runViaApi`, carry `startedAt`
+  and `environment`.
+* `test/htmlReporter.test.js`: the step input panel strips `startedAt` along with `durationMs`.
 * `test/config-coverage.test.js`: `getEnvironment()` returns the three versions and no working
   directory.
 * `test/core-artifacts/reporters/run-metadata.spec.json` reads a nested run's `--output` JSON. A

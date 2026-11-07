@@ -87,7 +87,7 @@
             },
             "version": {
               "type": "string",
-              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
               "readOnly": true
             },
             "headless": {
@@ -171,7 +171,7 @@
                   },
                   "version": {
                     "type": "string",
-                    "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+                    "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                     "readOnly": true
                   },
                   "headless": {
@@ -487,7 +487,7 @@
           },
           "version": {
             "type": "string",
-            "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.",
+            "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
             "readOnly": true
           },
           "headless": {

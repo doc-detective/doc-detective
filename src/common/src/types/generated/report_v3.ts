@@ -13574,7 +13574,7 @@ export interface Browser {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**
@@ -13623,7 +13623,7 @@ export interface Browser1 {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**
@@ -14461,7 +14461,7 @@ export interface Browser2 {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**
@@ -14510,7 +14510,7 @@ export interface Browser3 {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**
@@ -22850,7 +22850,7 @@ export interface ResolvedContext {
    */
   durationMs?: number;
   /**
-   * When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the FINAL attempt's start, matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.
+   * When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the start of the FINAL attempt — the attempt the reported `result` describes — matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.
    */
   startedAt?: string;
   driver?: Driver;
@@ -22894,7 +22894,7 @@ export interface Browser4 {
    */
   explicit?: boolean;
   /**
-   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated.
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
    */
   version?: string;
   /**

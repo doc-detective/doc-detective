@@ -36,23 +36,27 @@ export function loadAxios(): Promise<typeof import("axios").default> {
  * version.
  */
 export function sessionVersions({
-  capabilities = {},
+  capabilities,
   app,
 }: {
   capabilities?: any;
   app?: { name?: string; version?: string; driver?: string };
 }): { browserVersion?: string; driver?: { name: string; version?: string } } {
   const result: { browserVersion?: string; driver?: { name: string; version?: string } } = {};
+  // Runs after the driver started, so odd values are ignored, never thrown on.
+  const str = (value: unknown) =>
+    typeof value === "string" && value ? value : undefined;
+  const caps = capabilities ?? {};
   const browserVersion =
-    capabilities.browserVersion ?? app?.version?.replace(/^[a-z]+_/, "");
+    str(caps.browserVersion) ?? str(app?.version)?.replace(/^[a-z]+_/, "");
   if (browserVersion) result.browserVersion = browserVersion;
-  const chromedriver = capabilities.chrome?.chromedriverVersion;
+  const chromedriver = str(caps.chrome?.chromedriverVersion);
   if (chromedriver) {
     result.driver = { name: "chromedriver", version: chromedriver.split(" ")[0] };
   } else if (app?.name === "firefox") {
     const version =
-      capabilities["moz:geckodriverVersion"] ??
-      /geckodriver-(\d+(?:\.\d+)*)/i.exec(path.basename(app.driver ?? ""))?.[1];
+      str(caps["moz:geckodriverVersion"]) ??
+      /geckodriver-(\d+(?:\.\d+)*)/i.exec(path.basename(str(app.driver) ?? ""))?.[1];
     result.driver = { name: "geckodriver", ...(version && { version }) };
   } else if (app?.name === "safari") {
     result.driver = { name: "safaridriver" };
