@@ -4025,6 +4025,13 @@
               "description": "Click or tap an element.",
               "anyOf": [
                 {
+                  "enum": [
+                    true,
+                    false
+                  ],
+                  "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+                },
+                {
                   "title": "Click element (simple)",
                   "type": "string",
                   "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
@@ -4338,16 +4345,10 @@
                       "type": "object",
                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                       "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
+                        "type": [
+                          "boolean",
+                          "number",
+                          "string"
                         ]
                       }
                     },
@@ -4356,9 +4357,6 @@
                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                     }
                   }
-                },
-                {
-                  "type": "boolean"
                 }
               ],
               "components": {
@@ -4691,16 +4689,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -4713,7 +4705,6 @@
                 }
               },
               "examples": [
-                true,
                 "Submit",
                 {
                   "button": "left",
@@ -5991,16 +5982,10 @@
                       "type": "object",
                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                       "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
+                        "type": [
+                          "boolean",
+                          "number",
+                          "string"
                         ]
                       }
                     },
@@ -6027,6 +6012,13 @@
                           "title": "click",
                           "description": "Click or tap an element.",
                           "anyOf": [
+                            {
+                              "enum": [
+                                true,
+                                false
+                              ],
+                              "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+                            },
                             {
                               "title": "Click element (simple)",
                               "type": "string",
@@ -6341,16 +6333,10 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   }
                                 },
@@ -6359,9 +6345,6 @@
                                   "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                                 }
                               }
-                            },
-                            {
-                              "type": "boolean"
                             }
                           ],
                           "components": {
@@ -6694,16 +6677,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -6716,7 +6693,6 @@
                             }
                           },
                           "examples": [
-                            true,
                             "Submit",
                             {
                               "button": "left",
@@ -7543,16 +7519,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -7652,16 +7622,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -7715,16 +7679,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -7958,16 +7916,10 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 }
                                               },
@@ -8088,16 +8040,10 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 }
                                               },
@@ -8227,16 +8173,10 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 }
                                               },
@@ -9040,16 +8980,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -9149,16 +9083,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -9212,16 +9140,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -9455,16 +9377,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -9585,16 +9501,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -9724,16 +9634,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -10138,16 +10042,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -10174,6 +10072,13 @@
                             "title": "click",
                             "description": "Click or tap an element.",
                             "anyOf": [
+                              {
+                                "enum": [
+                                  true,
+                                  false
+                                ],
+                                "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+                              },
                               {
                                 "title": "Click element (simple)",
                                 "type": "string",
@@ -10488,16 +10393,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -10506,9 +10405,6 @@
                                     "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                                   }
                                 }
-                              },
-                              {
-                                "type": "boolean"
                               }
                             ],
                             "components": {
@@ -10841,16 +10737,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -10863,7 +10753,6 @@
                               }
                             },
                             "examples": [
-                              true,
                               "Submit",
                               {
                                 "button": "left",
@@ -11690,16 +11579,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -11799,16 +11682,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -11862,16 +11739,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -12105,16 +11976,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -12235,16 +12100,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -12374,16 +12233,10 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "string"
-                                                      },
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   }
                                                 },
@@ -13187,16 +13040,10 @@
                                                       "type": "object",
                                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                       "additionalProperties": {
-                                                        "anyOf": [
-                                                          {
-                                                            "type": "string"
-                                                          },
-                                                          {
-                                                            "type": "number"
-                                                          },
-                                                          {
-                                                            "type": "boolean"
-                                                          }
+                                                        "type": [
+                                                          "boolean",
+                                                          "number",
+                                                          "string"
                                                         ]
                                                       }
                                                     },
@@ -13296,16 +13143,10 @@
                                                       "type": "object",
                                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                       "additionalProperties": {
-                                                        "anyOf": [
-                                                          {
-                                                            "type": "string"
-                                                          },
-                                                          {
-                                                            "type": "number"
-                                                          },
-                                                          {
-                                                            "type": "boolean"
-                                                          }
+                                                        "type": [
+                                                          "boolean",
+                                                          "number",
+                                                          "string"
                                                         ]
                                                       }
                                                     },
@@ -13359,16 +13200,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -13602,16 +13437,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -13732,16 +13561,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -13871,16 +13694,10 @@
                                                     "type": "object",
                                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                     "additionalProperties": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
-                                                        },
-                                                        {
-                                                          "type": "number"
-                                                        },
-                                                        {
-                                                          "type": "boolean"
-                                                        }
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
                                                       ]
                                                     }
                                                   },
@@ -15376,16 +15193,10 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   }
                                 },
@@ -15908,16 +15719,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -24058,16 +23863,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -24167,16 +23966,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -24230,16 +24023,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -24473,16 +24260,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -24603,16 +24384,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -24742,16 +24517,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -25555,16 +25324,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -25664,16 +25427,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -25727,16 +25484,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -25970,16 +25721,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -26100,16 +25845,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -26239,16 +25978,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -27295,6 +27028,12 @@
               "description": "Takes a screenshot in PNG format.",
               "anyOf": [
                 {
+                  "type": "boolean",
+                  "title": "Capture screenshot",
+                  "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.",
+                  "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the path branch's pattern needs a .png extension or a `$VAR`, so it never wanted \"true\" or \"false\"."
+                },
+                {
                   "title": "Screenshot (simple)",
                   "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
                   "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
@@ -27649,16 +27388,10 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   }
                                 },
@@ -27770,19 +27503,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -27952,19 +27679,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -28134,19 +27855,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -28316,19 +28031,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -28498,19 +28207,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -28680,19 +28383,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -29095,19 +28792,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -29269,19 +28960,13 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              },
-                                              {
-                                                "type": "string"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           },
-                                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                         },
                                         "elementAria": {
                                           "type": "string",
@@ -29432,19 +29117,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -29897,11 +29576,6 @@
                     }
                   ],
                   "title": "Capture screenshot (detailed)"
-                },
-                {
-                  "type": "boolean",
-                  "title": "Capture screenshot",
-                  "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
                 }
               ],
               "components": {
@@ -30261,16 +29935,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -30382,19 +30050,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -30564,19 +30226,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -30746,19 +30402,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -30928,19 +30578,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -31110,19 +30754,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -31292,19 +30930,13 @@
                                                   "type": "object",
                                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                   "additionalProperties": {
-                                                    "anyOf": [
-                                                      {
-                                                        "type": "number"
-                                                      },
-                                                      {
-                                                        "type": "boolean"
-                                                      },
-                                                      {
-                                                        "type": "string"
-                                                      }
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
                                                     ]
                                                   },
-                                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                                 },
                                                 "elementAria": {
                                                   "type": "string",
@@ -31707,19 +31339,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -31881,19 +31507,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -32044,19 +31664,13 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "string"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         },
-                                        "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                        "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                       },
                                       "elementAria": {
                                         "type": "string",
@@ -32852,16 +32466,10 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 }
                               },
@@ -32973,19 +32581,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -33155,19 +32757,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -33337,19 +32933,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -33519,19 +33109,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -33701,19 +33285,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -33883,19 +33461,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -34298,19 +33870,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -34472,19 +34038,13 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "string"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         },
-                                        "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                        "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                       },
                                       "elementAria": {
                                         "type": "string",
@@ -34635,19 +34195,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -35151,16 +34705,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -37465,6 +37013,12 @@
               "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
               "anyOf": [
                 {
+                  "type": "boolean",
+                  "title": "Record (boolean)",
+                  "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+                  "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
+                },
+                {
                   "title": "Record (simple)",
                   "type": "string",
                   "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
@@ -37860,11 +37414,6 @@
                     }
                   },
                   "title": "Record (detailed)"
-                },
-                {
-                  "type": "boolean",
-                  "title": "Record (boolean)",
-                  "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                 }
               ],
               "components": {
@@ -42817,16 +42366,10 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               }
                             },
@@ -43259,16 +42802,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -43908,16 +43445,10 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 }
                               },
@@ -46095,16 +45626,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -46204,16 +45729,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -46475,16 +45994,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -46581,16 +46094,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -51136,8 +50643,12 @@
               "default": 5000,
               "anyOf": [
                 {
-                  "type": "number",
-                  "title": "Wait (simple)"
+                  "type": [
+                    "number",
+                    "boolean"
+                  ],
+                  "title": "Wait (simple)",
+                  "$comment": "One type array: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so true stays true and 1 stays 1. Number is listed first because the LSP offers the first listed type as the value kind. As separate branches, a leading number branch turned true into 1, and a leading boolean branch would turn 1 into true. Strings still coerce: \"5000\" becomes 5000 and \"true\" becomes true. See ADR 01161."
                 },
                 {
                   "title": "Wait (environment variable)",
@@ -51146,10 +50657,6 @@
                   "transform": [
                     "trim"
                   ]
-                },
-                {
-                  "type": "boolean",
-                  "title": "Wait (boolean)"
                 }
               ],
               "components": {
@@ -52205,19 +51712,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -52387,19 +51888,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -52569,19 +52064,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -52751,19 +52240,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -52933,19 +52416,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -53115,19 +52592,13 @@
                                             "type": "object",
                                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                             "additionalProperties": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "boolean"
-                                                },
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
                                               ]
                                             },
-                                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                           },
                                           "elementAria": {
                                             "type": "string",
@@ -53530,19 +53001,13 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              },
-                                              {
-                                                "type": "string"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           },
-                                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                         },
                                         "elementAria": {
                                           "type": "string",
@@ -53704,19 +53169,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -53867,19 +53326,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -54323,19 +53776,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -54505,19 +53952,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -54687,19 +54128,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -54869,19 +54304,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -55051,19 +54480,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -55233,19 +54656,13 @@
                                                 "type": "object",
                                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                                 "additionalProperties": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "number"
-                                                    },
-                                                    {
-                                                      "type": "boolean"
-                                                    },
-                                                    {
-                                                      "type": "string"
-                                                    }
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
                                                   ]
                                                 },
-                                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                               },
                                               "elementAria": {
                                                 "type": "string",
@@ -55648,19 +55065,13 @@
                                               "type": "object",
                                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                               "additionalProperties": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "number"
-                                                  },
-                                                  {
-                                                    "type": "boolean"
-                                                  },
-                                                  {
-                                                    "type": "string"
-                                                  }
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
                                                 ]
                                               },
-                                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                             },
                                             "elementAria": {
                                               "type": "string",
@@ -55822,19 +55233,13 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              },
-                                              {
-                                                "type": "string"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           },
-                                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                         },
                                         "elementAria": {
                                           "type": "string",
@@ -55985,19 +55390,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -56725,9 +56124,6 @@
           "inputDelay": 100
         }
       }
-    },
-    {
-      "click": true
     },
     {
       "click": "Submit"
