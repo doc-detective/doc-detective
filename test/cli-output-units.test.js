@@ -384,6 +384,21 @@ describe("beforeAll in the CLI config", function () {
     });
   }
 
+  it("rejects a DOC_DETECTIVE_CONFIG that sets both", async function () {
+    const saved = process.env.DOC_DETECTIVE_CONFIG;
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" });
+    let message = "";
+    try {
+      await withConfig({}).catch((error) => {
+        message = error.message;
+      });
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = saved;
+    }
+    expect(message).to.include("set `beforeAll` or `beforeAny`, not both.");
+  });
+
   it("rejects a config that sets both", async function () {
     let message = "";
     await withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }).catch((error) => {

@@ -46,6 +46,11 @@ describe("routing scopes through the CLI", function () {
     ["stop: spec on a step", onStep({ stop: "spec" }), "tests[0].steps[0].onFail[0].stop:"],
     ["stop: run on a step", onStep({ stop: "run" }), "tests[0].steps[0].onFail[0].stop:"],
     ["goToTest on a step", onStep({ goToTest: "t" }), "tests[0].steps[0].onFail[0]: unknown key 'goToTest'."],
+    [
+      "retry in a step's onSkip",
+      { tests: [{ steps: [{ ...echo, onSkip: [{ retry: { limit: 1 } }] }] }] },
+      "tests[0].steps[0].onSkip[0]: unknown key 'retry'.",
+    ],
     ["stop: run on a test", onTest({ stop: "run" }), "tests[0].onFail[0].stop:"],
     ["retry on a test", onTest({ retry: { limit: 1 } }), "tests[0].onFail[0]: unknown key 'retry'."],
     ["goToStep on a test", onTest({ goToStep: "s" }), "tests[0].onFail[0]: unknown key 'goToStep'."],

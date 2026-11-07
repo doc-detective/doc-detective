@@ -3561,6 +3561,18 @@ import { schemas } from "../dist/index.js";
         expect(property.deprecated).to.equal(true);
         expect(property.description).to.equal("Deprecated: use `beforeAll`.");
       });
+
+      it("rejects a config that sets both beforeAll and beforeAny", function () {
+        for (const addDefaults of [true, false]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { beforeAll: "a.spec.json", beforeAny: "b.spec.json" },
+            addDefaults,
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set `beforeAll` or `beforeAny`, not both.");
+        }
+      });
     });
 
     // ADR 01168: each scope accepts only the routing actions the runner performs there.
@@ -3575,6 +3587,20 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         });
       }
+
+      // A skipped step never ran, so there's nothing to retry.
+      for (const handler of [{ continue: true }, { stop: "test" }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} in a step's onSkip`, function () {
+          const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [handler] });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("rejects retry in a step's onSkip as an unknown key", function () {
+        const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [{ retry: { limit: 1 } }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('/onSkip/0 must NOT have additional properties ({"additionalProperty":"retry"})');
+      });
 
       for (const handler of [{ continue: true }, { stop: "test" }, { stop: "spec" }, { goToTest: "t" }]) {
         it(`accepts ${JSON.stringify(handler)} on a test`, function () {

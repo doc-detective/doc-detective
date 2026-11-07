@@ -38,12 +38,17 @@ and it doesn't. What should 5.0 do with routing the runner can't perform?
 
 ## Decision Outcome
 
-Chosen option: **A**.
+Chosen option: **A**. Each routing entry takes exactly one of the actions its handler accepts:
 
-- Step handlers accept exactly one of `continue: true`, `stop: "test"`, `retry: {limit, delay?, backoff?}`, or
-  `goToStep`. `routing_v3` gains `components.schemas.step`, and `step_v3`'s handlers reference it.
-- Test handlers accept exactly one of `continue: true`, `stop: "test"` or `"spec"`, or `goToTest`. The root of
-  `routing_v3` is the test entry.
+| Handler | Accepts |
+|---|---|
+| A step's `onPass`, `onFail`, or `onWarning` | `continue: true`, `stop: "test"`, `retry: {limit, delay?, backoff?}`, or `goToStep` |
+| A step's `onSkip` | `continue: true`, `stop: "test"`, or `goToStep` |
+| A test's `onPass`, `onFail`, `onWarning`, or `onSkip` | `continue: true`, `stop: "test"` or `"spec"`, or `goToTest` |
+
+- `routing_v3` gains `components.schemas.step` and `components.schemas.stepSkip`, which `step_v3`'s handlers
+  reference. The root of `routing_v3` is the test entry.
+- A step's `onSkip` rejects `retry` because a step that never ran has nothing to re-run.
 - A spec that uses anything else fails validation, so the CLI exits 2 through the existing invalid-spec path. The
   error names the key path, for example `tests[0].steps[0].onFail[0].stop` or
   `tests[0].onFail[0]: unknown key 'retry'.`
@@ -63,10 +68,11 @@ Chosen option: **A**.
 ### Confirmation
 
 - `src/common/test/validate.test.js` ("routing scopes") rejects step `stop: "spec"`, `stop: "run"`, and
-  `goToTest`, and test `stop: "run"`, `retry`, and `goToStep`. It accepts every allowed action at each scope.
-- `test/routing-scope.test.js` runs the real CLI: the six rejected shapes exit 2 and name the key path, and a
+  `goToTest`, `retry` in a step's `onSkip`, and test `stop: "run"`, `retry`, and `goToStep`. It accepts every
+  allowed action at each scope.
+- `test/routing-scope.test.js` runs the real CLI. The seven rejected shapes exit 2 and name the key path, and a
   test-level `stop: "spec"` exits 0.
-- `test/core-artifacts/cli/routing-scope.spec.json` runs the same seven permutations as a fixture.
+- `test/core-artifacts/cli/routing-scope.spec.json` runs the same eight permutations as a fixture.
 
 ## Pros and Cons of the Options
 

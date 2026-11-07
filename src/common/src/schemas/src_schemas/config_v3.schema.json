@@ -7,6 +7,12 @@
   "dynamicDefaults": {
     "configId": "uuid"
   },
+  "not": {
+    "required": ["beforeAll", "beforeAny"]
+  },
+  "errorMessage": {
+    "not": "set `beforeAll` or `beforeAny`, not both."
+  },
   "properties": {
     "$schema": {
       "description": "JSON Schema for this object.",

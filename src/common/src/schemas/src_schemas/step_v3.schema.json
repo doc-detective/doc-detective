@@ -122,10 +122,10 @@
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped (reached but not run \u2014 unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here \u2014 a step that never ran cannot be re-run.)",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run \u2014 unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
         "type": "array",
         "items": {
-          "$ref": "routing_v3.schema.json#/components/schemas/step"
+          "$ref": "routing_v3.schema.json#/components/schemas/stepSkip"
         }
       },
       "$schema": {

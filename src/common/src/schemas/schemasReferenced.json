@@ -2893,7 +2893,7 @@
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#/components/schemas/step"
+              "$ref": "routing_v3.schema.json#/components/schemas/stepSkip"
             }
           },
           "$schema": {
@@ -6581,6 +6581,41 @@
                 ]
               }
             ]
+          },
+          "stepSkip": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "#/components/schemas/condition"
+              },
+              "continue": {
+                "$ref": "#/components/schemas/step/properties/continue"
+              },
+              "stop": {
+                "$ref": "#/components/schemas/step/properties/stop"
+              },
+              "goToStep": {
+                "$ref": "#/components/schemas/step/properties/goToStep"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
+              }
+            ]
           }
         }
       },
@@ -7254,6 +7289,15 @@
       "additionalProperties": false,
       "dynamicDefaults": {
         "configId": "uuid"
+      },
+      "not": {
+        "required": [
+          "beforeAll",
+          "beforeAny"
+        ]
+      },
+      "errorMessage": {
+        "not": "set `beforeAll` or `beforeAny`, not both."
       },
       "properties": {
         "$schema": {
@@ -10906,7 +10950,7 @@
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/stepSkip"
             }
           },
           "$schema": {
@@ -14518,6 +14562,41 @@
                 ]
               }
             ]
+          },
+          "stepSkip": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/condition"
+              },
+              "continue": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/continue"
+              },
+              "stop": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/stop"
+              },
+              "goToStep": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step/properties/goToStep"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
+              }
+            ]
           }
         }
       },
@@ -15176,6 +15255,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
+      "not": {
+        "required": [
+          "beforeAll",
+          "beforeAny"
+        ]
+      },
+      "errorMessage": {
+        "not": "set `beforeAll` or `beforeAny`, not both."
+      },
       "properties": {
         "$schema": {
           "type": "string",

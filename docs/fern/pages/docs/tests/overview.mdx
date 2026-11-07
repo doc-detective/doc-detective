@@ -316,7 +316,7 @@ Routing entries support these actions:
 
 - **`continue`**: Run the next step. Set `continue` to `true`.
 - **`stop`**: Stop the test. Set `stop` to `test`, the only scope a step can stop.
-- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
+- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. An `onSkip` handler can't use `retry`, because a skipped step never ran. See [Retry a step](#retry-a-step).
 - **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
 
 The following step keeps the test running after a failure instead of stopping it:

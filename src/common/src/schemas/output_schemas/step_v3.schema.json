@@ -609,11 +609,11 @@
             }
           },
           "onSkip": {
-            "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+            "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
             "type": "array",
             "items": {
-              "title": "Step routing",
-              "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+              "title": "Step skip routing",
+              "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -648,37 +648,6 @@
                     "test"
                   ]
                 },
-                "retry": {
-                  "description": "Retry the current step.",
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "limit"
-                  ],
-                  "properties": {
-                    "limit": {
-                      "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 100
-                    },
-                    "delay": {
-                      "description": "Delay in milliseconds before each retry.",
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 3600000
-                    },
-                    "backoff": {
-                      "description": "Backoff strategy applied to the delay between retries.",
-                      "type": "string",
-                      "enum": [
-                        "fixed",
-                        "exponential"
-                      ]
-                    }
-                  },
-                  "title": "Retry"
-                },
                 "goToStep": {
                   "description": "Identifier of the step to jump to, within the same test.",
                   "type": "string",
@@ -699,11 +668,6 @@
                 },
                 {
                   "required": [
-                    "retry"
-                  ]
-                },
-                {
-                  "required": [
                     "goToStep"
                   ]
                 }
@@ -716,23 +680,8 @@
                   "stop": "test"
                 },
                 {
-                  "if": [
-                    "$$platform == linux",
-                    "$$outputs.exitCode == 0"
-                  ],
-                  "goToStep": "verify"
-                },
-                {
-                  "retry": {
-                    "limit": 3,
-                    "delay": 1000,
-                    "backoff": "exponential"
-                  }
-                },
-                {
-                  "retry": {
-                    "limit": 1
-                  }
+                  "if": "$$platform == windows",
+                  "goToStep": "cleanup"
                 }
               ]
             }
@@ -1328,11 +1277,11 @@
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+        "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
         "type": "array",
         "items": {
-          "title": "Step routing",
-          "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+          "title": "Step skip routing",
+          "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -1367,37 +1316,6 @@
                 "test"
               ]
             },
-            "retry": {
-              "description": "Retry the current step.",
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "limit"
-              ],
-              "properties": {
-                "limit": {
-                  "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 100
-                },
-                "delay": {
-                  "description": "Delay in milliseconds before each retry.",
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 3600000
-                },
-                "backoff": {
-                  "description": "Backoff strategy applied to the delay between retries.",
-                  "type": "string",
-                  "enum": [
-                    "fixed",
-                    "exponential"
-                  ]
-                }
-              },
-              "title": "Retry"
-            },
             "goToStep": {
               "description": "Identifier of the step to jump to, within the same test.",
               "type": "string",
@@ -1418,11 +1336,6 @@
             },
             {
               "required": [
-                "retry"
-              ]
-            },
-            {
-              "required": [
                 "goToStep"
               ]
             }
@@ -1435,23 +1348,8 @@
               "stop": "test"
             },
             {
-              "if": [
-                "$$platform == linux",
-                "$$outputs.exitCode == 0"
-              ],
-              "goToStep": "verify"
-            },
-            {
-              "retry": {
-                "limit": 3,
-                "delay": 1000,
-                "backoff": "exponential"
-              }
-            },
-            {
-              "retry": {
-                "limit": 1
-              }
+              "if": "$$platform == windows",
+              "goToStep": "cleanup"
             }
           ]
         }
@@ -2227,11 +2125,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -2266,37 +2164,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -2317,11 +2184,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -2334,23 +2196,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -3237,11 +3084,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -3276,37 +3123,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -3327,11 +3143,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -3344,23 +3155,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -4758,11 +4554,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -4797,37 +4593,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -4848,11 +4613,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -4865,23 +4625,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -13931,11 +13676,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -13970,37 +13715,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -14021,11 +13735,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -14038,23 +13747,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -15901,11 +15595,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -15940,37 +15634,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -15991,11 +15654,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -16008,23 +15666,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -17697,11 +17340,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -17736,37 +17379,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -17787,11 +17399,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -17804,23 +17411,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -18887,11 +18479,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -18926,37 +18518,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -18977,11 +18538,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -18994,23 +18550,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -20036,11 +19577,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -20075,37 +19616,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -20126,11 +19636,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -20143,23 +19648,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -21317,11 +20807,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -21356,37 +20846,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -21407,11 +20866,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -21424,23 +20878,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -25180,11 +24619,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -25219,37 +24658,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -25270,11 +24678,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -25287,23 +24690,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -33989,11 +33377,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -34028,37 +33416,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -34079,11 +33436,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -34096,23 +33448,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -35036,11 +34373,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -35075,37 +34412,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -35126,11 +34432,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -35143,23 +34444,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -36746,11 +36032,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -36785,37 +36071,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -36836,11 +36091,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -36853,23 +36103,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -37599,11 +36834,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -37638,37 +36873,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -37689,11 +36893,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -37706,23 +36905,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -39690,11 +38874,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -39729,37 +38913,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -39780,11 +38933,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -39797,23 +38945,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -41909,11 +41042,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -41948,37 +41081,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -41999,11 +41101,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -42016,23 +41113,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -42720,11 +41802,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -42759,37 +41841,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -42810,11 +41861,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -42827,23 +41873,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -44177,11 +43208,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -44216,37 +43247,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -44267,11 +43267,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -44284,23 +43279,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -45207,11 +44187,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -45246,37 +44226,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -45297,11 +44246,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -45314,23 +44258,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -47381,11 +46310,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -47420,37 +46349,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -47471,11 +46369,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -47488,23 +46381,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
@@ -48224,11 +47102,11 @@
               }
             },
             "onSkip": {
-              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. (`retry` is a no-op here — a step that never ran cannot be re-run.)",
+              "description": "Routing entries evaluated when this step is skipped (reached but not run — unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, or `goToStep`. A skipped step never ran, so `retry` isn't allowed.",
               "type": "array",
               "items": {
-                "title": "Step routing",
-                "description": "A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.",
+                "title": "Step skip routing",
+                "description": "A single routing entry on a step's `onSkip` handler: an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), or `goToStep`. A skipped step never ran, so there's nothing to `retry`.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -48263,37 +47141,6 @@
                       "test"
                     ]
                   },
-                  "retry": {
-                    "description": "Retry the current step.",
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "limit"
-                    ],
-                    "properties": {
-                      "limit": {
-                        "description": "Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.",
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "delay": {
-                        "description": "Delay in milliseconds before each retry.",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 3600000
-                      },
-                      "backoff": {
-                        "description": "Backoff strategy applied to the delay between retries.",
-                        "type": "string",
-                        "enum": [
-                          "fixed",
-                          "exponential"
-                        ]
-                      }
-                    },
-                    "title": "Retry"
-                  },
                   "goToStep": {
                     "description": "Identifier of the step to jump to, within the same test.",
                     "type": "string",
@@ -48314,11 +47161,6 @@
                   },
                   {
                     "required": [
-                      "retry"
-                    ]
-                  },
-                  {
-                    "required": [
                       "goToStep"
                     ]
                   }
@@ -48331,23 +47173,8 @@
                     "stop": "test"
                   },
                   {
-                    "if": [
-                      "$$platform == linux",
-                      "$$outputs.exitCode == 0"
-                    ],
-                    "goToStep": "verify"
-                  },
-                  {
-                    "retry": {
-                      "limit": 3,
-                      "delay": 1000,
-                      "backoff": "exponential"
-                    }
-                  },
-                  {
-                    "retry": {
-                      "limit": 1
-                    }
+                    "if": "$$platform == windows",
+                    "goToStep": "cleanup"
                   }
                 ]
               }
