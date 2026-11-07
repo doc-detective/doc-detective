@@ -3,6 +3,7 @@ import {
   localUrlPolicy,
   privateAddressOf,
   getGuarded,
+  FETCH_TEXT_DEFAULTS,
   redactUrlForOutput,
 } from "./utils.js";
 import { readFile, parseFileContent } from "./files.js";
@@ -58,8 +59,8 @@ async function loadDescription(descriptionPath: string = "") {
   if (guard && /^https?:\/\//i.test(descriptionPath)) {
     // A remote root goes through the same guarded fetch as its $refs, so its
     // redirects are checked and strict mode refuses a private one.
-    const root = await getGuarded(descriptionPath);
-    const text = Buffer.from(root.data).toString("utf8");
+    const root = await getGuarded(descriptionPath, FETCH_TEXT_DEFAULTS);
+    const text: string = root.data;
     let content: any = text;
     try {
       content = JSON.parse(text); // as axios does for readFile's remote fetch
@@ -124,11 +125,11 @@ async function loadDescription(descriptionPath: string = "") {
           // private address either (DNS rebinding).
           const { data, url, reachedPublic } = await getGuarded(
             file.url,
-            undefined,
+            FETCH_TEXT_DEFAULTS,
             doc ? () => refused(ref, doc, "a private address") : undefined
           );
           if (guard && reachedPublic) lastPublic = url.split("#")[0];
-          return Buffer.from(data);
+          return data;
         },
       },
     },

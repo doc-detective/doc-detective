@@ -198,6 +198,7 @@ describe("local URL guard (ADR 01162)", function () {
       "/ref.png": () => ["image/png", png],
       "/schema.json": () => json({ type: "object", properties: { id: { type: "integer" } } }),
       "/plain.json": () => json({ type: "string" }),
+      "/schema.yaml": () => text("type: object\nproperties:\n  id:\n    type: integer\n"),
       "/openapi.yaml": () => text(openApiYaml(secret())),
       "/openapi.json": () =>
         json({ openapi: "3.0.0", info: { title: "t", version: "1" }, paths: {} }),
@@ -674,6 +675,15 @@ describe("local URL guard (ADR 01162)", function () {
     sinon.restore();
     assert.equal(definition.openapi, "3.0.0");
     assert.deepEqual(calls.filter((line) => /Failed to parse/.test(line)), []);
+  });
+
+  it("resolves a YAML $ref", async function () {
+    const file = path.join(tmpDir, "openapi-yaml-ref.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://127.0.0.1:${port}/schema.yaml`));
+    const definition = await loadDescription(file);
+    const schema =
+      definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+    assert.equal(schema.properties.id.type, "integer");
   });
 
   it("loads a localhost description with a localhost $ref", async function () {

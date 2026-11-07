@@ -101,6 +101,7 @@ export {
   privateAddressOf,
   localUrlPolicy,
   getGuarded,
+  FETCH_TEXT_DEFAULTS,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
@@ -1358,6 +1359,10 @@ const FETCH_BINARY_DEFAULTS = {
   maxBodyLength: 50 * 1024 * 1024,
 };
 
+// The same limits for text bodies, such as OpenAPI descriptions and their
+// $refs. "text" also stops axios from parsing JSON on its own.
+const FETCH_TEXT_DEFAULTS = { ...FETCH_BINARY_DEFAULTS, responseType: "text" as const };
+
 // Replace characters that are invalid in filenames on Windows (and often
 // problematic on other platforms) with `_`. Keeps dots, hyphens, and
 // alphanumerics untouched so names stay recognizable. Also rejects leading
@@ -1591,8 +1596,7 @@ function proxyConfigured(): boolean {
 // address.
 async function getGuarded(
   url: string,
-  // Binary defaults fit every caller: each decodes the raw bytes itself
-  // (OpenAPI reads decode to text), and the size and time caps apply to all.
+  // Binary by default (reference images); text callers pass FETCH_TEXT_DEFAULTS.
   opts: AxiosRequestConfig = FETCH_BINARY_DEFAULTS,
   refuseFirst?: (address: string) => Error
 ): Promise<{ data: any; url: string; reachedPublic: boolean }> {
@@ -1608,8 +1612,8 @@ async function getGuarded(
   for (let hops = 0; ; hops++) {
     if (policy === "block") {
       if (await privateAddressOf(current)) throw strictModeError(current);
-      const target = current;
-      refuse = () => strictModeError(target);
+      const hopUrl = current;
+      refuse = () => strictModeError(hopUrl);
     }
     // Fresh agents per request, so no pooled socket skips the lookup. It
     // notes whether the connection resolved to a private address, and
