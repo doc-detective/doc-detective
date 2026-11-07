@@ -584,6 +584,24 @@ describe("runtime helpers extra coverage", function () {
         expect(logs).to.include("npm i doc-detective@5");
       });
 
+      it("a v-prefixed newer major still counts as crossing", async function () {
+        const { res, logs } = await check("4.41.5", { latest: "v5.0.0" });
+        expect(res.newer).to.equal(false);
+        expect(logs).to.include("npm i doc-detective@5");
+      });
+
+      it("a version it can't read a major from neither updates nor names a major", async function () {
+        for (const [current, latest] of [
+          ["4.41.5", "banana"],
+          ["4.41.5", "5banana"],
+          ["dev", "5.0.0"],
+        ]) {
+          const { res, logs } = await check(current, { latest, "release-4.x": "4.41.6" });
+          expect(res.newer, `${current} -> ${latest}`).to.equal(false);
+          expect(logs, `${current} -> ${latest}`).to.not.include("npm i doc-detective@");
+        }
+      });
+
       it("a 4.x prerelease doesn't cross to 5.0.0, but takes a newer stable 4.x tag", async function () {
         const { res } = await check("4.42.0-next.1", { latest: "5.0.0", "release-4.x": "4.42.0" });
         expect(res).to.deep.equal({ latest: "4.42.0", newer: true });

@@ -96,8 +96,10 @@ function comparePrereleaseId(a: string, b: string): number {
   return 0;
 }
 
+// -1 when there's no major to read, which checkForUpdate treats as "skip".
 function majorOf(version: string): number {
-  return parseInt(version.split(".")[0], 10) || 0;
+  const major = /^v?(\d+)\./.exec(version.trim())?.[1];
+  return major === undefined ? -1 : Number(major);
 }
 
 export interface CheckResult {
@@ -128,11 +130,17 @@ export async function checkForUpdate(
       return { latest: null, newer: false };
     }
     const currentMajor = majorOf(currentVersion);
-    if (majorOf(latest) > currentMajor) {
+    const latestMajor = majorOf(latest);
+    // Fail closed: without both majors, an update could cross one.
+    if (currentMajor < 0 || latestMajor < 0) {
+      logger(`can't read a major version from '${currentVersion}' or '${latest}'; skipping self-update`, "debug");
+      return { latest: null, newer: false };
+    }
+    if (latestMajor > currentMajor) {
       // A new major has breaking changes, so moving to it is the user's call. Stay
       // current within this major through its maintenance tag, if it has one.
       logger(
-        `Doc Detective ${majorOf(latest)} is available. Upgrade when you're ready: npm i doc-detective@${majorOf(latest)}`,
+        `Doc Detective ${latestMajor} is available. Upgrade when you're ready: npm i doc-detective@${latestMajor}`,
         "warn"
       );
       const maintenance: unknown = tags[`release-${currentMajor}.x`];
