@@ -234287,10 +234287,10 @@
                       "checkLink": "https://doc-detective.com"
                     },
                     {
-                      "checkLink": "https://doc-detective.com/docs/get-started/intro"
+                      "checkLink": "https://docs.doc-detective.com/docs/get-started/introduction"
                     },
                     {
-                      "goTo": "https://doc-detective.com/docs/get-started/actions/type"
+                      "goTo": "https://docs.doc-detective.com/docs/actions/type"
                     },
                     {
                       "find": "Special keys"
