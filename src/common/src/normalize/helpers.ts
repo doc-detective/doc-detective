@@ -75,6 +75,8 @@ export function listClasses(locator: any, literal: boolean): any {
 // no `properties` (an if/then, say) contributes nothing.
 function plainDefaults(node: any, prefix = ""): [string, any][] {
   const parts = (node.allOf ?? []).map((part: any) => part.properties).filter(Boolean);
+  // An allOf part's property wins over the root's of the same name; no schema
+  // here defines one twice.
   const properties = Object.assign({}, node.properties, ...parts);
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
     const path = prefix + key;

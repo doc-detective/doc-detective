@@ -68,13 +68,16 @@ export const normalizers: Record<string, (value: any, path: string, literal: boo
   wait,
 };
 
+// Read once: normalizeStep runs for every step of a run.
+const actions = Object.keys(normalizers);
+
 // A valid step has exactly one action. A whole-variable value, such as
 // "goTo": "$URL", stays as authored: the variable can hold the whole action,
 // even an object. After substitution, `literal` normalizes one that's left (an
 // unset variable) as text.
 function normalizeStep(step: any, path: string, literal: boolean) {
   // Only validated steps get here, and a valid step has exactly one action.
-  const action = Object.keys(normalizers).find((name) => name in step)!;
+  const action = actions.find((name) => name in step)!;
   if (!literal && isWholeVariable(step[action])) return;
   step[action] = normalizers[action](step[action], path + action, literal, step);
 }

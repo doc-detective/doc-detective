@@ -5653,7 +5653,8 @@ async function stopAllRecordings({
 // validate() leaves a whole-variable action, such as `"goTo": "$NAV"`, as
 // authored, because the variable can hold the whole action object. After
 // substitution, `substituted` normalizes one that's left, an unset variable, as
-// text.
+// text. That second, literal pass is on purpose; every pass is idempotent, so
+// it only changes what the first one skipped.
 function useEffectiveStep(step: any, { substituted = false } = {}) {
   const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
   const validation = validate({ schemaKey: "step_v3", object: authored });
