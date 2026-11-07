@@ -34,7 +34,8 @@ function renameDeprecatedConfigKeys(
     // The same goes for beforeAll: only a non-null value conflicts.
     if (config.beforeAll != null) {
       // The schema's own message; config-coverage's "ends the both-set error"
-      // test keeps the two aligned.
+      // test keeps the two aligned. No fallback on purpose: if the schema moves
+      // the message, that test should fail rather than a stale text ship.
       throw new Error(`Invalid config. beforeAll: ${specSchemas().config_v3.errorMessage.not}`);
     }
     config.beforeAll = config.beforeAny;
