@@ -9,7 +9,7 @@
  */
 export type HttpRequest = HTTPRequestSimple | HTTPRequestDetailed;
 /**
- * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple = string;
 export type HTTPRequestDetailed = {
@@ -54,7 +54,7 @@ export type HTTPRequestDetailed = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL = string;
 /**

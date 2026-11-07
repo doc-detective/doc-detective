@@ -6558,9 +6558,9 @@
                               "anyOf": [
                                 {
                                   "title": "Check link (simple)",
-                                  "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                  "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
@@ -6576,9 +6576,9 @@
                                   "properties": {
                                     "url": {
                                       "title": "Target URL",
-                                      "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                       "type": "string",
-                                      "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                       "transform": [
                                         "trim"
                                       ]
@@ -6648,9 +6648,9 @@
                                 "schemas": {
                                   "string": {
                                     "title": "Check link (simple)",
-                                    "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                    "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
@@ -6666,9 +6666,9 @@
                                     "properties": {
                                       "url": {
                                         "title": "Target URL",
-                                        "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -18769,9 +18769,9 @@
                               "anyOf": [
                                 {
                                   "title": "Go to URL (simple)",
-                                  "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                  "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
@@ -19016,9 +19016,9 @@
                                         },
                                         "url": {
                                           "title": "Target URL",
-                                          "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                           "type": "string",
-                                          "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
                                           ]
@@ -19302,18 +19302,18 @@
                                 "schemas": {
                                   "url": {
                                     "title": "Target URL",
-                                    "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
                                   },
                                   "string": {
                                     "title": "Go to URL (simple)",
-                                    "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                    "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
@@ -19558,9 +19558,9 @@
                                           },
                                           "url": {
                                             "title": "Target URL",
-                                            "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -20919,9 +20919,9 @@
                               "anyOf": [
                                 {
                                   "title": "HTTP request (simple)",
-                                  "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                  "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
@@ -20945,9 +20945,9 @@
                                   "properties": {
                                     "url": {
                                       "title": "Target URL",
-                                      "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                       "type": "string",
-                                      "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                       "transform": [
                                         "trim"
                                       ]
@@ -21339,9 +21339,9 @@
                                 "schemas": {
                                   "url": {
                                     "title": "HTTP request (simple)",
-                                    "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                    "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
@@ -21382,9 +21382,9 @@
                                     "properties": {
                                       "url": {
                                         "title": "Target URL",
-                                        "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -40120,6 +40120,8 @@
                                       "type": "string",
                                       "title": "Cookie file path",
                                       "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
                                       "transform": [
                                         "trim"
                                       ]
@@ -40128,6 +40130,8 @@
                                       "type": "string",
                                       "title": "Directory path",
                                       "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
                                       "transform": [
                                         "trim"
                                       ]
@@ -40226,6 +40230,8 @@
                                         "type": "string",
                                         "title": "Cookie file path",
                                         "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
                                         "transform": [
                                           "trim"
                                         ]
@@ -40234,6 +40240,8 @@
                                         "type": "string",
                                         "title": "Directory path",
                                         "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
                                         "transform": [
                                           "trim"
                                         ]
@@ -51519,6 +51527,8 @@
                                       "type": "string",
                                       "title": "Cookie file path",
                                       "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
                                       "transform": [
                                         "trim"
                                       ]
@@ -51527,6 +51537,8 @@
                                       "type": "string",
                                       "title": "Directory path",
                                       "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
                                       "transform": [
                                         "trim"
                                       ]
@@ -51619,6 +51631,8 @@
                                         "type": "string",
                                         "title": "Cookie file path",
                                         "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
                                         "transform": [
                                           "trim"
                                         ]
@@ -51627,6 +51641,8 @@
                                         "type": "string",
                                         "title": "Directory path",
                                         "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                        "minLength": 1,
+                                        "pattern": "\\S",
                                         "transform": [
                                           "trim"
                                         ]
@@ -64058,9 +64074,9 @@
                                     "anyOf": [
                                       {
                                         "title": "Check link (simple)",
-                                        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -64076,9 +64092,9 @@
                                         "properties": {
                                           "url": {
                                             "title": "Target URL",
-                                            "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -64148,9 +64164,9 @@
                                       "schemas": {
                                         "string": {
                                           "title": "Check link (simple)",
-                                          "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                          "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                           "type": "string",
-                                          "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
                                           ]
@@ -64166,9 +64182,9 @@
                                           "properties": {
                                             "url": {
                                               "title": "Target URL",
-                                              "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -76269,9 +76285,9 @@
                                     "anyOf": [
                                       {
                                         "title": "Go to URL (simple)",
-                                        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -76516,9 +76532,9 @@
                                               },
                                               "url": {
                                                 "title": "Target URL",
-                                                "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                                 "type": "string",
-                                                "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -76802,18 +76818,18 @@
                                       "schemas": {
                                         "url": {
                                           "title": "Target URL",
-                                          "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                           "type": "string",
-                                          "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
                                           ]
                                         },
                                         "string": {
                                           "title": "Go to URL (simple)",
-                                          "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                          "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                           "type": "string",
-                                          "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
                                           ]
@@ -77058,9 +77074,9 @@
                                                 },
                                                 "url": {
                                                   "title": "Target URL",
-                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                                   "type": "string",
-                                                  "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -78419,9 +78435,9 @@
                                     "anyOf": [
                                       {
                                         "title": "HTTP request (simple)",
-                                        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
@@ -78445,9 +78461,9 @@
                                         "properties": {
                                           "url": {
                                             "title": "Target URL",
-                                            "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                             "type": "string",
-                                            "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -78839,9 +78855,9 @@
                                       "schemas": {
                                         "url": {
                                           "title": "HTTP request (simple)",
-                                          "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                          "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                           "type": "string",
-                                          "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                           "transform": [
                                             "trim"
                                           ]
@@ -78882,9 +78898,9 @@
                                           "properties": {
                                             "url": {
                                               "title": "Target URL",
-                                              "description": "An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                               "type": "string",
-                                              "pattern": "^(https?://|/|\\$[A-Za-z0-9_]+)",
+                                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -97620,6 +97636,8 @@
                                             "type": "string",
                                             "title": "Cookie file path",
                                             "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
                                             "transform": [
                                               "trim"
                                             ]
@@ -97628,6 +97646,8 @@
                                             "type": "string",
                                             "title": "Directory path",
                                             "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
                                             "transform": [
                                               "trim"
                                             ]
@@ -97726,6 +97746,8 @@
                                               "type": "string",
                                               "title": "Cookie file path",
                                               "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -97734,6 +97756,8 @@
                                               "type": "string",
                                               "title": "Directory path",
                                               "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -109019,6 +109043,8 @@
                                             "type": "string",
                                             "title": "Cookie file path",
                                             "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
                                             "transform": [
                                               "trim"
                                             ]
@@ -109027,6 +109053,8 @@
                                             "type": "string",
                                             "title": "Directory path",
                                             "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                            "minLength": 1,
+                                            "pattern": "\\S",
                                             "transform": [
                                               "trim"
                                             ]
@@ -109119,6 +109147,8 @@
                                               "type": "string",
                                               "title": "Cookie file path",
                                               "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -109127,6 +109157,8 @@
                                               "type": "string",
                                               "title": "Directory path",
                                               "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                              "minLength": 1,
+                                              "pattern": "\\S",
                                               "transform": [
                                                 "trim"
                                               ]

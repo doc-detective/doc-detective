@@ -13,7 +13,7 @@
     "schemas": {
       "string": {
         "title": "Check link (simple)",
-        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
         "$ref": "goTo_v3.schema.json#/components/schemas/url"
       },
       "object": {

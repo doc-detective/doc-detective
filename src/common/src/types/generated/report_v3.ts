@@ -713,11 +713,11 @@ export type Routing7 = (
 export type Condition11 = string | [string, ...string[]];
 export type CheckLink1 = CheckLinkSimple | CheckLinkDetailed;
 /**
- * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type CheckLinkSimple = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL = string;
 /**
@@ -1846,7 +1846,7 @@ export type Routing19 = (
 export type Condition29 = string | [string, ...string[]];
 export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
- * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple = string;
 /**
@@ -2002,7 +2002,7 @@ export type ByIndex13 = number;
  */
 export type ByName13 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL1 = string;
 /**
@@ -2190,7 +2190,7 @@ export type Condition35 = string | [string, ...string[]];
  */
 export type HttpRequest1 = HTTPRequestSimple | HTTPRequestDetailed;
 /**
- * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple = string;
 export type HTTPRequestDetailed = (
@@ -2240,7 +2240,7 @@ export type HTTPRequestDetailed = (
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL2 = string;
 /**
@@ -7358,11 +7358,11 @@ export type Routing91 = (
 export type Condition137 = string | [string, ...string[]];
 export type CheckLink3 = CheckLinkSimple1 | CheckLinkDetailed1;
 /**
- * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type CheckLinkSimple1 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL3 = string;
 /**
@@ -8491,7 +8491,7 @@ export type Routing103 = (
 export type Condition155 = string | [string, ...string[]];
 export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
 /**
- * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple1 = string;
 /**
@@ -8647,7 +8647,7 @@ export type ByIndex52 = number;
  */
 export type ByName52 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL4 = string;
 /**
@@ -8835,7 +8835,7 @@ export type Condition161 = string | [string, ...string[]];
  */
 export type HttpRequest3 = HTTPRequestSimple1 | HTTPRequestDetailed1;
 /**
- * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple1 = string;
 export type HTTPRequestDetailed1 = (
@@ -8885,7 +8885,7 @@ export type HTTPRequestDetailed1 = (
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
 export type TargetURL5 = string;
 /**

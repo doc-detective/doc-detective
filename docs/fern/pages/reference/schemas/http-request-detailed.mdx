@@ -16,7 +16,7 @@ Validation applies the defaults shown here.
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-url | string | Optional. An absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.<br/><br/>Pattern: `^(https?://|/|\$[A-Za-z0-9_]+)` | —
+url | string | Optional. An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.<br/><br/>Pattern: `^(https?://|/(?!/)|\$[A-Za-z0-9_]+)` | —
 openApi | one of:<br/>- string<br/>- object([openApi](/reference/schemas/openapi)) | Optional. No description provided. | —
 statusCodes | one of:<br/>- integer<br/>- array of integer | Optional. Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list. | ``[200,201]``
 method | string | Optional. Method of the HTTP request<br/><br/>Accepted values: `get`, `put`, `post`, `patch`, `delete` | `get`

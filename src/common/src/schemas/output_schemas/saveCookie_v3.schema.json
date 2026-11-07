@@ -43,6 +43,8 @@
           "type": "string",
           "title": "Cookie file path",
           "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+          "minLength": 1,
+          "pattern": "\\S",
           "transform": [
             "trim"
           ]
@@ -51,6 +53,8 @@
           "type": "string",
           "title": "Directory path",
           "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+          "minLength": 1,
+          "pattern": "\\S",
           "transform": [
             "trim"
           ]
@@ -149,6 +153,8 @@
             "type": "string",
             "title": "Cookie file path",
             "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+            "minLength": 1,
+            "pattern": "\\S",
             "transform": [
               "trim"
             ]
@@ -157,6 +163,8 @@
             "type": "string",
             "title": "Directory path",
             "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+            "minLength": 1,
+            "pattern": "\\S",
             "transform": [
               "trim"
             ]

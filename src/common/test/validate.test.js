@@ -1447,12 +1447,12 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
-      it("rejects a URL that only contains a variable", function () {
-        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com"]) {
+      it("rejects a URL that only contains a variable, or a protocol-relative one", function () {
+        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com", "//example.com"]) {
           for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
             const result = step(object);
             expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
-            expect(result.errors).to.include('must match pattern "^(https?://|/|\\$[A-Za-z0-9_]+)"');
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
           }
         }
       });
@@ -1520,6 +1520,18 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           for (const value of ["session", "__Secure-next-auth.session-token", "1P_JAR", "session.txt", "./dir/a.b.txt", "..txt"]) {
             const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
             expect(result.valid, `expected valid: ${value}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects an empty path or directory`, function () {
+          for (const value of [
+            { name: "s", path: "" },
+            { name: "s", path: "  " },
+            { name: "s", path: "c.txt", directory: "" },
+            { name: "s", path: "c.txt", directory: " " },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
           }
         });
 

@@ -8,7 +8,7 @@ The `goTo` action navigates the browser to a specified URL. This is typically us
 
 You can specify the target URL directly as a string, or use an object for more options:
 
-- **String Shorthand:** Provide the URL directly as the value for the `goTo` key. Use an absolute URL, a path that starts with `/`, or a value that starts with a variable, such as `$BASE_URL/docs`. Doc Detective joins a path to the global `origin` from the configuration.
+- **String Shorthand:** Provide the URL directly as the value for the `goTo` key. Use an absolute URL, a path that starts with one `/`, or a value that starts with a variable, such as `$BASE_URL/docs`. Doc Detective joins a path to the global `origin` from the configuration.
 - **Object Format:** Use an object with the following properties:
   - `url`: (Required) The URL to navigate to, in the same three forms.
   - `origin`: (Optional) Protocol and domain prepended to `url` when `url` is a path. Overrides the global `origin` if set.

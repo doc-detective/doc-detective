@@ -49,10 +49,11 @@ folder unless both named a `directory`.
 
 Chosen option: **A**.
 
-- **URLs.** `goTo_v3`'s `components.schemas.url` holds the one pattern, `^(https?://|/|\$[A-Za-z0-9_]+)`. goTo,
-  checkLink, and httpRequest reference it for the string form and the object's `url`. A URL is absolute
-  `http://` or `https://`, a path that starts with `/`, or a value that starts with a variable.
-  - `"foo $X"`, `"example.com"`, and `"docs/x"` are invalid. A spec that has one exits 2.
+- **URLs.** `goTo_v3`'s `components.schemas.url` holds the one pattern, `^(https?://|/(?!/)|\$[A-Za-z0-9_]+)`.
+  goTo, checkLink, and httpRequest reference it for the string form and the object's `url`. A URL is absolute
+  `http://` or `https://`, a path that starts with one `/`, or a value that starts with a variable.
+  - `"foo $X"`, `"example.com"`, `"docs/x"`, and the protocol-relative `"//example.com"` are invalid. A spec that
+    has one exits 2. A path join would have turned `//example.com` into `https://<origin>//example.com`.
   - checkLink accepts `"$BASE/docs"`.
   - httpRequest accepts a path. It joins the config's `origin` and appends the config's `originParams`, as goTo and
     checkLink do. Without an `origin`, the step fails:
@@ -91,7 +92,8 @@ Chosen option: **A**.
     can't be read as `$NAME`, so the description says so.
 - **Cookie paths.** A saveCookie or loadCookie `path` without `directory` resolves under `outputDir`, the same as
   the string form. A `directory` resolves against the spec file, and a `path` with it resolves against that
-  directory. Spec path resolution leaves a cookie `path` without `directory` for the handler to join.
+  directory. Spec path resolution leaves a cookie `path` without `directory` for the handler to join. An empty or
+  blank `path` or `directory` makes the spec invalid, rather than naming a folder as the cookie file.
 - **Request data.** Spec path resolution no longer rewrites keys such as `path` or `file` inside an httpRequest's
   `request` or `response`. It only skipped the v2 names, `requestData` and the like, before.
 
@@ -118,7 +120,8 @@ Chosen option: **A**.
 - `test/cookie-paths.test.js` covers path resolution and the save and load handlers. `test/httprequest-coverage.test.js`
   covers the origin join, its failure, and header merging.
 - Fixtures: `http/url-and-headers.spec.json`, `http/cookie-paths.spec.json`, and `cli/url-and-headers.spec.json`.
-- `test/shorthand-ratchet.test.js` drops to 12.
+- `test/shorthand-ratchet.test.js`'s ceiling drops to 10, counted after ADR 01167's ratchet stopped counting
+  `=== false` checks.
 
 ## Pros and Cons of the Options
 

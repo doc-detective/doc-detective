@@ -14,7 +14,7 @@
     "schemas": {
       "url": {
         "title": "HTTP request (simple)",
-        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
         "$ref": "goTo_v3.schema.json#/components/schemas/url"
       },
       "requestHeaders": {

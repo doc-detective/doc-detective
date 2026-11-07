@@ -68,12 +68,16 @@
             "type": "string",
             "title": "Cookie file path",
             "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+            "minLength": 1,
+            "pattern": "\\S",
             "transform": ["trim"]
           },
           "directory": {
             "type": "string",
             "title": "Directory path",
             "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+            "minLength": 1,
+            "pattern": "\\S",
             "transform": ["trim"]
           },
           "domain": {
