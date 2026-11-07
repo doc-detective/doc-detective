@@ -192,7 +192,7 @@ async function runTestsHandler(args: any) {
       const mapped = level === "warn" ? "warning" : level;
       log(msg, mapped, config);
     };
-    const currentVersion = ownVersion() as string;
+    const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.
