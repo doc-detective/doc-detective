@@ -173,6 +173,10 @@ async function getConfigFromEnv() {
       );
     }
 
+    // Both beforeAll and beforeAny gets a config file's error, not AJV's `not`.
+    // A copy, so the real rename (and its warning) still happens in setConfig.
+    renameDeprecatedConfigKeys([{ ...envConfig }], () => {});
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",

@@ -393,13 +393,13 @@ describe("beforeAll in the CLI config", function () {
     }
   });
 
-  it("rejects a DOC_DETECTIVE_CONFIG that sets both", async function () {
+  it("rejects a DOC_DETECTIVE_CONFIG that sets both, with a config file's message", async function () {
     const saved = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" });
     try {
-      await assert.rejects(withConfig({}), (error) =>
-        error.message.includes("set `beforeAll` or `beforeAny`, not both.")
-      );
+      await assert.rejects(withConfig({}), {
+        message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.",
+      });
     } finally {
       if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
       else process.env.DOC_DETECTIVE_CONFIG = saved;

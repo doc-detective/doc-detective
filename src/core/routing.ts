@@ -548,7 +548,9 @@ async function resolveStepRouting(args: {
     if (typeof entry.goToStep === "string" && entry.goToStep.trim() !== "") {
       // Return the trimmed id so `goToStep: "target "` matches the step `target`
       // rather than failing as an unknown target on incidental whitespace.
-      // Safe because the schema's `\S` pattern rules out whitespace-only ids.
+      // The schema's `\S` pattern rules out whitespace-only ids, so the trim
+      // never empties it. A stepId that itself ends in whitespace can't be a
+      // target, a trade made for the common case.
       return { action: "goToStep", stepId: entry.goToStep.trim() };
     }
   }
@@ -623,7 +625,8 @@ async function resolveTestRouting(args: {
     }
     if (typeof entry.goToTest === "string" && entry.goToTest.trim() !== "") {
       // Return the trimmed id so `goToTest: "cleanup "` matches the test
-      // `cleanup` rather than failing as an unknown target on whitespace.
+      // `cleanup` rather than failing as an unknown target on whitespace. A
+      // testId that itself ends in whitespace can't be a target, as with goToStep.
       return { action: "goToTest", testId: entry.goToTest.trim() };
     }
   }
