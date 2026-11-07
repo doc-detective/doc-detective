@@ -174,6 +174,7 @@ describe("local URL guard (ADR 01162)", function () {
   let server;
   let port;
   let fetchFile;
+  let UrlGuardError;
   let loadDescription;
   let checkLink;
   let httpRequest;
@@ -184,7 +185,7 @@ describe("local URL guard (ADR 01162)", function () {
   let windowsPath;
 
   before(async function () {
-    ({ fetchFile } = await import("../dist/core/utils.js"));
+    ({ fetchFile, UrlGuardError } = await import("../dist/core/utils.js"));
     ({ loadDescription } = await import("../dist/core/openapi.js"));
     ({ checkLink } = await import("../dist/core/tests/checkLink.js"));
     ({ httpRequest } = await import("../dist/core/tests/httpRequest.js"));
@@ -365,6 +366,8 @@ describe("local URL guard (ADR 01162)", function () {
       binary: true,
     });
     assert.equal(result.result, "error");
+    // The refusal itself, not axios's wrapper, so callers report it as is.
+    assert.ok(result.message instanceof UrlGuardError, String(result.message));
     assert.equal(
       result.message.message,
       `Couldn't follow the redirect from http://public.example.test:${port}/to-rebind: it leads to 127.0.0.1, a private address, from a public one.\n` +

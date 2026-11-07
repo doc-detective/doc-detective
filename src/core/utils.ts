@@ -119,6 +119,7 @@ export {
   privateAddressOf,
   localUrlPolicy,
   getGuarded,
+  UrlGuardError,
   FETCH_TEXT_DEFAULTS,
   sanitizeFilesystemName,
   compileFilter,
@@ -1557,15 +1558,19 @@ async function privateAddressOf(
   return isPrivate ? privates[0]?.address : undefined;
 }
 
+// A guarded fetch's own refusal. Its message already names the URL and the
+// cause, so callers report it as is.
+class UrlGuardError extends Error {}
+
 function strictModeError(url: string): Error {
-  return new Error(
+  return new UrlGuardError(
     `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
       "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
   );
 }
 
 function redirectError(from: string, address: string): Error {
-  return new Error(
+  return new UrlGuardError(
     `Couldn't follow the redirect from ${redactUrlForOutput(from)}: it leads to ${address}, a private address, from a public one.\n` +
       "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
   );
@@ -1645,6 +1650,9 @@ async function getGuarded(
       httpsAgent: new https.Agent({ lookup } as any),
       validateStatus: (status: number) =>
         (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
+    }).catch((error: any) => {
+      // axios wraps a refusal at connect time; hand back the refusal itself.
+      throw error?.cause instanceof UrlGuardError ? error.cause : error;
     });
     // An IP literal skips the lookup, so classify it directly. A name the
     // lookup never saw (a proxy) is public unless every address is private.
@@ -1667,7 +1675,7 @@ async function getGuarded(
     const location = response.headers?.location;
     if (!location || hops >= 5) {
       // Names the original URL on purpose: it's the one the spec named.
-      throw new Error(
+      throw new UrlGuardError(
         `Couldn't fetch ${redactUrlForOutput(url)}: ${
           location ? "it needs more than 5 redirects" : `the ${response.status} redirect has no Location header`
         }.`
@@ -1676,7 +1684,7 @@ async function getGuarded(
     const next = new URL(location, current).toString();
     const scheme = new URL(next).protocol;
     if (scheme !== "http:" && scheme !== "https:") {
-      throw new Error(
+      throw new UrlGuardError(
         `Couldn't fetch ${redactUrlForOutput(current)}: the redirect leads to an unsupported scheme (\`${scheme.slice(0, -1)}\`).`
       );
     }
