@@ -40,6 +40,7 @@ import {
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
 import { isVisualMatch, visualRect } from "./visualMatch.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -736,7 +737,7 @@ async function captureScreenshot({
       );
 
       // Wait for scroll to complete
-      await driver.pause(100);
+      await driver.pause(RENDER_SETTLE_MS);
     }
   }
 

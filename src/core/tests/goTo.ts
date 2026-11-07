@@ -17,6 +17,7 @@ import {
   registerOpenedHandle,
   ensureSurfaceState,
 } from "./browserSurface.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 export { goTo };
 
@@ -216,7 +217,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       );
       waitResults.documentReady.passed = true;
       waitResults.documentReady.message = "Document ready";
-      await driver.pause(100); // Small pause to allow for rendering
+      await driver.pause(RENDER_SETTLE_MS);
 
       // Calculate remaining time
       const elapsedTime = Date.now() - waitStartTime;

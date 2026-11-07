@@ -2656,6 +2656,27 @@
                 "minimum": 0,
                 "readOnly": true
               },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
+              },
+              "driver": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              },
               "platform": {
                 "type": "string"
               },
@@ -2879,6 +2900,11 @@
               "durationMs": {
                 "type": "integer",
                 "minimum": 0,
+                "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
                 "readOnly": true
               }
             }
@@ -6437,6 +6463,11 @@
                   308
                 ]
               },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 10000
+              },
               "headers": {
                 "default": {},
                 "anyOf": [
@@ -6788,6 +6819,10 @@
                 "type": "boolean",
                 "readOnly": true
               },
+              "version": {
+                "type": "string",
+                "readOnly": true
+              },
               "headless": {
                 "type": "boolean",
                 "default": true
@@ -7042,6 +7077,15 @@
           "type": "string",
           "readOnly": true
         },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "environment": {
+          "readOnly": true,
+          "$ref": "config_v3.schema.json#/components/schemas/environment"
+        },
         "runDir": {
           "type": "string",
           "readOnly": true
@@ -7124,36 +7168,6 @@
         "specs"
       ],
       "$id": "report_v3.schema.json"
-    },
-    "resolvedTests_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "dynamicDefaults": {
-        "resolvedTestsId": "uuid"
-      },
-      "properties": {
-        "resolvedTestsId": {
-          "type": "string"
-        },
-        "config": {
-          "$ref": "config_v3.schema.json#"
-        },
-        "specs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "spec_v3.nodefaults.schema.json#"
-              }
-            ]
-          }
-        }
-      },
-      "required": [
-        "specs"
-      ],
-      "$id": "resolvedTests_v3.schema.json"
     },
     "config_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7661,6 +7675,15 @@
                   "x32",
                   "x64"
                 ]
+              },
+              "docDetectiveVersion": {
+                "type": "string"
+              },
+              "nodeVersion": {
+                "type": "string"
+              },
+              "osRelease": {
+                "type": "string"
               }
             }
           },
@@ -7781,6 +7804,36 @@
         }
       },
       "$id": "config_v3.schema.json"
+    },
+    "resolvedTests_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "dynamicDefaults": {
+        "resolvedTestsId": "uuid"
+      },
+      "properties": {
+        "resolvedTestsId": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "config_v3.schema.json#"
+        },
+        "specs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "spec_v3.nodefaults.schema.json#"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "specs"
+      ],
+      "$id": "resolvedTests_v3.schema.json"
     }
   },
   "noDefaults": [
@@ -10129,6 +10182,27 @@
                 "minimum": 0,
                 "readOnly": true
               },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
+              },
+              "driver": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              },
               "platform": {
                 "type": "string"
               },
@@ -10339,6 +10413,11 @@
               "durationMs": {
                 "type": "integer",
                 "minimum": 0,
+                "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
                 "readOnly": true
               }
             }
@@ -13823,6 +13902,10 @@
                   }
                 ]
               },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              },
               "headers": {
                 "anyOf": [
                   {
@@ -14170,6 +14253,10 @@
                 "type": "boolean",
                 "readOnly": true
               },
+              "version": {
+                "type": "string",
+                "readOnly": true
+              },
               "headless": {
                 "type": "boolean"
               },
@@ -14417,6 +14504,15 @@
           "type": "string",
           "readOnly": true
         },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "environment": {
+          "readOnly": true,
+          "$ref": "config_v3.nodefaults.schema.json#/components/schemas/environment"
+        },
         "runDir": {
           "type": "string",
           "readOnly": true
@@ -14499,33 +14595,6 @@
         "specs"
       ],
       "$id": "report_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "resolvedTestsId": {
-          "type": "string"
-        },
-        "config": {
-          "$ref": "config_v3.nodefaults.schema.json#"
-        },
-        "specs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "spec_v3.nodefaults.schema.json#"
-              }
-            ]
-          }
-        }
-      },
-      "required": [
-        "specs"
-      ],
-      "$id": "resolvedTests_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14987,6 +15056,15 @@
                   "x32",
                   "x64"
                 ]
+              },
+              "docDetectiveVersion": {
+                "type": "string"
+              },
+              "nodeVersion": {
+                "type": "string"
+              },
+              "osRelease": {
+                "type": "string"
               }
             }
           },
@@ -15106,6 +15184,33 @@
         }
       },
       "$id": "config_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "resolvedTestsId": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "config_v3.nodefaults.schema.json#"
+        },
+        "specs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "spec_v3.nodefaults.schema.json#"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "specs"
+      ],
+      "$id": "resolvedTests_v3.nodefaults.schema.json"
     }
   ]
 }

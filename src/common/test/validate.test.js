@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { validate, transformToSchemaKey } from "../dist/validate.js";
+import { schemas } from "../dist/index.js";
 
   describe("validate", function () {
     describe("input validation", function () {
@@ -1142,6 +1143,35 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors.length).to.be.greaterThan(0);
+      });
+    });
+
+    describe("checkLink timeout", function () {
+      it("should accept a positive integer timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { checkLink: { url: "https://example.com", timeout: 5000 } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkLink.timeout).to.equal(5000);
+      });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { checkLink: { url: "https://example.com", timeout: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("must be >= 1");
+      });
+
+      it("should document a 10000 ms default", function () {
+        const timeout =
+          schemas.checkLink_v3.components.schemas.object.properties.timeout;
+        expect(timeout.default).to.equal(10000);
+        expect(timeout.minimum).to.equal(1);
       });
     });
 
@@ -2317,6 +2347,108 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({ schemaKey: "report_v3", object });
         expect(result.valid).to.be.false;
         expectConstraintError(result.errors);
+      });
+    });
+
+    describe("report_v3 run metadata", function () {
+      // The run environment and start times (ADR 01163). System-populated
+      // output, never authored.
+      const metadataReport = {
+        runId: "2026-11-06T02-33-28-631Z",
+        startedAt: "2026-11-06T02:33:28.631Z",
+        environment: {
+          platform: "linux",
+          arch: "x64",
+          docDetectiveVersion: "4.42.0",
+          nodeVersion: "24.15.0",
+          osRelease: "6.8.0-1017-azure",
+        },
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    contextId: "default",
+                    startedAt: "2026-11-06T02:33:28.640Z",
+                    browser: { name: "chrome", version: "131.0.6778.85" },
+                    driver: { name: "chromedriver", version: "131.0.6778.85" },
+                    steps: [
+                      {
+                        goTo: { url: "https://example.com" },
+                        startedAt: "2026-11-06T02:33:28.645Z",
+                        durationMs: 138,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      it("should validate the environment and start times", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: structuredClone(metadataReport),
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.environment).to.deep.equal(
+          metadataReport.environment
+        );
+        const context = result.object.specs[0].tests[0].contexts[0];
+        expect(context.startedAt).to.equal("2026-11-06T02:33:28.640Z");
+        expect(context.browser.version).to.equal("131.0.6778.85");
+        expect(context.driver).to.deep.equal({
+          name: "chromedriver",
+          version: "131.0.6778.85",
+        });
+        expect(context.steps[0].startedAt).to.equal(
+          "2026-11-06T02:33:28.645Z"
+        );
+      });
+
+      it("should validate a context with no browser or driver", function () {
+        const object = structuredClone(metadataReport);
+        const context = object.specs[0].tests[0].contexts[0];
+        delete context.browser;
+        delete context.driver;
+        context.steps = [{ runShell: "echo hi", startedAt: context.startedAt }];
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an unknown environment platform", function () {
+        const object = structuredClone(metadataReport);
+        object.environment.platform = "plan9";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("environment");
+      });
+
+      it("should reject an unknown environment field", function () {
+        const object = structuredClone(metadataReport);
+        object.environment.hostname = "build-07";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("environment");
+      });
+
+      it("should reject a run startedAt that isn't an ISO 8601 date-time", function () {
+        const object = structuredClone(metadataReport);
+        object.startedAt = "yesterday";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("startedAt");
+      });
+
+      it("should reject a driver without a name", function () {
+        const object = structuredClone(metadataReport);
+        object.specs[0].tests[0].contexts[0].driver = { version: "1.0" };
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("driver");
       });
     });
   });
