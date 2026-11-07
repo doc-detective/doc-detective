@@ -259,7 +259,7 @@ export interface ProcessDescriptor {
    */
   args?: string[];
   /**
-   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -437,7 +437,7 @@ export interface ProcessDescriptor1 {
    */
   args?: string[];
   /**
-   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**

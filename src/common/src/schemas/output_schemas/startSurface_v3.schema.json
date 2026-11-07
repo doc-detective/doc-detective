@@ -350,7 +350,7 @@
         },
         "workingDirectory": {
           "type": "string",
-          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
         },
         "tty": {
           "type": "boolean",
@@ -747,7 +747,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
               },
               "tty": {
                 "type": "boolean",
@@ -904,7 +904,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "tty": {
             "type": "boolean",

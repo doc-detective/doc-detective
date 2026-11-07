@@ -6588,7 +6588,7 @@ export interface RunShellCommandDetailed {
    */
   args?: string[];
   /**
-   * Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -6604,7 +6604,7 @@ export interface RunShellCommandDetailed {
    */
   path?: string;
   /**
-   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -6900,7 +6900,7 @@ export interface RunCodeDetailed {
    */
   args?: string[];
   /**
-   * Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -6916,7 +6916,7 @@ export interface RunCodeDetailed {
    */
   path?: string;
   /**
-   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -7220,7 +7220,7 @@ export interface RunBrowserScriptDetailed {
    */
   path?: string;
   /**
-   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -10074,7 +10074,7 @@ export interface ProcessDescriptor {
    */
   args?: string[];
   /**
-   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -10252,7 +10252,7 @@ export interface ProcessDescriptor1 {
    */
   args?: string[];
   /**
-   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**

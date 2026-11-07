@@ -11370,7 +11370,7 @@
                                 },
                                 "workingDirectory": {
                                   "type": "string",
-                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                 },
                                 "exitCodes": {
                                   "type": "array",
@@ -11396,7 +11396,7 @@
                                 },
                                 "directory": {
                                   "type": "string",
-                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                 },
                                 "maxVariation": {
                                   "type": "number",
@@ -11521,7 +11521,7 @@
                                   },
                                   "workingDirectory": {
                                     "type": "string",
-                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                   },
                                   "exitCodes": {
                                     "type": "array",
@@ -11547,7 +11547,7 @@
                                   },
                                   "directory": {
                                     "type": "string",
-                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                   },
                                   "maxVariation": {
                                     "type": "number",
@@ -29994,7 +29994,7 @@
                                     },
                                     "workingDirectory": {
                                       "type": "string",
-                                      "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                      "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                     },
                                     "exitCodes": {
                                       "type": "array",
@@ -30020,7 +30020,7 @@
                                     },
                                     "directory": {
                                       "type": "string",
-                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                     },
                                     "maxVariation": {
                                       "type": "number",
@@ -30145,7 +30145,7 @@
                                       },
                                       "workingDirectory": {
                                         "type": "string",
-                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                       },
                                       "exitCodes": {
                                         "type": "array",
@@ -30171,7 +30171,7 @@
                                       },
                                       "directory": {
                                         "type": "string",
-                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                       },
                                       "maxVariation": {
                                         "type": "number",
@@ -56313,7 +56313,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "exitCodes": {
                                                   "type": "array",
@@ -56339,7 +56339,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -56464,7 +56464,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "exitCodes": {
                                                     "type": "array",
@@ -56490,7 +56490,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -57665,7 +57665,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "exitCodes": {
                                                   "type": "array",
@@ -57691,7 +57691,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -57811,7 +57811,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "exitCodes": {
                                                     "type": "array",
@@ -57837,7 +57837,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -59133,7 +59133,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -59351,7 +59351,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -80095,7 +80095,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "tty": {
                                                   "type": "boolean",
@@ -80492,7 +80492,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "tty": {
                                                         "type": "boolean",
@@ -80649,7 +80649,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "tty": {
                                                     "type": "boolean",
@@ -113575,7 +113575,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "exitCodes": {
                                                         "type": "array",
@@ -113601,7 +113601,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -113726,7 +113726,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "exitCodes": {
                                                           "type": "array",
@@ -113752,7 +113752,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -114927,7 +114927,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "exitCodes": {
                                                         "type": "array",
@@ -114953,7 +114953,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -115073,7 +115073,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "exitCodes": {
                                                           "type": "array",
@@ -115099,7 +115099,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -116395,7 +116395,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -116613,7 +116613,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -137357,7 +137357,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "tty": {
                                                         "type": "boolean",
@@ -137754,7 +137754,7 @@
                                                             },
                                                             "workingDirectory": {
                                                               "type": "string",
-                                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                             },
                                                             "tty": {
                                                               "type": "boolean",
@@ -137911,7 +137911,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "tty": {
                                                           "type": "boolean",
@@ -175059,7 +175059,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "exitCodes": {
                                                   "type": "array",
@@ -175085,7 +175085,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -175210,7 +175210,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "exitCodes": {
                                                     "type": "array",
@@ -175236,7 +175236,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -176411,7 +176411,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "exitCodes": {
                                                   "type": "array",
@@ -176437,7 +176437,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -176557,7 +176557,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "exitCodes": {
                                                     "type": "array",
@@ -176583,7 +176583,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -177879,7 +177879,7 @@
                                                 },
                                                 "directory": {
                                                   "type": "string",
-                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                 },
                                                 "maxVariation": {
                                                   "type": "number",
@@ -178097,7 +178097,7 @@
                                                   },
                                                   "directory": {
                                                     "type": "string",
-                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                   },
                                                   "maxVariation": {
                                                     "type": "number",
@@ -198841,7 +198841,7 @@
                                                 },
                                                 "workingDirectory": {
                                                   "type": "string",
-                                                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "tty": {
                                                   "type": "boolean",
@@ -199238,7 +199238,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "tty": {
                                                         "type": "boolean",
@@ -199395,7 +199395,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "tty": {
                                                     "type": "boolean",
@@ -232321,7 +232321,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "exitCodes": {
                                                         "type": "array",
@@ -232347,7 +232347,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -232472,7 +232472,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "exitCodes": {
                                                           "type": "array",
@@ -232498,7 +232498,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -233673,7 +233673,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "exitCodes": {
                                                         "type": "array",
@@ -233699,7 +233699,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -233819,7 +233819,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "exitCodes": {
                                                           "type": "array",
@@ -233845,7 +233845,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -235141,7 +235141,7 @@
                                                       },
                                                       "directory": {
                                                         "type": "string",
-                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                       },
                                                       "maxVariation": {
                                                         "type": "number",
@@ -235359,7 +235359,7 @@
                                                         },
                                                         "directory": {
                                                           "type": "string",
-                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                                         },
                                                         "maxVariation": {
                                                           "type": "number",
@@ -256103,7 +256103,7 @@
                                                       },
                                                       "workingDirectory": {
                                                         "type": "string",
-                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "tty": {
                                                         "type": "boolean",
@@ -256500,7 +256500,7 @@
                                                             },
                                                             "workingDirectory": {
                                                               "type": "string",
-                                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                             },
                                                             "tty": {
                                                               "type": "boolean",
@@ -256657,7 +256657,7 @@
                                                         },
                                                         "workingDirectory": {
                                                           "type": "string",
-                                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                         },
                                                         "tty": {
                                                           "type": "boolean",
@@ -271352,7 +271352,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
@@ -271570,7 +271570,7 @@
             },
             "directory": {
               "type": "string",
-              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
             },
             "maxVariation": {
               "type": "number",
@@ -271676,7 +271676,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+            "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "exitCodes": {
             "type": "array",
@@ -271702,7 +271702,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
@@ -271822,7 +271822,7 @@
             },
             "workingDirectory": {
               "type": "string",
-              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
             },
             "exitCodes": {
               "type": "array",
@@ -271848,7 +271848,7 @@
             },
             "directory": {
               "type": "string",
-              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
             },
             "maxVariation": {
               "type": "number",
@@ -272029,7 +272029,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+            "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "exitCodes": {
             "type": "array",
@@ -272055,7 +272055,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
@@ -272180,7 +272180,7 @@
             },
             "workingDirectory": {
               "type": "string",
-              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
             },
             "exitCodes": {
               "type": "array",
@@ -272206,7 +272206,7 @@
             },
             "directory": {
               "type": "string",
-              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
             },
             "maxVariation": {
               "type": "number",
@@ -303477,7 +303477,7 @@
                                       },
                                       "workingDirectory": {
                                         "type": "string",
-                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                       },
                                       "exitCodes": {
                                         "type": "array",
@@ -303503,7 +303503,7 @@
                                       },
                                       "directory": {
                                         "type": "string",
-                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                       },
                                       "maxVariation": {
                                         "type": "number",
@@ -303628,7 +303628,7 @@
                                         },
                                         "workingDirectory": {
                                           "type": "string",
-                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                         },
                                         "exitCodes": {
                                           "type": "array",
@@ -303654,7 +303654,7 @@
                                         },
                                         "directory": {
                                           "type": "string",
-                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                         },
                                         "maxVariation": {
                                           "type": "number",
@@ -304829,7 +304829,7 @@
                                       },
                                       "workingDirectory": {
                                         "type": "string",
-                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                       },
                                       "exitCodes": {
                                         "type": "array",
@@ -304855,7 +304855,7 @@
                                       },
                                       "directory": {
                                         "type": "string",
-                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                       },
                                       "maxVariation": {
                                         "type": "number",
@@ -304975,7 +304975,7 @@
                                         },
                                         "workingDirectory": {
                                           "type": "string",
-                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                         },
                                         "exitCodes": {
                                           "type": "array",
@@ -305001,7 +305001,7 @@
                                         },
                                         "directory": {
                                           "type": "string",
-                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                         },
                                         "maxVariation": {
                                           "type": "number",
@@ -306297,7 +306297,7 @@
                                       },
                                       "directory": {
                                         "type": "string",
-                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                       },
                                       "maxVariation": {
                                         "type": "number",
@@ -306515,7 +306515,7 @@
                                         },
                                         "directory": {
                                           "type": "string",
-                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                         },
                                         "maxVariation": {
                                           "type": "number",
@@ -327259,7 +327259,7 @@
                                       },
                                       "workingDirectory": {
                                         "type": "string",
-                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                       },
                                       "tty": {
                                         "type": "boolean",
@@ -327656,7 +327656,7 @@
                                             },
                                             "workingDirectory": {
                                               "type": "string",
-                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                             },
                                             "tty": {
                                               "type": "boolean",
@@ -327813,7 +327813,7 @@
                                         },
                                         "workingDirectory": {
                                           "type": "string",
-                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                         },
                                         "tty": {
                                           "type": "boolean",
@@ -360739,7 +360739,7 @@
                                             },
                                             "workingDirectory": {
                                               "type": "string",
-                                              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                             },
                                             "exitCodes": {
                                               "type": "array",
@@ -360765,7 +360765,7 @@
                                             },
                                             "directory": {
                                               "type": "string",
-                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                             },
                                             "maxVariation": {
                                               "type": "number",
@@ -360890,7 +360890,7 @@
                                               },
                                               "workingDirectory": {
                                                 "type": "string",
-                                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                               },
                                               "exitCodes": {
                                                 "type": "array",
@@ -360916,7 +360916,7 @@
                                               },
                                               "directory": {
                                                 "type": "string",
-                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                               },
                                               "maxVariation": {
                                                 "type": "number",
@@ -362091,7 +362091,7 @@
                                             },
                                             "workingDirectory": {
                                               "type": "string",
-                                              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                             },
                                             "exitCodes": {
                                               "type": "array",
@@ -362117,7 +362117,7 @@
                                             },
                                             "directory": {
                                               "type": "string",
-                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                             },
                                             "maxVariation": {
                                               "type": "number",
@@ -362237,7 +362237,7 @@
                                               },
                                               "workingDirectory": {
                                                 "type": "string",
-                                                "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                               },
                                               "exitCodes": {
                                                 "type": "array",
@@ -362263,7 +362263,7 @@
                                               },
                                               "directory": {
                                                 "type": "string",
-                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                               },
                                               "maxVariation": {
                                                 "type": "number",
@@ -363559,7 +363559,7 @@
                                             },
                                             "directory": {
                                               "type": "string",
-                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                             },
                                             "maxVariation": {
                                               "type": "number",
@@ -363777,7 +363777,7 @@
                                               },
                                               "directory": {
                                                 "type": "string",
-                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                               },
                                               "maxVariation": {
                                                 "type": "number",
@@ -384521,7 +384521,7 @@
                                             },
                                             "workingDirectory": {
                                               "type": "string",
-                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                             },
                                             "tty": {
                                               "type": "boolean",
@@ -384918,7 +384918,7 @@
                                                   },
                                                   "workingDirectory": {
                                                     "type": "string",
-                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                   },
                                                   "tty": {
                                                     "type": "boolean",
@@ -385075,7 +385075,7 @@
                                               },
                                               "workingDirectory": {
                                                 "type": "string",
-                                                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                               },
                                               "tty": {
                                                 "type": "boolean",
@@ -399389,7 +399389,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "tty": {
             "type": "boolean",
@@ -399786,7 +399786,7 @@
                 },
                 "workingDirectory": {
                   "type": "string",
-                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                  "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                 },
                 "tty": {
                   "type": "boolean",
@@ -399943,7 +399943,7 @@
             },
             "workingDirectory": {
               "type": "string",
-              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
             },
             "tty": {
               "type": "boolean",
@@ -419620,7 +419620,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                        "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                       },
                       "exitCodes": {
                         "type": "array",
@@ -419646,7 +419646,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -419771,7 +419771,7 @@
                         },
                         "workingDirectory": {
                           "type": "string",
-                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                          "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                         },
                         "exitCodes": {
                           "type": "array",
@@ -419797,7 +419797,7 @@
                         },
                         "directory": {
                           "type": "string",
-                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                         },
                         "maxVariation": {
                           "type": "number",
@@ -420972,7 +420972,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                        "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                       },
                       "exitCodes": {
                         "type": "array",
@@ -420998,7 +420998,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -421118,7 +421118,7 @@
                         },
                         "workingDirectory": {
                           "type": "string",
-                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                          "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                         },
                         "exitCodes": {
                           "type": "array",
@@ -421144,7 +421144,7 @@
                         },
                         "directory": {
                           "type": "string",
-                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                         },
                         "maxVariation": {
                           "type": "number",
@@ -422440,7 +422440,7 @@
                       },
                       "directory": {
                         "type": "string",
-                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                        "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                       },
                       "maxVariation": {
                         "type": "number",
@@ -422658,7 +422658,7 @@
                         },
                         "directory": {
                           "type": "string",
-                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                          "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                         },
                         "maxVariation": {
                           "type": "number",
@@ -443402,7 +443402,7 @@
                       },
                       "workingDirectory": {
                         "type": "string",
-                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                        "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                       },
                       "tty": {
                         "type": "boolean",
@@ -443799,7 +443799,7 @@
                             },
                             "workingDirectory": {
                               "type": "string",
-                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                             },
                             "tty": {
                               "type": "boolean",
@@ -443956,7 +443956,7 @@
                         },
                         "workingDirectory": {
                           "type": "string",
-                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                         },
                         "tty": {
                           "type": "boolean",
@@ -480735,7 +480735,7 @@
                             },
                             "workingDirectory": {
                               "type": "string",
-                              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                              "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                             },
                             "exitCodes": {
                               "type": "array",
@@ -480761,7 +480761,7 @@
                             },
                             "directory": {
                               "type": "string",
-                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                             },
                             "maxVariation": {
                               "type": "number",
@@ -480886,7 +480886,7 @@
                               },
                               "workingDirectory": {
                                 "type": "string",
-                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                               },
                               "exitCodes": {
                                 "type": "array",
@@ -480912,7 +480912,7 @@
                               },
                               "directory": {
                                 "type": "string",
-                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                               },
                               "maxVariation": {
                                 "type": "number",
@@ -482087,7 +482087,7 @@
                             },
                             "workingDirectory": {
                               "type": "string",
-                              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                              "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                             },
                             "exitCodes": {
                               "type": "array",
@@ -482113,7 +482113,7 @@
                             },
                             "directory": {
                               "type": "string",
-                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                             },
                             "maxVariation": {
                               "type": "number",
@@ -482233,7 +482233,7 @@
                               },
                               "workingDirectory": {
                                 "type": "string",
-                                "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                               },
                               "exitCodes": {
                                 "type": "array",
@@ -482259,7 +482259,7 @@
                               },
                               "directory": {
                                 "type": "string",
-                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                               },
                               "maxVariation": {
                                 "type": "number",
@@ -483555,7 +483555,7 @@
                             },
                             "directory": {
                               "type": "string",
-                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                              "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                             },
                             "maxVariation": {
                               "type": "number",
@@ -483773,7 +483773,7 @@
                               },
                               "directory": {
                                 "type": "string",
-                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                               },
                               "maxVariation": {
                                 "type": "number",
@@ -504517,7 +504517,7 @@
                             },
                             "workingDirectory": {
                               "type": "string",
-                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                              "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                             },
                             "tty": {
                               "type": "boolean",
@@ -504914,7 +504914,7 @@
                                   },
                                   "workingDirectory": {
                                     "type": "string",
-                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                   },
                                   "tty": {
                                     "type": "boolean",
@@ -505071,7 +505071,7 @@
                               },
                               "workingDirectory": {
                                 "type": "string",
-                                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                               },
                               "tty": {
                                 "type": "boolean",
@@ -537997,7 +537997,7 @@
                                   },
                                   "workingDirectory": {
                                     "type": "string",
-                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                    "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                   },
                                   "exitCodes": {
                                     "type": "array",
@@ -538023,7 +538023,7 @@
                                   },
                                   "directory": {
                                     "type": "string",
-                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                   },
                                   "maxVariation": {
                                     "type": "number",
@@ -538148,7 +538148,7 @@
                                     },
                                     "workingDirectory": {
                                       "type": "string",
-                                      "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                      "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                     },
                                     "exitCodes": {
                                       "type": "array",
@@ -538174,7 +538174,7 @@
                                     },
                                     "directory": {
                                       "type": "string",
-                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                     },
                                     "maxVariation": {
                                       "type": "number",
@@ -539349,7 +539349,7 @@
                                   },
                                   "workingDirectory": {
                                     "type": "string",
-                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                    "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                   },
                                   "exitCodes": {
                                     "type": "array",
@@ -539375,7 +539375,7 @@
                                   },
                                   "directory": {
                                     "type": "string",
-                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                   },
                                   "maxVariation": {
                                     "type": "number",
@@ -539495,7 +539495,7 @@
                                     },
                                     "workingDirectory": {
                                       "type": "string",
-                                      "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                      "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                     },
                                     "exitCodes": {
                                       "type": "array",
@@ -539521,7 +539521,7 @@
                                     },
                                     "directory": {
                                       "type": "string",
-                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                     },
                                     "maxVariation": {
                                       "type": "number",
@@ -540817,7 +540817,7 @@
                                   },
                                   "directory": {
                                     "type": "string",
-                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                    "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                   },
                                   "maxVariation": {
                                     "type": "number",
@@ -541035,7 +541035,7 @@
                                     },
                                     "directory": {
                                       "type": "string",
-                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file."
+                                      "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                     },
                                     "maxVariation": {
                                       "type": "number",
@@ -561779,7 +561779,7 @@
                                   },
                                   "workingDirectory": {
                                     "type": "string",
-                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                    "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                   },
                                   "tty": {
                                     "type": "boolean",
@@ -562176,7 +562176,7 @@
                                         },
                                         "workingDirectory": {
                                           "type": "string",
-                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                         },
                                         "tty": {
                                           "type": "boolean",
@@ -562333,7 +562333,7 @@
                                     },
                                     "workingDirectory": {
                                       "type": "string",
-                                      "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder."
+                                      "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                     },
                                     "tty": {
                                       "type": "boolean",
