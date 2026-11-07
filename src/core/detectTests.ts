@@ -555,8 +555,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     const extension = path.extname(file).slice(1);
     // A spec loaded from a URL has no folder of its own: its download is
     // temporary. So its relative paths resolve against outputDir (ADR 01173).
+    // The trailing separator tells resolvePaths it's a folder, even one that
+    // doesn't exist yet and has a dot in its name.
     const pathBase = config._remoteFiles?.has(path.resolve(file))
-      ? path.resolve(config.outputDir ?? ".")
+      ? path.resolve(config.outputDir ?? ".") + path.sep
       : file;
     let content: any = "";
     let rawContent: string | undefined;

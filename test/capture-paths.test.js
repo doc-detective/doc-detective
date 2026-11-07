@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { detectTests } from "../dist/core/detectTests.js";
+import { resolvePaths } from "../dist/core/files.js";
 import { getRunOutputDir } from "../dist/core/utils.js";
 import { useEffectiveStep, placeCapturePaths } from "../dist/core/tests.js";
 
@@ -141,18 +142,45 @@ describe("capture paths", function () {
     });
   });
 
-  it("resolves a relative path in a spec loaded from a URL against outputDir", async function () {
-    const spec = { tests: [{ steps: [{ screenshot: "remote.png" }, { record: { path: "remote.mp4" } }] }] };
-    const { server, base } = await serve(JSON.stringify(spec), "application/json");
-    try {
-      const specs = await detectTests({
-        config: { logLevel: "silent", relativePathBase: "file", outputDir: tmp, input: [`${base}/remote.spec.json`] },
-      });
-      const [shot, rec] = specs[0].tests[0].steps;
-      assert.equal(shot.screenshot, path.join(tmp, "remote.png"));
-      assert.equal(rec.record.path, path.join(tmp, "remote.mp4"));
-    } finally {
-      server.close();
-    }
+  // A remote spec has no folder of its own. outputDir is always a folder, even
+  // one that doesn't exist yet and has a dot in its name.
+  for (const name of ["out", "out.v2"]) {
+    it(`resolves a relative path in a spec loaded from a URL against outputDir: ${name}`, async function () {
+      const outputDir = path.join(tmp, name);
+      const spec = {
+        tests: [
+          {
+            steps: [
+              { screenshot: "remote.png" },
+              { record: { path: "remote.mp4" } },
+              { runShell: { command: "echo hi", workingDirectory: "work" } },
+            ],
+          },
+        ],
+      };
+      const { server, base } = await serve(JSON.stringify(spec), "application/json");
+      try {
+        const specs = await detectTests({
+          config: { logLevel: "silent", relativePathBase: "file", outputDir, input: [`${base}/remote.spec.json`] },
+        });
+        const [shot, rec, shell] = specs[0].tests[0].steps;
+        assert.equal(shot.screenshot, path.join(outputDir, "remote.png"));
+        assert.equal(rec.record.path, path.join(outputDir, "remote.mp4"));
+        assert.equal(shell.runShell.workingDirectory, path.join(outputDir, "work"));
+      } finally {
+        server.close();
+      }
+    });
+  }
+
+  it("resolves a path against a directory with a dot in its name that doesn't exist yet", async function () {
+    const spec = { tests: [{ steps: [{ screenshot: { path: "a.png", directory: "shots.v2" } }] }] };
+    const resolved = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(tmp, "x.spec.json"),
+      objectType: "spec",
+    });
+    assert.equal(resolved.tests[0].steps[0].screenshot.path, path.join(tmp, "shots.v2", "a.png"));
   });
 });
