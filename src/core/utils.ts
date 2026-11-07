@@ -79,6 +79,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSchemaErrors,
+  knownKeysAt,
   configErrorMessage,
   findFreePort,
   runConcurrent,
@@ -1175,21 +1176,26 @@ function shouldFailRun(results: any): boolean {
   return typeof failCount === "number" && failCount > 0;
 }
 
-// Loaded only here, on the way to an error: the file is tens of megabytes.
-let loadedSpecSchemas: any;
-function specSchemas() {
-  return (loadedSpecSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+// Every bundled schema, by key. Loaded only here, on the way to an error: the
+// file is tens of megabytes.
+let loadedAllSchemas: any;
+function allSchemas() {
+  return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
 }
 
 // Every schema node that can describe the value at `parts`, following
-// properties and items through anyOf, oneOf, and allOf. The bundled schemas are
-// dereferenced, so there's no $ref left to follow.
-function schemasAt(parts: string[], rootSchemaKey: string): any[] {
+// properties and items through anyOf, oneOf, allOf, and an if's then and else.
+// The bundled schemas are dereferenced, so there's no $ref left to follow.
+// `root` is a bundled schema's key, or a schema itself.
+function schemasAt(parts: string[], root: string | object): any[] {
   const expand = (node: any): any[] =>
     node && typeof node === "object"
-      ? [node, ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])].flatMap(expand)]
+      ? [
+          node,
+          ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? []), node.then, node.else].flatMap(expand),
+        ]
       : [];
-  let nodes = expand(specSchemas()[rootSchemaKey]);
+  let nodes = expand(typeof root === "string" ? allSchemas()[root] : root);
   for (const part of parts) {
     nodes = nodes.flatMap((node) => expand(/^\d+$/.test(part) ? node.items : node.properties?.[part]));
   }
@@ -1197,8 +1203,8 @@ function schemasAt(parts: string[], rootSchemaKey: string): any[] {
 }
 
 // The keys valid at a path, for "did you mean".
-function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
-  return [...new Set(schemasAt(parts, rootSchemaKey).flatMap((node) => Object.keys(node.properties ?? {})))];
+function knownKeysAt(parts: string[], root: string | object): string[] {
+  return [...new Set(schemasAt(parts, root).flatMap((node) => Object.keys(node.properties ?? {})))];
 }
 
 const ONE_ACTION_MESSAGE = "a step can only have one action.";
@@ -1263,8 +1269,8 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
     const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
     if (isStep && required.length > 0 && rest.length === 0) {
       const actions = required.map((error) => error.params.missingProperty);
-      const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
-      const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+      const metadata = new Set(Object.keys(allSchemas().step_v3.components.schemas.common.properties));
+      const stepKeys = new Set(Object.keys(allSchemas().step_v3.properties));
       const keys = Object.keys(value ?? {});
       // A real action whose value is wrong has its own, more useful errors.
       if (!unknownKeys.length && keys.some((key) => stepKeys.has(key) && !metadata.has(key))) {
@@ -1320,7 +1326,8 @@ function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, ro
     const allowed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
     ];
-    if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
+    if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
+    else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
     const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
     for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
     // A type error only matters when nothing else here says what's wrong.

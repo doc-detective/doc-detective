@@ -6,7 +6,7 @@ import { expect } from "chai";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
-import { summarizeSchemaErrors } from "../dist/core/utils.js";
+import { knownKeysAt, summarizeSchemaErrors } from "../dist/core/utils.js";
 import { validate } from "../dist/common/src/index.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
@@ -175,6 +175,18 @@ describe("summarizeSchemaErrors", function () {
       expect(shown, shown).to.not.match(/(^|[^\\])(\\\\)*\\…/);
     }
     expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
+  });
+
+  it("says `must be` when only one value is allowed", function () {
+    const errorObjects = [
+      { instancePath: "/mode", keyword: "const", params: { allowedValue: "fast" }, schemaPath: "#/properties/mode/const" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { mode: "slow" }, "config_v3")).to.equal('mode: must be fast (got "slow").');
+  });
+
+  it("finds keys a conditional branch defines", function () {
+    const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
+    expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);
   });
 
   it("ends any other message with a period", function () {
