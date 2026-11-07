@@ -16,7 +16,8 @@ function findCollisions(base, head, mergeBase = base) {
   const added = head.filter((f) => number(f) && !mergeBase.includes(f));
   const deleted = new Set(mergeBase.filter((f) => !head.includes(f)));
   const pool = [...new Set([...head, ...base])].filter((f) => number(f) && !deleted.has(f));
-  const next = String(Math.max(0, ...pool.map((f) => Number(number(f)))) + 1).padStart(5, "0");
+  // 00001–00999 is reserved for backfilling older decisions, so new numbers start at 01000.
+  const next = String(Math.max(999, ...pool.map((f) => Number(number(f)))) + 1).padStart(5, "0");
   return added
     .map((file) => ({ file, number: number(file), others: pool.filter((f) => f !== file && number(f) === number(file)), next }))
     .filter((c) => c.others.length > 0);
