@@ -21,6 +21,7 @@ Several unions put a string branch first. Ajv turned booleans into strings there
 | `{"find": {"elementAttribute": {"disabled": false}}}` | `"false"` | A value match on `disabled="false"`, not the documented absence check. The runtime's boolean branch never ran. |
 | `{"click": true}` | `"true"` | Clicked an element whose text is "true". The schema listed `true` as an example. |
 | `{"wait": true}` | `1` | The runner was fine (it reads the raw step), but every other `validate()` caller saw `1`. |
+| `{"wait": false}` | `0` | The runner still SKIPPED the step, for the same reason. Every other `validate()` caller saw a 0 ms wait, not a skip. |
 
 `src/common/AGENTS.md` already said "narrow scalar types before string". That order doesn't work
 on its own. A leading `type: boolean` branch turns `"true"` into `true` and `1` into `true`. A
