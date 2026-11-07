@@ -63,7 +63,10 @@ export interface ProbeWorkerLike {
 function defaultCreateWorker(data: { ptyModulePath: string }): ProbeWorkerLike {
   // The worker is built to dist/core/. Resolve it from the package root, not
   // this module's URL: the dist/index.cjs bundle sits one level shallower.
-  const worker = path.join(packageRoot() as string, "dist", "core", "ptyProbeWorker.js");
+  // probePtyAllocation reports a throw here as inconclusive, with this message.
+  const root = packageRoot();
+  if (!root) throw new Error("doc-detective's package root not found, so the probe worker can't be located");
+  const worker = path.join(root, "dist", "core", "ptyProbeWorker.js");
   return new Worker(worker, { workerData: data });
 }
 
