@@ -194,11 +194,32 @@ The `json` reporter still exists, and it still writes a timestamped file in `out
 
 **What changed:** A bare `--concurrent-runners` exits `2`.
 
-**What to do:** Pass a positive whole number or `auto`:
+**What to do:** Pass a positive whole number, or `auto`. `true` works too, as it does in config:
 
 ```bash
 doc-detective --concurrent-runners auto
 ```
+
+## List flags take one comma-separated value
+
+**What changed:** `-r`/`--reporters`, `-i`/`--input`, `-t`/`--test`, `-s`/`--spec`, and `install agents --agent` each take one comma-separated list, given once:
+
+- `--reporters` no longer takes space-separated names. `-r terminal html` exits `2`, because `html` reads as a command, and the error shows the comma form. `-r json docs/` used to treat `docs/` as a reporter name. `run -r json docs/` now tests `docs/`.
+- Repeating one of these flags exits `2`. A repeated `-i a -i b` used to keep only `b`.
+- `--agent` no longer takes space-separated or repeated IDs.
+
+**What to do:** Join the values with commas:
+
+```bash
+doc-detective --input docs,api --reporters terminal,junit --test login,smoke
+doc-detective install agents --agent claude,copilot --scope project --yes
+```
+
+## Reporter names in config
+
+**What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
+
+**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test, pass `--plain`.
 
 ## Invalid flag values exit 2
 
@@ -299,7 +320,14 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 **What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone. In `doc-detective-common`, the built-in `defaultFileTypes` hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none.
 
-**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it.
+`runTests()` also changed:
+
+- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`.
+- With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
+- It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
+- `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
+
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`.
 
 ## Deprecated arguments
 

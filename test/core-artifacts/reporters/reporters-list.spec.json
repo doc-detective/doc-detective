@@ -1,0 +1,133 @@
+{
+  "specId": "reporters-list",
+  "description": "List flags take one comma-separated value, given once (ADR 01166), through the real CLI: the comma form runs, a positional after -r is an input, and a repeat, an unknown name, or the old space form exits 2 with the comma form. No browser or network.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the spec the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-reporters-list';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/pass.spec.json',JSON.stringify({specId:'pass',tests:[{testId:'pass',steps:[{runShell:'echo hi'}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "comma-list",
+      "description": "-r terminal,junit runs both reporters.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-reporters-list/pass.spec.json -r terminal,junit --output-dir .tmp/fixture-reporters-list/comma",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"process.exit(require('fs').existsSync('.tmp/fixture-reporters-list/comma/junit.xml')?0:1)\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "positional-after-reporters",
+      "description": "run -r json <file> tests the file instead of reading it as a reporter.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js run -r json .tmp/fixture-reporters-list/pass.spec.json --output-dir .tmp/fixture-reporters-list/positional",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "concurrent-runners-true",
+      "description": "--concurrent-runners true means auto, as in config.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-reporters-list/pass.spec.json --concurrent-runners true --output-dir .tmp/fixture-reporters-list/concurrent",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "repeated-reporters",
+      "description": "A repeated -r exits 2 and shows the comma form.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -r json -r html",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "Give it once, as a comma-separated list: json,html."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "repeated-input",
+      "description": "A repeated -i exits 2 and shows the comma form.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i a -i b",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "Give it once, as a comma-separated list: a,b."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "unknown-reporter",
+      "description": "An unknown reporter exits 2 and lists the allowed names.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -r foo",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "Allowed choices are terminal, json, html, runFolder, junit, markdown."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "space-separated-reporters",
+      "description": "The old space form exits 2 and shows the comma form.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -r terminal html",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "To use several reporters, give one comma-separated list: -r terminal,html"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,12 @@
 import { styleText } from "node:util";
 import type { Command } from "commander";
+import { REPORTER_NAMES } from "./cliOptions.js";
 
 const DOCS = "https://docs.doc-detective.com/reference/cli";
 const ISSUES = "https://github.com/doc-detective/doc-detective/issues";
 
 const RUN_EXIT_CODES = `Exit codes:
-  0  All tests passed, warned, or were skipped
+  0  No test failed, and at least one passed or warned
   1  At least one test failed
   2  Nothing was tested: bad usage, bad config, no tests, or an internal error
   130, 143  Interrupted by SIGINT or SIGTERM`;
@@ -230,10 +231,18 @@ export function nearestCommand(word: string, names: string[]): string | undefine
 
 // Rewrite the root's "too many arguments" as what it almost always is: a command
 // that doesn't exist, or a path that needs `-i`.
-export function rewriteRootError(message: string, commandNames: string[]): string {
+export function rewriteRootError(message: string, commandNames: string[], argv: string[] = []): string {
   const match = /too many arguments\b.*: ([^,\s]+)[^:]*\.\s*$/.exec(message);
   if (!match) return message;
   const word = match[1];
+  // `-r terminal html`, the 4.x form: reporters after the first one.
+  const flagAt = argv.findIndex((arg, i) => ["-r", "--reporters"].includes(arg) && argv[i + 2] === word);
+  if (flagAt >= 0 && REPORTER_NAMES.includes(word)) {
+    const extra = [];
+    for (let i = flagAt + 2; REPORTER_NAMES.includes(argv[i]); i++) extra.push(argv[i]);
+    const list = [argv[flagAt + 1], ...extra].join(",");
+    return `error: unknown command '${word}'. To use several reporters, give one comma-separated list: ${argv[flagAt]} ${list}\n`;
+  }
   const near = nearestCommand(word, commandNames);
   const hint = near ? ` (Did you mean ${near}?)` : ` To test a path, use: doc-detective run ${word}`;
   return `error: unknown command '${word}'.${hint}\n`;

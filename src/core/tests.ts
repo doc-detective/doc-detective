@@ -6307,10 +6307,8 @@ async function provisionChromeRuntime(config: any): Promise<void> {
   const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
   const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way the runTests pre-flight does.
-  const logger = (msg: string, level: string = "info") =>
-    log(config, level === "warn" ? "warning" : level, msg);
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log.
+  const logger = (msg: string, level: string = "info") => log(config, level, msg);
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
     { ctx, deps: { logger } }
@@ -6421,10 +6419,8 @@ async function ensureContextBrowserInstalled({
   }
 
   const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way provisionChromeRuntime does.
-  const logger = (msg: string, level: string = "info") =>
-    deps.log?.(config, level === "warn" ? "warning" : level, msg);
+  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log.
+  const logger = (msg: string, level: string = "info") => deps.log?.(config, level, msg);
   try {
     deps.log?.(
       config,

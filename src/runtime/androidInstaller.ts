@@ -469,7 +469,7 @@ export async function runSdkInstallWithRetry(
       if (attempt >= maxAttempts || !isTransientSdkError(message)) throw error;
       logger(
         `Transient Android SDK download error (attempt ${attempt}/${maxAttempts}); retrying: ${message}`,
-        "warn"
+        "warning"
       );
       await sleep(sdkRetryBackoffMs(attempt));
     }
@@ -559,7 +559,7 @@ export async function ensureJava(deps: {
 
   log(
     `No Java runtime found for sdkmanager/avdmanager. Downloading a portable Temurin JRE ${JRE_FEATURE_VERSION} into the Doc Detective cache — this is a one-time download.`,
-    "warn"
+    "warning"
   );
   try {
     const javaHome = await deps.bootstrapJava(deps.cacheJreRoot);
@@ -633,7 +633,7 @@ export async function installAndroid({
     for (const action of plan.actions) {
       logger(`  - ${describeAction(action)}`, "info");
     }
-    if (plan.blocked) logger(`  ! ${plan.blocked}`, "warn");
+    if (plan.blocked) logger(`  ! ${plan.blocked}`, "warning");
     if (needAvailable && !plan.systemImage) {
       logger(
         "  (a matching system image may become available after `sdkmanager --list`; rerun with --yes to install)",
@@ -763,7 +763,7 @@ export async function installAndroid({
     if (!isSystemImageComplete(sdkRoot, systemImage, fsDeps)) {
       logger(
         `Installed system image ${systemImage} looks incomplete; wiping and reinstalling…`,
-        "warn"
+        "warning"
       );
       wipeSystemImage(sdkRoot, systemImage, fsDeps);
       await runSdkInstallWithRetry(run, sdkmanager, [sdkArg, systemImage], {}, retryDeps);

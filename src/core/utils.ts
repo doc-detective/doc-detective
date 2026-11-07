@@ -30,7 +30,6 @@ export function loadAxios(): Promise<typeof import("axios").default> {
 }
 
 export {
-  outputResults,
   deepMerge,
   loadEnvs,
   log,
@@ -1739,15 +1738,6 @@ function deepMerge(target: any, override: any): any {
       : override[key];
   }
   return result;
-}
-
-async function outputResults(path: string, results: any, config: any) {
-  let data = JSON.stringify(results, null, 2);
-  fs.writeFileSync(path, data);
-  log(config, "info", "RESULTS:");
-  log(config, "info", results);
-  log(config, "info", `See results at ${path}`);
-  log(config, "info", "Cleaning up and finishing post-processing.");
 }
 
 /**

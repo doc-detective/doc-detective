@@ -390,7 +390,6 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     relativePathBase: config.relativePathBase || "file",
     detectSteps: config.detectSteps ?? true,
     logLevel: config.logLevel || "info",
-    fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
     hints: config.hints || { enabled: true },
   };
@@ -457,47 +456,21 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.dryRun === "boolean") {
     config.dryRun = args.dryRun;
   }
-  if (args.reporters != null) {
-    const reporterList = Array.isArray(args.reporters)
-      ? args.reporters
-      : [args.reporters];
-    if (reporterList.length > 0) {
-      config.reporters = reporterList.map((r: any) => String(r));
-    }
+  // The CLI's list flags are one comma-separated value each (ADR 01166).
+  const list = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
+  if (typeof args.reporters === "string" && list(args.reporters).length > 0) {
+    config.reporters = list(args.reporters);
   }
-  if (typeof args.test === "string" && args.test.length > 0) {
-    const list = args.test
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
-    if (list.length > 0) config.testFilter = list;
-  }
-  if (typeof args.spec === "string" && args.spec.length > 0) {
-    const list = args.spec
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
-    if (list.length > 0) config.specFilter = list;
-  }
+  if (typeof args.test === "string" && list(args.test).length > 0) config.testFilter = list(args.test);
+  if (typeof args.spec === "string" && list(args.spec).length > 0) config.specFilter = list(args.spec);
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
-  if (typeof args.verification === "string" && args.verification.length > 0) {
-    // Validation ran before this block, so drop an unknown value and keep the
-    // validated `verification.write` (which defaults to "existing").
-    const write = ({ existing: "existing", true: true, false: false } as Record<string, string | boolean>)[
-      args.verification.trim().toLowerCase()
-    ];
-    if (write === undefined) {
-      log(
-        `Ignoring invalid --verification value '${args.verification}'. Expected one of: existing, true, false.`,
-        "warning",
-        config
-      );
-    } else {
-      config.verification = { ...(config.verification || {}), write };
-    }
+  // Commander has already checked each value below against its choices.
+  if (typeof args.verification === "string") {
+    const write = args.verification === "existing" ? "existing" : args.verification === "true";
+    config.verification = { ...(config.verification || {}), write };
   }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
@@ -518,85 +491,22 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // `--cache-dir "   "` override is neutralized at the consumption site.
     config.cacheDir = args.cacheDir;
   }
-  if (typeof args.browserFallback === "string" && args.browserFallback.length > 0) {
-    // Only accept a known mode. Unlike most overrides, the schema validation
-    // above can't catch a bad CLI value (it runs before this block), and a
-    // garbage mode would reach the runner unvalidated on the pre-resolved-tests
-    // API path — so drop unknown values and keep the validated config value
-    // (which defaults to "auto").
-    const mode = args.browserFallback.trim().toLowerCase();
-    if (mode === "auto" || mode === "explicit" || mode === "off") {
-      config.browserFallback = mode;
-    } else {
-      log(
-        `Ignoring invalid --browser-fallback value '${args.browserFallback}'. Expected one of: auto, explicit, off.`,
-        "warning",
-        config
-      );
-    }
-  }
-  if (typeof args.shell === "string" && args.shell.length > 0) {
-    // Same rationale as --browser-fallback: schema validation runs before
-    // this block, so a bad CLI value would reach the runner unvalidated —
-    // drop unknown shells and keep the validated config value (default
-    // "bash") instead.
-    const shell = args.shell.trim().toLowerCase();
-    if (shell === "bash" || shell === "cmd" || shell === "powershell") {
-      config.shell = shell;
-    } else {
-      log(
-        `Ignoring invalid --shell value '${args.shell}'. Expected one of: bash, cmd, powershell.`,
-        "warning",
-        config
-      );
-    }
-  }
+  if (typeof args.browserFallback === "string") config.browserFallback = args.browserFallback;
+  if (typeof args.shell === "string") config.shell = args.shell;
+  // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
-    // "auto" selects CPU-count mode, as do an empty value and "true" from
-    // programmatic callers; anything else must parse as a positive integer. CLI overrides land after
-    // the config_v3 validation above, and the pre-resolved-tests API path never
-    // re-validates, so a garbage value would otherwise reach the runner as NaN
-    // and silently degrade to sequential execution — warn and keep the validated
-    // value instead.
-    if (
-      args.concurrentRunners === "auto" ||
-      args.concurrentRunners === "" ||
-      args.concurrentRunners.toLowerCase() === "true"
-    ) {
-      config.concurrentRunners = true;
-    } else {
-      const count = Number(args.concurrentRunners);
-      if (Number.isInteger(count) && count >= 1) {
-        config.concurrentRunners = count;
-      } else {
-        log(
-          `Ignoring invalid --concurrent-runners value '${args.concurrentRunners}'. Expected a positive integer, or no value (or 'true') for CPU-count mode.`,
-          "warning",
-          config
-        );
-      }
-    }
+    config.concurrentRunners = ["auto", "true"].includes(args.concurrentRunners) || Number(args.concurrentRunners);
   }
   // Modes that replace the terminal summary on stdout.
+  const stdoutReporters: string[] = [];
   if (jsonOnStdout || args.plain || args.quiet || config.logLevel === "silent") {
-    const others = (config.reporters ?? []).filter((reporter: any) => reporter !== "terminal");
-    if (jsonOnStdout) others.push("jsonStdoutReporter");
-    if (args.plain) others.push("plainReporter");
-    config.reporters = others;
+    config.reporters = (config.reporters ?? []).filter((reporter: any) => reporter !== "terminal");
+    if (jsonOnStdout) stdoutReporters.push("jsonStdoutReporter");
+    if (args.plain) stdoutReporters.push("plainReporter");
   }
   // --output is the JSON results file, so the json reporter would write a second copy.
   if (config.output && Array.isArray(config.reporters)) {
     config.reporters = config.reporters.filter((reporter: any) => reporter !== "json");
-  }
-  if (Array.isArray(config.reporters)) {
-    const unknown = config.reporters.filter(
-      (reporter: any) => typeof reporter === "string" && !reporters[reporterKey(reporter)]
-    );
-    if (unknown.length > 0) {
-      throw new Error(
-        `Unknown reporter: ${unknown.join(", ")}. Available reporters: terminal, json, html, runFolder, junit, markdown.`
-      );
-    }
   }
   // Resolve paths
   config = await resolvePaths({
@@ -606,6 +516,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     nested: false,
     objectType: "config",
   });
+  // The stdout modes' reporters aren't config `reporters` values, so they ride
+  // along unenumerated, out of the runner's validation.
+  Object.defineProperty(config, "_stdoutReporters", { value: stdoutReporters, configurable: true });
 
   return config;
 }
@@ -1270,11 +1183,12 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
   // Config is the source of truth. Fall back to options.reporters for
   // programmatic callers that pass them directly, then to defaults.
   const defaultReporters = ["terminal", "runFolder"];
+  // `--json` and `--plain` add their stdout reporters here, not to `reporters`.
+  const stdoutReporters: string[] = config?._stdoutReporters ?? [];
+  const configured = [...(Array.isArray(config?.reporters) ? config.reporters : []), ...stdoutReporters];
 
   let activeReporters =
-    (config && Array.isArray(config.reporters) && config.reporters.length > 0
-      ? config.reporters
-      : null) ||
+    (configured.length > 0 ? configured : null) ||
     options.reporters ||
     defaultReporters;
 

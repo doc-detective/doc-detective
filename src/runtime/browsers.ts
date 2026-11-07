@@ -560,7 +560,7 @@ async function ensureBrowserInstalledImpl(
     );
     logger(
       `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${existing.latestKnownVersion}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warn"
+      "warning"
     );
     return { path, version: existing.installedVersion, outdated: true };
   }
@@ -612,7 +612,7 @@ async function ensureBrowserInstalledImpl(
     writeInstalledRecord(record, ctx);
     logger(
       `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${latest}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warn"
+      "warning"
     );
     const path = await locateExecutable(
       browsersModule,
@@ -657,7 +657,7 @@ async function ensureBrowserInstalledImpl(
     if (!verify.ok) {
       logger(
         `Installed ${name} ${latest} failed validation (${verify.error}); reinstalling once.`,
-        "warn"
+        "warning"
       );
       try {
         await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
@@ -1013,7 +1013,7 @@ async function ensureGeckodriver(
     if (!verify.ok) {
       logger(
         `Downloaded geckodriver failed validation (${verify.error}); re-downloading once.`,
-        "warn"
+        "warning"
       );
       try {
         if (binaryPath && fs.statSync(binaryPath).isFile()) {
