@@ -499,7 +499,7 @@ async function prebuildWda({
       ) {
         logger(
           `Transient xcodebuild failure (attempt ${attempt}/${WDA_BUILD_MAX_ATTEMPTS}); retrying: ${tail(failureText)}`,
-          "warn"
+          "warning"
         );
         await sleep(attempt * 2000);
         continue;

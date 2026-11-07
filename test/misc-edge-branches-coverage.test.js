@@ -527,35 +527,18 @@ describe("runtime/cacheDir.ts — guard + fallback branches", function () {
     assert.throws(() => getCacheDir({}), /shell-metacharacter/);
   });
 
-  it("getBrowsersDir returns a legacy snapshot dir when one exists and no override is set", function () {
-    // No env / ctx override → the legacy `./browser-snapshots` probe runs.
-    delete process.env.DOC_DETECTIVE_CACHE_DIR;
-    const legacy = mkTmp("dd-edge-legacy-");
-    // First candidate is path.resolve('browser-snapshots'); force statSync to
-    // report our temp dir as the directory so we don't touch the real cwd.
-    const realStat = fs.statSync;
-    sinon.stub(fs, "statSync").callsFake((p, ...rest) => {
-      if (String(p).endsWith("browser-snapshots")) {
-        return { isDirectory: () => true };
-      }
-      return realStat.call(fs, p, ...rest);
-    });
-    const out = getBrowsersDir({});
-    assert.match(out.replace(/\\/g, "/"), /browser-snapshots$/);
-    assert.ok(legacy); // referenced to keep tmp tracked
-  });
-
-  it("getBrowsersDir skips legacy candidates whose statSync throws and falls back to the default cache", function () {
-    // No override → the legacy loop runs; every statSync throws → catch/skip →
-    // fall through to <cacheDir>/browsers. Redirect the default cache root to a
-    // temp dir so we don't create anything under the real home-dir cache.
+  it("getBrowsersDir ignores a legacy ./browser-snapshots dir, and uses the cache", function () {
+    // 5.0 dropped the `./browser-snapshots` fallback (ADR 01165). Redirect the
+    // default cache root to a temp dir so nothing lands in the real home cache.
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
     const fakeHome = mkTmp("dd-edge-homeroot-");
     fs.mkdirSync(path.join(fakeHome, ".doc-detective"));
     sinon.stub(os, "homedir").returns(fakeHome);
-    sinon.stub(fs, "statSync").throws(Object.assign(new Error("nope"), { code: "ENOENT" }));
-    const out = getBrowsersDir({});
-    assert.equal(out, path.join(fakeHome, ".doc-detective", "browsers"));
+    const realStat = fs.statSync;
+    sinon.stub(fs, "statSync").callsFake((p, ...rest) =>
+      String(p).endsWith("browser-snapshots") ? { isDirectory: () => true } : realStat.call(fs, p, ...rest)
+    );
+    assert.equal(getBrowsersDir({}), path.join(fakeHome, ".doc-detective", "browsers"));
   });
 
   it("readInstalledRecord degrades to an empty record on a non-ENOENT read error", function () {

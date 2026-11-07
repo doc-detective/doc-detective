@@ -46,7 +46,7 @@ Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `openco
 
 | Option | Description |
 |--------|-------------|
-| `--agent` | Agent to configure. One of `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`. |
+| `--agent` | Agents to configure, as one comma-separated list given once, such as `claude,copilot`. Each is one of `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`. |
 | `--scope` | Where to install the agent integration. One of `project` or `global`. Required with `--yes`. |
 | `--yes`, `-y` | Don't prompt. Requires `--agent` and `--scope`. |
 | `--force`, `-f` | Reinstall even if up to date. |
@@ -168,7 +168,7 @@ Report what's currently installed in the cache directory versus what the current
 doc-detective install status [options]
 ```
 
-Because `status` only reads the cache, it accepts `--cache-dir` but rejects `--yes`, `--force`, and `--dry-run`.
+Because `status` only reads the cache, it accepts `--cache-dir` and `--config` but rejects `--yes`, `--force`, and `--dry-run`.
 
 ## Shared options
 
@@ -179,7 +179,8 @@ Because `status` only reads the cache, it accepts `--cache-dir` but rejects `--y
 | `--yes`, `-y` | Skip interactive prompts and auto-install missing assets. |
 | `--force`, `-f` | Reinstall even if assets are already present and current. Prunes older versions from the cache. |
 | `--dry-run`, `-n` | Report the assets the command would install, without executing. |
-| `--cache-dir` | Override the cache root for this invocation. Also settable via `DOC_DETECTIVE_CACHE_DIR` env var. |
+| `--cache-dir` | Override the cache root for this invocation. Beats `DOC_DETECTIVE_CACHE_DIR` and config `cacheDir`. See [Cache directory](#cache-directory). |
+| `--config`, `-c` | Read `cacheDir` from this config file instead of the discovered one. A relative `cacheDir` resolves against the file. |
 
 Every subcommand also takes the global options, including these:
 
@@ -210,13 +211,16 @@ By default, runtime assets install to a per-user cache that persists across rebo
 3. `%LOCALAPPDATA%\doc-detective` on Windows.
 4. `~/.cache/doc-detective`.
 
-To use a different cache location, such as a shared directory or a volume baked into a container image:
+To use a different cache location, such as a shared directory or a volume baked into a container image, set one of these. The first one set wins:
 
-1. **Environment variable**: `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`
-2. **Config file**: Set `cacheDir` in `.doc-detective.json`
-3. **CLI flag**: `--cache-dir /opt/doc-detective`
+1. **CLI flag**: `--cache-dir /opt/doc-detective`
+2. **Environment variable**: `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`
+3. **Project config**: `cacheDir` in the file `--config` names, or else in `.doc-detective.json`, `.yaml`, or `.yml`. A relative path resolves against the config file.
+4. **User config**: `cacheDir` in `$XDG_CONFIG_HOME/doc-detective/config.json`
 
-The environment variable takes priority over the CLI flag and the config file. All three take priority over the default location.
+`install` and test runs read the same settings, including the project `.env`, so they use the same cache. See [Configuration precedence](/reference/cli#configuration-precedence). An invalid config makes `install` exit `2`. `install` doesn't read `apiKeyFile` or `apiTokenFile`, so it runs before secrets are mounted, as in an image build.
+
+Browsers always install into `<cacheDir>/browsers`. A `./browser-snapshots/` folder from version 4 isn't used.
 
 <Note>
 Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading from one of those versions, the first run re-downloads assets into the default location. To keep using the old location, set `DOC_DETECTIVE_CACHE_DIR` to it. You can delete the old directory once you no longer need it.

@@ -1,5 +1,6 @@
 import { diag } from "../cliOutput.js";
 import { nearestCommand } from "../cliHelp.js";
+import { envFlag } from "../envFlag.js";
 import type { ErrorObject } from "ajv";
 import fs from "node:fs";
 import os from "node:os";
@@ -30,7 +31,7 @@ export function loadAxios(): Promise<typeof import("axios").default> {
 }
 
 export {
-  outputResults,
+  deepMerge,
   loadEnvs,
   log,
   logLevelEnabled,
@@ -1692,7 +1693,7 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
 // wire in an agent that validates the actual remote address at connect
 // time. This guard covers the common misuse cases.
 async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
-  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+  if (envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS")) return;
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1790,13 +1791,24 @@ async function fetchFile(
   }
 }
 
-async function outputResults(path: string, results: any, config: any) {
-  let data = JSON.stringify(results, null, 2);
-  fs.writeFileSync(path, data);
-  log(config, "info", "RESULTS:");
-  log(config, "info", results);
-  log(config, "info", `See results at ${path}`);
-  log(config, "info", "Cleaning up and finishing post-processing.");
+/**
+ * Deep merge two objects, with override properties taking precedence. Objects
+ * merge key by key; arrays and scalars replace.
+ * @param {Object} target - The target object to merge into
+ * @param {Object} override - The override object containing properties to merge
+ * @returns {Object} A new object with merged properties
+ */
+function deepMerge(target: any, override: any): any {
+  const result = { ...target };
+  const isObject = (value: any) => value != null && typeof value === "object" && !Array.isArray(value);
+  for (const key of Object.keys(override)) {
+    // A config key never reaches an object's prototype.
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    result[key] = isObject(override[key])
+      ? deepMerge(isObject(result[key]) ? result[key] : {}, override[key])
+      : override[key];
+  }
+  return result;
 }
 
 /**
@@ -1804,15 +1816,19 @@ async function outputResults(path: string, results: any, config: any) {
  *
  * @async
  * @param {string} envsFile - Path to the environment variables file.
+ * @param {Object} [options]
+ * @param {boolean} [options.override=true] - Replace variables already set. The
+ *   `loadVariables` step does, on purpose. A config-level `loadVariables` only
+ *   fills unset ones, so the shell wins (ADR 01165).
  * @returns {Promise<Object>} An object containing the operation result.
  * @returns {string} returns.status - "PASS" if environment variables were loaded successfully, "FAIL" otherwise.
  * @returns {string} returns.description - A description of the operation result.
  */
-async function loadEnvs(envsFile: string) {
+async function loadEnvs(envsFile: string, { override = true }: { override?: boolean } = {}) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     const { default: dotenv } = await import("dotenv");
-    dotenv.config({ path: envsFile, override: true });
+    dotenv.config({ path: envsFile, override, quiet: true });
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };
@@ -2839,8 +2855,9 @@ function getRunOutputDir(
 //
 // The reporter gate mirrors outputResults *exactly* so the gate never reserves
 // a folder the reporter won't write to (which would leave it empty). Like
-// outputResults: a non-empty `reporters` array is the override, otherwise the
-// default set (`["terminal", "json", "runFolder"]`) applies; tokens are matched
+// outputResults: a `reporters` array is the override, and an empty one means
+// none, as when `--json` replaces the only reporter; otherwise the default set
+// (`["terminal", "json", "runFolder"]`) applies; tokens are matched
 // verbatim (no trimming — outputResults doesn't trim, so a padded `" runFolder "`
 // runs no reporter); the `runFolder` shorthand matches case-insensitively (its
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
@@ -2869,9 +2886,7 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
     return true;
   }
   const active =
-    Array.isArray(config?.reporters) && config.reporters.length > 0
-      ? config.reporters
-      : ["terminal", "json", "runFolder"];
+    Array.isArray(config?.reporters) ? config.reporters : ["terminal", "json", "runFolder"];
   return active.some(
     (reporter: any) =>
       typeof reporter === "string" &&

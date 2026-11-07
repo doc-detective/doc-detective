@@ -167,7 +167,7 @@ describe("runtime helpers extra coverage", function () {
         deps: {
           browsersModule,
           logger: (msg, level) => {
-            if (level === "warn") warnings.push(msg);
+            if (level === "warning") warnings.push(msg);
           },
         },
       });

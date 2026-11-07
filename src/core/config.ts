@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage } from "./utils.js";
+import { setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -73,40 +74,6 @@ async function verifyAppDrivers(
   return out;
 }
 
-/**
- * Deep merge two objects, with override properties taking precedence
- * @param {Object} target - The target object to merge into
- * @param {Object} override - The override object containing properties to merge
- * @returns {Object} A new object with merged properties
- */
-function deepMerge(target: any, override: any): any {
-  const result = { ...target };
-
-  for (const key in override) {
-    if (override.hasOwnProperty(key)) {
-      if (
-        override[key] != null &&
-        typeof override[key] === "object" &&
-        !Array.isArray(override[key])
-      ) {
-        if (
-          result[key] != null &&
-          typeof result[key] === "object" &&
-          !Array.isArray(result[key])
-        ) {
-          result[key] = deepMerge(result[key], override[key]);
-        } else {
-          result[key] = deepMerge({}, override[key]);
-        }
-      } else {
-        result[key] = override[key];
-      }
-    }
-  }
-
-  return result;
-}
-
 // Map of Node-detected platforms to common-term equivalents
 const platformMap: any = {
   darwin: "mac",
@@ -136,31 +103,12 @@ function fileTypeObject(fileType: any) {
 
 async function setConfig({ config, detectApps = true }: any) {
   // Set environment variables from file
-  if (config.loadVariables) await loadEnvs(config.loadVariables);
+  if (config.loadVariables) await loadEnvs(config.loadVariables, { override: false });
 
   // Load environment variables for `config`. replaceEnvs rewrites in place, so
   // work on a copy: the caller's object stays unchanged across runs. JSON, not
   // structuredClone, to match the clone validate() applies just below.
   config = replaceEnvs(JSON.parse(JSON.stringify(config)));
-
-  // Apply config overrides from DOC_DETECTIVE environment variable
-  if (process.env.DOC_DETECTIVE) {
-    try {
-      const docDetectiveEnv = JSON.parse(process.env.DOC_DETECTIVE);
-      if (
-        docDetectiveEnv.config &&
-        typeof docDetectiveEnv.config === "object"
-      ) {
-        config = deepMerge(config, docDetectiveEnv.config);
-      }
-    } catch (error: any) {
-      log(
-        config,
-        "warning",
-        `Invalid JSON in DOC_DETECTIVE environment variable: ${error.message}. Ignoring config overrides.`
-      );
-    }
-  }
 
   // Validate inbound `config`. Thrown, not logged: the caller prints it once.
   const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
@@ -168,6 +116,9 @@ async function setConfig({ config, detectApps = true }: any) {
     throw new Error(configErrorMessage("", validityCheck.errorObjects, config), { cause: validityCheck.errors });
   }
   config = validityCheck.object;
+  // Environment warnings print at this config's level, for JS API callers too.
+  const logged = config;
+  setEnvWarningSink((message) => log(logged, "warning", message));
 
   // Replace fileType strings with objects. The schema limits the strings to the
   // built-in names. Copy the default: the normalizing below mutates entries in
@@ -393,8 +344,7 @@ const cachedAppsByDir: Map<string, any[]> = new Map();
 
 function cacheKeyFor(config: any): string {
   // Reuse `getBrowsersDir` so the key respects every override the rest
-  // of the runtime honors (env var > config.cacheDir > tmpdir, with the
-  // legacy `./browser-snapshots/` fallback).
+  // of the runtime honors (env var > config.cacheDir > default cache).
   return getBrowsersDir({ cacheDir: config?.cacheDir });
 }
 
@@ -634,11 +584,9 @@ function selectInstalledBuild<T extends ScannedBuild>(
 }
 
 async function getAvailableApps({ config }: any) {
-  // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
-  // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
-  // relative to the current CWD, so it has to run against the user's
-  // original CWD to honor a project-local `./browser-snapshots/` directory.
-  // Reusing the same resolved absolute path for both the cache key and the
+  // Resolve the browsers cache dir *before* chdir-ing, so a relative cacheDir
+  // resolves against the user's original CWD. Reusing the same resolved path
+  // for both the cache key and the
   // `getInstalledBrowsers` call below keeps `cachedAppsByDir` consistent
   // with the directory actually scanned.
   const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });

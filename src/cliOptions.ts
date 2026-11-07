@@ -41,9 +41,34 @@ export function warnOnDeprecatedUse(program: Command) {
 
 const LOG_LEVELS = ["silent", "error", "warning", "info", "debug"];
 
+// `true` is the config spelling of `auto`.
 function parseConcurrentRunners(value: string): string {
-  if (value === "auto" || /^[1-9]\d*$/.test(value)) return value;
+  if (value === "auto" || value === "true" || /^[1-9]\d*$/.test(value)) return value;
   throw new InvalidArgumentError("Expected a positive whole number, or auto.");
+}
+
+export const REPORTER_NAMES = ["terminal", "json", "html", "runFolder", "junit", "markdown"];
+
+// A list option takes one comma-separated value, given once (ADR 01166). A
+// repeat would otherwise silently keep only the last. Returns the raw value:
+// setConfig splits it, so config files and flags land on the same array.
+export function commaList(choices?: string[]) {
+  return (value: string, previous?: string) => {
+    if (previous !== undefined) {
+      throw new InvalidArgumentError(`Give it once, as a comma-separated list: ${previous},${value}.`);
+    }
+    // Commander quotes the whole value; rewriteRootError narrows the message
+    // to the first item that isn't a choice.
+    if (choices && splitList(value).some((item) => !choices.includes(item))) {
+      throw new InvalidArgumentError(`Allowed choices are ${choices.join(", ")}.`);
+    }
+    return value;
+  };
+}
+
+// A comma-separated list flag's items: trimmed, with empty ones dropped.
+export function splitList(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 function grouped(group: string, flags: string, description?: string) {
@@ -100,7 +125,11 @@ export function addGlobalOptions(command: Command): Command {
 export function addInputOptions(command: Command, group = RUN_GROUP): Command {
   return command
     .addOption(grouped(group, "-c, --config <file>", "Use this config file"))
-    .addOption(grouped(group, "-i, --input <path>", 'Test these files or folders; "-" reads stdin'));
+    .addOption(
+      grouped(group, "-i, --input <paths>", 'Test these files or folders, comma-separated; "-" reads stdin').argParser(
+        commaList()
+      )
+    );
 }
 
 // The flags a test run takes. Runtime code never reads these directly: setConfig
@@ -113,12 +142,20 @@ export function addRunOptions(command: Command): Command {
     .addOption(
       grouped(
         RUN_GROUP,
-        "-r, --reporters <names...>",
-        "Use terminal, json, html, runFolder, junit, or markdown [terminal, runFolder]"
+        "-r, --reporters <names>",
+        "Use these, comma-separated: terminal, json, html, runFolder, junit, markdown [terminal,runFolder]"
+      ).argParser(commaList(REPORTER_NAMES))
+    )
+    .addOption(
+      grouped(RUN_GROUP, "-t, --test <patterns>", "Run only tests with a matching ID, comma-separated").argParser(
+        commaList()
       )
     )
-    .addOption(grouped(RUN_GROUP, "-t, --test <patterns>", "Run only tests with a matching ID"))
-    .addOption(grouped(RUN_GROUP, "-s, --spec <patterns>", "Run only specs with a matching ID"));
+    .addOption(
+      grouped(RUN_GROUP, "-s, --spec <patterns>", "Run only specs with a matching ID, comma-separated").argParser(
+        commaList()
+      )
+    );
   addBooleanPair(
     command,
     RUN_GROUP,

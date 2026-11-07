@@ -2,6 +2,7 @@ import { styleText } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
 import { isSecretValue } from "./debug/redact.js";
+import { envFlag } from "./envFlag.js";
 import type { EventEmitter } from "node:events";
 
 const CODES = {
@@ -30,7 +31,7 @@ export function palette(stream: NodeJS.WriteStream): typeof CODES {
 // environment, which styleText reads on each call. NO_COLOR alone loses to
 // FORCE_COLOR, so turning color off clears it.
 export function applyColorFlags(argv: string[], env: NodeJS.ProcessEnv = process.env) {
-  if (argv.includes("--no-color") || env.DOC_DETECTIVE_NO_COLOR) {
+  if (argv.includes("--no-color") || envFlag("DOC_DETECTIVE_NO_COLOR", env)) {
     env.NO_COLOR = "1";
     delete env.FORCE_COLOR;
   } else if (argv.includes("--color")) {
@@ -51,7 +52,7 @@ export function isInteractive(
   stdin: { isTTY?: boolean } = process.stdin,
   env: NodeJS.ProcessEnv = process.env
 ): boolean {
-  return Boolean(stdin.isTTY) && !env.DOC_DETECTIVE_NO_INPUT;
+  return Boolean(stdin.isTTY) && !envFlag("DOC_DETECTIVE_NO_INPUT", env);
 }
 
 // A path as a person wants to read it: relative to where they ran the command.

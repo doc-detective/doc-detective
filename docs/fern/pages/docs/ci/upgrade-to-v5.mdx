@@ -194,11 +194,33 @@ The `json` reporter still exists, and it still writes a timestamped file in `out
 
 **What changed:** A bare `--concurrent-runners` exits `2`.
 
-**What to do:** Pass a positive whole number or `auto`:
+**What to do:** Pass a positive whole number, or `auto`. `true` works too, as it does in config:
 
 ```bash
 doc-detective --concurrent-runners auto
 ```
+
+## List flags take one comma-separated value
+
+**What changed:** `-r`/`--reporters`, `-i`/`--input`, `-t`/`--test`, `-s`/`--spec`, and `install agents --agent` each take one comma-separated list, given once:
+
+- `--reporters` no longer takes space-separated names. `-r terminal html` exits `2`, because `html` reads as a command, and the error shows the comma form. `-r json docs/` used to treat `docs/` as a reporter name. `run -r json docs/` now tests `docs/`.
+- Repeating one of these flags exits `2`. A repeated `-i a -i b` used to keep only `b`.
+- An empty `reporters` list means no reporters. With `--json`, `--plain`, or `--output -`, `-r terminal` leaves only the stdout output and no run folder.
+- `--agent` no longer takes space-separated or repeated IDs.
+
+**What to do:** Join the values with commas:
+
+```bash
+doc-detective --input docs,api --reporters terminal,junit --test login,smoke
+doc-detective install agents --agent claude,copilot --scope project --yes
+```
+
+## Reporter names in config
+
+**What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
+
+**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test, pass `--plain`.
 
 ## Invalid flag values exit 2
 
@@ -258,6 +280,37 @@ doc-detective install agents --agent claude --scope project --yes
 
 **What to do:** Update any CI cache path that hard-codes `~/.doc-detective`. Setting `DOC_DETECTIVE_CACHE_DIR` makes the path explicit and overrides all of the defaults.
 
+A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers always install into `<cacheDir>/browsers`, so the first run downloads them once. Delete the folder after you upgrade.
+
+## One precedence order for config and environment
+
+**What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/cli#configuration-precedence), and each layer merges objects key by key:
+
+- `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
+- `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
+- A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
+- A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
+
+**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step.
+
+## `DOC_DETECTIVE` is deprecated
+
+**What changed:** `DOC_DETECTIVE` is a deprecated spelling of `DOC_DETECTIVE_CONFIG`. Its `config` object still applies, but just below `DOC_DETECTIVE_CONFIG`, so flags now beat it. Each run warns:
+
+```text
+Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.
+```
+
+Its `container` key no longer turns on unsafe steps. The official Docker images set `allowUnsafeSteps` in a user config instead, so they still run unsafe steps. See [Docker and headless runs](/docs/ci/docker-and-headless).
+
+**What to do:** Move the `config` object to `DOC_DETECTIVE_CONFIG`. If you set `container` in your own image to run unsafe steps, set `"allowUnsafeSteps": true` in its config, or pass `--allow-unsafe`.
+
+## Boolean environment variables
+
+**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value counts as off and prints a warning. So `DOC_DETECTIVE_SKIP_AGENT_PROMPT=maybe`, which used to skip the prompt, no longer does. See [Environment variables](/reference/cli#environment-variables).
+
+**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, exits `2`.
+
 ## Telemetry notice
 
 **What changed:** The [telemetry notice](/legal/telemetry) prints once per machine on stderr, not on every run.
@@ -268,7 +321,14 @@ doc-detective install agents --agent claude --scope project --yes
 
 **What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone. In `doc-detective-common`, the built-in `defaultFileTypes` hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none.
 
-**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it.
+`runTests()` also changed:
+
+- When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
+- With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
+- It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
+- `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
+
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`.
 
 ## Deprecated arguments
 
@@ -279,6 +339,8 @@ These still work, and each prints a warning on stderr. Replace them when you can
 | `runTests`, `runtests` | `run`, or no command |
 | `--logLevel` | `--log-level` |
 | `-e`, `--exit-on-fail` | Nothing. Failing the run is now the default, so you can delete the flag. |
+| `DOC_DETECTIVE` with a `config` object | `DOC_DETECTIVE_CONFIG` |
+| `DOC_DETECTIVE_RUNTIME_DEBUG` | `DOC_DETECTIVE_DEBUG` |
 
 ## GitHub Action
 

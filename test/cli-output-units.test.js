@@ -46,6 +46,13 @@ describe("rewriteRootError", function () {
     const out = rewriteRootError("error: too many arguments. Expected 0 arguments but got 1: rnu.\n", ["run", "install"]);
     expect(out).to.include("Did you mean run?");
   });
+  it("names the bad item of a list option", function () {
+    const raw =
+      "error: option '-r, --reporters <names>' argument 'terminal, bogus,json' is invalid. Allowed choices are terminal, json, html.\n";
+    expect(rewriteRootError(raw, [])).to.equal(
+      "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html.\n"
+    );
+  });
   it("passes other errors through", function () {
     expect(rewriteRootError("error: unknown option '--x'\n", [])).to.equal(
       "error: unknown option '--x'\n"
