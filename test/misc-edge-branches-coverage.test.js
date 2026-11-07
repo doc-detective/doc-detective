@@ -186,6 +186,34 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out.requestData.file, "should/not/resolve.md", "no-resolve key untouched");
   });
 
+  it("resolvePaths leaves an httpRequest's request and response data alone", async function () {
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: {
+        tests: [
+          {
+            steps: [
+              {
+                httpRequest: {
+                  url: "https://x.com",
+                  path: "out.json",
+                  request: { body: { path: "a/b" }, parameters: { file: "f.md" } },
+                  response: { body: { directory: "d" } },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      filePath: "/anchor/spec.json",
+      objectType: "spec",
+    });
+    const http = out.tests[0].steps[0].httpRequest;
+    assert.ok(path.isAbsolute(http.path), "the step's own `path` still resolves");
+    assert.deepEqual(http.request, { body: { path: "a/b" }, parameters: { file: "f.md" } });
+    assert.deepEqual(http.response, { body: { directory: "d" } });
+  });
+
   it("resolvePaths leaves http/heretto array-item strings unchanged (resolve early-return)", async function () {
     const object = {
       objectType: "spec",

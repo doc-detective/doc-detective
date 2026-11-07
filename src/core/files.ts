@@ -137,8 +137,11 @@ async function resolvePaths({
     "descriptionPath",
     "workingDirectory",
   ];
-  // Spec objects that are configurable by the user and shouldn't be resolved
+  // Spec objects that are configurable by the user and shouldn't be resolved:
+  // httpRequest's `request` and `response`, and their v2 names.
   const specNoResolve = [
+    "request",
+    "response",
     "requestData",
     "responseData",
     "requestHeaders",
