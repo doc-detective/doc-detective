@@ -219,6 +219,8 @@ Point Doc Detective at a writable cache location with the `DOC_DETECTIVE_CACHE_D
 export DOC_DETECTIVE_CACHE_DIR=~/.doc-detective-cache
 ```
 
+The variable overrides a `cacheDir` in your config file. A `--cache-dir` flag overrides the variable, so if the reported path doesn't change, check your command for that flag.
+
 ### Stale or outdated install
 
 The **Install status** section compares your installed npm packages and browsers against the versions Doc Detective expects and flags any that are `OUTDATED`. A stale or mismatched install is a common source of failures that are otherwise hard to explain:
