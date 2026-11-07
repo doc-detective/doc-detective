@@ -67,14 +67,14 @@ function sendTelemetry(config: any, command: string, results: any) {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {
             Object.entries(value).forEach(([key2, value2]: [string, any]) => {
-              telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}_${key2.replace(" ","_")}`] = value2;
+              telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}_${key2.replaceAll(" ","_")}`] = value2;
             });
           } else {
-            telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}`] = value;
+            telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}`] = value;
           }
         });
       } else {
-        telemetryData[parentKey.replace(" ","_")] = value;
+        telemetryData[parentKey.replaceAll(" ","_")] = value;
       }
     });
   }
