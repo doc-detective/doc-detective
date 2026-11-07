@@ -364,8 +364,8 @@ so they install during preflight rather than in the middle of a step.
 <!-- cite image-score-min image-score-min-proof -->
 A location's score is the lower of its shape score and its color score, for every kind of reference.
 
-<!-- cite image-sweep-best image-sweep-best-proof -->
-Each place is judged at the size of a transparent file whose shape fits it best, and the place with the highest score wins. A size that scores 0.98 or higher ends the search.
+<!-- cite image-sweep-best image-sweep-best-proof image-first-match image-first-match-proof -->
+Each place is judged at the size of a transparent file whose shape fits it best. The highest score picks the size. Among that size's places within 0.01 of the highest score, the topmost wins, then the leftmost. A size that scores 0.98 or higher ends the search.
 
 <!-- cite image-device-pixels image-device-pixels-proof -->
 On a surface with a display scale above 1, a transparent file matches at its CSS size times the scale. The capture stays at device resolution.

@@ -66,7 +66,7 @@ docs/design/visual-element-matching.md:
         commit-sha: fc9b8cea3fea3db35330dbbb6d957cbedc32b627
     - id: image-sweep-best
       claim:
-        integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
+        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
       source:
         file: src/core/tests/imageMatch.ts
         lines: 643-654
@@ -74,7 +74,7 @@ docs/design/visual-element-matching.md:
         commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-sweep-best-proof
       claim:
-        integrity: sha256-382aba525976ed7f930b2423603cfed59769749832d2506130994e2d7c28d2dc
+        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
       source:
         file: test/find-image.test.js
         lines: 488-497
@@ -112,3 +112,19 @@ docs/design/visual-element-matching.md:
         lines: 199-207
         integrity: sha256-c81c8a6f982b63ae7edee3712d18ca5b1da886887278ca4882738d1b5dc2cd9a
         commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+    - id: image-first-match
+      claim:
+        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+      source:
+        file: src/core/tests/imageMatch.ts
+        lines: 650-658
+        integrity: sha256-4379d3c22963da8c0c15cd806af0c8273129c0e92567c10e65f58fc95ce49133
+        commit-sha: 16980136879a6ff7ecd5508173618158604c97af
+    - id: image-first-match-proof
+      claim:
+        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+      source:
+        file: test/find-image.test.js
+        lines: 604-609
+        integrity: sha256-c82155a99718e370b119fa33f1326e22375eb67cd426652d9d98210341faae1d
+        commit-sha: 16980136879a6ff7ecd5508173618158604c97af
