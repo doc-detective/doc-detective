@@ -865,8 +865,8 @@ describe("core/utils.ts — privateAddressOf SSRF classifier", function () {
   });
 
   it("flags IPv6 loopback / unique-local / link-local literals", async function () {
-    for (const host of ["[::1]", "[fc00::1]", "[fd12::1]", "[fe80::1]"]) {
-      assert.ok(await privateAddressOf(`http://${host}/x`), host);
+    for (const address of ["::1", "fc00::1", "fd12::1", "fe80::1"]) {
+      assert.equal(await privateAddressOf(`http://[${address}]/x`), address, address);
     }
   });
 
