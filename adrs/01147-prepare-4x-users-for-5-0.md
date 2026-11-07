@@ -124,7 +124,8 @@ releasing.
   keep working, so we don't trigger our own warnings.
 - Good: a stray footer stops the release before anything publishes.
 - Neutral: `config.exitOnFail` is now `undefined` rather than `false` when unset. Programmatic readers
-  that test truthiness see no change.
+  that test truthiness see no change. A reader that tests `config.exitOnFail === false` now gets
+  `false` for an unset value too, so it should test `!config.exitOnFail` instead.
 - Bad: `--output-dir` doesn't exist on 4.x, so a user with a folder `output` can't silence that warning
   until they upgrade.
 - Bad: doc-detective.com runs set a folder `output`, and they aren't `github-actions`, so those warnings

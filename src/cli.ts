@@ -43,6 +43,8 @@ main(processArgv).catch((err) => {
 
 async function main(argv: string[]) {
   await buildYargs(argv)
+    // Runs before setConfig reads the config file, so only `--log-level silent`
+    // hides these command warnings; a config file's `logLevel: silent` doesn't.
     .middleware((args: any) =>
       warnUpgrade(
         commandWarnings(args._.map(String), argv.slice(2), Boolean(args.silent)),
