@@ -20635,6 +20635,10 @@ export interface CheckLinkDetailed1 {
    */
   statusCodes?: number | number[];
   /**
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
+   */
+  timeout?: number;
+  /**
    * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
    */
   headers?: RequestHeadersObject | RequestHeadersString;
@@ -30599,6 +30603,10 @@ export interface CheckLinkDetailed3 {
    */
   statusCodes?: number | number[];
   /**
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
+   */
+  timeout?: number;
+  /**
    * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
    */
   headers?: RequestHeadersObject2 | RequestHeadersString2;
@@ -38858,6 +38866,10 @@ export interface CheckLinkDetailed5 {
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
    */
   statusCodes?: number | number[];
+  /**
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
+   */
+  timeout?: number;
   /**
    * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
    */

@@ -7196,6 +7196,12 @@
               308
             ]
           },
+          "timeout": {
+            "type": "integer",
+            "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+            "minimum": 1,
+            "default": 10000
+          },
           "headers": {
             "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
             "default": {},
@@ -7287,6 +7293,12 @@
                 308
               ]
             },
+            "timeout": {
+              "type": "integer",
+              "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+              "minimum": 1,
+              "default": 10000
+            },
             "headers": {
               "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
               "default": {},
@@ -7316,7 +7328,8 @@
       "/search",
       {
         "url": "https://www.google.com",
-        "statusCodes": 200
+        "statusCodes": 200,
+        "timeout": 5000
       },
       {
         "url": "/search",
@@ -13337,6 +13350,12 @@
                                                             308
                                                           ]
                                                         },
+                                                        "timeout": {
+                                                          "type": "integer",
+                                                          "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                          "minimum": 1,
+                                                          "default": 10000
+                                                        },
                                                         "headers": {
                                                           "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                           "default": {},
@@ -13428,6 +13447,12 @@
                                                               308
                                                             ]
                                                           },
+                                                          "timeout": {
+                                                            "type": "integer",
+                                                            "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                            "minimum": 1,
+                                                            "default": 10000
+                                                          },
                                                           "headers": {
                                                             "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                             "default": {},
@@ -13457,7 +13482,8 @@
                                                     "/search",
                                                     {
                                                       "url": "https://www.google.com",
-                                                      "statusCodes": 200
+                                                      "statusCodes": 200,
+                                                      "timeout": 5000
                                                     },
                                                     {
                                                       "url": "/search",
@@ -71720,6 +71746,12 @@
                                               308
                                             ]
                                           },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                            "minimum": 1,
+                                            "default": 10000
+                                          },
                                           "headers": {
                                             "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                             "default": {},
@@ -71811,6 +71843,12 @@
                                                 308
                                               ]
                                             },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                              "minimum": 1,
+                                              "default": 10000
+                                            },
                                             "headers": {
                                               "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                               "default": {},
@@ -71840,7 +71878,8 @@
                                       "/search",
                                       {
                                         "url": "https://www.google.com",
-                                        "statusCodes": 200
+                                        "statusCodes": 200,
+                                        "timeout": 5000
                                       },
                                       {
                                         "url": "/search",
@@ -143021,6 +143060,12 @@
                                                                 308
                                                               ]
                                                             },
+                                                            "timeout": {
+                                                              "type": "integer",
+                                                              "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                              "minimum": 1,
+                                                              "default": 10000
+                                                            },
                                                             "headers": {
                                                               "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                               "default": {},
@@ -143112,6 +143157,12 @@
                                                                   308
                                                                 ]
                                                               },
+                                                              "timeout": {
+                                                                "type": "integer",
+                                                                "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                                "minimum": 1,
+                                                                "default": 10000
+                                                              },
                                                               "headers": {
                                                                 "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                                 "default": {},
@@ -143141,7 +143192,8 @@
                                                         "/search",
                                                         {
                                                           "url": "https://www.google.com",
-                                                          "statusCodes": 200
+                                                          "statusCodes": 200,
+                                                          "timeout": 5000
                                                         },
                                                         {
                                                           "url": "/search",
@@ -201404,6 +201456,12 @@
                                                   308
                                                 ]
                                               },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                "minimum": 1,
+                                                "default": 10000
+                                              },
                                               "headers": {
                                                 "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                 "default": {},
@@ -201495,6 +201553,12 @@
                                                     308
                                                   ]
                                                 },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                  "minimum": 1,
+                                                  "default": 10000
+                                                },
                                                 "headers": {
                                                   "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                   "default": {},
@@ -201524,7 +201588,8 @@
                                           "/search",
                                           {
                                             "url": "https://www.google.com",
-                                            "statusCodes": 200
+                                            "statusCodes": 200,
+                                            "timeout": 5000
                                           },
                                           {
                                             "url": "/search",
@@ -262094,6 +262159,12 @@
                                                     308
                                                   ]
                                                 },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                  "minimum": 1,
+                                                  "default": 10000
+                                                },
                                                 "headers": {
                                                   "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                   "default": {},
@@ -262185,6 +262256,12 @@
                                                       308
                                                     ]
                                                   },
+                                                  "timeout": {
+                                                    "type": "integer",
+                                                    "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                    "minimum": 1,
+                                                    "default": 10000
+                                                  },
                                                   "headers": {
                                                     "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                     "default": {},
@@ -262214,7 +262291,8 @@
                                             "/search",
                                             {
                                               "url": "https://www.google.com",
-                                              "statusCodes": 200
+                                              "statusCodes": 200,
+                                              "timeout": 5000
                                             },
                                             {
                                               "url": "/search",
@@ -319165,6 +319243,12 @@
                                                           308
                                                         ]
                                                       },
+                                                      "timeout": {
+                                                        "type": "integer",
+                                                        "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                        "minimum": 1,
+                                                        "default": 10000
+                                                      },
                                                       "headers": {
                                                         "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                         "default": {},
@@ -319256,6 +319340,12 @@
                                                             308
                                                           ]
                                                         },
+                                                        "timeout": {
+                                                          "type": "integer",
+                                                          "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                          "minimum": 1,
+                                                          "default": 10000
+                                                        },
                                                         "headers": {
                                                           "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                           "default": {},
@@ -319285,7 +319375,8 @@
                                                   "/search",
                                                   {
                                                     "url": "https://www.google.com",
-                                                    "statusCodes": 200
+                                                    "statusCodes": 200,
+                                                    "timeout": 5000
                                                   },
                                                   {
                                                     "url": "/search",
@@ -380433,6 +380524,12 @@
                                                     308
                                                   ]
                                                 },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                  "minimum": 1,
+                                                  "default": 10000
+                                                },
                                                 "headers": {
                                                   "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                   "default": {},
@@ -380524,6 +380621,12 @@
                                                       308
                                                     ]
                                                   },
+                                                  "timeout": {
+                                                    "type": "integer",
+                                                    "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                    "minimum": 1,
+                                                    "default": 10000
+                                                  },
                                                   "headers": {
                                                     "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                     "default": {},
@@ -380553,7 +380656,8 @@
                                             "/search",
                                             {
                                               "url": "https://www.google.com",
-                                              "statusCodes": 200
+                                              "statusCodes": 200,
+                                              "timeout": 5000
                                             },
                                             {
                                               "url": "/search",
@@ -437504,6 +437608,12 @@
                                                           308
                                                         ]
                                                       },
+                                                      "timeout": {
+                                                        "type": "integer",
+                                                        "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                        "minimum": 1,
+                                                        "default": 10000
+                                                      },
                                                       "headers": {
                                                         "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                         "default": {},
@@ -437595,6 +437705,12 @@
                                                             308
                                                           ]
                                                         },
+                                                        "timeout": {
+                                                          "type": "integer",
+                                                          "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                          "minimum": 1,
+                                                          "default": 10000
+                                                        },
                                                         "headers": {
                                                           "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                           "default": {},
@@ -437624,7 +437740,8 @@
                                                   "/search",
                                                   {
                                                     "url": "https://www.google.com",
-                                                    "statusCodes": 200
+                                                    "statusCodes": 200,
+                                                    "timeout": 5000
                                                   },
                                                   {
                                                     "url": "/search",
@@ -508413,6 +508530,12 @@
                                           308
                                         ]
                                       },
+                                      "timeout": {
+                                        "type": "integer",
+                                        "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                        "minimum": 1,
+                                        "default": 10000
+                                      },
                                       "headers": {
                                         "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                         "default": {},
@@ -508504,6 +508627,12 @@
                                             308
                                           ]
                                         },
+                                        "timeout": {
+                                          "type": "integer",
+                                          "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                          "minimum": 1,
+                                          "default": 10000
+                                        },
                                         "headers": {
                                           "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                           "default": {},
@@ -508533,7 +508662,8 @@
                                   "/search",
                                   {
                                     "url": "https://www.google.com",
-                                    "statusCodes": 200
+                                    "statusCodes": 200,
+                                    "timeout": 5000
                                   },
                                   {
                                     "url": "/search",
@@ -565484,6 +565614,12 @@
                                                 308
                                               ]
                                             },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                              "minimum": 1,
+                                              "default": 10000
+                                            },
                                             "headers": {
                                               "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                               "default": {},
@@ -565575,6 +565711,12 @@
                                                   308
                                                 ]
                                               },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                "minimum": 1,
+                                                "default": 10000
+                                              },
                                               "headers": {
                                                 "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                 "default": {},
@@ -565604,7 +565746,8 @@
                                         "/search",
                                         {
                                           "url": "https://www.google.com",
-                                          "statusCodes": 200
+                                          "statusCodes": 200,
+                                          "timeout": 5000
                                         },
                                         {
                                           "url": "/search",
@@ -624252,6 +624395,12 @@
                           308
                         ]
                       },
+                      "timeout": {
+                        "type": "integer",
+                        "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                        "minimum": 1,
+                        "default": 10000
+                      },
                       "headers": {
                         "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                         "default": {},
@@ -624343,6 +624492,12 @@
                             308
                           ]
                         },
+                        "timeout": {
+                          "type": "integer",
+                          "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                          "minimum": 1,
+                          "default": 10000
+                        },
                         "headers": {
                           "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                           "default": {},
@@ -624372,7 +624527,8 @@
                   "/search",
                   {
                     "url": "https://www.google.com",
-                    "statusCodes": 200
+                    "statusCodes": 200,
+                    "timeout": 5000
                   },
                   {
                     "url": "/search",
@@ -685225,6 +685381,12 @@
                                 308
                               ]
                             },
+                            "timeout": {
+                              "type": "integer",
+                              "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                              "minimum": 1,
+                              "default": 10000
+                            },
                             "headers": {
                               "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                               "default": {},
@@ -685316,6 +685478,12 @@
                                   308
                                 ]
                               },
+                              "timeout": {
+                                "type": "integer",
+                                "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                "minimum": 1,
+                                "default": 10000
+                              },
                               "headers": {
                                 "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                 "default": {},
@@ -685345,7 +685513,8 @@
                         "/search",
                         {
                           "url": "https://www.google.com",
-                          "statusCodes": 200
+                          "statusCodes": 200,
+                          "timeout": 5000
                         },
                         {
                           "url": "/search",
@@ -742296,6 +742465,12 @@
                                       308
                                     ]
                                   },
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                    "minimum": 1,
+                                    "default": 10000
+                                  },
                                   "headers": {
                                     "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                     "default": {},
@@ -742387,6 +742562,12 @@
                                         308
                                       ]
                                     },
+                                    "timeout": {
+                                      "type": "integer",
+                                      "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                      "minimum": 1,
+                                      "default": 10000
+                                    },
                                     "headers": {
                                       "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                       "default": {},
@@ -742416,7 +742597,8 @@
                               "/search",
                               {
                                 "url": "https://www.google.com",
-                                "statusCodes": 200
+                                "statusCodes": 200,
+                                "timeout": 5000
                               },
                               {
                                 "url": "/search",
