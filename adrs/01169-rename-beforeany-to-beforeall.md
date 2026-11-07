@@ -45,7 +45,8 @@ Chosen option: **A**, following the shared deprecated-alias contract.
 - Because each source is renamed first, the normal precedence holds whichever name a source uses. When a file
   sets `beforeAny` and `DOC_DETECTIVE_CONFIG` sets `beforeAll`, the run uses the environment's value. A hosted
   runner that layers a snapshot over the repository config relies on that.
-- The warning goes to stderr once per call, however many sources used the old name. It reads
+- The warning goes to stderr once per call, however many sources used the old name. It prints after the sources
+  merge, so the merged `logLevel` decides, including one from the user config. It reads
   ``Warning: `beforeAny` is deprecated. Rename it to `beforeAll`.`` The CLI renames before core sees the config,
   so a CLI run warns once.
 - Setting both names in one source is a usage error, and the CLI exits 2:

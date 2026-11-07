@@ -738,6 +738,24 @@ describe("config.ts — setConfig", function () {
     });
   }
 
+  it("doesn't warn about beforeAny when a DOC_DETECTIVE override is silent", async function () {
+    const saved = process.env.DOC_DETECTIVE;
+    process.env.DOC_DETECTIVE = JSON.stringify({ config: { logLevel: "silent" } });
+    const errors = sinon.stub(console, "error");
+    let config;
+    try {
+      config = await setConfig({
+        config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+      });
+    } finally {
+      errors.restore();
+      if (saved === undefined) delete process.env.DOC_DETECTIVE;
+      else process.env.DOC_DETECTIVE = saved;
+    }
+    assert.deepEqual(config.beforeAll, ["./a.json"]);
+    assert.deepEqual(errors.args.filter(([line]) => /beforeAny/.test(line)), []);
+  });
+
   it("rejects a config that sets both beforeAll and beforeAny", async function () {
     await assert.rejects(
       setConfig({

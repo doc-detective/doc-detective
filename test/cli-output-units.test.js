@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
+import sinon from "sinon";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
@@ -342,13 +343,12 @@ describe("beforeAll in the CLI config", function () {
     return setConfig({ configPath: file, args: {} });
   };
   const captureErrors = async (run) => {
-    const original = console.error;
-    const lines = [];
-    console.error = (line) => lines.push(String(line));
+    const errors = sinon.stub(console, "error");
     try {
-      return { result: await run(), lines };
+      const result = await run();
+      return { result, lines: errors.args.map(([line]) => String(line)) };
     } finally {
-      console.error = original;
+      errors.restore();
     }
   };
 
@@ -383,6 +383,23 @@ describe("beforeAll in the CLI config", function () {
       }
     });
   }
+
+  // The warning follows the merged config, so a user config's logLevel applies.
+  it("doesn't warn about beforeAny when the user config is silent", async function () {
+    const saved = process.env.XDG_CONFIG_HOME;
+    const home = path.join(dir, "xdg");
+    fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+    fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ logLevel: "silent" }));
+    process.env.XDG_CONFIG_HOME = home;
+    try {
+      const { result, lines } = await captureErrors(() => withConfig({ beforeAny: "setup.spec.json" }));
+      expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+      expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([]);
+    } finally {
+      if (saved === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = saved;
+    }
+  });
 
   it("rejects a DOC_DETECTIVE_CONFIG that sets both", async function () {
     const saved = process.env.DOC_DETECTIVE_CONFIG;

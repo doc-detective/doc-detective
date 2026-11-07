@@ -171,9 +171,12 @@ async function setConfig({ config, detectApps = true }: any) {
       );
     }
   }
-  // Rename each source before the merge, so the override wins whichever name it uses.
-  renameDeprecatedConfigKeys([config, envOverrides], (message) => log(config, "warning", message));
+  // Rename each source before the merge, so the override wins whichever name it
+  // uses. Warn after the merge, so the merged logLevel decides.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([config, envOverrides], (message) => (deprecation = message));
   if (envOverrides) config = deepMerge(config, envOverrides);
+  if (deprecation) log(config, "warning", deprecation);
 
   // Validate inbound `config`.
   const validityCheck = validate({ schemaKey: "config_v3", object: config });
