@@ -1615,7 +1615,7 @@ async function getGuarded(
     // notes whether the connection resolved to a private address, and
     // refuses one when `refuse` is set.
     const seen: { resolved?: boolean; private?: string; public?: boolean } = {};
-    const guard = refuse;
+    const refuseAtConnect = refuse;
     const target = hostKey(new URL(current).hostname);
     const lookup = (hostname: string, options: any, callback: any) => {
       // With a proxy configured, a lookup of another name is the proxy's. It
@@ -1630,7 +1630,7 @@ async function getGuarded(
         seen.resolved = true;
         seen.private = answers.find((a: any) => isPrivateOrLoopbackAddress(a.address))?.address;
         seen.public = answers.some((a: any) => !isPrivateOrLoopbackAddress(a.address));
-        if (seen.private && guard) return callback(guard(seen.private));
+        if (seen.private && refuseAtConnect) return callback(refuseAtConnect(seen.private));
         callback(null, address, family);
       });
     };

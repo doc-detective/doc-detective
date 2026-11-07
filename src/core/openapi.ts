@@ -6,6 +6,7 @@ import {
   redactUrlForOutput,
 } from "./utils.js";
 import { readFile, parseFileContent } from "./files.js";
+import type { FileInfo } from "@apidevtools/json-schema-ref-parser";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
 // were previously imported at module load — and `createGenerator` even ran at
@@ -63,7 +64,8 @@ async function loadDescription(descriptionPath: string = "") {
     } catch {
       // Not JSON: parse by extension below.
     }
-    definition = parseFileContent(content, descriptionPath);
+    // Already parsed as JSON: don't parse it again by extension.
+    definition = typeof content === "string" ? parseFileContent(text, descriptionPath) : content;
     if (root.reachedPublic) lastPublic = root.url;
   } else {
     definition = await readFile({ fileURLOrPath: descriptionPath });
@@ -78,14 +80,23 @@ async function loadDescription(descriptionPath: string = "") {
   const { default: parser, FileResolver } = await import(
     "@apidevtools/json-schema-ref-parser"
   );
+  // Written against @apidevtools/json-schema-ref-parser 16.0.5, whose own
+  // type for a resolver's `read` also allows a string or object. Check that
+  // it's a function rather than cast, so an upgrade that changes it fails here.
+  const readLocalFile = FileResolver.read;
+  if (typeof readLocalFile !== "function") {
+    throw new Error(
+      "Couldn't load the OpenAPI description: json-schema-ref-parser's FileResolver.read isn't a function."
+    );
+  }
   const dereferencedDefinition = await parser.dereference(definition as any, {
     resolve: {
       file: {
-        async read(file: { url: string }) {
+        async read(file: FileInfo) {
           if (lastPublic) {
             throw refused(redactUrlForOutput(file.url.split("#")[0]), lastPublic, "a local file");
           }
-          return (FileResolver.read as (file: unknown) => Promise<Buffer>)(file);
+          return readLocalFile(file);
         },
       },
       http: {

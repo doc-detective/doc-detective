@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { validate } from "../common/src/validate.js";
 import { requireYaml } from "./lazyYaml.js";
+import { log } from "./utils.js";
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
@@ -73,14 +74,14 @@ function parseFileContent(content: any, fileURLOrPath: string) {
     try {
       return JSON.parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse JSON: ${error.message}`);
+      log({}, "warning", `Failed to parse JSON: ${error.message}`);
       return content;
     }
   } else if (ext === "yaml" || ext === "yml") {
     try {
       return requireYaml().parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse YAML: ${error.message}`);
+      log({}, "warning", `Failed to parse YAML: ${error.message}`);
       return content;
     }
   } else {

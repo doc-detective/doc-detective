@@ -199,6 +199,8 @@ describe("local URL guard (ADR 01162)", function () {
       "/schema.json": () => json({ type: "object", properties: { id: { type: "integer" } } }),
       "/plain.json": () => json({ type: "string" }),
       "/openapi.yaml": () => text(openApiYaml(secret())),
+      "/openapi.json": () =>
+        json({ openapi: "3.0.0", info: { title: "t", version: "1" }, paths: {} }),
       "/openapi-chain.yaml": () => text(openApiYaml(`http://public.example.test:${port}/public-doc.yaml`)),
       "/openapi-rebind.yaml": () => text(openApiYaml(`http://rebind.example.test:${port}/plain.json`)),
       "/openapi-public-refs.yaml": () => text(openApiYaml(`http://other.example.test:${port}/plain.json`)),
@@ -644,6 +646,17 @@ describe("local URL guard (ADR 01162)", function () {
         ),
       }
     );
+  });
+
+  it("loads a remote .json description without a parse warning", async function () {
+    const calls = [];
+    for (const method of ["warn", "log", "error"]) {
+      sinon.stub(console, method).callsFake((...args) => calls.push(args.join(" ")));
+    }
+    const definition = await loadDescription(`http://127.0.0.1:${port}/openapi.json`);
+    sinon.restore();
+    assert.equal(definition.openapi, "3.0.0");
+    assert.deepEqual(calls.filter((line) => /Failed to parse/.test(line)), []);
   });
 
   it("loads a localhost description with a localhost $ref", async function () {
