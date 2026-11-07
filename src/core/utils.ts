@@ -1230,7 +1230,9 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
     const parts = partsOf(instancePath);
     const prefix = prefixOf(parts);
     const value = parts.reduce((current: any, part) => current?.[part], object);
-    const got = ` (got ${JSON.stringify(value)}).`;
+    // Long enough to recognize the value, short enough to keep the line.
+    const shown = JSON.stringify(value) ?? String(value);
+    const got = ` (got ${shown.length > 40 ? `${shown.slice(0, 39)}…` : shown}).`;
     const of = (keyword: string) => errors.filter((error) => error.keyword === keyword);
     const required = of("required");
     // The other branches' "required" errors are only noise once two matched.
@@ -1271,20 +1273,31 @@ function summarizeSchemaErrors(errorObjects: any[] = [], object: any, rootSchema
       if (near) suggested.add(near);
       lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
     }
-    // An error deeper down means the value took a branch that got further, so
-    // the rest of what's here came from the branches it didn't take.
-    if (errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`))) continue;
+    // An error deeper down means the value took a branch that got further, so a
+    // key only one branch requires came from a branch it didn't take. A key the
+    // object itself requires, or a choice of keys, is still missing.
+    const deeper = errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`));
     // Requireds from the branches of one anyOf are a choice: "needs one of".
-    const choices = new Map<string, string[]>();
+    const choices = new Map<string, { keys: string[]; branch?: string }>();
     for (const error of required) {
-      const group = error.schemaPath.replace(/\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/, "/$1");
-      choices.set(group, [...(choices.get(group) ?? []), error.params.missingProperty]);
+      const branch = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/.exec(error.schemaPath)?.[1];
+      // A key the object requires is its own line, even beside another one.
+      const group = branch
+        ? error.schemaPath.replace(/\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/, `/${branch}`)
+        : `${error.schemaPath}#${error.params.missingProperty}`;
+      const choice = choices.get(group) ?? { keys: [], branch };
+      choice.keys.push(error.params.missingProperty);
+      choices.set(group, choice);
     }
-    for (const keys of choices.values()) {
-      if (keys.length > 1) lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
-      // A suggestion for the missing key already says it.
-      else if (!suggested.has(keys[0])) lines.push(`${prefix}missing required key '${keys[0]}'.`);
+    for (const { keys, branch } of choices.values()) {
+      if (keys.length > 1) {
+        if (!deeper || branch === "anyOf") lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
+      } else if (!suggested.has(keys[0]) && (!deeper || !branch)) {
+        // A suggestion for the missing key already says it.
+        lines.push(`${prefix}missing required key '${keys[0]}'.`);
+      }
     }
+    if (deeper) continue;
     // An object never matches a list of scalars, so that list came from another branch.
     const isObject = value !== null && typeof value === "object";
     const allowed = [

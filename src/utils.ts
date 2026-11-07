@@ -167,7 +167,9 @@ async function getConfigFromEnv() {
     });
 
     if (!envValidation.valid) {
-      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, envConfig));
+      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, envConfig), {
+        cause: envValidation.errors,
+      });
     }
 
     log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
@@ -278,7 +280,9 @@ async function readUserConfig() {
 // `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
 function assertValidConfig(config: any, source: string) {
   const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
-  if (!validation.valid) throw new Error(configErrorMessage(source, validation.errorObjects, config));
+  if (!validation.valid) {
+    throw new Error(configErrorMessage(source, validation.errorObjects, config), { cause: validation.errors });
+  }
 }
 
 // Secrets can come from a file rather than the config or environment, where they
@@ -372,7 +376,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     structuredErrors: true,
   });
   if (!validation.valid) {
-    throw new Error(configErrorMessage("", validation.errorObjects, config));
+    throw new Error(configErrorMessage("", validation.errorObjects, config), { cause: validation.errors });
   }
 
   // Accept coerced and defaulted values

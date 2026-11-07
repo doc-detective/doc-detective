@@ -14,6 +14,7 @@ import {
   readStdinInputs,
   writeResultsFile,
   discoverConfigPath,
+  isDebugRequested,
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
@@ -38,6 +39,9 @@ main(processArgv).catch((err) => {
     reportCrash(err, { version: cliRequire("../package.json").version });
   } else {
     console.error(`Error: ${err?.message || err}`);
+    // An invalid config carries AJV's raw errors, for -d.
+    const debug = isDebugRequested() || ["-d", "--debug", "--verbose"].some((flag) => processArgv.includes(flag));
+    if (debug && err?.cause) console.error(err.cause);
   }
   process.exit(2);
 });

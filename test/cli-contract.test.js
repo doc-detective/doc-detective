@@ -629,6 +629,14 @@ describe("CLI contract", function () {
       );
     });
 
+    it("keeps the raw schema errors of a config for -d", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevl: "info" }));
+      const r = run(["-d", "-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("Invalid config in bad.json:");
+      expect(r.stderr).to.include("must NOT have additional properties");
+    });
+
     it("names DOC_DETECTIVE_CONFIG when it's the invalid config", function () {
       const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevl: 1 }) } });
       expect(r.status).to.equal(2);
