@@ -41,6 +41,7 @@ describe("doc-detective's own package", function () {
       const firstWalk = reads;
       assert.ok(firstWalk > 0);
       assert.equal(heavyDeps.packageRoot(), undefined);
+      assert.equal(heavyDeps.ownVersion(), undefined);
       assert.equal(reads, firstWalk);
     } finally {
       fs.readFileSync = original;
