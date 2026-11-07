@@ -435,13 +435,20 @@ type RoutingDecision =
   | { action: "goToTest"; testId: string };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
-// action.
-interface RoutingEntry {
+// action. Each scope allows only the actions it performs (ADR 01168), and a
+// step's onSkip also rejects `retry`.
+interface StepRoutingEntry {
+  if?: GuardCondition;
+  continue?: true;
+  stop?: "test";
+  retry?: RetrySpec;
+  goToStep?: string;
+}
+
+interface TestRoutingEntry {
   if?: GuardCondition;
   continue?: true;
   stop?: "test" | "spec";
-  retry?: RetrySpec;
-  goToStep?: string;
   goToTest?: string;
 }
 
@@ -495,10 +502,10 @@ const ROUTING_BY_STATUS: Record<
 async function resolveStepRouting(args: {
   status: StepRoutingStatus;
   step: {
-    onPass?: RoutingEntry[];
-    onFail?: RoutingEntry[];
-    onWarning?: RoutingEntry[];
-    onSkip?: RoutingEntry[];
+    onPass?: StepRoutingEntry[];
+    onFail?: StepRoutingEntry[];
+    onWarning?: StepRoutingEntry[];
+    onSkip?: StepRoutingEntry[];
   };
   context: ConditionContext;
   skipRetry?: boolean;
@@ -584,10 +591,10 @@ async function resolveStepRouting(args: {
 async function resolveTestRouting(args: {
   status: StepRoutingStatus;
   test: {
-    onPass?: RoutingEntry[];
-    onFail?: RoutingEntry[];
-    onWarning?: RoutingEntry[];
-    onSkip?: RoutingEntry[];
+    onPass?: TestRoutingEntry[];
+    onFail?: TestRoutingEntry[];
+    onWarning?: TestRoutingEntry[];
+    onSkip?: TestRoutingEntry[];
   };
   context: ConditionContext;
 }): Promise<RoutingDecision> {
@@ -675,6 +682,7 @@ export type {
   GuardCondition,
   StepRoutingStatus,
   RoutingDecision,
-  RoutingEntry,
+  StepRoutingEntry,
+  TestRoutingEntry,
   RetrySpec,
 };
