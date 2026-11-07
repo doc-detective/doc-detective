@@ -204,6 +204,11 @@ describe("normalization", function () {
       expect(array).to.deep.equal([{ browser: "chrome", name: "web" }, { ...process, args: [], tty: false, timeout: 60000 }]);
     });
 
+    it("leaves a startSurface descriptor of no known kind as it is", function () {
+      expect(normalizers.startSurface({ name: "x" }, "startSurface")).to.deep.equal({ name: "x" });
+      expect(normalizers.startSurface([{ name: "x" }], "startSurface")).to.deep.equal([{ name: "x" }]);
+    });
+
     it("leaves loadVariables as authored", function () {
       expect(effective({ loadVariables: ".env" }).object).to.deep.equal({ loadVariables: ".env" });
     });

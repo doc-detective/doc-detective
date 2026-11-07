@@ -322,7 +322,6 @@
     {
       "language": "python",
       "code": "print('Hello from Python!')",
-      "workingDirectory": ".",
       "exitCodes": [
         0
       ],
