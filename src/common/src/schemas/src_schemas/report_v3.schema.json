@@ -154,7 +154,7 @@
       "environment": {
         "platform": "linux",
         "arch": "x64",
-        "docDetectiveVersion": "4.42.0",
+        "docDetectiveVersion": "5.0.0",
         "nodeVersion": "24.15.0",
         "osRelease": "6.8.0-1017-azure"
       },
