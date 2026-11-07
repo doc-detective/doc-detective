@@ -1897,7 +1897,7 @@ export type GoToURLDetailed = {
     [k: string]: string;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.
    */
   timeout?: number;
   /**
@@ -2212,7 +2212,7 @@ export type HTTPRequestDetailed = (
    */
   method?: "get" | "put" | "post" | "patch" | "delete";
   /**
-   * Timeout for the HTTP request, in milliseconds.
+   * Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.
    */
   timeout?: number;
   request?: Request;
@@ -8542,7 +8542,7 @@ export type GoToURLDetailed1 = {
     [k: string]: string;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.
    */
   timeout?: number;
   /**
@@ -8857,7 +8857,7 @@ export type HTTPRequestDetailed1 = (
    */
   method?: "get" | "put" | "post" | "patch" | "delete";
   /**
-   * Timeout for the HTTP request, in milliseconds.
+   * Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.
    */
   timeout?: number;
   request?: Request1;

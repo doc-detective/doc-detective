@@ -66,13 +66,26 @@ Chosen option: **A**.
     value.
   - When httpRequest uses `openApi`, its `request.headers` override the OpenAPI `headers` by name, in either
     shape.
+- **Timeouts.** goTo's and httpRequest's `timeout` take `minimum: 1`, in milliseconds, under the timeout rule in
+  [ADR 01171](01171-duration-bounds-with-units-kept-in-names.md). A `timeout` of `0` meant "no limit" to axios and
+  "time out at once" elsewhere, so `0` and negative values make the spec invalid. This replaces ADR 01167's note
+  that an authored `timeout: 0` is kept.
 - **Status codes.** httpRequest's `statusCodes` accepts an integer or a list, like checkLink's. The integer branch
   comes first, so Ajv's coercion turns `"200"` into `200`. The normalizer turns a single code into a one-item
-  list, so the effective step always holds a list.
+  list, so an authored `statusCodes` is always a list in the effective step. The `[200, 201]` default is
+  conditional. With `openApi`, the normalizer leaves `statusCodes` unset, so the handler accepts the operation's
+  `2xx` response codes, as in version 4.
 - **Normalizers.** checkLink, saveCookie, and loadCookie move their shorthand and defaults out of their handlers
   (ADR 01167). httpRequest's normalizer also expands an `openApi` operation ID to `{ operationId }`.
+  - openApi's own defaults, such as `validateAgainstSchema: "both"`, stay unset in the effective step. At run time, a step's
+    `openApi` spreads over the config or spec integration it names or shares an operation with. A default filled
+    earlier would override the integration's value. httpRequest applies `validateAgainstSchema`'s
+    default after that merge. Before, a step with its own `descriptionPath` never got it and skipped the schema
+    checks.
   - A cookie string that ends in `.txt` is `{ name: <file name without .txt>, path: <string> }`. Any other string
-    is `{ name, variable }`, both set to the string.
+    is `{ name, variable }`, both set to the string. The string pattern,
+    `^(?!\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\.txt)$`, accepts only strings with a valid object
+    form, so `"dir/session"` and `".txt"` make the spec invalid instead of failing at run time.
   - The object form's `variable` now accepts any cookie name, `^[A-Za-z0-9_.-]+$`. That keeps a string such as
     `"__Secure-next-auth.session-token"` valid in its effective form. A variable outside `[A-Za-z0-9_]` still
     can't be read as `$NAME`, so the description says so.
@@ -88,6 +101,7 @@ Chosen option: **A**.
 - Good: `$BASE_URL/...` works on checkLink, and httpRequest can use the same `origin` as goTo.
 - Good: save and load agree on a cookie file across specs and folders.
 - Bad: a goTo or httpRequest URL that only contains a variable, such as `"foo $X"`, now makes its spec invalid.
+- Bad: a goTo or httpRequest `timeout` of `0` or less now makes its spec invalid.
 - Bad: a cookie object `path` without `directory` moves from the spec's folder to `outputDir`. A spec that relied on
   the old place must add `directory: "."`.
 - Bad: generated TypeScript types change names. checkLink's string form is now `CheckLinkSimple`, its object form
@@ -97,7 +111,8 @@ Chosen option: **A**.
 ### Confirmation
 
 - `src/common/test/validate.test.js` covers the three URL forms, and the rejected ones, on all three actions. It
-  also covers both header shapes on all three fields, an object header value, and a single status code.
+  also covers both header shapes on all three fields, an object header value, and a single status code. Timeouts
+  below 1 and cookie strings with no valid object form are rejected there too.
 - `src/common/test/normalize.test.js` covers each shorthand, the status-code list, idempotence, and that a
   normalized step validates again.
 - `test/cookie-paths.test.js` covers path resolution and the save and load handlers. `test/httprequest-coverage.test.js`

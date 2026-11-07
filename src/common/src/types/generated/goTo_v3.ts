@@ -57,7 +57,7 @@ export type GoToURLDetailed = {
     [k: string]: string;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.
    */
   timeout?: number;
   /**

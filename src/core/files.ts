@@ -260,7 +260,9 @@ async function resolvePaths({
         objectType === "config")
     ) {
       // A cookie file `path` without `directory` belongs under outputDir, which
-      // the cookie handlers join at run time (ADR 01174).
+      // the cookie handlers join at run time (ADR 01174). The recursive call
+      // below resolves every `path` against the spec, so save this one first
+      // and put it back afterward, undoing that resolution.
       const cookiePath =
         isStep && (property === "saveCookie" || property === "loadCookie") && !object[property]?.directory
           ? object[property]?.path

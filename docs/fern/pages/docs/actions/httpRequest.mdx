@@ -10,7 +10,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
 
 - **String Shorthand:** Provide the URL directly as the value for the `httpRequest` key. This performs a basic GET request to that URL.
 - **Object Format:** Use an object with the following properties:
-  - `url`: (Required unless using `openApi`) The target URL. Use an absolute URL, a path that starts with `/`, or a value that starts with a variable, such as `$API_URL/users`. Doc Detective joins a path to the global `origin` from the configuration and appends its `originParams`. Without an `origin`, a path fails the step.
+  - `url`: (Required unless using `openApi`) The target URL. Use an absolute URL, a path that starts with `/`, or a value that starts with a variable, such as `$API_URL/users`. Doc Detective joins a path to the global `origin` from the configuration and appends its `originParams`. Without an `origin`, a path fails the step. With `openApi`, a path still joins the configuration's `origin`, not the OpenAPI `server`.
   - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
@@ -30,7 +30,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `server`: (Optional) Base server URL for the request. If omitted, Doc Detective uses the first server defined in the OpenAPI description.
     - `validateAgainstSchema`: (Optional) Which parts of the request and response to validate against the OpenAPI schema (`request`, `response`, `both`, or `none`). The step fails on a mismatch. Defaults to `both`.
     - `mockResponse`: (Optional) When `true`, skips the HTTP request and uses the response example or schema from the OpenAPI description as the response data. Useful for testing an API that isn't fully implemented yet. If `statusCode` isn't set, Doc Detective uses the first response code defined for the operation.
-    - `statusCode`: (Optional) Response code to use for validation, examples, and status-code checking. Doc Detective adds this code to the step's accepted `statusCodes`.
+    - `statusCode`: (Optional) Response code to use for validation, examples, and status-code checking. Doc Detective adds this code to the step's accepted `statusCodes`. Without `statusCode` or `statusCodes`, the step accepts the operation's `2xx` response codes instead of `[200, 201]`.
     - `useExample`: (Optional) Which parts of the request and response to populate with example data from the OpenAPI description (`request`, `response`, `both`, or `none`). Defaults to `none`.
     - `exampleKey`: (Optional) Key of the specific example to use if multiple exist.
     - `headers`: (Optional) Request headers to add to every request built from the definition, such as an `Authorization` header, in the same two forms as `request.headers`. A step-level value overrides a matching header set in your configuration, and `request.headers` override these by name.

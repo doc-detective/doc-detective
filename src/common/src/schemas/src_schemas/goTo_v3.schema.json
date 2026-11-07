@@ -140,9 +140,9 @@
               },
               "timeout": {
                 "type": "integer",
-                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                 "default": 30000,
-                "minimum": 0
+                "minimum": 1
               },
               "waitUntil": {
                 "type": "object",

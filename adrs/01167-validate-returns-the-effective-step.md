@@ -12,7 +12,7 @@ Amends [ADR 01149](01149-declare-the-report-contract.md) and [ADR 01150](01150-r
 
 Ajv can't apply defaults inside `step_v3`'s `oneOf` union, and every action schema's root is an `anyOf` of a
 string shorthand and an object. So none of the 59 action defaults in the schemas is ever applied. Each action
-handler expands its own shorthand and hand-codes its own defaults at run time, and the schema `default`s are
+handler expands its own shorthand and hand-codes its own defaults at run time. The schema `default`s are
 documentation that the copies happen to match. Some copies use `||`, so an authored `0` turns into the default.
 
 So validating `{"goTo": "https://example.com"}` returns exactly that, and only the goTo handler knows the timeout
@@ -55,20 +55,24 @@ Chosen option: **A**.
   defaults. Plain defaults come from the schema's object branch. Conditional ones are coded. It's idempotent. It
   never touches `$VAR` or `$$` values, paths, config, or runtime state. Step-level `unsafe`, `breakpoint`,
   `outputs`, and `variables` stay as authored.
+- A whole-variable action value, such as `"goTo": "$URL"`, never reaches its normalizer. `validate()` leaves it as
+  authored, because the variable can hold the whole action, even an object. Expanding it like shorthand would
+  put a substituted object inside `url`.
 - A deprecated step key is renamed to its new name with one warning per run on stderr:
   ``Warning: `<old>` is deprecated. Rename it to `<new>`.``. Setting both is invalid:
   ``<path>: set `<new>` or `<old>`, not both.``
 - The runner applies the effective step to each step after it assigns step IDs, so IDs still hash the authored
-  step. That first pass runs before environment variables are substituted, so it skips a step with a
-  whole-variable value, such as `"goTo": "$NAV"`, because the variable can hold the whole action object. The
-  runner applies the effective step again in `runStep` after substitution. That pass normalizes those steps, and
-  it lets `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
+  step. That first pass runs before environment variables are substituted, so `validate()` leaves whole-variable
+  actions as authored. The runner applies the effective step again in `runStep` after substitution. That pass
+  normalizes those actions, treating a variable left unset as text, as handlers did before. It also lets
+  `getRunner()` callers pass authored steps. Handlers receive effective steps and contain no shorthand
   or default handling.
 - The report echoes the effective step. That changes a report field's shape, for example `goTo` from a string
   to an object, so it ships in 5.0.
 - This change moves `goTo` and `httpRequest`. The other 19 actions are registered as passthroughs, and their
   area chunks move them. `test/shorthand-ratchet.test.js` counts the handler files that still branch on
-  shorthand. It's 15 after this change, and it reaches 0 when every action has moved.
+  shorthand. A check against `false`, the canonical disabled value an effective step keeps, doesn't count. It's
+  13 after this change, and it reaches 0 when every action has moved.
 
 The pilots keep today's behavior, with three exceptions:
 

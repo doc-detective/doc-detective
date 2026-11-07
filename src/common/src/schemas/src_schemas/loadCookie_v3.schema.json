@@ -16,7 +16,7 @@
         "type": "string",
         "title": "Cookie name or file path",
         "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
-        "pattern": "^[A-Za-z0-9_./\\-]+$",
+        "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
         "transform": ["trim"]
       },
       "object": {

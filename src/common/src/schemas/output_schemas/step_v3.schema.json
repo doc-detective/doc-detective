@@ -15410,9 +15410,9 @@
                         },
                         "timeout": {
                           "type": "integer",
-                          "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                          "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                           "default": 30000,
-                          "minimum": 0
+                          "minimum": 1
                         },
                         "waitUntil": {
                           "type": "object",
@@ -15952,9 +15952,9 @@
                           },
                           "timeout": {
                             "type": "integer",
-                            "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                            "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                             "default": 30000,
-                            "minimum": 0
+                            "minimum": 1
                           },
                           "waitUntil": {
                             "type": "object",
@@ -17565,8 +17565,9 @@
                     },
                     "timeout": {
                       "type": "integer",
-                      "description": "Timeout for the HTTP request, in milliseconds.",
-                      "default": 60000
+                      "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                      "default": 60000,
+                      "minimum": 1
                     },
                     "request": {
                       "type": "object",
@@ -18001,8 +18002,9 @@
                       },
                       "timeout": {
                         "type": "integer",
-                        "description": "Timeout for the HTTP request, in milliseconds.",
-                        "default": 60000
+                        "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                        "default": 60000,
+                        "minimum": 1
                       },
                       "request": {
                         "type": "object",
@@ -36452,7 +36454,7 @@
                   "type": "string",
                   "title": "Cookie name",
                   "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
-                  "pattern": "^[A-Za-z0-9_./\\-]+$",
+                  "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                   "transform": [
                     "trim"
                   ]
@@ -36558,7 +36560,7 @@
                     "type": "string",
                     "title": "Cookie name",
                     "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
-                    "pattern": "^[A-Za-z0-9_./\\-]+$",
+                    "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                     "transform": [
                       "trim"
                     ]
@@ -47817,7 +47819,7 @@
                   "type": "string",
                   "title": "Cookie name or file path",
                   "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
-                  "pattern": "^[A-Za-z0-9_./\\-]+$",
+                  "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                   "transform": [
                     "trim"
                   ]
@@ -47917,7 +47919,7 @@
                     "type": "string",
                     "title": "Cookie name or file path",
                     "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
-                    "pattern": "^[A-Za-z0-9_./\\-]+$",
+                    "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                     "transform": [
                       "trim"
                     ]

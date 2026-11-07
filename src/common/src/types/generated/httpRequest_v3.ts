@@ -26,7 +26,7 @@ export type HTTPRequestDetailed = {
    */
   method?: "get" | "put" | "post" | "patch" | "delete";
   /**
-   * Timeout for the HTTP request, in milliseconds.
+   * Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.
    */
   timeout?: number;
   request?: Request;

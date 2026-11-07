@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import sinon from "sinon";
 import { validate, schemas } from "../dist/index.js";
-import { normalizers, NormalizeError } from "../dist/normalize/index.js";
-import { passthrough, renameAliases } from "../dist/normalize/helpers.js";
+import { normalize, normalizers, NormalizeError } from "../dist/normalize/index.js";
+import { isWholeVariable, passthrough, renameAliases } from "../dist/normalize/helpers.js";
 
 const SRC_SCHEMAS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "schemas", "src_schemas");
 const effective = (object, schemaKey = "step_v3") => validate({ schemaKey, object });
@@ -63,8 +63,8 @@ describe("normalization", function () {
       expect(value.statusCodes).to.deep.equal([200]);
     });
 
-    it("leaves a $VAR value as it is", function () {
-      expect(effective({ goTo: "$URL" }).object.goTo.url).to.equal("$URL");
+    it("fills defaults around a $VAR field, leaving the field as it is", function () {
+      expect(effective({ goTo: { url: "$URL" } }).object.goTo).to.deep.equal({ ...GO_TO, url: "$URL" });
     });
 
     it("fills the missing parts of an authored waitUntil", function () {
@@ -72,8 +72,10 @@ describe("normalization", function () {
       expect(partial.object.goTo.waitUntil).to.deep.equal({ domIdleTime: 0, networkIdleTime: 500 });
     });
 
+    // A timeout is at least 1 (ADR 01171), so the 0 is a duration.
     it("keeps an authored 0", function () {
-      expect(effective({ goTo: { url: "https://x.com", timeout: 0 } }).object.goTo.timeout).to.equal(0);
+      const { goTo } = effective({ goTo: { url: "https://x.com", waitUntil: { networkIdleTime: 0 } } }).object;
+      expect(goTo.waitUntil.networkIdleTime).to.equal(0);
     });
 
     it("lets an OpenAPI operation supply the method, status codes, and body", function () {
@@ -190,6 +192,46 @@ describe("normalization", function () {
     });
   });
 
+  // A whole-variable value can hold the whole action, even an object, so
+  // validate() leaves it as authored. It covers every action whose schema takes
+  // a string, so each action inherits the rule as its normalizer moves here.
+  describe("whole-variable values", function () {
+    const takesString = (node) =>
+      node?.type === "string" || ["anyOf", "oneOf"].some((key) => (node?.[key] ?? []).some(takesString));
+    for (const action of Object.keys(normalizers)) {
+      if (!takesString(schemas[`${action}_v3`])) continue;
+      it(`leaves "${action}": "$DD_VAR" as authored`, function () {
+        const object = { [action]: "$DD_VAR" };
+        const result = effective(object);
+        if (!result.valid) this.skip(); // This action's string pattern doesn't take a variable.
+        expect(result.object).to.deep.equal(object);
+        expect(effective(result.object).object).to.deep.equal(object);
+      });
+    }
+
+    it("covers goTo and httpRequest", function () {
+      expect(effective({ goTo: "$URL" }).object).to.deep.equal({ goTo: "$URL" });
+      expect(effective({ httpRequest: "$REQ" }).object).to.deep.equal({ httpRequest: "$REQ" });
+    });
+
+    it("normalizes a value with a $VAR inside it, leaving the variable as it is", function () {
+      expect(effective({ goTo: "https://$HOST/x" }).object.goTo).to.deep.equal({ ...GO_TO, url: "https://$HOST/x" });
+    });
+
+    it("treats one as literal text after substitution", function () {
+      const step = { goTo: "$UNSET" };
+      normalize("step_v3", step, { literal: true });
+      expect(step.goTo).to.deep.equal({ ...GO_TO, url: "$UNSET" });
+    });
+
+    it("matches whole variable references only", function () {
+      expect(["$URL", "$my_var", "$1"].map(isWholeVariable)).to.deep.equal([true, true, true]);
+      expect(["URL", "$", "$URL/x", "a $URL", "$$URL", 5, null].map(isWholeVariable)).to.deep.equal(
+        [false, false, false, false, false, false, false]
+      );
+    });
+  });
+
   describe("idempotence", function () {
     for (const [name, step] of [
       ["goTo shorthand", { goTo: "https://example.com" }],
@@ -202,6 +244,8 @@ describe("normalization", function () {
       ["saveCookie file", { saveCookie: "./cookies/session.txt" }],
       ["saveCookie name", { saveCookie: "__Secure-next-auth.session-token" }],
       ["loadCookie file", { loadCookie: "session.txt" }],
+      ["loadCookie dotted file", { loadCookie: "dir/a.b.txt" }],
+      ["saveCookie dot-only file name", { saveCookie: "..txt" }],
       ["loadCookie name", { loadCookie: "session_token" }],
     ]) {
       it(`changes nothing the second time: ${name}`, function () {
@@ -280,6 +324,32 @@ describe("normalization", function () {
         }
       });
     }
+
+    // Exempt from the parity check above, by name, because the run time
+    // supplies them only with openApi:
+    // - httpRequest's openApi defaults. A step's openApi spreads over the
+    //   config or spec integration it names or shares an operation with, so a
+    //   default filled here would override the integration's own value. The
+    //   handler applies `validateAgainstSchema`'s default after that merge.
+    // - httpRequest's `statusCodes`, `method`, and `request.body`. The
+    //   operation supplies them: its 2xx responses, its method, and its example.
+    const OPENAPI_SUPPLIES = { httpRequest: ["statusCodes", "method"] };
+    it("leaves httpRequest's openApi defaults to the run-time merge", function () {
+      const properties = schemas.openApi_v3.properties;
+      const defaulted = Object.keys(properties).filter((key) => "default" in properties[key]);
+      expect(defaulted).to.include("validateAgainstSchema");
+      const { openApi } = effective({ httpRequest: { openApi: { operationId: "getUsers" } } }).object.httpRequest;
+      expect(openApi).to.not.have.any.keys(...defaulted);
+    });
+
+    it("leaves the defaults an OpenAPI operation supplies unset only with openApi", function () {
+      const withOpenApi = effective({ httpRequest: { openApi: "createOrder" } }).object.httpRequest;
+      const without = effective({ httpRequest: "https://x.com" }).object.httpRequest;
+      expect(withOpenApi).to.not.have.any.keys(...OPENAPI_SUPPLIES.httpRequest);
+      expect(withOpenApi.request).to.not.have.property("body");
+      expect(without).to.include({ method: "get" });
+      expect(without.statusCodes).to.deep.equal([200, 201]);
+    });
   });
 
   describe("deprecated aliases", function () {
