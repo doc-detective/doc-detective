@@ -273,7 +273,7 @@ describe("upgrade warnings", function () {
       expect(envWarnings({ DOC_DETECTIVE_RUNTIME_DEBUG: "true" }, {})[0]).to.include("off today and on");
       expect(envWarnings({ DOC_DETECTIVE_DEBUG: "maybe" }, {})[0]).to.include("doesn't accept");
       expect(envWarnings({ DOC_DETECTIVE_ALLOW_LOCAL_URLS: "1" }, {})[0]).to.include("`true` for on");
-      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("`0` for off");
+      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "2" }, {})[0]).to.include("Set it to `1` for on, or `0` for off");
       // 5.0 trims a blank value to empty, which is off.
       expect(envWarnings({ DOC_DETECTIVE_SKIP_AUTO_UPDATE: " " }, {})[0]).to.include("on today and off in Doc Detective 5.0");
       const same = {
@@ -429,6 +429,7 @@ describe("upgrade warnings", function () {
     it('an app with workingDirectory: "."', function () {
       expect(warns([{ startSurface: { app: "notepad", workingDirectory: "." } }])[0]).to.include('`workingDirectory: "."`');
       expect(warns([{ startSurface: [{ app: "notepad", workingDirectory: "C:\\work" }] }])).to.deep.equal([]);
+      expect(warns([{ startSurface: { app: null, workingDirectory: "." } }])).to.deep.equal([]);
     });
 
     it("prints them from the CLI, also with --dry-run", function () {

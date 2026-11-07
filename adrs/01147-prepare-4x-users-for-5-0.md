@@ -75,7 +75,8 @@ a first run to a new `--output results` warns too.
 Spec rows come from `runTests` right after it resolves tests, so they print before any step runs,
 in a dry run too. That makes them the only rows a programmatic `runTests` call can print. Each names
 the spec file, not the line, and a file gets one warning per row. A row about a value, such as a URL,
-names the first one and counts the rest. They read resolved steps, which keep the values as written,
+names the first one and counts the rest. The once-per-process rule matches exact messages. A later
+`runTests` call in the same process warns about a new file, but not again about the same file. They read resolved steps, which keep the values as written,
 so a `"click": true` still reads as a boolean. Inline steps in Markdown get the same checks.
 Every check is a key lookup on a step, a test, or its routing entries, plus one scan for negative
 `timeout`, `duration`, `delay`, and `wait` values. That scan skips user data, such as request bodies

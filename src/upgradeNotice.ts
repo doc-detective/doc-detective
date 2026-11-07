@@ -10,6 +10,9 @@ const REMOVED_BINS: Record<string, string> = {
   "doc-detective-lsp": "Use `doc-detective lsp --stdio`, which works today.",
 };
 
+// Each exact message prints once per process. Spec rows name their file, so a
+// later `runTests` call in the same process still warns about a new file, but
+// not about the same issue in a file it already warned about.
 const warned = new Set<string>();
 
 // The Action's legacy path runs v4 on purpose and has its own notice.
@@ -92,6 +95,8 @@ export function concurrentRunnersWarnings(value: unknown): string[] {
 /** `-r` with several values, and repeated `-t` or `-s`, from yargs' parsed args. */
 export function flagWarnings(args: Record<string, unknown>): string[] {
   const messages: string[] = [];
+  // `reporters` is declared with `array: true` in buildYargs (src/utils.ts), so
+  // both `-r a b` and `-r a -r b` arrive as an array of several values.
   if (Array.isArray(args.reporters) && args.reporters.length > 1) {
     // 4.x reads `-r terminal,html` as one unknown reporter, so that form has to wait.
     messages.push(
@@ -122,7 +127,7 @@ const BOOLEAN_ENV: Record<string, { v4: (v: string) => boolean; on?: string; off
   DOC_DETECTIVE_ALLOW_LOCAL_URLS: { v4: (v) => v === "true", on: "true" },
   DOC_DETECTIVE_AUTOINSTALL: {
     v4: (v) => !["0", "false", "no", "off"].includes(v.trim().toLowerCase()),
-    off: "to `0`",
+    off: "`0`",
   },
 };
 
@@ -291,7 +296,7 @@ function stepWarnings(step: any, where: string, offenders: Offenders): string[] 
         `A \`startSurface\` device in ${where} sets ${removed.map((key) => `\`${key}\``).join(", ")}, which Doc Detective 5.0 removes. Remove ${removed.length > 1 ? "them" : "it"}, which works today.`
       );
     }
-    if ("app" in surface && surface.workingDirectory === ".") {
+    if (surface.app != null && surface.workingDirectory === ".") {
       messages.push(`An app in ${where} sets \`workingDirectory: "."\`, which 4.x tolerates and Doc Detective 5.0 fails. Remove it, which works today.`);
     }
   }
