@@ -56,7 +56,13 @@ async function loadDescription(descriptionPath: string = "") {
   // getGuarded reads localUrlPolicy() again on purpose; with both switches
   // set, either call throws the same usage error.
   const guard = localUrlPolicy() !== "allow";
+  // Redacted, for messages: the URL the description or $ref gave, then where
+  // its redirects led when that's elsewhere.
   let lastPublic: string | undefined;
+  const docName = (given: string, final: string) => {
+    const [a, b] = [given, final].map(redactUrlForOutput);
+    return a === b ? a : `${a} (redirected to ${b})`;
+  };
   let definition: any;
   if (guard && /^https?:\/\//i.test(descriptionPath)) {
     // A remote root goes through the same guarded fetch as its $refs, so its
@@ -71,13 +77,13 @@ async function loadDescription(descriptionPath: string = "") {
     }
     // Already parsed as JSON: don't parse it again by extension.
     definition = typeof content === "string" ? parseFileContent(text, descriptionPath) : content;
-    if (root.reachedPublic) lastPublic = root.url;
+    if (root.reachedPublic) lastPublic = docName(descriptionPath, root.url);
   } else {
     definition = await readFile({ fileURLOrPath: descriptionPath });
   }
   const refused = (ref: string, doc: string, target: string) =>
     new Error(
-      `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: a public document can't refer to ${target}.\n` +
+      `Couldn't resolve $ref ${ref} in ${doc}: a public document can't refer to ${target}.\n` +
         "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
     );
 
@@ -121,7 +127,7 @@ async function loadDescription(descriptionPath: string = "") {
             } catch (error: any) {
               if (!error.host) throw error;
               throw new Error(
-                `Couldn't resolve $ref ${ref} in ${redactUrlForOutput(doc)}: couldn't resolve host ${error.host} (${error.code}).`
+                `Couldn't resolve $ref ${ref} in ${doc}: couldn't resolve host ${error.host} (${error.code}).`
               );
             }
             if (address) throw refused(ref, doc, "a private address");
@@ -133,7 +139,7 @@ async function loadDescription(descriptionPath: string = "") {
             FETCH_TEXT_DEFAULTS,
             doc ? (address) => refused(ref, doc, `${address}, a private address`) : undefined
           );
-          if (guard && reachedPublic) lastPublic = url.split("#")[0];
+          if (guard && reachedPublic) lastPublic = docName(file.url, url);
           return data;
         },
       },

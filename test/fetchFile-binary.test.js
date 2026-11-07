@@ -654,7 +654,7 @@ describe("local URL guard (ADR 01162)", function () {
       {
         message: refMessage(
           `http://127.0.0.1:${port}/schema.json`,
-          `http://public.example.test:${port}/openapi.yaml`
+          `http://127.0.0.1:${port}/to-public-root.yaml (redirected to http://public.example.test:${port}/openapi.yaml)`
         ),
       }
     );
@@ -754,7 +754,7 @@ describe("local URL guard (ADR 01162)", function () {
       await assert.rejects(() => loadDescription(file), {
         message: refMessage(
           `http://127.0.0.1:${port}/schema.json`,
-          `http://public.example.test:${port}/public-doc.json`
+          `http://127.0.0.1:${port}/to-public (redirected to http://public.example.test:${port}/public-doc.json)`
         ),
       });
     });

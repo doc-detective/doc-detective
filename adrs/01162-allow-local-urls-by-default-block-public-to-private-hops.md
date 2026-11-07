@@ -64,7 +64,8 @@ from a public address to a private one:
   * Every fetched document, the root included, counts as public when any hop of its fetch reached a
     public address. That's judged by the address the request connected to. A hop whose address is
     unknown, as through a proxy, counts as public unless every address of its host is private. A
-    failed lookup counts as public. The message names the final URL after redirects.
+    failed lookup counts as public. The message names the document by the URL the description or
+    `$ref` gave, and adds where its redirects led, as `(redirected to <url>)`, when that's elsewhere.
   * From then on, every private, loopback or link-local HTTP read and every local file read is
     refused, in default and strict mode. The message names the most recent public document. File
     reads include `file://` refs, and relative refs in a public root, which resolve against the
