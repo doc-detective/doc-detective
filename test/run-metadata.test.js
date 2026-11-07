@@ -104,10 +104,13 @@ describe("Run metadata on reports", function () {
         ],
       })
     );
+    // A scratch outputDir, so the run folder doesn't land in the repo.
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-meta-"));
     try {
-      report = await runTests({ input });
+      report = await runTests({ input, outputDir });
     } finally {
       fs.unlinkSync(input);
+      fs.rmSync(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -164,10 +167,12 @@ describe("Run metadata on reports", function () {
       })
     );
     let skipped;
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-meta-"));
     try {
-      skipped = await runTests({ input });
+      skipped = await runTests({ input, outputDir });
     } finally {
       fs.unlinkSync(input);
+      fs.rmSync(outputDir, { recursive: true, force: true });
     }
     const context = skipped.specs[0].tests[0].contexts[0];
     assert.equal(context.result, "SKIPPED");
