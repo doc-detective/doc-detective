@@ -1,1 +1,2 @@
-export { passthrough as default } from "./helpers.js";
+// loadCookie has no defaults, only the string shorthand.
+export { expandCookie as default } from "./cookie.js";

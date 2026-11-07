@@ -185,12 +185,27 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 ## `goTo` and `httpRequest` defaults
 
-**What changed:** Doc Detective fills these defaults the same way for every step, so two edge cases behave differently:
+**What changed:** Doc Detective fills these defaults the same way for every step, so some edge cases behave differently:
 
-- An authored `timeout: 0` is kept. Version 4 replaced it with the default. A `goTo` step with `timeout: 0` now fails, because the page can't finish loading in no time. An `httpRequest` step with `timeout: 0` now waits with no time limit.
-- An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. With `validateAgainstSchema` set to `request` or `both`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
+- A `goTo` or `httpRequest` `timeout` below `1` makes the spec invalid, so the run exits `2`. Version 4 replaced `timeout: 0` with the default. A timeout is the most milliseconds to wait, and `0` meant "no limit" to some actions and "time out at once" to others.
+- An `httpRequest` step whose `openApi` sets its own `descriptionPath` validates the request and response against the OpenAPI schema, as the default `validateAgainstSchema: "both"` says. Version 4 skipped both checks unless you set `validateAgainstSchema`. A config integration keeps its own value.
+- An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. Unless `validateAgainstSchema` is `response` or `none`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
 
-**What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
+**What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`. To skip the schema checks, set `validateAgainstSchema` to `none`.
+
+## URLs and request headers
+
+**What changed:** `goTo`, `checkLink`, and `httpRequest` accept the same three URL forms. A URL is absolute, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A URL that only contains a variable, such as `"see $BASE_URL"`, makes the spec invalid, and so does a protocol-relative URL, such as `"//example.com"`. Version 4 accepted both on `goTo` and the first on `httpRequest`. `checkLink` now accepts `$BASE_URL/docs`, and an `httpRequest` path joins the `origin` from your config.
+
+Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with string values, or a string with one `Name: value` header per line. A header value that's an object or an array makes the spec invalid.
+
+**What to do:** Start each URL with the variable, `http://`, `https://`, or `/`. Give each header a string value.
+
+## Cookie file locations
+
+**What changed:** A `saveCookie` or `loadCookie` object with a `path` and no `directory` reads and writes the file in `outputDir`, like the string form `"session.txt"`. Version 4 used the spec's folder. A spec that saves a cookie and a spec in another folder that loads it now use the same file.
+
+**What to do:** To keep a cookie file beside its spec, add `"directory": "."`.
 
 ## `click`, `find`, and other browser steps
 

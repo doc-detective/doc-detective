@@ -1310,13 +1310,13 @@
               },
               "statusCode": {
                 "type": "integer",
-                "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
               },
               "useExample": {
                 "type": [
                   "string"
                 ],
-                "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                 "enum": [
                   "request",
                   "response",
@@ -1331,12 +1331,21 @@
                 "default": ""
               },
               "headers": {
-                "type": "object",
-                "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "title": "OpenAPI request headers"
+                "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                "title": "OpenAPI request headers",
+                "anyOf": [
+                  {
+                    "title": "Request headers (object)",
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "title": "Request headers (string)",
+                    "type": "string"
+                  }
+                ]
               }
             },
             "components": {
@@ -1358,6 +1367,11 @@
               {
                 "name": "Reqres",
                 "operationId": "getUserById"
+              },
+              {
+                "name": "Reqres",
+                "operationId": "getUserById",
+                "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
               },
               {
                 "descriptionPath": "https://api.example.com/openapi.json",
@@ -5073,10 +5087,10 @@
                     "title": "checkLink",
                     "anyOf": [
                       {
-                        "title": "Check link (detailed)",
-                        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+                        "title": "Check link (simple)",
+                        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                         "transform": [
                           "trim"
                         ]
@@ -5091,16 +5105,17 @@
                         ],
                         "properties": {
                           "url": {
+                            "title": "Target URL",
+                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                             "type": "string",
-                            "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                            "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
+                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                             "transform": [
                               "trim"
                             ]
                           },
                           "origin": {
                             "type": "string",
-                            "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                            "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                             "transform": [
                               "trim"
                             ]
@@ -5114,7 +5129,7 @@
                             "default": {}
                           },
                           "statusCodes": {
-                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
                             "anyOf": [
                               {
                                 "type": "integer"
@@ -5139,21 +5154,19 @@
                             ]
                           },
                           "headers": {
-                            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                            "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                             "default": {},
+                            "title": "Request headers",
                             "anyOf": [
                               {
                                 "title": "Request headers (object)",
-                                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                 "type": "object",
                                 "additionalProperties": {
                                   "type": "string"
-                                },
-                                "properties": {}
+                                }
                               },
                               {
                                 "title": "Request headers (string)",
-                                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                 "type": "string"
                               }
                             ]
@@ -5164,10 +5177,10 @@
                     "components": {
                       "schemas": {
                         "string": {
-                          "title": "Check link (detailed)",
-                          "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+                          "title": "Check link (simple)",
+                          "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                           "transform": [
                             "trim"
                           ]
@@ -5182,16 +5195,17 @@
                           ],
                           "properties": {
                             "url": {
+                              "title": "Target URL",
+                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                               "type": "string",
-                              "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                              "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                               "transform": [
                                 "trim"
                               ]
                             },
                             "origin": {
                               "type": "string",
-                              "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                              "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                               "transform": [
                                 "trim"
                               ]
@@ -5205,7 +5219,7 @@
                               "default": {}
                             },
                             "statusCodes": {
-                              "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                              "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
                               "anyOf": [
                                 {
                                   "type": "integer"
@@ -5230,21 +5244,19 @@
                               ]
                             },
                             "headers": {
-                              "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                              "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                               "default": {},
+                              "title": "Request headers",
                               "anyOf": [
                                 {
                                   "title": "Request headers (object)",
-                                  "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                   "type": "object",
                                   "additionalProperties": {
                                     "type": "string"
-                                  },
-                                  "properties": {}
+                                  }
                                 },
                                 {
                                   "title": "Request headers (string)",
-                                  "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                   "type": "string"
                                 }
                               ]
@@ -5256,6 +5268,11 @@
                     "examples": [
                       "https://www.google.com",
                       "/search",
+                      "$BASE_URL/docs",
+                      {
+                        "url": "https://www.example.com",
+                        "headers": "X-Api-Key: abc123\nAuthorization: Bearer token"
+                      },
                       {
                         "url": "https://www.google.com",
                         "statusCodes": 200
@@ -15855,9 +15872,9 @@
                     "anyOf": [
                       {
                         "title": "Go to URL (simple)",
-                        "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+                        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                         "transform": [
                           "trim"
                         ]
@@ -16101,16 +16118,17 @@
                                 ]
                               },
                               "url": {
+                                "title": "Target URL",
+                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                 "type": "string",
-                                "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                                "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                 "transform": [
                                   "trim"
                                 ]
                               },
                               "origin": {
                                 "type": "string",
-                                "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                 "transform": [
                                   "trim"
                                 ]
@@ -16125,9 +16143,9 @@
                               },
                               "timeout": {
                                 "type": "integer",
-                                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                 "default": 30000,
-                                "minimum": 0
+                                "minimum": 1
                               },
                               "waitUntil": {
                                 "type": "object",
@@ -16379,11 +16397,20 @@
                     ],
                     "components": {
                       "schemas": {
+                        "url": {
+                          "title": "Target URL",
+                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                          "type": "string",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                          "transform": [
+                            "trim"
+                          ]
+                        },
                         "string": {
                           "title": "Go to URL (simple)",
-                          "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+                          "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                           "transform": [
                             "trim"
                           ]
@@ -16627,16 +16654,17 @@
                                   ]
                                 },
                                 "url": {
+                                  "title": "Target URL",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                   "type": "string",
-                                  "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                                  "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
                                 },
                                 "origin": {
                                   "type": "string",
-                                  "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                  "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                   "transform": [
                                     "trim"
                                   ]
@@ -16651,9 +16679,9 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                  "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                   "default": 30000,
-                                  "minimum": 0
+                                  "minimum": 1
                                 },
                                 "waitUntil": {
                                   "type": "object",
@@ -17982,9 +18010,9 @@
                     "anyOf": [
                       {
                         "title": "HTTP request (simple)",
+                        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "description": "URL for the HTTP request.",
-                        "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                         "transform": [
                           "trim"
                         ]
@@ -18007,10 +18035,10 @@
                         "additionalProperties": false,
                         "properties": {
                           "url": {
-                            "title": "HTTP request (simple)",
+                            "title": "Target URL",
+                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                             "type": "string",
-                            "description": "URL for the HTTP request.",
-                            "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                             "transform": [
                               "trim"
                             ]
@@ -18091,13 +18119,13 @@
                                       },
                                       "statusCode": {
                                         "type": "integer",
-                                        "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                                        "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                                       },
                                       "useExample": {
                                         "type": [
                                           "string"
                                         ],
-                                        "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                                        "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                                         "enum": [
                                           "request",
                                           "response",
@@ -18112,12 +18140,21 @@
                                         "default": ""
                                       },
                                       "headers": {
-                                        "type": "object",
-                                        "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                                        "additionalProperties": {
-                                          "type": "string"
-                                        },
-                                        "title": "OpenAPI request headers"
+                                        "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                        "title": "OpenAPI request headers",
+                                        "anyOf": [
+                                          {
+                                            "title": "Request headers (object)",
+                                            "type": "object",
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          {
+                                            "title": "Request headers (string)",
+                                            "type": "string"
+                                          }
+                                        ]
                                       }
                                     },
                                     "components": {
@@ -18139,6 +18176,11 @@
                                       {
                                         "name": "Reqres",
                                         "operationId": "getUserById"
+                                      },
+                                      {
+                                        "name": "Reqres",
+                                        "operationId": "getUserById",
+                                        "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                                       },
                                       {
                                         "descriptionPath": "https://api.example.com/openapi.json",
@@ -18205,15 +18247,22 @@
                             ]
                           },
                           "statusCodes": {
-                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                            "type": "array",
-                            "items": {
-                              "anyOf": [
-                                {
-                                  "type": "integer"
+                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer"
+                                    }
+                                  ]
                                 }
-                              ]
-                            },
+                              }
+                            ],
                             "default": [
                               200,
                               201
@@ -18237,27 +18286,28 @@
                           },
                           "timeout": {
                             "type": "integer",
-                            "description": "Timeout for the HTTP request, in milliseconds.",
-                            "default": 60000
+                            "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                            "default": 60000,
+                            "minimum": 1
                           },
                           "request": {
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
                               "headers": {
-                                "description": "Headers to include in the HTTP request.",
+                                "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                 "default": {},
+                                "title": "Request headers",
                                 "anyOf": [
                                   {
                                     "title": "Request headers (object)",
-                                    "description": "Headers to include in the HTTP request, in key/value format.",
                                     "type": "object",
-                                    "additionalProperties": true,
-                                    "properties": {}
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
                                   },
                                   {
                                     "title": "Request headers (string)",
-                                    "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                                     "type": "string"
                                   }
                                 ]
@@ -18302,7 +18352,7 @@
                             "additionalProperties": false,
                             "properties": {
                               "headers": {
-                                "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                                "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                                 "type": "object",
                                 "additionalProperties": true,
                                 "properties": {},
@@ -18350,11 +18400,11 @@
                           },
                           "path": {
                             "type": "string",
-                            "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+                            "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                           },
                           "directory": {
                             "type": "string",
-                            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                            "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
                           },
                           "maxVariation": {
                             "type": "number",
@@ -18380,11 +18430,28 @@
                       "schemas": {
                         "url": {
                           "title": "HTTP request (simple)",
+                          "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "description": "URL for the HTTP request.",
-                          "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                           "transform": [
                             "trim"
+                          ]
+                        },
+                        "requestHeaders": {
+                          "title": "Request headers",
+                          "description": "Headers to send with the request: an object of header names and string values, or a string with one `Name: value` header per line, such as `X-Api-Key: abc123\nAuthorization: Bearer token`. A line without a colon or a value is ignored.",
+                          "anyOf": [
+                            {
+                              "title": "Request headers (object)",
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "title": "Request headers (string)",
+                              "type": "string"
+                            }
                           ]
                         },
                         "object": {
@@ -18405,10 +18472,10 @@
                           "additionalProperties": false,
                           "properties": {
                             "url": {
-                              "title": "HTTP request (simple)",
+                              "title": "Target URL",
+                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                               "type": "string",
-                              "description": "URL for the HTTP request.",
-                              "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                               "transform": [
                                 "trim"
                               ]
@@ -18489,13 +18556,13 @@
                                         },
                                         "statusCode": {
                                           "type": "integer",
-                                          "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                                          "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                                         },
                                         "useExample": {
                                           "type": [
                                             "string"
                                           ],
-                                          "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                                          "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                                           "enum": [
                                             "request",
                                             "response",
@@ -18510,12 +18577,21 @@
                                           "default": ""
                                         },
                                         "headers": {
-                                          "type": "object",
-                                          "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                                          "additionalProperties": {
-                                            "type": "string"
-                                          },
-                                          "title": "OpenAPI request headers"
+                                          "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                          "title": "OpenAPI request headers",
+                                          "anyOf": [
+                                            {
+                                              "title": "Request headers (object)",
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            {
+                                              "title": "Request headers (string)",
+                                              "type": "string"
+                                            }
+                                          ]
                                         }
                                       },
                                       "components": {
@@ -18537,6 +18613,11 @@
                                         {
                                           "name": "Reqres",
                                           "operationId": "getUserById"
+                                        },
+                                        {
+                                          "name": "Reqres",
+                                          "operationId": "getUserById",
+                                          "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                                         },
                                         {
                                           "descriptionPath": "https://api.example.com/openapi.json",
@@ -18603,15 +18684,22 @@
                               ]
                             },
                             "statusCodes": {
-                              "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "integer"
+                              "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      }
+                                    ]
                                   }
-                                ]
-                              },
+                                }
+                              ],
                               "default": [
                                 200,
                                 201
@@ -18635,27 +18723,28 @@
                             },
                             "timeout": {
                               "type": "integer",
-                              "description": "Timeout for the HTTP request, in milliseconds.",
-                              "default": 60000
+                              "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                              "default": 60000,
+                              "minimum": 1
                             },
                             "request": {
                               "type": "object",
                               "additionalProperties": false,
                               "properties": {
                                 "headers": {
-                                  "description": "Headers to include in the HTTP request.",
+                                  "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                   "default": {},
+                                  "title": "Request headers",
                                   "anyOf": [
                                     {
                                       "title": "Request headers (object)",
-                                      "description": "Headers to include in the HTTP request, in key/value format.",
                                       "type": "object",
-                                      "additionalProperties": true,
-                                      "properties": {}
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
                                     },
                                     {
                                       "title": "Request headers (string)",
-                                      "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                                       "type": "string"
                                     }
                                   ]
@@ -18700,7 +18789,7 @@
                               "additionalProperties": false,
                               "properties": {
                                 "headers": {
-                                  "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                                  "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                                   "type": "object",
                                   "additionalProperties": true,
                                   "properties": {},
@@ -18748,11 +18837,11 @@
                             },
                             "path": {
                               "type": "string",
-                              "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+                              "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                             },
                             "directory": {
                               "type": "string",
-                              "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                              "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
                             },
                             "maxVariation": {
                               "type": "number",
@@ -18777,8 +18866,16 @@
                     },
                     "examples": [
                       "https://reqres.in/api/users",
+                      "$API_URL/users",
                       {
                         "url": "https://reqres.in/api/users"
+                      },
+                      {
+                        "url": "/api/users",
+                        "statusCodes": 200,
+                        "request": {
+                          "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+                        }
                       },
                       {
                         "url": "https://reqres.in/api/users/2",
@@ -36849,8 +36946,8 @@
                       {
                         "type": "string",
                         "title": "Cookie name",
-                        "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
-                        "pattern": "^[A-Za-z0-9_./\\-]+$",
+                        "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
+                        "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                         "transform": [
                           "trim"
                         ]
@@ -36876,8 +36973,8 @@
                           "variable": {
                             "type": "string",
                             "title": "Environment variable name",
-                            "description": "Environment variable name to store the cookie as JSON string.",
-                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                            "description": "Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.",
+                            "pattern": "^[A-Za-z0-9_.-]+$",
                             "transform": [
                               "trim"
                             ]
@@ -36885,7 +36982,9 @@
                           "path": {
                             "type": "string",
                             "title": "Cookie file path",
-                            "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+                            "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                            "minLength": 1,
+                            "pattern": "\\S",
                             "transform": [
                               "trim"
                             ]
@@ -36893,7 +36992,9 @@
                           "directory": {
                             "type": "string",
                             "title": "Directory path",
-                            "description": "Directory to save the cookie file. If not specified, uses output directory.",
+                            "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                            "minLength": 1,
+                            "pattern": "\\S",
                             "transform": [
                               "trim"
                             ]
@@ -36955,8 +37056,8 @@
                         "string": {
                           "type": "string",
                           "title": "Cookie name",
-                          "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
-                          "pattern": "^[A-Za-z0-9_./\\-]+$",
+                          "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
+                          "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                           "transform": [
                             "trim"
                           ]
@@ -36982,8 +37083,8 @@
                             "variable": {
                               "type": "string",
                               "title": "Environment variable name",
-                              "description": "Environment variable name to store the cookie as JSON string.",
-                              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                              "description": "Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.",
+                              "pattern": "^[A-Za-z0-9_.-]+$",
                               "transform": [
                                 "trim"
                               ]
@@ -36991,7 +37092,9 @@
                             "path": {
                               "type": "string",
                               "title": "Cookie file path",
-                              "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+                              "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                              "minLength": 1,
+                              "pattern": "\\S",
                               "transform": [
                                 "trim"
                               ]
@@ -36999,7 +37102,9 @@
                             "directory": {
                               "type": "string",
                               "title": "Directory path",
-                              "description": "Directory to save the cookie file. If not specified, uses output directory.",
+                              "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                              "minLength": 1,
+                              "pattern": "\\S",
                               "transform": [
                                 "trim"
                               ]
@@ -48177,8 +48282,8 @@
                       {
                         "type": "string",
                         "title": "Cookie name or file path",
-                        "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
-                        "pattern": "^[A-Za-z0-9_./\\-]+$",
+                        "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
+                        "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                         "transform": [
                           "trim"
                         ]
@@ -48239,7 +48344,7 @@
                             "type": "string",
                             "title": "Environment variable name",
                             "description": "Environment variable name containing the cookie as JSON string.",
-                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                            "pattern": "^[A-Za-z0-9_.-]+$",
                             "transform": [
                               "trim"
                             ]
@@ -48247,7 +48352,9 @@
                           "path": {
                             "type": "string",
                             "title": "Cookie file path",
-                            "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+                            "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                            "minLength": 1,
+                            "pattern": "\\S",
                             "transform": [
                               "trim"
                             ]
@@ -48255,7 +48362,9 @@
                           "directory": {
                             "type": "string",
                             "title": "Directory path",
-                            "description": "Directory containing the cookie file.",
+                            "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                            "minLength": 1,
+                            "pattern": "\\S",
                             "transform": [
                               "trim"
                             ]
@@ -48277,8 +48386,8 @@
                         "string": {
                           "type": "string",
                           "title": "Cookie name or file path",
-                          "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
-                          "pattern": "^[A-Za-z0-9_./\\-]+$",
+                          "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
+                          "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                           "transform": [
                             "trim"
                           ]
@@ -48339,7 +48448,7 @@
                               "type": "string",
                               "title": "Environment variable name",
                               "description": "Environment variable name containing the cookie as JSON string.",
-                              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                              "pattern": "^[A-Za-z0-9_.-]+$",
                               "transform": [
                                 "trim"
                               ]
@@ -48347,7 +48456,9 @@
                             "path": {
                               "type": "string",
                               "title": "Cookie file path",
-                              "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+                              "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                              "minLength": 1,
+                              "pattern": "\\S",
                               "transform": [
                                 "trim"
                               ]
@@ -48355,7 +48466,9 @@
                             "directory": {
                               "type": "string",
                               "title": "Directory path",
-                              "description": "Directory containing the cookie file.",
+                              "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                              "minLength": 1,
+                              "pattern": "\\S",
                               "transform": [
                                 "trim"
                               ]
@@ -57247,8 +57360,20 @@
             "httpRequest": "https://reqres.in/api/users"
           },
           {
+            "httpRequest": "$API_URL/users"
+          },
+          {
             "httpRequest": {
               "url": "https://reqres.in/api/users"
+            }
+          },
+          {
+            "httpRequest": {
+              "url": "/api/users",
+              "statusCodes": 200,
+              "request": {
+                "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+              }
             }
           },
           {
@@ -57377,29 +57502,6 @@
                 "descriptionPath": "https://api.example.com/openapi.json",
                 "operationId": "createUser",
                 "useExample": "both"
-              }
-            }
-          },
-          {
-            "httpRequest": {
-              "openApi": {
-                "descriptionPath": "https://api.example.com/openapi.json",
-                "operationId": "updateUser",
-                "useExample": "request",
-                "exampleKey": "acme"
-              }
-            }
-          },
-          {
-            "httpRequest": {
-              "openApi": {
-                "descriptionPath": "https://api.example.com/openapi.json",
-                "operationId": "updateUser",
-                "useExample": "request",
-                "exampleKey": "acme",
-                "headers": {
-                  "Authorization": "Bearer $TOKEN"
-                }
               }
             }
           },
@@ -57639,13 +57741,13 @@
                     },
                     "statusCode": {
                       "type": "integer",
-                      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                     },
                     "useExample": {
                       "type": [
                         "string"
                       ],
-                      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                       "enum": [
                         "request",
                         "response",
@@ -57660,12 +57762,21 @@
                       "default": ""
                     },
                     "headers": {
-                      "type": "object",
-                      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "title": "OpenAPI request headers"
+                      "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                      "title": "OpenAPI request headers",
+                      "anyOf": [
+                        {
+                          "title": "Request headers (object)",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        {
+                          "title": "Request headers (string)",
+                          "type": "string"
+                        }
+                      ]
                     }
                   },
                   "components": {
@@ -57687,6 +57798,11 @@
                     {
                       "name": "Reqres",
                       "operationId": "getUserById"
+                    },
+                    {
+                      "name": "Reqres",
+                      "operationId": "getUserById",
+                      "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                     },
                     {
                       "descriptionPath": "https://api.example.com/openapi.json",
@@ -60690,10 +60806,10 @@
                           "title": "checkLink",
                           "anyOf": [
                             {
-                              "title": "Check link (detailed)",
-                              "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+                              "title": "Check link (simple)",
+                              "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                               "transform": [
                                 "trim"
                               ]
@@ -60708,16 +60824,17 @@
                               ],
                               "properties": {
                                 "url": {
+                                  "title": "Target URL",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                   "type": "string",
-                                  "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                  "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
                                 },
                                 "origin": {
                                   "type": "string",
-                                  "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                  "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                   "transform": [
                                     "trim"
                                   ]
@@ -60731,7 +60848,7 @@
                                   "default": {}
                                 },
                                 "statusCodes": {
-                                  "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                                  "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
                                   "anyOf": [
                                     {
                                       "type": "integer"
@@ -60756,21 +60873,19 @@
                                   ]
                                 },
                                 "headers": {
-                                  "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                  "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                   "default": {},
+                                  "title": "Request headers",
                                   "anyOf": [
                                     {
                                       "title": "Request headers (object)",
-                                      "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                       "type": "object",
                                       "additionalProperties": {
                                         "type": "string"
-                                      },
-                                      "properties": {}
+                                      }
                                     },
                                     {
                                       "title": "Request headers (string)",
-                                      "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                       "type": "string"
                                     }
                                   ]
@@ -60781,10 +60896,10 @@
                           "components": {
                             "schemas": {
                               "string": {
-                                "title": "Check link (detailed)",
-                                "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
+                                "title": "Check link (simple)",
+                                "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                 "transform": [
                                   "trim"
                                 ]
@@ -60799,16 +60914,17 @@
                                 ],
                                 "properties": {
                                   "url": {
+                                    "title": "Target URL",
+                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                     "type": "string",
-                                    "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-                                    "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
                                   },
                                   "origin": {
                                     "type": "string",
-                                    "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                    "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                     "transform": [
                                       "trim"
                                     ]
@@ -60822,7 +60938,7 @@
                                     "default": {}
                                   },
                                   "statusCodes": {
-                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
                                     "anyOf": [
                                       {
                                         "type": "integer"
@@ -60847,21 +60963,19 @@
                                     ]
                                   },
                                   "headers": {
-                                    "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+                                    "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                     "default": {},
+                                    "title": "Request headers",
                                     "anyOf": [
                                       {
                                         "title": "Request headers (object)",
-                                        "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
                                         "type": "object",
                                         "additionalProperties": {
                                           "type": "string"
-                                        },
-                                        "properties": {}
+                                        }
                                       },
                                       {
                                         "title": "Request headers (string)",
-                                        "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
                                         "type": "string"
                                       }
                                     ]
@@ -60873,6 +60987,11 @@
                           "examples": [
                             "https://www.google.com",
                             "/search",
+                            "$BASE_URL/docs",
+                            {
+                              "url": "https://www.example.com",
+                              "headers": "X-Api-Key: abc123\nAuthorization: Bearer token"
+                            },
                             {
                               "url": "https://www.google.com",
                               "statusCodes": 200
@@ -71472,9 +71591,9 @@
                           "anyOf": [
                             {
                               "title": "Go to URL (simple)",
-                              "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+                              "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                               "transform": [
                                 "trim"
                               ]
@@ -71718,16 +71837,17 @@
                                       ]
                                     },
                                     "url": {
+                                      "title": "Target URL",
+                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                       "type": "string",
-                                      "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                                      "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                       "transform": [
                                         "trim"
                                       ]
                                     },
                                     "origin": {
                                       "type": "string",
-                                      "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                      "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                       "transform": [
                                         "trim"
                                       ]
@@ -71742,9 +71862,9 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                      "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                       "default": 30000,
-                                      "minimum": 0
+                                      "minimum": 1
                                     },
                                     "waitUntil": {
                                       "type": "object",
@@ -71996,11 +72116,20 @@
                           ],
                           "components": {
                             "schemas": {
+                              "url": {
+                                "title": "Target URL",
+                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                "type": "string",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "transform": [
+                                  "trim"
+                                ]
+                              },
                               "string": {
                                 "title": "Go to URL (simple)",
-                                "description": "Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.",
+                                "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                 "transform": [
                                   "trim"
                                 ]
@@ -72244,16 +72373,17 @@
                                         ]
                                       },
                                       "url": {
+                                        "title": "Target URL",
+                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                         "type": "string",
-                                        "description": "URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.",
-                                        "pattern": "(^(http://|https://|/).*|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                         "transform": [
                                           "trim"
                                         ]
                                       },
                                       "origin": {
                                         "type": "string",
-                                        "description": "Protocol and domain to navigate to. Prepended to `url`.",
+                                        "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
                                         "transform": [
                                           "trim"
                                         ]
@@ -72268,9 +72398,9 @@
                                       },
                                       "timeout": {
                                         "type": "integer",
-                                        "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                        "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                         "default": 30000,
-                                        "minimum": 0
+                                        "minimum": 1
                                       },
                                       "waitUntil": {
                                         "type": "object",
@@ -73599,9 +73729,9 @@
                           "anyOf": [
                             {
                               "title": "HTTP request (simple)",
+                              "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "description": "URL for the HTTP request.",
-                              "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                               "transform": [
                                 "trim"
                               ]
@@ -73624,10 +73754,10 @@
                               "additionalProperties": false,
                               "properties": {
                                 "url": {
-                                  "title": "HTTP request (simple)",
+                                  "title": "Target URL",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                   "type": "string",
-                                  "description": "URL for the HTTP request.",
-                                  "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                   "transform": [
                                     "trim"
                                   ]
@@ -73708,13 +73838,13 @@
                                             },
                                             "statusCode": {
                                               "type": "integer",
-                                              "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                                              "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                                             },
                                             "useExample": {
                                               "type": [
                                                 "string"
                                               ],
-                                              "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                                              "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                                               "enum": [
                                                 "request",
                                                 "response",
@@ -73729,12 +73859,21 @@
                                               "default": ""
                                             },
                                             "headers": {
-                                              "type": "object",
-                                              "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                                              "additionalProperties": {
-                                                "type": "string"
-                                              },
-                                              "title": "OpenAPI request headers"
+                                              "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                              "title": "OpenAPI request headers",
+                                              "anyOf": [
+                                                {
+                                                  "title": "Request headers (object)",
+                                                  "type": "object",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                {
+                                                  "title": "Request headers (string)",
+                                                  "type": "string"
+                                                }
+                                              ]
                                             }
                                           },
                                           "components": {
@@ -73756,6 +73895,11 @@
                                             {
                                               "name": "Reqres",
                                               "operationId": "getUserById"
+                                            },
+                                            {
+                                              "name": "Reqres",
+                                              "operationId": "getUserById",
+                                              "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                                             },
                                             {
                                               "descriptionPath": "https://api.example.com/openapi.json",
@@ -73822,15 +73966,22 @@
                                   ]
                                 },
                                 "statusCodes": {
-                                  "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                  "type": "array",
-                                  "items": {
-                                    "anyOf": [
-                                      {
-                                        "type": "integer"
+                                  "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                  "anyOf": [
+                                    {
+                                      "type": "integer"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer"
+                                          }
+                                        ]
                                       }
-                                    ]
-                                  },
+                                    }
+                                  ],
                                   "default": [
                                     200,
                                     201
@@ -73854,27 +74005,28 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Timeout for the HTTP request, in milliseconds.",
-                                  "default": 60000
+                                  "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                                  "default": 60000,
+                                  "minimum": 1
                                 },
                                 "request": {
                                   "type": "object",
                                   "additionalProperties": false,
                                   "properties": {
                                     "headers": {
-                                      "description": "Headers to include in the HTTP request.",
+                                      "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                       "default": {},
+                                      "title": "Request headers",
                                       "anyOf": [
                                         {
                                           "title": "Request headers (object)",
-                                          "description": "Headers to include in the HTTP request, in key/value format.",
                                           "type": "object",
-                                          "additionalProperties": true,
-                                          "properties": {}
+                                          "additionalProperties": {
+                                            "type": "string"
+                                          }
                                         },
                                         {
                                           "title": "Request headers (string)",
-                                          "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                                           "type": "string"
                                         }
                                       ]
@@ -73919,7 +74071,7 @@
                                   "additionalProperties": false,
                                   "properties": {
                                     "headers": {
-                                      "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                                      "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                                       "type": "object",
                                       "additionalProperties": true,
                                       "properties": {},
@@ -73967,11 +74119,11 @@
                                 },
                                 "path": {
                                   "type": "string",
-                                  "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+                                  "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                                 },
                                 "directory": {
                                   "type": "string",
-                                  "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                  "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
                                 },
                                 "maxVariation": {
                                   "type": "number",
@@ -73997,11 +74149,28 @@
                             "schemas": {
                               "url": {
                                 "title": "HTTP request (simple)",
+                                "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "description": "URL for the HTTP request.",
-                                "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                 "transform": [
                                   "trim"
+                                ]
+                              },
+                              "requestHeaders": {
+                                "title": "Request headers",
+                                "description": "Headers to send with the request: an object of header names and string values, or a string with one `Name: value` header per line, such as `X-Api-Key: abc123\nAuthorization: Bearer token`. A line without a colon or a value is ignored.",
+                                "anyOf": [
+                                  {
+                                    "title": "Request headers (object)",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  {
+                                    "title": "Request headers (string)",
+                                    "type": "string"
+                                  }
                                 ]
                               },
                               "object": {
@@ -74022,10 +74191,10 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "url": {
-                                    "title": "HTTP request (simple)",
+                                    "title": "Target URL",
+                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
                                     "type": "string",
-                                    "description": "URL for the HTTP request.",
-                                    "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
                                     "transform": [
                                       "trim"
                                     ]
@@ -74106,13 +74275,13 @@
                                               },
                                               "statusCode": {
                                                 "type": "integer",
-                                                "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                                                "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                                               },
                                               "useExample": {
                                                 "type": [
                                                   "string"
                                                 ],
-                                                "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                                                "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                                                 "enum": [
                                                   "request",
                                                   "response",
@@ -74127,12 +74296,21 @@
                                                 "default": ""
                                               },
                                               "headers": {
-                                                "type": "object",
-                                                "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                                                "additionalProperties": {
-                                                  "type": "string"
-                                                },
-                                                "title": "OpenAPI request headers"
+                                                "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                                                "title": "OpenAPI request headers",
+                                                "anyOf": [
+                                                  {
+                                                    "title": "Request headers (object)",
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  {
+                                                    "title": "Request headers (string)",
+                                                    "type": "string"
+                                                  }
+                                                ]
                                               }
                                             },
                                             "components": {
@@ -74154,6 +74332,11 @@
                                               {
                                                 "name": "Reqres",
                                                 "operationId": "getUserById"
+                                              },
+                                              {
+                                                "name": "Reqres",
+                                                "operationId": "getUserById",
+                                                "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                                               },
                                               {
                                                 "descriptionPath": "https://api.example.com/openapi.json",
@@ -74220,15 +74403,22 @@
                                     ]
                                   },
                                   "statusCodes": {
-                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "integer"
+                                    "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                    "anyOf": [
+                                      {
+                                        "type": "integer"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "anyOf": [
+                                            {
+                                              "type": "integer"
+                                            }
+                                          ]
                                         }
-                                      ]
-                                    },
+                                      }
+                                    ],
                                     "default": [
                                       200,
                                       201
@@ -74252,27 +74442,28 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Timeout for the HTTP request, in milliseconds.",
-                                    "default": 60000
+                                    "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                                    "default": 60000,
+                                    "minimum": 1
                                   },
                                   "request": {
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
                                       "headers": {
-                                        "description": "Headers to include in the HTTP request.",
+                                        "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                                         "default": {},
+                                        "title": "Request headers",
                                         "anyOf": [
                                           {
                                             "title": "Request headers (object)",
-                                            "description": "Headers to include in the HTTP request, in key/value format.",
                                             "type": "object",
-                                            "additionalProperties": true,
-                                            "properties": {}
+                                            "additionalProperties": {
+                                              "type": "string"
+                                            }
                                           },
                                           {
                                             "title": "Request headers (string)",
-                                            "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                                             "type": "string"
                                           }
                                         ]
@@ -74317,7 +74508,7 @@
                                     "additionalProperties": false,
                                     "properties": {
                                       "headers": {
-                                        "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                                        "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                                         "type": "object",
                                         "additionalProperties": true,
                                         "properties": {},
@@ -74365,11 +74556,11 @@
                                   },
                                   "path": {
                                     "type": "string",
-                                    "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+                                    "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
                                   },
                                   "directory": {
                                     "type": "string",
-                                    "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                    "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
                                   },
                                   "maxVariation": {
                                     "type": "number",
@@ -74394,8 +74585,16 @@
                           },
                           "examples": [
                             "https://reqres.in/api/users",
+                            "$API_URL/users",
                             {
                               "url": "https://reqres.in/api/users"
+                            },
+                            {
+                              "url": "/api/users",
+                              "statusCodes": 200,
+                              "request": {
+                                "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+                              }
                             },
                             {
                               "url": "https://reqres.in/api/users/2",
@@ -92466,8 +92665,8 @@
                             {
                               "type": "string",
                               "title": "Cookie name",
-                              "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
-                              "pattern": "^[A-Za-z0-9_./\\-]+$",
+                              "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
+                              "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                               "transform": [
                                 "trim"
                               ]
@@ -92493,8 +92692,8 @@
                                 "variable": {
                                   "type": "string",
                                   "title": "Environment variable name",
-                                  "description": "Environment variable name to store the cookie as JSON string.",
-                                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                                  "description": "Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.",
+                                  "pattern": "^[A-Za-z0-9_.-]+$",
                                   "transform": [
                                     "trim"
                                   ]
@@ -92502,7 +92701,9 @@
                                 "path": {
                                   "type": "string",
                                   "title": "Cookie file path",
-                                  "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+                                  "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
                                   "transform": [
                                     "trim"
                                   ]
@@ -92510,7 +92711,9 @@
                                 "directory": {
                                   "type": "string",
                                   "title": "Directory path",
-                                  "description": "Directory to save the cookie file. If not specified, uses output directory.",
+                                  "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
                                   "transform": [
                                     "trim"
                                   ]
@@ -92572,8 +92775,8 @@
                               "string": {
                                 "type": "string",
                                 "title": "Cookie name",
-                                "description": "Name of the specific cookie to save. Will be saved to a default file path or environment variable.",
-                                "pattern": "^[A-Za-z0-9_./\\-]+$",
+                                "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.",
+                                "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                                 "transform": [
                                   "trim"
                                 ]
@@ -92599,8 +92802,8 @@
                                   "variable": {
                                     "type": "string",
                                     "title": "Environment variable name",
-                                    "description": "Environment variable name to store the cookie as JSON string.",
-                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                                    "description": "Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.",
+                                    "pattern": "^[A-Za-z0-9_.-]+$",
                                     "transform": [
                                       "trim"
                                     ]
@@ -92608,7 +92811,9 @@
                                   "path": {
                                     "type": "string",
                                     "title": "Cookie file path",
-                                    "description": "File path to save the cookie, relative to directory. Uses Netscape cookie format.",
+                                    "description": "File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
                                     "transform": [
                                       "trim"
                                     ]
@@ -92616,7 +92821,9 @@
                                   "directory": {
                                     "type": "string",
                                     "title": "Directory path",
-                                    "description": "Directory to save the cookie file. If not specified, uses output directory.",
+                                    "description": "Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
                                     "transform": [
                                       "trim"
                                     ]
@@ -103794,8 +104001,8 @@
                             {
                               "type": "string",
                               "title": "Cookie name or file path",
-                              "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
-                              "pattern": "^[A-Za-z0-9_./\\-]+$",
+                              "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
+                              "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                               "transform": [
                                 "trim"
                               ]
@@ -103856,7 +104063,7 @@
                                   "type": "string",
                                   "title": "Environment variable name",
                                   "description": "Environment variable name containing the cookie as JSON string.",
-                                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                                  "pattern": "^[A-Za-z0-9_.-]+$",
                                   "transform": [
                                     "trim"
                                   ]
@@ -103864,7 +104071,9 @@
                                 "path": {
                                   "type": "string",
                                   "title": "Cookie file path",
-                                  "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+                                  "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
                                   "transform": [
                                     "trim"
                                   ]
@@ -103872,7 +104081,9 @@
                                 "directory": {
                                   "type": "string",
                                   "title": "Directory path",
-                                  "description": "Directory containing the cookie file.",
+                                  "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                  "minLength": 1,
+                                  "pattern": "\\S",
                                   "transform": [
                                     "trim"
                                   ]
@@ -103894,8 +104105,8 @@
                               "string": {
                                 "type": "string",
                                 "title": "Cookie name or file path",
-                                "description": "Name of the specific cookie to load from default location, or file path to cookie file.",
-                                "pattern": "^[A-Za-z0-9_./\\-]+$",
+                                "description": "A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.",
+                                "pattern": "^(?!\\.txt$)([A-Za-z0-9_.-]+|[A-Za-z0-9_./-]*[A-Za-z0-9_.-]\\.txt)$",
                                 "transform": [
                                   "trim"
                                 ]
@@ -103956,7 +104167,7 @@
                                     "type": "string",
                                     "title": "Environment variable name",
                                     "description": "Environment variable name containing the cookie as JSON string.",
-                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                                    "pattern": "^[A-Za-z0-9_.-]+$",
                                     "transform": [
                                       "trim"
                                     ]
@@ -103964,7 +104175,9 @@
                                   "path": {
                                     "type": "string",
                                     "title": "Cookie file path",
-                                    "description": "File path to cookie file, relative to directory. Supports Netscape cookie format.",
+                                    "description": "File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
                                     "transform": [
                                       "trim"
                                     ]
@@ -103972,7 +104185,9 @@
                                   "directory": {
                                     "type": "string",
                                     "title": "Directory path",
-                                    "description": "Directory containing the cookie file.",
+                                    "description": "Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
                                     "transform": [
                                       "trim"
                                     ]
@@ -112864,8 +113079,20 @@
                   "httpRequest": "https://reqres.in/api/users"
                 },
                 {
+                  "httpRequest": "$API_URL/users"
+                },
+                {
                   "httpRequest": {
                     "url": "https://reqres.in/api/users"
+                  }
+                },
+                {
+                  "httpRequest": {
+                    "url": "/api/users",
+                    "statusCodes": 200,
+                    "request": {
+                      "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+                    }
                   }
                 },
                 {
@@ -112994,29 +113221,6 @@
                       "descriptionPath": "https://api.example.com/openapi.json",
                       "operationId": "createUser",
                       "useExample": "both"
-                    }
-                  }
-                },
-                {
-                  "httpRequest": {
-                    "openApi": {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "updateUser",
-                      "useExample": "request",
-                      "exampleKey": "acme"
-                    }
-                  }
-                },
-                {
-                  "httpRequest": {
-                    "openApi": {
-                      "descriptionPath": "https://api.example.com/openapi.json",
-                      "operationId": "updateUser",
-                      "useExample": "request",
-                      "exampleKey": "acme",
-                      "headers": {
-                        "Authorization": "Bearer $TOKEN"
-                      }
                     }
                   }
                 },
@@ -113159,13 +113363,13 @@
                 },
                 "statusCode": {
                   "type": "integer",
-                  "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                  "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                 },
                 "useExample": {
                   "type": [
                     "string"
                   ],
-                  "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                  "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                   "enum": [
                     "request",
                     "response",
@@ -113180,12 +113384,21 @@
                   "default": ""
                 },
                 "headers": {
-                  "type": "object",
-                  "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "OpenAPI request headers"
+                  "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                  "title": "OpenAPI request headers",
+                  "anyOf": [
+                    {
+                      "title": "Request headers (object)",
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "title": "Request headers (string)",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "components": {
@@ -113207,6 +113420,11 @@
                 {
                   "name": "Reqres",
                   "operationId": "getUserById"
+                },
+                {
+                  "name": "Reqres",
+                  "operationId": "getUserById",
+                  "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                 },
                 {
                   "descriptionPath": "https://api.example.com/openapi.json",

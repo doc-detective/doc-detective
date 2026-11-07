@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import axios from "axios";
 import { httpRequest } from "../dist/core/tests/httpRequest.js";
+import { validate } from "../dist/common/src/validate.js";
 
 const config = { logLevel: "silent" };
 
@@ -124,6 +125,30 @@ describe("httpRequest coverage (stubbed axios)", function () {
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(lastRequestConfig.url, "https://api.example.com/thing");
+    });
+
+    it("joins a path to the config's origin and originParams", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      const result = await httpRequest({
+        config: { ...config, origin: "http://api.example.com/", originParams: { k: "v" } },
+        step: { httpRequest: { url: "/users", method: "get", statusCodes: [200] } },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(lastRequestConfig.url, "http://api.example.com/users?k=v");
+    });
+
+    it("FAILs a path when the config has no origin", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      const result = await httpRequest({
+        config,
+        step: { httpRequest: { url: "/users", method: "get", statusCodes: [200] } },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(
+        result.description,
+        "Couldn't send the request: `/users` is a path, and the config has no `origin`. Set `origin` in the config, or use an absolute URL."
+      );
+      assert.equal(lastRequestConfig, undefined);
     });
 
     it("passes method, headers (object), params, body, and timeout through to axios", async function () {
@@ -1276,6 +1301,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
         step: {
           httpRequest: {
             openApi: { name: "MyApi", operationId: "createUser", statusCode: 201 },
+            request: { body: { name: "Jo" } },
           },
         },
       });
@@ -1306,11 +1332,75 @@ describe("httpRequest coverage (stubbed axios)", function () {
         step: {
           httpRequest: {
             openApi: { operationId: "createUser", statusCode: 201 },
+            request: { body: { name: "Jo" } },
           },
         },
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(lastRequestConfig.url, "http://api.example.com/users");
+    });
+
+    // validateAgainstSchema defaults to `both` after the step's openApi merges
+    // over any integration, so an integration's own value still wins.
+    for (const [lookup, openApi, definitions] of [
+      ["descriptionPath", (p) => ({ descriptionPath: p, operationId: "createUser" }), () => []],
+      ["name", () => ({ name: "MyApi", operationId: "createUser" }), () => [{ name: "MyApi", definition: sampleDefinition() }]],
+      ["operationId", () => ({ operationId: "createUser" }), () => [{ name: "MyApi", definition: sampleDefinition() }]],
+    ]) {
+      it(`validates against the schema by default when found by ${lookup}`, async function () {
+        stubResponse({ status: 201, data: { id: 7 } });
+        const result = await httpRequest({
+          config,
+          openApiDefinitions: definitions(),
+          step: {
+            httpRequest: {
+              openApi: openApi(writeDefinition(sampleDefinition())),
+              request: { body: { nope: 1 } },
+            },
+          },
+        });
+        assert.equal(result.status, "FAIL");
+        assert.match(result.description, /Request body didn't match the OpenAPI schema/);
+        assert.equal(lastRequestConfig, undefined);
+      });
+    }
+
+    // The runner hands the handler the effective step, which leaves statusCodes
+    // unset with openApi, so the operation's own 2xx codes apply.
+    it("accepts the operation's 2xx codes when the effective step sets no statusCodes", async function () {
+      const definition = sampleDefinition();
+      const responses = definition.paths["/users"].post.responses;
+      responses[202] = responses[201];
+      delete responses[201];
+      stubResponse({ status: 202, data: { id: 7 } });
+      const { object: step, valid } = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { openApi: "createUser", request: { body: { name: "Jo" } } } },
+      });
+      assert.equal(valid, true);
+      assert.equal(step.httpRequest.statusCodes, undefined);
+      const result = await httpRequest({
+        config,
+        openApiDefinitions: [{ name: "MyApi", definition }],
+        step,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.match(result.description, /Returned 202/);
+    });
+
+    it("keeps an integration's own validateAgainstSchema", async function () {
+      stubResponse({ status: 201, data: { id: 7 } });
+      const result = await httpRequest({
+        config,
+        openApiDefinitions: [{ name: "MyApi", definition: sampleDefinition(), validateAgainstSchema: "none" }],
+        step: {
+          httpRequest: {
+            openApi: { name: "MyApi", operationId: "createUser", statusCode: 201 },
+            request: { body: { nope: 1 } },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
     });
 
     it("FAILs when no OpenAPI definition can be resolved", async function () {
@@ -1475,6 +1565,29 @@ describe("httpRequest coverage (stubbed axios)", function () {
       });
       assert.equal(result.status, "PASS", result.description);
       assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer abc");
+    });
+
+    it("merges string openApi.headers and string request.headers, request headers winning", async function () {
+      stubResponse({ status: 201, data: { id: 7 } });
+      const p = writeDefinition(sampleDefinition());
+      const result = await httpRequest({
+        config,
+        step: {
+          httpRequest: {
+            openApi: {
+              descriptionPath: p,
+              operationId: "createUser",
+              statusCode: 201,
+              validateAgainstSchema: "none",
+              headers: "Authorization: Bearer abc\nX-Source: openapi",
+            },
+            request: { headers: "X-Source: step", body: { name: "Jo" } },
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(reqHeader(lastRequestConfig, "Authorization"), "Bearer abc");
+      assert.equal(reqHeader(lastRequestConfig, "X-Source"), "step");
     });
 
     it("mockResponse uses an explicit response.body over the example", async function () {
