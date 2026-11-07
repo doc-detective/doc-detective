@@ -25,7 +25,7 @@ import {
   appendQueryParams,
   computeSettleCeiling,
   redactUrlForOutput,
-  assertUrlHostIsPublic,
+  privateAddressOf,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
@@ -243,80 +243,51 @@ describe("core/utils coverage", function () {
     });
   });
 
-  describe("assertUrlHostIsPublic (IP literal + scheme + allow-list paths)", function () {
-    let prevAllow;
-    beforeEach(function () {
-      prevAllow = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    });
-    afterEach(function () {
-      if (prevAllow === undefined) delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-      else process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = prevAllow;
-    });
-
-    it("short-circuits when DOC_DETECTIVE_ALLOW_LOCAL_URLS=true", async function () {
-      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
-      // would otherwise reject (loopback) — must resolve
-      await assertUrlHostIsPublic("http://127.0.0.1/x");
-    });
+  describe("privateAddressOf (IP literal + scheme + hostname paths)", function () {
     it("throws on an invalid URL", async function () {
-      await assert.rejects(() => assertUrlHostIsPublic("::not a url::"), /Invalid URL/);
+      await assert.rejects(() => privateAddressOf("::not a url::"), /Invalid URL/);
     });
     it("throws on an unsupported scheme", async function () {
       await assert.rejects(
-        () => assertUrlHostIsPublic("ftp://example.com/x"),
+        () => privateAddressOf("ftp://example.com/x"),
         /Unsupported URL scheme/
       );
     });
-    it("rejects a private IPv4 literal", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://10.0.0.5/x"),
-        /private\/loopback/
-      );
+    it("returns a private IPv4 literal", async function () {
+      assert.equal(await privateAddressOf("http://10.0.0.5/x"), "10.0.0.5");
     });
-    it("rejects a loopback IPv6 literal in brackets", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://[::1]/x"),
-        /private\/loopback/
-      );
+    it("returns a loopback IPv6 literal in brackets", async function () {
+      assert.equal(await privateAddressOf("http://[::1]/x"), "::1");
     });
-    it("allows a public IP literal without DNS", async function () {
-      await assertUrlHostIsPublic("https://8.8.8.8/x");
+    it("returns undefined for a public IP literal without DNS", async function () {
+      assert.equal(await privateAddressOf("https://8.8.8.8/x"), undefined);
     });
-    it("rejects localhost and *.localhost hostnames before any DNS lookup", async function () {
-      // Stub dns.lookup so we can prove the guard short-circuits *before* it.
+    it("returns localhost and *.localhost hostnames before any DNS lookup", async function () {
+      // Stub dns.lookup so we can prove the check short-circuits *before* it.
       sandbox = sinon.createSandbox();
       const lookup = sandbox
         .stub(dnsPromises, "lookup")
         .resolves([{ address: "8.8.8.8" }]);
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://localhost/x"),
-        /Refusing to fetch localhost/
-      );
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://app.localhost/x"),
-        /Refusing to fetch localhost/
-      );
+      assert.equal(await privateAddressOf("http://localhost/x"), "localhost");
+      assert.equal(await privateAddressOf("http://app.localhost/x"), "app.localhost");
       assert.equal(lookup.callCount, 0);
     });
 
     // The DNS-resolution branch is covered hermetically by stubbing
     // dns.lookup (the utils module shares this exact promises-API object).
-    it("resolves when a hostname's resolved addresses are all public", async function () {
+    it("returns undefined when a hostname's resolved addresses are all public", async function () {
       sandbox = sinon.createSandbox();
       sandbox
         .stub(dnsPromises, "lookup")
         .resolves([{ address: "93.184.216.34" }]);
-      await assertUrlHostIsPublic("https://example.test/x");
+      assert.equal(await privateAddressOf("https://example.test/x"), undefined);
     });
-    it("rejects when a hostname resolves to a private address", async function () {
+    it("returns the private address a hostname resolves to", async function () {
       sandbox = sinon.createSandbox();
       sandbox
         .stub(dnsPromises, "lookup")
-        .resolves([{ address: "10.1.2.3" }]);
-      await assert.rejects(
-        () => assertUrlHostIsPublic("https://internal.test/x"),
-        /resolves to a private\/loopback address/
-      );
+        .resolves([{ address: "93.184.216.34" }, { address: "10.1.2.3" }]);
+      assert.equal(await privateAddressOf("https://internal.test/x"), "10.1.2.3");
     });
     it("rejects with a resolution error when DNS lookup fails", async function () {
       sandbox = sinon.createSandbox();
@@ -324,15 +295,15 @@ describe("core/utils coverage", function () {
         .stub(dnsPromises, "lookup")
         .rejects(new Error("ENOTFOUND"));
       await assert.rejects(
-        () => assertUrlHostIsPublic("https://nonexistent.test/x"),
+        () => privateAddressOf("https://nonexistent.test/x"),
         /Couldn't resolve host .* ENOTFOUND/
       );
     });
   });
 
-  // isPrivateOrLoopbackAddress is exercised indirectly through assertUrlHostIsPublic,
+  // isPrivateOrLoopbackAddress is exercised indirectly through privateAddressOf,
   // covering its many branches: IPv4 ranges, IPv6 forms, IPv4-mapped recursion.
-  describe("assertUrlHostIsPublic IP-literal branch coverage", function () {
+  describe("privateAddressOf IP-literal branch coverage", function () {
     const privateLiterals = [
       "127.0.0.1", // loopback
       "0.0.0.0", // 0.x
@@ -349,9 +320,9 @@ describe("core/utils coverage", function () {
       // set below (the #427 fix); historically they bypassed the guard.
     ];
     for (const ip of privateLiterals) {
-      it(`rejects private literal ${ip}`, async function () {
+      it(`flags private literal ${ip}`, async function () {
         const url = ip.includes(":") ? `http://[${ip}]/x` : `http://${ip}/x`;
-        await assert.rejects(() => assertUrlHostIsPublic(url), /refusing|private\/loopback/i);
+        assert.ok(await privateAddressOf(url));
       });
     }
     const publicLiterals = [
@@ -365,7 +336,7 @@ describe("core/utils coverage", function () {
     for (const ip of publicLiterals) {
       it(`allows public literal ${ip}`, async function () {
         const url = ip.includes(":") ? `http://[${ip}]/x` : `http://${ip}/x`;
-        await assertUrlHostIsPublic(url);
+        assert.equal(await privateAddressOf(url), undefined);
       });
     }
 
@@ -380,11 +351,8 @@ describe("core/utils coverage", function () {
       "::ffff:0:1", // 0.0.0.1 (real mapped form of 0.0.0.x, high group is 0)
     ];
     for (const ip of mappedPrivate) {
-      it(`rejects IPv4-mapped private literal [${ip}]`, async function () {
-        await assert.rejects(
-          () => assertUrlHostIsPublic(`http://[${ip}]/x`),
-          /private\/loopback/
-        );
+      it(`flags IPv4-mapped private literal [${ip}]`, async function () {
+        assert.equal(await privateAddressOf(`http://[${ip}]/x`), ip);
       });
     }
   });

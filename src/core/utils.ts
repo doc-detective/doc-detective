@@ -58,7 +58,9 @@ export {
   isDeviceWebContext,
   computeSettleCeiling,
   redactUrlForOutput,
-  assertUrlHostIsPublic,
+  privateAddressOf,
+  localUrlPolicy,
+  getGuarded,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
@@ -1307,8 +1309,8 @@ function cleanTemp() {
 // Fetch a file from a URL and save to a temp directory.
 // With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
 // required for images and other non-text payloads. Binary fetches also apply
-// hard limits (timeout, max body size, max redirects) so a misbehaving server
-// can't stall or OOM the run.
+// hard limits (timeout, max body size; getGuarded caps redirects) so a
+// misbehaving server can't stall or OOM the run.
 // Otherwise, non-JSON responses are stringified (text pass-through).
 // Returns `{ result: "error", message }` on failure.
 const FETCH_BINARY_DEFAULTS = {
@@ -1316,7 +1318,6 @@ const FETCH_BINARY_DEFAULTS = {
   timeout: 30_000,
   maxContentLength: 50 * 1024 * 1024,
   maxBodyLength: 50 * 1024 * 1024,
-  maxRedirects: 5,
 };
 
 // Replace characters that are invalid in filenames on Windows (and often
@@ -1435,18 +1436,36 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
   return false;
 }
 
-// Reject URLs whose host resolves to a loopback/private IP, unless the
-// caller explicitly opts in (DOC_DETECTIVE_ALLOW_LOCAL_URLS=true). Tests
-// and trusted internal integrations set the env var; normal doc-spec input
-// does not, so an untrusted spec can't pivot through doc-detective to hit
-// cloud metadata or intranet services.
+// On/off switches in the environment: 1, true, yes or on, in any case.
+function envFlag(name: string): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env[name] ?? "").trim());
+}
+
+// What the guarded fetches (screenshot reference images, OpenAPI `$ref`s) may
+// reach (ADR 01162). Env only, so a repository's config can't loosen it.
+//   "hops"  (default) local URLs are fine; a public-to-private redirect or
+//           `$ref` is refused.
+//   "allow" DOC_DETECTIVE_ALLOW_LOCAL_URLS: no checks.
+//   "block" DOC_DETECTIVE_BLOCK_LOCAL_URLS: every private address is refused.
+function localUrlPolicy(): "hops" | "allow" | "block" {
+  const allow = envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS");
+  const block = envFlag("DOC_DETECTIVE_BLOCK_LOCAL_URLS");
+  if (allow && block) {
+    throw new Error(
+      "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
+    );
+  }
+  return allow ? "allow" : block ? "block" : "hops";
+}
+
+// The private, loopback or link-local address a URL points at, or undefined
+// when it's public. A hostname counts as private when any of its addresses is.
 //
 // Note: this is a best-effort check. DNS rebinding and TOCTOU races are
 // possible between resolution and connect; for true SSRF-grade isolation,
 // wire in an agent that validates the actual remote address at connect
 // time. This guard covers the common misuse cases.
-async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
-  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+async function privateAddressOf(fileURL: string): Promise<string | undefined> {
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1463,34 +1482,71 @@ async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
   const host = parsed.hostname.replace(/^\[|\]$/g, "");
   // Direct IP literals: check immediately.
   if (net.isIP(host)) {
-    if (isPrivateOrLoopbackAddress(host)) {
-      throw new Error(
-        `Refusing to fetch private/loopback address (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-      );
-    }
-    return;
+    return isPrivateOrLoopbackAddress(host) ? host : undefined;
   }
   // Hostnames: resolve and check every answer (A + AAAA).
   const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost")) {
-    throw new Error(
-      `Refusing to fetch localhost (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-    );
+    return host;
   }
   let addresses: { address: string }[];
   try {
     addresses = await dns.lookup(host, { all: true });
   } catch (error) {
     throw new Error(
-      `Couldn't resolve host ${host} for SSRF check: ${(error as Error).message}`
+      `Couldn't resolve host ${host}: ${(error as Error).message}`
     );
   }
-  for (const { address } of addresses) {
-    if (isPrivateOrLoopbackAddress(address)) {
+  return addresses.find(({ address }) => isPrivateOrLoopbackAddress(address))
+    ?.address;
+}
+
+async function refuseInStrictMode(url: string): Promise<void> {
+  if (await privateAddressOf(url)) {
+    throw new Error(
+      `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+        "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+    );
+  }
+}
+
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+
+// GET for the guarded fetches. Follows up to 5 redirects by hand so each hop
+// is checked against localUrlPolicy() before it's requested.
+async function getGuarded(url: string, opts: object = FETCH_BINARY_DEFAULTS) {
+  const policy = localUrlPolicy();
+  const axios = await loadAxios();
+  if (policy === "block") await refuseInStrictMode(url);
+  let current = url;
+  for (let hops = 0; ; hops++) {
+    const response = await axios.get(current, {
+      ...opts,
+      maxRedirects: 0,
+      validateStatus: (status: number) =>
+        (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
+    });
+    if (!REDIRECT_STATUSES.includes(response.status)) return response;
+    const location = response.headers?.location;
+    if (!location || hops >= 5) {
       throw new Error(
-        `Host ${host} resolves to a private/loopback address (${address}); refusing to fetch. Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+        `Couldn't fetch ${redactUrlForOutput(url)}: ${
+          location ? "it redirects more than 5 times" : `the ${response.status} redirect has no Location header`
+        }.`
       );
     }
+    const next = new URL(location, current).toString();
+    if (policy === "block") await refuseInStrictMode(next);
+    if (policy === "hops") {
+      const address = await privateAddressOf(next);
+      if (address && !(await privateAddressOf(current))) {
+        throw new Error(
+          `Couldn't follow the redirect from ${redactUrlForOutput(current)}: it leads to ${address}, a private address, from a public one.\n` +
+            "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
+        );
+      }
+    }
+    current = next;
   }
 }
 
@@ -1499,16 +1555,11 @@ async function fetchFile(
   opts: { binary?: boolean } = {}
 ) {
   try {
-    if (opts.binary) {
-      // Only gate binary fetches for now — the text path is an internal
-      // loader used by the test-detection pipeline and pre-dates this
-      // change; expanding SSRF coverage there belongs in its own PR.
-      await assertUrlHostIsPublic(fileURL);
-    }
-    const response = await (await loadAxios()).get(
-      fileURL,
-      opts.binary ? FETCH_BINARY_DEFAULTS : undefined
-    );
+    // Binary fetches (screenshot reference images) are guarded. The text
+    // path loads operator-chosen input; not gated by design (ADR 01162).
+    const response = opts.binary
+      ? await getGuarded(fileURL)
+      : await (await loadAxios()).get(fileURL);
     let data: Buffer | string;
     if (opts.binary) {
       data = Buffer.from(response.data);

@@ -1,5 +1,5 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
-import { shouldFailRun } from "./core/utils.js";
+import { shouldFailRun, localUrlPolicy } from "./core/utils.js";
 import {
   buildYargs,
   setConfig,
@@ -74,6 +74,15 @@ async function main(argv: string[]) {
 
 // Legacy "run tests" flow — unchanged behavior when no subcommand is given.
 async function runTestsHandler(args: any) {
+  // Conflicting local-URL switches are a usage error (ADR 01162).
+  try {
+    localUrlPolicy();
+  } catch (error: any) {
+    log(`Error: ${error.message}`, "error");
+    process.exitCode = 2;
+    return;
+  }
+
   // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
   const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
   const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");

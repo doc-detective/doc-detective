@@ -1,4 +1,10 @@
-import { replaceEnvs } from "./utils.js";
+import {
+  replaceEnvs,
+  localUrlPolicy,
+  privateAddressOf,
+  getGuarded,
+  redactUrlForOutput,
+} from "./utils.js";
 import { readFile } from "./files.js";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
@@ -37,9 +43,35 @@ async function loadDescription(descriptionPath: string = "") {
   // Load the definition from the URL or local file path
   const definition = await readFile({ fileURLOrPath: descriptionPath });
 
+  // A publicly hosted description may not $ref a private address (ADR 01162).
+  // ponytail: judged by the root document only; a public $ref'd file inside a
+  // local description can still $ref a private address. Track each file's
+  // referrer if that matters.
+  const fromPublic =
+    localUrlPolicy() === "hops" &&
+    /^https?:\/\//i.test(descriptionPath) &&
+    !(await privateAddressOf(descriptionPath));
+
   // Dereference the definition (ref parser imported lazily — see top of file)
   const parser = (await import("@apidevtools/json-schema-ref-parser")).default;
-  const dereferencedDefinition = await parser.dereference(definition as any);
+  const dereferencedDefinition = await parser.dereference(definition as any, {
+    resolve: {
+      http: {
+        // The parser's own guard refuses every private address, even from a
+        // local description. getGuarded applies Doc Detective's policy instead.
+        safeUrlResolver: false,
+        async read(file: { url: string }) {
+          if (fromPublic && (await privateAddressOf(file.url))) {
+            throw new Error(
+              `Couldn't resolve $ref ${redactUrlForOutput(file.url)} in ${redactUrlForOutput(descriptionPath)}: a public document can't refer to a private address.\n` +
+                "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy."
+            );
+          }
+          return Buffer.from((await getGuarded(file.url)).data);
+        },
+      },
+    },
+  } as any);
 
   return dereferencedDefinition;
 }
