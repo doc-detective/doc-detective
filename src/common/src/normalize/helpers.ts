@@ -80,8 +80,11 @@ const cache = new Map<string, [string, any][]>();
  */
 export function applyDefaults(value: any, action: string, skip: string[] = []): any {
   if (!cache.has(action)) {
-    // The object branch of a root union, the schema itself for an action that's
-    // always an object, or else its `object` component (click's root is an allOf).
+    // Where the action's object form lives, in the order the schemas use:
+    // - the object branch of a root `anyOf` (goTo, find, type, swipe, …);
+    // - the schema itself, when the action is always an object (dragAndDrop);
+    // - its `object` component, when the root wraps the union in an `allOf`
+    //   guard (click, ADR 01175).
     const schema = (schemas as any)[`${action}_v3`];
     const branch =
       schema.anyOf?.find((part: any) => part.properties || part.allOf) ??

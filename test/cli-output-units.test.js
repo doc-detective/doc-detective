@@ -99,6 +99,17 @@ describe("summarizeSpecErrors", function () {
     });
   }
 
+  it("keeps the next error whole after a schema's message that comes first", function () {
+    const errors = [
+      `/tests/0/steps/0/click must be string or object (got true) ({"errors":[{"keyword":"not","message":"must NOT be valid","emUsed":true}]})`,
+      ` must have required property 'tests' ({"missingProperty":"tests"})`,
+    ].join(", ");
+    expect(summarizeSpecErrors(errors, {}).split("\n")).to.deep.equal([
+      "tests[0].steps[0].click: must be string or object (got true).",
+      "must have required property 'tests'",
+    ]);
+  });
+
   it("falls back to the message for a root error", function () {
     expect(summarizeSpecErrors(` must have required property 'tests' ({"missingProperty":"tests"})`, {})).to.equal(
       "must have required property 'tests'"
