@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
+export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild, fileTypeObject };
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -123,6 +123,17 @@ const platformMap: any = {
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
+// A fileType entry as an object: a built-in name becomes a copy of its
+// definition, and an object passes through. The schema already limits names;
+// this names one should the schema and the table ever drift apart.
+function fileTypeObject(fileType: any) {
+  if (typeof fileType === "object") return fileType;
+  if (!defaultFileTypes[fileType]) {
+    throw new Error(`Unknown fileType "${fileType}". Use one of: ${Object.keys(defaultFileTypes).join(", ")}.`);
+  }
+  return structuredClone(defaultFileTypes[fileType]);
+}
+
 async function setConfig({ config, detectApps = true }: any) {
   // Set environment variables from file
   if (config.loadVariables) await loadEnvs(config.loadVariables);
@@ -161,9 +172,7 @@ async function setConfig({ config, detectApps = true }: any) {
   // Replace fileType strings with objects. The schema limits the strings to the
   // built-in names. Copy the default: the normalizing below mutates entries in
   // place, and common's table is shared by every run.
-  config.fileTypes = config.fileTypes.map((fileType: any) =>
-    typeof fileType === "object" ? fileType : structuredClone(defaultFileTypes[fileType])
-  );
+  config.fileTypes = config.fileTypes.map(fileTypeObject);
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];

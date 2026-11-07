@@ -42,6 +42,10 @@ describe("rewriteRootError", function () {
     expect(out).to.include("unknown command 'instal'");
     expect(out).to.include("Did you mean install?");
   });
+  it("suggests a command with two swapped letters", function () {
+    const out = rewriteRootError("error: too many arguments. Expected 0 arguments but got 1: rnu.\n", ["run", "install"]);
+    expect(out).to.include("Did you mean run?");
+  });
   it("passes other errors through", function () {
     expect(rewriteRootError("error: unknown option '--x'\n", [])).to.equal(
       "error: unknown option '--x'\n"
@@ -160,6 +164,17 @@ describe("summarizeSchemaErrors", function () {
     expect(summarize({ shell: "z".repeat(100) }, "config_v3")).to.equal(
       `shell: must be one of bash, cmd, powershell (got "${"z".repeat(37)}…").`
     );
+  });
+
+  it("counts escapes when it shortens, and never cuts one in half", function () {
+    const got = (shell) => /\(got (.*)\)\.$/.exec(summarize({ shell }, "config_v3"))[1];
+    for (const shell of ["\n".repeat(37), '"'.repeat(50), `${"a".repeat(36)}\\${"b".repeat(10)}`]) {
+      const shown = got(shell);
+      expect(shown.length, shown).to.be.at.most(40);
+      expect(shown, shown).to.match(/^".*…"$/);
+      expect(shown, shown).to.not.match(/(^|[^\\])(\\\\)*\\…/);
+    }
+    expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
   });
 
   it("ends any other message with a period", function () {
