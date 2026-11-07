@@ -51,7 +51,12 @@ By default, the action runs from the repository root and uses the config file Do
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
-Action `@v1` runs Doc Detective 4 and earlier. It refuses `latest` and any version or range that can install version 5 or later, such as `5`, `^5`, or the open-ended `>=4`. A refused version fails the job with a pointer to `doc-detective/github-action@v2`. To stay on `@v1`, set `version` to a 4.x version or range, such as `4`, `^4`, or `4.41.5`. For other npm tags, such as `next`, it logs a warning and runs anyway, because it can't tell which version the tag installs. An empty `version` skips this check.
+Action `@v1` runs Doc Detective 4 and earlier, so it checks `version` before installing. The action:
+
+- Refuses `latest` and any version or range that can install version 5 or later, such as `5`, `^5`, or the open-ended `>=4`. The job fails with a pointer to `doc-detective/github-action@v2`.
+- Accepts a 4.x version or range, such as `4`, `^4`, or `4.41.5`.
+- Warns about other npm tags, such as `next`, and runs anyway, because it can't tell which version the tag installs.
+- Skips the check when `version` is empty.
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
