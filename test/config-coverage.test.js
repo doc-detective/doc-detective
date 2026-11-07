@@ -26,6 +26,7 @@ import {
   selectInstalledBuild,
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
+import { schemas } from "../dist/common/src/schemas/index.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -743,6 +744,17 @@ describe("config.ts — setConfig", function () {
         config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: "./b.json" },
       }),
       { message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both." }
+    );
+  });
+
+  it("ends the both-set error with the schema's own message", async function () {
+    const schemaMessage = schemas.config_v3.errorMessage.not;
+    assert.equal(typeof schemaMessage, "string");
+    await assert.rejects(
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: "./b.json" },
+      }),
+      (error) => error.message.endsWith(`beforeAll: ${schemaMessage}`)
     );
   });
 

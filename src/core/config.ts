@@ -19,7 +19,10 @@ export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiag
 // Rename deprecated config keys in place, in each config source before they're
 // merged, so a later source wins whichever name either one uses (ADR 01169).
 // Setting both names in one source is an error. Warns once for all the sources.
-function renameDeprecatedConfigKeys(sources: any[], warn: (message: string) => void) {
+function renameDeprecatedConfigKeys(
+  sources: (Record<string, any> | null | undefined)[],
+  warn: (message: string) => void
+) {
   let renamed = false;
   for (const config of sources) {
     if (config?.beforeAny === undefined) continue;
