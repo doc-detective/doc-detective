@@ -200,6 +200,7 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 |---|---|
 | `"click": true` or `"click": false` clicked the element whose text is "true" or "false", or failed the step in later 4.x releases. | Invalid. To click that text, quote it: `"click": "true"`. |
 | A `find.click` string other than `left`, `right`, or `middle`, such as `"click": "Submit"`, left-clicked. | Invalid. Use `true`, `false`, a button name, or `{ "button": "right" }`. A `click` action's string still names the element. |
+| A `find.click` object took any `click` field, such as `{ "selector": "#b" }` or `{ "button": "right", "timeout": 100 }`. A whole variable, such as `"click": "$BUTTON"`, also stood in for it. | Invalid. The object takes only `button` and `duration`. Put locators and `timeout` on `find` itself. Write the button name, or `true`, instead of a variable. |
 | A `find.type` with its own `selector`, `elementText`, or other locator ignored it. | Invalid. `find` already locates the element, so remove the locator from `type`. |
 | A negative `timeout` on `click`, on `find`, on a `dragAndDrop` source or target, or on an annotation target was accepted. So was a negative `type.inputDelay`. | Invalid. Use `0` or more. A `timeout` of `0` checks once. |
 

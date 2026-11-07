@@ -6,7 +6,8 @@ decision-makers: doc-detective maintainers
 
 # Reject boolean click and constrain find.click
 
-Extends [ADR 01161](01161-keep-authored-scalar-types-through-coercion.md) to version 5, and applies
+Extends ADR 01161, "Keep authored scalar types through coercion", to version 5. That ADR lands on
+`main` with #816 and reaches this branch when `main` merges forward. Applies
 [ADR 01167](01167-validate-returns-the-effective-step.md) to the browser actions.
 
 ## Context and Problem Statement
@@ -19,6 +20,7 @@ mouse button, so `{"find": {"selector": "#a", "click": "right"}}` right-clicks. 
 |---|---|
 | `{"click": true}` | Ajv coerced it to `"true"` and clicked the element whose text is "true". ADR 01161 made it FAIL at run time instead. |
 | `{"find": {"selector": "#a", "click": "Submit"}}` | `find.click` reused the whole `click` schema, so any string was valid. The handler ignored it and left-clicked. |
+| `{"find": {"selector": "#a", "click": {"selector": "#b"}}}` | Any `click` object was valid, so a locator or `timeout` there was ignored. A whole variable, such as `"click": "$BUTTON"`, was valid as a string. |
 | `{"find": {"selector": "#a", "type": {"keys": "x", "selector": "#b"}}}` | The guard only rejected a `type` with all seven locators. `#b` was ignored. |
 | `{"click": {"selector": "#a", "timeout": -1}}` | Valid. So were negative `find` and `dragAndDrop` locator timeouts, a negative `type.inputDelay`, and a negative annotation target timeout. |
 | `{"dragAndDrop": {"source": "a", "target": "b", "duration": 0}}` | `duration \|\| 1000` dragged for 1000 ms. |
@@ -53,14 +55,16 @@ Chosen option: **1**.
   ``must be string or object (got true). To click an element whose text is "true", quote it: "click": "true"``.
 - **`find.click` is `boolean | "left" | "right" | "middle" | {button, duration}`.** The boolean branch
   comes first as a plain `type: boolean`, which is safe because the next branch is an enum (ADR 01161).
-  Any other string is invalid: `must be equal to one of the allowed values`, which the shared error
-  format prints as `must be one of left, right, middle (got "Submit").`
+  Any other string is invalid. Ajv says `must be equal to one of the allowed values`, and the shared
+  error format prints `must be one of left, right, middle (got "Submit").` The object takes only
+  `button` and `duration`, so a `click` object's locators and `timeout` are invalid here. A whole
+  variable is invalid too, because it isn't a button name.
 - **`find.type` can't set a locator.** Each of the seven locator keys has its own guard,
   `not: {type: object, required: [key]}`, so its `errorMessage` names the key, for example
   ``must not set `selector` (`find` already locates the element)``.
 - **Bounds** follow ADR 01171's rule, as #832 amends it. These actions' timeouts all bound a wait
-  for something to appear: the element of `click`, `find`, a `dragAndDrop` source or target, or an
-  annotation target, and a `type` step's `waitUntil`. So they take `minimum: 0`, and `0` checks once
+  for something to appear. That's the element of a `click`, a `find`, a `dragAndDrop` source or
+  target, or an annotation target, or a `type` step's `waitUntil`. So they take `minimum: 0`, and `0` checks once
   ([ADR 01090](01090-non-destructive-surface-bookkeeping-and-zero-timeout.md)). `type.inputDelay`,
   `dragAndDrop.duration`, and the annotation durations take `minimum: 0` too. `click.duration` and
   `swipe.duration` keep the `minimum: 1` they had. Names and units don't change, and each description
@@ -92,8 +96,9 @@ Chosen option: **1**.
 - Good: each of the version 4 surprises above fails validation, with exit code `2`, and names its path.
 - Good: the language server and Online see the same messages, because they come from the schema.
 - Good: report steps show the click, keys, and durations that ran.
-- Bad: specs with `"click": true`, a non-button `find.click` string, a locator in `find.type`, or a
-  negative timeout stop validating. The upgrade guide lists each fix.
+- Bad: specs with `"click": true`, a non-button `find.click` string, a `find.click` object with more
+  than `button` and `duration`, a locator in `find.type`, or a negative timeout stop validating. The
+  upgrade guide lists each fix.
 - Bad: report consumers that read `find.click` as `true` or `"right"` read `find.click.button`. A `type`
   step's `keys` is always a list.
 - Neutral: the CLI's current error summary passes `errorMessage` text through whole. The shared error
@@ -108,9 +113,13 @@ Chosen option: **1**.
 - `test/findElement.test.js` covers `find.click` `false`, `true`, and `"middle"`, and `click: true` and
   `false` failing with the hint. `test/browser-actions-coverage.test.js` covers a `dragAndDrop` duration
   of `0`.
-- `test/core-artifacts/cli/browser-tightening.spec.json` asserts exit `2` for each rejected shape
-  through the CLI. `test/core-artifacts/interactions/find-click.spec.json` runs `find.click` with each
-  button, `true`, `false`, and a `dragAndDrop` duration of `0` in a browser.
+- `test/core-artifacts/cli/browser-tightening.spec.json` asserts exit `2` and the message for each
+  rejected shape through the CLI, and that a quoted `"click": "true"` still validates.
+  `test/core-artifacts/interactions/find-click.spec.json` runs `find.click` with each button, `true`,
+  `false`, and a `dragAndDrop` duration of `0` in a browser.
+- `test/effective-step.test.js` and `src/common/test/normalize.test.js` cover whole variables that hold
+  a list in `type.keys`, `elementClass`, and `find.type`.
+- `test/shorthand-ratchet.test.js` pins its `click` and `find` string exemptions to their files.
 
 ## Pros and Cons of the Options
 
