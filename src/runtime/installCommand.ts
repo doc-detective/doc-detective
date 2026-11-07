@@ -314,13 +314,16 @@ export const installSubcommands: Record<string, InstallSubcommand> = {
 
 function toCommand(subcommand: InstallSubcommand): Command {
   const command = addGlobalOptions(new Command(subcommand.command));
+  const group = subcommand.readOnly ? "Status options:" : INSTALL_GROUP;
   if (subcommand.readOnly) {
     command.addOption(
-      new Option("--cache-dir <dir>", "Check here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup("Status options:")
+      new Option("--cache-dir <dir>", "Check here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup(group)
     );
   } else {
     sharedInstallOptions(command);
   }
+  // The config whose cacheDir a run would use, as `doc-detective --config` takes.
+  command.addOption(new Option("-c, --config <file>", "Read cacheDir from this config file").helpGroup(group));
   subcommand.configure?.(command);
   return command.action(async (...actionArgs: any[]) => {
     const argv = cliArgv(command);
@@ -335,7 +338,7 @@ function toCommand(subcommand: InstallSubcommand): Command {
     const { discoverConfigPath, loadProjectEnv, setConfig } = await import("../utils.js");
     await loadProjectEnv(argv);
     const { cacheDir } = await setConfig({
-      configPath: discoverConfigPath(),
+      configPath: discoverConfigPath(argv),
       args: { cacheDir: argv.cacheDir, quiet: argv.quiet },
       readCredentials: false,
     });
