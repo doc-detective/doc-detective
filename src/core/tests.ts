@@ -3912,6 +3912,21 @@ function buildAutoRecordStep({
   };
 }
 
+// A context's `screenshots/` folder in the run folder, which creates the run
+// folder. Auto screenshots and URL-reference captures (ADR 01173) land here.
+function contextScreenshotsDir({ config, spec, test, context }: { config: any; spec: any; test: any; context: any }) {
+  return path.join(
+    getRunOutputDir(config),
+    "specs",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+    "tests",
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
+    "contexts",
+    capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
+    "screenshots"
+  );
+}
+
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
 // path follows the REST resource tree — stable IDs (spec/test/context) as
 // nested collections plus the step's order, action, and ID (e.g.
@@ -3941,20 +3956,7 @@ async function captureAutoScreenshot({
 }): Promise<string | null> {
   try {
     const runDir = getRunOutputDir(config);
-    const dir = path.join(
-      runDir,
-      "specs",
-      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
-      "tests",
-      capPathSegment(
-        sanitizeFilesystemName(String(test.testId ?? ""), "test")
-      ),
-      "contexts",
-      capPathSegment(
-        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
-      ),
-      "screenshots"
-    );
+    const dir = contextScreenshotsDir({ config, spec, test, context });
     const fileName = stepArtifactFileName({
       step,
       stepIndex,
@@ -5088,6 +5090,7 @@ async function runContext({
           options: {
             openApiDefinitions: context.openApi || [],
             annotationTheme,
+            screenshotsDir: () => contextScreenshotsDir({ config, spec, test, context }),
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -5919,6 +5922,7 @@ async function runStep({
       processRegistry,
       surfaceTracker,
       annotationTheme: options?.annotationTheme,
+      screenshotsDir: options?.screenshotsDir,
     });
   } else if (typeof step.annotate !== "undefined") {
     actionResult = await annotate({

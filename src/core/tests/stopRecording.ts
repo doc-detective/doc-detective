@@ -50,9 +50,9 @@ async function stopRecording({
     description: "Stopped recording.",
   };
 
-  // Validate step payload. (The stopRecord step carries no fields we read
-  // here — the recording state lives on driver.state — so we only assert
-  // validity and don't keep the coerced object.)
+  // Validate step payload. The recording state lives on driver.state, so the
+  // only field we read is the effective `stopRecord` (ADR 01167): `true`, a
+  // `{ name }` target, or `false`.
   // `__stopAny` is the runner's own marker, and step_v3 rejects unknown keys.
   const { __stopAny: _stopAny, ...authoredStep } = step;
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
@@ -61,11 +61,12 @@ async function stopRecording({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
+  const { stopRecord } = isValidStep.object;
 
   // `stopRecord: false` is an explicit no-op (mirrors `record: false`): it must
   // not stop anything. Runtime dispatch keys on property presence, so guard the
   // value here rather than in the schema (the boolean form stays valid).
-  if (step.stopRecord === false) {
+  if (!stopRecord) {
     result.status = "SKIPPED";
     result.description = "Recording stop is disabled (stopRecord: false).";
     return result;
@@ -78,7 +79,7 @@ async function stopRecording({
   let recordings: any[] = Array.isArray(driver?.state?.recordings)
     ? driver.state.recordings
     : [];
-  let recording = selectRecordingToStop(recordings, step.stopRecord, {
+  let recording = selectRecordingToStop(recordings, stopRecord, {
     includeSynthetic: step?.__stopAny === true,
   });
   // Phase 4 (ADR 01019): the recording may live on a browser session other
@@ -93,7 +94,7 @@ async function stopRecording({
       )
         ? entry.driver.state.recordings
         : [];
-      const found = selectRecordingToStop(sessionRecordings, step.stopRecord, {
+      const found = selectRecordingToStop(sessionRecordings, stopRecord, {
         includeSynthetic: step?.__stopAny === true,
       });
       if (found) {
@@ -106,7 +107,7 @@ async function stopRecording({
   }
   if (!recording) {
     result.status = "SKIPPED";
-    const target = stopRecordTargetName(step.stopRecord);
+    const target = stopRecordTargetName(stopRecord);
     if (target !== undefined) {
       result.description = `No active recording named '${target}'.`;
     } else if (recordings.length > 0) {
@@ -437,7 +438,7 @@ async function stopRecording({
         discardCheckpointStaging();
         return result;
       }
-      if (path.extname(writeTargetPath) === ".mp4") {
+      if (path.extname(writeTargetPath).toLowerCase() === ".mp4") {
         fs.writeFileSync(writeTargetPath, buffer);
       } else {
         const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
@@ -608,7 +609,7 @@ async function stopRecording({
   // field list is copied explicitly — the outputs object is a documented
   // user-facing contract ($$duration etc.), so parser additions must opt in.
   result.outputs.recordingPath = path.resolve(finalTargetPath);
-  result.outputs.format = path.extname(finalTargetPath).slice(1);
+  result.outputs.format = path.extname(finalTargetPath).slice(1).toLowerCase();
   const meta = await probeVideoMetadata({
     cacheDir: config?.cacheDir,
     filePath: finalTargetPath,
@@ -821,7 +822,7 @@ async function transcode({
     const cy = `max(0\\,min(${crop.y}\\,ih-${ch}))`;
     filters.push(`crop=w=${cw}:h=${ch}:x=${cx}:y=${cy}`);
   }
-  if (path.extname(targetPath) === ".gif") {
+  if (path.extname(targetPath).toLowerCase() === ".gif") {
     filters.push("scale=iw:-1:flags=lanczos");
   }
   if (filters.length > 0) {

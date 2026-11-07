@@ -518,6 +518,19 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should accept a recording extension in any case", function () {
+        for (const record of ["Demo.MP4", "demo.WebM", "demo.Gif", { path: "Demo.MP4" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { record } });
+          expect(result.valid, `${JSON.stringify(record)} -> ${result.errors}`).to.be.true;
+        }
+      });
+
+      it("should reject a recording extension it can't write", function () {
+        for (const record of ["demo.mov", { path: "demo.MOV" }]) {
+          expect(validate({ schemaKey: "step_v3", object: { record } }).valid, JSON.stringify(record)).to.be.false;
+        }
+      });
+
       it("should validate a record step with verify guards", function () {
         for (const verify of [
           {},

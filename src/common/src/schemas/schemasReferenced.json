@@ -4555,10 +4555,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "type": "boolean"
-        },
-        {
-          "type": "null"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         {
           "type": "string",
@@ -4603,7 +4603,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+            "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -4627,7 +4627,7 @@
               },
               "path": {
                 "type": "string",
-                "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                 "transform": [
                   "trim"
                 ]
@@ -4644,7 +4644,8 @@
                   "true",
                   "false",
                   "aboveVariation"
-                ]
+                ],
+                "default": "false"
               },
               "name": {
                 "type": "string",
@@ -12502,10 +12503,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "type": "boolean"
-        },
-        {
-          "type": "null"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         {
           "type": "string",
@@ -12550,7 +12551,7 @@
         "schemas": {
           "string": {
             "type": "string",
-            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+            "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -12574,7 +12575,7 @@
               },
               "path": {
                 "type": "string",
-                "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                 "transform": [
                   "trim"
                 ]

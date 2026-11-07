@@ -31158,7 +31158,7 @@
                                           {
                                             "title": "Screenshot (simple)",
                                             "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                            "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                             "type": "string",
                                             "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                             "transform": [
@@ -31395,7 +31395,7 @@
                                                   "path": {
                                                     "title": "Screenshot (simple)",
                                                     "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                    "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                     "type": "string",
                                                     "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                     "transform": [
@@ -33762,7 +33762,7 @@
                                           {
                                             "type": "boolean",
                                             "title": "Capture screenshot",
-                                            "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
+                                            "description": "If `true`, captures a screenshot to `<stepId>.png` in `outputDir`. If `false`, doesn't capture a screenshot."
                                           }
                                         ],
                                         "components": {
@@ -33770,7 +33770,7 @@
                                             "path": {
                                               "title": "Screenshot (simple)",
                                               "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                              "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                               "type": "string",
                                               "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                               "transform": [
@@ -34007,7 +34007,7 @@
                                                     "path": {
                                                       "title": "Screenshot (simple)",
                                                       "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                      "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                      "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                       "type": "string",
                                                       "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                       "transform": [
@@ -36598,7 +36598,7 @@
                                                 "path": {
                                                   "title": "Screenshot (simple)",
                                                   "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                  "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                   "type": "string",
                                                   "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                   "transform": [
@@ -41350,8 +41350,9 @@
                                           {
                                             "title": "Record (simple)",
                                             "type": "string",
-                                            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+                                            "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                            "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                             "transform": [
                                               "trim"
                                             ]
@@ -41582,8 +41583,8 @@
                                               },
                                               "path": {
                                                 "type": "string",
-                                                "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+                                                "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                 "transform": [
                                                   "trim"
                                                 ]
@@ -41602,7 +41603,8 @@
                                                   "true",
                                                   "false",
                                                   "aboveVariation"
-                                                ]
+                                                ],
+                                                "default": "false"
                                               },
                                               "name": {
                                                 "type": "string",
@@ -41748,7 +41750,7 @@
                                           {
                                             "type": "boolean",
                                             "title": "Record (boolean)",
-                                            "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
+                                            "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                                           }
                                         ],
                                         "components": {
@@ -41756,8 +41758,9 @@
                                             "string": {
                                               "title": "Record (simple)",
                                               "type": "string",
-                                              "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                              "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                              "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+                                              "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                              "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                               "transform": [
                                                 "trim"
                                               ]
@@ -41988,8 +41991,8 @@
                                                 },
                                                 "path": {
                                                   "type": "string",
-                                                  "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                  "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                  "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+                                                  "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -42008,7 +42011,8 @@
                                                     "true",
                                                     "false",
                                                     "aboveVariation"
-                                                  ]
+                                                  ],
+                                                  "default": "false"
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -43226,14 +43230,13 @@
                                         "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
                                         "anyOf": [
                                           {
-                                            "type": "boolean",
-                                            "title": "stopRecord (boolean)",
-                                            "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
-                                          },
-                                          {
-                                            "type": "null",
-                                            "title": "stopRecord (null)",
-                                            "description": "Stops the most recently started active recording (LIFO)."
+                                            "type": [
+                                              "boolean",
+                                              "null"
+                                            ],
+                                            "title": "stopRecord (boolean or null)",
+                                            "description": "If `true` or `null`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).",
+                                            "$comment": "One branch for both types: with coerceTypes, Ajv turns null into false in a boolean-only branch, and false into null in a null-only branch."
                                           },
                                           {
                                             "type": "string",
@@ -88572,7 +88575,7 @@
                                                 {
                                                   "title": "Screenshot (simple)",
                                                   "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                  "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                  "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                   "type": "string",
                                                   "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                   "transform": [
@@ -88809,7 +88812,7 @@
                                                         "path": {
                                                           "title": "Screenshot (simple)",
                                                           "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                          "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                          "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                           "type": "string",
                                                           "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                           "transform": [
@@ -91176,7 +91179,7 @@
                                                 {
                                                   "type": "boolean",
                                                   "title": "Capture screenshot",
-                                                  "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
+                                                  "description": "If `true`, captures a screenshot to `<stepId>.png` in `outputDir`. If `false`, doesn't capture a screenshot."
                                                 }
                                               ],
                                               "components": {
@@ -91184,7 +91187,7 @@
                                                   "path": {
                                                     "title": "Screenshot (simple)",
                                                     "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                    "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                    "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                     "type": "string",
                                                     "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                     "transform": [
@@ -91421,7 +91424,7 @@
                                                           "path": {
                                                             "title": "Screenshot (simple)",
                                                             "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                            "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                             "type": "string",
                                                             "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                             "transform": [
@@ -94012,7 +94015,7 @@
                                                       "path": {
                                                         "title": "Screenshot (simple)",
                                                         "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                                                        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                                                        "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.",
                                                         "type": "string",
                                                         "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                                                         "transform": [
@@ -98764,8 +98767,9 @@
                                                 {
                                                   "title": "Record (simple)",
                                                   "type": "string",
-                                                  "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                  "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                  "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+                                                  "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                  "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                   "transform": [
                                                     "trim"
                                                   ]
@@ -98996,8 +99000,8 @@
                                                     },
                                                     "path": {
                                                       "type": "string",
-                                                      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+                                                      "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                       "transform": [
                                                         "trim"
                                                       ]
@@ -99016,7 +99020,8 @@
                                                         "true",
                                                         "false",
                                                         "aboveVariation"
-                                                      ]
+                                                      ],
+                                                      "default": "false"
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -99162,7 +99167,7 @@
                                                 {
                                                   "type": "boolean",
                                                   "title": "Record (boolean)",
-                                                  "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
+                                                  "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
                                                 }
                                               ],
                                               "components": {
@@ -99170,8 +99175,9 @@
                                                   "string": {
                                                     "title": "Record (simple)",
                                                     "type": "string",
-                                                    "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                    "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                    "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+                                                    "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+                                                    "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                     "transform": [
                                                       "trim"
                                                     ]
@@ -99402,8 +99408,8 @@
                                                       },
                                                       "path": {
                                                         "type": "string",
-                                                        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-                                                        "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+                                                        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+                                                        "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
                                                         "transform": [
                                                           "trim"
                                                         ]
@@ -99422,7 +99428,8 @@
                                                           "true",
                                                           "false",
                                                           "aboveVariation"
-                                                        ]
+                                                        ],
+                                                        "default": "false"
                                                       },
                                                       "name": {
                                                         "type": "string",
@@ -100640,14 +100647,13 @@
                                               "description": "Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: \"<name>\"`) or an object (`stopRecord: { name: \"<name>\" }`).",
                                               "anyOf": [
                                                 {
-                                                  "type": "boolean",
-                                                  "title": "stopRecord (boolean)",
-                                                  "description": "If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`)."
-                                                },
-                                                {
-                                                  "type": "null",
-                                                  "title": "stopRecord (null)",
-                                                  "description": "Stops the most recently started active recording (LIFO)."
+                                                  "type": [
+                                                    "boolean",
+                                                    "null"
+                                                  ],
+                                                  "title": "stopRecord (boolean or null)",
+                                                  "description": "If `true` or `null`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).",
+                                                  "$comment": "One branch for both types: with coerceTypes, Ajv turns null into false in a boolean-only branch, and false into null in a null-only branch."
                                                 },
                                                 {
                                                   "type": "string",

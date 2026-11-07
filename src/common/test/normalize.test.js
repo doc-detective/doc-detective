@@ -118,12 +118,73 @@ describe("normalization", function () {
     });
   });
 
+  // ADR 01173: a capture with no path is named for its step. The runner
+  // resolves a relative path against outputDir; validate() never does.
+  describe("captures", function () {
+    const SHOT = { maxVariation: 0.05, overwrite: "aboveVariation" };
+
+    for (const [name, value] of [
+      ["true", true],
+      ["{}", {}],
+    ]) {
+      it(`names screenshot: ${name} for its step`, function () {
+        const result = effective({ stepId: "shot", screenshot: value });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.screenshot).to.deep.equal({ path: "shot.png", ...SHOT });
+      });
+    }
+
+    it("expands a screenshot path", function () {
+      expect(effective({ stepId: "shot", screenshot: "x.png" }).object.screenshot).to.deep.equal({ path: "x.png", ...SHOT });
+    });
+
+    it("names a screenshot in a directory for its step", function () {
+      expect(effective({ stepId: "shot", screenshot: { directory: "shots" } }).object.screenshot).to.deep.equal({
+        directory: "shots",
+        path: "shot.png",
+        ...SHOT,
+      });
+    });
+
+    it("leaves the path unset until the step has an ID", function () {
+      expect(effective({ screenshot: true }).object.screenshot).to.deep.equal(SHOT);
+      expect(effective({ record: true }).object.record).to.deep.equal({ overwrite: "false" });
+    });
+
+    it("keeps false, which disables the step", function () {
+      expect(effective({ stepId: "s", screenshot: false }).object.screenshot).to.equal(false);
+      expect(effective({ stepId: "s", record: false }).object.record).to.equal(false);
+      expect(effective({ stopRecord: false }).object.stopRecord).to.equal(false);
+    });
+
+    it("names record: true for its step", function () {
+      expect(effective({ stepId: "demo", record: true }).object.record).to.deep.equal({ path: "demo.mp4", overwrite: "false" });
+    });
+
+    it("accepts a recording extension in any case", function () {
+      const result = effective({ stepId: "demo", record: "Demo.MP4" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.record).to.deep.equal({ path: "Demo.MP4", overwrite: "false" });
+    });
+
+    it("expands a stopRecord name, and makes null an untargeted stop", function () {
+      expect(effective({ stopRecord: "demo" }).object.stopRecord).to.deep.equal({ name: "demo" });
+      expect(effective({ stopRecord: null }).object.stopRecord).to.equal(true);
+      expect(effective({ stopRecord: true }).object.stopRecord).to.equal(true);
+    });
+  });
+
   describe("idempotence", function () {
     for (const [name, step] of [
       ["goTo shorthand", { goTo: "https://example.com" }],
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
       ["httpRequest with a request", { httpRequest: { url: "https://x.com", request: {} } }],
+      ["screenshot: true", { stepId: "s", screenshot: true }],
+      ["screenshot without an ID", { screenshot: true }],
+      ["record path", { stepId: "s", record: "x.mp4" }],
+      ["stopRecord name", { stopRecord: "demo" }],
+      ["stopRecord null", { stopRecord: null }],
     ]) {
       it(`changes nothing the second time: ${name}`, function () {
         const once = effective(step).object;
@@ -169,21 +230,26 @@ describe("normalization", function () {
     const MINIMAL = {
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
+      screenshot: {},
+      record: {},
     };
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
-        if (normalizers[action] === passthrough) this.skip();
+        // stopRecord's object form has no defaults.
+        if (normalizers[action] === passthrough || action === "stopRecord") this.skip();
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
         const defaults = [];
+        // screenshot's object branch is allOf[$ref objectShape, guard], so walk the shape.
+        const branch = schema.components.schemas.objectShape ?? schema.components.schemas.object;
         (function walk(node, trail) {
           if (!node || typeof node !== "object") return;
           if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
             defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
           }
           for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
-        })(schema.components.schemas.object, []);
+        })(branch, []);
         expect(defaults, "no defaults found").to.not.be.empty;
-        const output = normalizers[action](structuredClone(MINIMAL[action]), action);
+        const output = normalizers[action](structuredClone(MINIMAL[action]), action, {});
         for (const [keys, value] of defaults) {
           expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
         }

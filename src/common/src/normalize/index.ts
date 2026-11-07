@@ -3,7 +3,8 @@
 // deprecated keys renamed, scalars canonicalized, and defaults filled.
 //
 // Each action has one normalizer, in this folder, named for the action. It gets
-// the action's value and that value's path, and returns the normalized value.
+// the action's value, that value's path, and the step (read-only: a capture
+// names its file for `stepId`), and returns the normalized value.
 // In order, it:
 //   1. expands shorthand to the object form;
 //   2. renames deprecated aliases (renameAliases);
@@ -36,7 +37,7 @@ import wait from "./wait.js";
 
 export { NormalizeError } from "./helpers.js";
 
-export const normalizers: Record<string, (value: any, path: string) => any> = {
+export const normalizers: Record<string, (value: any, path: string, step: any) => any> = {
   annotate,
   checkLink,
   click,
@@ -63,7 +64,7 @@ export const normalizers: Record<string, (value: any, path: string) => any> = {
 // A valid step has exactly one action.
 function normalizeStep(step: any, path: string) {
   const action = Object.keys(normalizers).find((name) => name in step)!;
-  step[action] = normalizers[action](step[action], path + action);
+  step[action] = normalizers[action](step[action], path + action, step);
 }
 
 // Authored steps only. A test's `contexts` hold resolved steps from a report.

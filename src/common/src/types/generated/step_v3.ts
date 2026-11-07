@@ -2294,7 +2294,7 @@ export type Condition59 = string | [string, ...string[]];
  */
 export type Screenshot1 = ScreenshotSimple | CaptureScreenshotDetailed | CaptureScreenshot;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
 export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
@@ -2339,7 +2339,7 @@ export type ByIndex21 = number;
  */
 export type ByName21 = string;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the run folder's `screenshots/` folder instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple1 = string;
 /**
@@ -2497,7 +2497,7 @@ export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
 /**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ * If `true`, captures a screenshot to `<stepId>.png` in `outputDir`. If `false`, doesn't capture a screenshot.
  */
 export type CaptureScreenshot = boolean;
 /**
@@ -2799,7 +2799,7 @@ export type Condition71 = string | [string, ...string[]];
  */
 export type Record1 = RecordSimple | RecordDetailed | RecordBoolean;
 /**
- * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
+ * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.
  */
 export type RecordSimple = string;
 /**
@@ -2860,7 +2860,7 @@ export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckp
  */
 export type RecordingCheckpointsBoolean = boolean;
 /**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 /**
@@ -2990,15 +2990,11 @@ export type Condition77 = string | [string, ...string[]];
 /**
  * Stop a recording started by an earlier `record` step. With no target (`true`/`null`), stops the most recently started recording that is still active (LIFO). To stop a specific recording when several overlap, target it by name with a string (`stopRecord: "<name>"`) or an object (`stopRecord: { name: "<name>" }`).
  */
-export type StopRecord1 = StopRecordBoolean | StopRecordNull | StopRecordName | StopRecordDetailed;
+export type StopRecord1 = StopRecordBooleanOrNull | StopRecordName | StopRecordDetailed;
 /**
- * If `true`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
+ * If `true` or `null`, stops the most recently started active recording (LIFO). If `false`, does nothing — an explicit no-op (mirrors `record: false`).
  */
-export type StopRecordBoolean = boolean;
-/**
- * Stops the most recently started active recording (LIFO).
- */
-export type StopRecordNull = null;
+export type StopRecordBooleanOrNull = boolean | null;
 /**
  * Name of the recording to stop. Matches the `name` given to a `record` step.
  */
@@ -8944,7 +8940,7 @@ export interface RecordDetailed {
    */
   surface?: SurfaceByBrowserEngine6 | BrowserSurface8 | AppSurface6;
   /**
-   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
+   * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.
    */
   path?: string;
   /**

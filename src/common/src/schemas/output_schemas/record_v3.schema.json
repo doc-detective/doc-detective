@@ -6,8 +6,9 @@
     {
       "title": "Record (simple)",
       "type": "string",
-      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-      "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+      "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+      "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+      "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
       "transform": [
         "trim"
       ]
@@ -238,8 +239,8 @@
         },
         "path": {
           "type": "string",
-          "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-          "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+          "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+          "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
           "transform": [
             "trim"
           ]
@@ -258,7 +259,8 @@
             "true",
             "false",
             "aboveVariation"
-          ]
+          ],
+          "default": "false"
         },
         "name": {
           "type": "string",
@@ -404,7 +406,7 @@
     {
       "type": "boolean",
       "title": "Record (boolean)",
-      "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
+      "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
     }
   ],
   "components": {
@@ -412,8 +414,9 @@
       "string": {
         "title": "Record (simple)",
         "type": "string",
-        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-        "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+        "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against the spec file, or against `outputDir` for a spec loaded from a URL.",
+        "$comment": "JSON Schema patterns have no case-insensitive flag, so each extension letter is a character class.",
+        "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
         "transform": [
           "trim"
         ]
@@ -644,8 +647,8 @@
           },
           "path": {
             "type": "string",
-            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
-            "pattern": "([A-Za-z0-9_-]*\\.(mp4|webm|gif)$|\\$[A-Za-z0-9_]+)",
+            "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions, in any case. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.",
+            "pattern": "([A-Za-z0-9_-]*\\.([Mm][Pp]4|[Ww][Ee][Bb][Mm]|[Gg][Ii][Ff])$|\\$[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -664,7 +667,8 @@
               "true",
               "false",
               "aboveVariation"
-            ]
+            ],
+            "default": "false"
           },
           "name": {
             "type": "string",

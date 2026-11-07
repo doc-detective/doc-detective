@@ -77,11 +77,10 @@ async function startRecording({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object with its defaults filled, and a
+  // `path` (ADR 01173). `false` is the one other value, and it disables the step.
   step = isValidStep.object;
-
-  // `record: false` explicitly disables recording — don't start one.
-  if (step.record === false) {
+  if (!step.record) {
     result.status = "SKIPPED";
     result.description = "Recording is disabled (record: false).";
     return result;
@@ -94,11 +93,7 @@ async function startRecording({
   // then lives entirely in that session.
   let appRef: { entry?: any; window?: any; error?: string } | null = null;
   let appWindowTarget: any = null;
-  if (
-    typeof step.record === "object" &&
-    step.record !== null &&
-    step.record.surface !== undefined
-  ) {
+  if (step.record.surface !== undefined) {
     appRef = resolveAppSurfaceRef(step.record.surface, appSession);
     if (appRef) {
       if (appRef.error) {
@@ -142,34 +137,20 @@ async function startRecording({
     }
   }
 
-  // Convert boolean to string
-  if (typeof step.record === "boolean") {
-    step.record = { path: `${step.stepId}.mp4` };
+  // The normalizer names a recording for its step, so only a step with no
+  // `stepId` (a getRunner() caller's) can arrive without a path.
+  if (step.record.path === undefined) {
+    result.status = "FAIL";
+    result.description = "Couldn't name the recording. Set `path`, or set the step's `stepId`.";
+    return result;
   }
-  // Convert string to object
-  if (typeof step.record === "string") {
-    step.record = { path: step.record };
-  }
-  // Compute path if unset
-  if (typeof step.record.path === "undefined") {
-    step.record.path = `${step.stepId}.mp4`;
-    // If `directory` is set, prepend it to the path
-    if (step.record.directory) {
-      step.record.path = path.resolve(step.record.directory, step.record.path);
-    }
-  }
-  // Set default values
-  step.record = {
-    ...step.record,
-    overwrite: step.record.overwrite || "false",
-  };
-
-  // Set file name
-  let filePath = step.record.path;
+  // A path from a spec file is already absolute. One the runner named, or one
+  // with no spec file behind it, resolves against `directory`, else outputDir.
+  let filePath = path.resolve(config?.outputDir ?? ".", step.record.directory ?? "", step.record.path);
   const baseName = path.basename(filePath, path.extname(filePath));
 
   // Set path directory
-  const dir = path.dirname(step.record.path);
+  const dir = path.dirname(filePath);
   // If `dir` doesn't exist, create it
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

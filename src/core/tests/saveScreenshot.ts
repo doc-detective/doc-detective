@@ -22,7 +22,7 @@ import { compositeAnnotations } from "../annotations/composite.js";
 import {
   log,
   fetchFile,
-  getOrInitRunTimestamp,
+  getRunOutputDir,
   redactUrlForOutput,
   sanitizeFilesystemName,
   realizeViewport,
@@ -304,6 +304,7 @@ async function captureScreenshot({
   surfaceTracker,
   internal,
   annotationTheme,
+  screenshotsDir,
 }: {
   config: any;
   step: any;
@@ -317,6 +318,11 @@ async function captureScreenshot({
   // absent (direct callers, unit tests) we fall back to the config level so a
   // config-only theme still applies.
   annotationTheme?: any;
+  // Where a URL reference's capture goes: the context's `screenshots/` folder
+  // in the run folder, which the runner knows (ADR 01173). A function, so the
+  // run folder is only created when a capture needs it. Direct callers fall
+  // back to the run folder's own `screenshots/`.
+  screenshotsDir?: () => string;
 }, session: { restoreWindow?: () => Promise<void> }) {
   let result: any = {
     status: "PASS",
@@ -396,8 +402,14 @@ async function captureScreenshot({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object with its defaults filled, and a
+  // `path` (ADR 01173). `false` is the one other value, and it disables the step.
   step = isValidStep.object;
+  if (!step.screenshot) {
+    result.status = "SKIPPED";
+    result.description = "Skipped: `screenshot` is `false`.";
+    return result;
+  }
 
   // Multi-surface Phase 3/4 + native app surfaces (phase A1): focus the
   // session + window/tab to capture (a cross-session browser reference
@@ -413,10 +425,7 @@ async function captureScreenshot({
   // explicit `surface` reference, or the context's active surface — then
   // capture through that surface's driver.
   const target = resolveTargetSurface({
-    surface:
-      typeof step.screenshot === "object" && step.screenshot !== null
-        ? step.screenshot.surface
-        : undefined,
+    surface: step.screenshot.surface,
     tracker: surfaceTracker,
     driver,
     appSession,
@@ -452,7 +461,7 @@ async function captureScreenshot({
       }
       appWindowTarget = resolvedWindow.target;
     }
-    if (typeof step.screenshot === "object" && step.screenshot?.crop) {
+    if (step.screenshot.crop) {
       result.status = "FAIL";
       result.description =
         "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
@@ -489,49 +498,26 @@ async function captureScreenshot({
     return result;
   }
 
-  // Convert boolean to string
-  if (typeof step.screenshot === "boolean") {
-    step.screenshot = { path: `${step.stepId}.png` };
-  }
-  // Convert string to object
-  if (typeof step.screenshot === "string") {
-    step.screenshot = { path: step.screenshot };
-  }
-  // Compute path if unset
-  if (typeof step.screenshot.path === "undefined") {
-    step.screenshot.path = `${step.stepId}.png`;
-    // If `directory` is set, prepend it to the path
-    if (step.screenshot.directory) {
-      step.screenshot.path = path.resolve(
-        step.screenshot.directory,
-        step.screenshot.path
-      );
-    }
-  }
-  // Set default values
-  step.screenshot = {
-    ...step.screenshot,
-    maxVariation: step.screenshot.maxVariation ?? 0.05,
-    overwrite: step.screenshot.overwrite ?? "aboveVariation",
-  };
-  // Set default values for crop
-  if (typeof step.screenshot.crop === "object") {
-    step.screenshot.crop = {
-      ...step.screenshot.crop,
-      selector: step.screenshot.crop.selector || "",
-      elementText: step.screenshot.crop.elementText || "",
-      padding: step.screenshot.crop.padding || 0,
-    };
-  }
-
   let filePath = step.screenshot.path;
   let existFilePath;
   let dir: string;
+  // The normalizer names a capture for its step, so only a step with no
+  // `stepId` (a getRunner() caller's) can arrive without a path.
+  if (filePath === undefined) {
+    result.status = "FAIL";
+    result.description = "Couldn't name the screenshot. Set `path`, or set the step's `stepId`.";
+    return result;
+  }
 
   // Detect URL paths. A URL `path` is treated as a read-only reference:
   // we download it to a temp file for comparison, and write the new capture
   // to a local run-specific folder (URLs can't be written back to).
   const isUrlPath = /^https?:\/\//i.test(filePath);
+  // A path from a spec file is already absolute. One the runner named, or one
+  // with no spec file behind it, resolves against `directory`, else outputDir.
+  if (!isUrlPath) {
+    filePath = path.resolve(config?.outputDir ?? ".", step.screenshot.directory ?? "", filePath);
+  }
   const originalUrlPath = isUrlPath ? filePath : undefined;
   // Safe form for logs/descriptions/outputs: strips query + fragment so
   // presigned-URL signatures/tokens don't leak into the report.
@@ -565,11 +551,7 @@ async function captureScreenshot({
     // create. Shared helper so the rule stays consistent with fetchFile.
     const safeBase = sanitizeFilesystemName(rawBase, `${step.stepId}.png`);
 
-    dir = path.join(
-      process.cwd(),
-      "doc-detective-runs",
-      getOrInitRunTimestamp(config)
-    );
+    dir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -600,7 +582,7 @@ async function captureScreenshot({
     }
   } else {
     // Set path directory
-    dir = path.dirname(step.screenshot.path);
+    dir = path.dirname(filePath);
     // If `dir` doesn't exist, create it. Compare-only callers never write
     // the target path, so creating its directory mid-span would litter an
     // empty baseline folder that seeding (stopRecord) owns.
