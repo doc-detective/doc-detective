@@ -78,6 +78,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSpecErrors,
+  specSchemas,
   findFreePort,
   runConcurrent,
   createResourceRegistry,

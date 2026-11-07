@@ -2,7 +2,7 @@ import sinon from "sinon";
 
 // Run `run` with console.error stubbed, and return its result plus the lines it
 // printed. The stub is restored even when `run` throws.
-export async function captureErrors(run) {
+export async function captureConsoleError(run) {
   const errors = sinon.stub(console, "error");
   try {
     const result = await run();

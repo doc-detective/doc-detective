@@ -28,7 +28,7 @@ import {
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 import { schemas } from "../dist/common/src/schemas/index.js";
-import { captureErrors } from "./capture-errors.js";
+import { captureConsoleError } from "./capture-errors.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -701,7 +701,7 @@ describe("config.ts — setConfig", function () {
 
   // ADR 01169: beforeAny is a deprecated alias for beforeAll.
   it("renames a deprecated beforeAny to beforeAll and warns once", async function () {
-    const { result: config, lines } = await captureErrors(() =>
+    const { result: config, lines } = await captureConsoleError(() =>
       setConfig({
         config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./setup.json" },
       })
@@ -721,7 +721,7 @@ describe("config.ts — setConfig", function () {
       let config;
       let lines;
       try {
-        ({ result: config, lines } = await captureErrors(() =>
+        ({ result: config, lines } = await captureConsoleError(() =>
           setConfig({
             config: { logLevel: "warning", dryRun: true, input: "./README.md", [configKey]: "./a.json" },
           })
@@ -758,7 +758,7 @@ describe("config.ts — setConfig", function () {
     let config;
     let lines;
     try {
-      ({ result: config, lines } = await captureErrors(() =>
+      ({ result: config, lines } = await captureConsoleError(() =>
         setConfig({
           config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
         })

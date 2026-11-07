@@ -2,8 +2,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import assert from "node:assert/strict";
 import { expect } from "chai";
-import { captureErrors } from "./capture-errors.js";
+import { captureConsoleError } from "./capture-errors.js";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
@@ -349,7 +350,7 @@ describe("beforeAll in the CLI config", function () {
   });
 
   it("renames beforeAny to beforeAll and warns once", async function () {
-    const { result, lines } = await captureErrors(() => withConfig({ beforeAny: "setup.spec.json" }));
+    const { result, lines } = await captureConsoleError(() => withConfig({ beforeAny: "setup.spec.json" }));
     expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
     expect(result).to.not.have.property("beforeAny");
     expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([
@@ -364,7 +365,7 @@ describe("beforeAll in the CLI config", function () {
       const saved = process.env.DOC_DETECTIVE_CONFIG;
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ [envKey]: "b.spec.json" });
       try {
-        const { result, lines } = await captureErrors(() => withConfig({ [fileKey]: "a.spec.json" }));
+        const { result, lines } = await captureConsoleError(() => withConfig({ [fileKey]: "a.spec.json" }));
         expect(result.beforeAll).to.equal(path.join(dir, "b.spec.json"));
         expect(result).to.not.have.property("beforeAny");
         expect(lines.filter((line) => line.includes("beforeAny"))).to.have.lengthOf(1);
@@ -383,7 +384,7 @@ describe("beforeAll in the CLI config", function () {
     fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ logLevel: "silent" }));
     process.env.XDG_CONFIG_HOME = home;
     try {
-      const { result, lines } = await captureErrors(() => withConfig({ beforeAny: "setup.spec.json" }));
+      const { result, lines } = await captureConsoleError(() => withConfig({ beforeAny: "setup.spec.json" }));
       expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
       expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([]);
     } finally {
@@ -395,23 +396,19 @@ describe("beforeAll in the CLI config", function () {
   it("rejects a DOC_DETECTIVE_CONFIG that sets both", async function () {
     const saved = process.env.DOC_DETECTIVE_CONFIG;
     process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" });
-    let message = "";
     try {
-      await withConfig({}).catch((error) => {
-        message = error.message;
-      });
+      await assert.rejects(withConfig({}), (error) =>
+        error.message.includes("set `beforeAll` or `beforeAny`, not both.")
+      );
     } finally {
       if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
       else process.env.DOC_DETECTIVE_CONFIG = saved;
     }
-    expect(message).to.include("set `beforeAll` or `beforeAny`, not both.");
   });
 
   it("rejects a config that sets both", async function () {
-    let message = "";
-    await withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }).catch((error) => {
-      message = error.message;
+    await assert.rejects(withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }), {
+      message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.",
     });
-    expect(message).to.equal("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
   });
 });

@@ -3803,9 +3803,9 @@ function resolveAutoScreenshot({
  * `stop` and `goToStep` are the meaningful decisions for a skipped step; the
  * caller applies them. `continue` is the no-op default, and `retry` is
  * meaningless for a step that never ran (there is nothing to re-run) — both
- * leave execution flowing. (An in-runner SKIPPED *result* from a step that DID
- * run — e.g. `wait: false` — goes through the normal retry loop, where its
- * onSkip `retry` re-runs it.) `skipRetry` is passed so a `retry` entry is
+ * leave execution flowing. (A step whose action returned SKIPPED — e.g.
+ * `wait: false` — goes through the normal retry loop, where its onSkip `retry`
+ * re-runs it.) `skipRetry` is passed so a `retry` entry is
  * treated as a non-match and a later `goToStep`/`stop` entry can apply.
  */
 async function resolveStepSkipRouting(

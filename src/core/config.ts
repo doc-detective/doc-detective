@@ -2,7 +2,7 @@ import os from "node:os";
 import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
-import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
+import { log, spawnCommand, loadEnvs, replaceEnvs, specSchemas } from "./utils.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -29,7 +29,9 @@ function renameDeprecatedConfigKeys(
   for (const config of sources) {
     if (config?.beforeAny == null) continue; // null means absent
     if (config.beforeAll != null) {
-      throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
+      // The schema's own message; config-coverage's "ends the both-set error"
+      // test keeps the two aligned.
+      throw new Error(`Invalid config. beforeAll: ${specSchemas().config_v3.errorMessage.not}`);
     }
     config.beforeAll = config.beforeAny;
     delete config.beforeAny;
