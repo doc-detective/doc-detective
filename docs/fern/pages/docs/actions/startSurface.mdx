@@ -35,19 +35,19 @@ iOS app surfaces run only on a macOS host, on an iOS simulator that Doc Detectiv
   - The app token of an AppUserModelID. `Microsoft.WindowsCalculator_8wekyb3d8bbwe!App` becomes `WindowsCalculator`.
 - `args`: (Optional, desktop only) An array of launch arguments to pass to the app. On macOS they reach the app as a real argument array. On Windows they join into a single shell-style argument string for the driver. An argument that contains spaces must therefore carry its own quotes. The Android and iOS drivers don't accept `args`, and setting it there fails the step with guidance.
 - `env`: (Optional, macOS only) Extra environment variables for the launched app. The Windows, Android, and iOS drivers don't support `env`. Setting it there fails the step with guidance. Instead, set variables in the shell that launches Doc Detective, or launch the app with [`runShell`](/docs/actions/runshell).
-- `workingDirectory`: (Optional, Windows only) The working directory for the launched app. Defaults to the run's working directory. macOS launches apps through LaunchServices, which offers no working-directory control, and Android and iOS offer none at launch. A non-default value fails the step on those platforms with guidance. Use [`runShell`](/docs/actions/runshell) if the working directory matters.
+- `workingDirectory`: (Optional) No app driver supports it, so any value fails the step with guidance. The Windows driver ignores it, macOS launches apps through LaunchServices, which offers no working-directory control, and Android and iOS offer none at launch. Use [`runShell`](/docs/actions/runshell) if the working directory matters.
 - `device`: (Optional, Android and iOS) The device the app runs on, as a device name or a device descriptor object. Omit it for a desktop app, or (in an Android or iOS context) to use the context's default device. See [Choose the emulator](#choose-the-emulator) and [Choose the simulator](#choose-the-simulator).
 - `install`: (Optional, Android and iOS) A path to an app bundle to install on the device before launch. This lets you test an app that isn't already on the device. Use an `.apk` on Android, or an `.app` or `.ipa` on iOS. When you set `install` on iOS, the installable payload also becomes the app to launch, overriding `app`. It's a mobile-only field, so setting it on a desktop app surface fails the step.
 - `activity`: (Optional, Android) The main activity to launch, overriding the package's default launcher activity. Only meaningful on Android; setting it on iOS fails the step, since iOS launches by bundle identifier or installed app payload.
 - `waitUntil`: (Optional) A readiness condition that must hold before Doc Detective considers the surface open. Accepts `delayMs` (wait at least this many milliseconds) and/or `find` (an element that must exist). No condition applies by default. See [Wait for the app to be ready](#wait-for-the-app-to-be-ready).
-- `timeout`: (Optional) The startup ceiling in milliseconds, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode. That can take several minutes on a cold machine. Doc Detective raises the server startup ceiling to at least 120000 ms for that first build, regardless of `timeout`. iOS behaves the same way. The first surface builds WebDriverAgent for the simulator. Doc Detective floors the agent's ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default. Give the first surface a generous `timeout`.
+- `timeout`: (Optional) The startup ceiling in milliseconds, `1` or more, covering launch and readiness. Defaults to `60000`. On macOS, the first app surface of a run also builds the automation agent (WebDriverAgentMac) with Xcode. That can take several minutes on a cold machine. Doc Detective raises the server startup ceiling to at least 120000 ms for that first build, regardless of `timeout`. iOS behaves the same way. The first surface builds WebDriverAgent for the simulator. Doc Detective floors the agent's ceilings at 120000 ms so a cold build isn't aborted early. On Android, booting a cold emulator (or creating one) can also take longer than the default. Give the first surface a generous `timeout`.
 - `driverOptions`: (Optional) An escape-hatch object merged into the automation session's capabilities after the ones Doc Detective computes. Capabilities are driver- and version-specific and prefixed per driver, for example `{ "appium:noReset": true }`. Use it sparingly.
 
 On Windows and macOS, opening two app surfaces with the same `name` in one context fails. Pass a distinct `name` when you launch more than one app. The mobile platforms are the exception, because apps on one device or simulator share a single session. A later `startSurface` installs the app if you set `install`, then brings it to the foreground. That lets one test drive several apps on the same emulator or simulator.
 
 ## Browser descriptors
 
-- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. There's no cross-engine fallback. You named the engine, so Doc Detective never substitutes another. The exception is `edge`. Because it's Chromium, it opens on the Chrome/chromedriver stack and registers under the `chrome` engine name. An unnamed `edge` session therefore collides with a `chrome` one, so one of them needs an explicit `name` (see the next bullet).
+- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, or `webkit`. Opens a blank, ready session on the context's automation server. There's no cross-engine fallback. You named the engine, so Doc Detective never substitutes another.
 - `name`: (Optional) Surface-registry name. Defaults to the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name`. An unnamed duplicate fails with guidance.
 - `headless`: (Optional) Overrides the context's headless setting for this session.
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
@@ -60,16 +60,17 @@ The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays t
 
 - `process`: (Required) The shell command, same semantics as [`runShell`](/docs/actions/runshell).
 - `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
-- `args`, `workingDirectory`: (Optional) Command arguments and working directory.
+- `args`: (Optional) Command arguments.
+- `workingDirectory`: (Optional) The folder to run the process in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead.
 - `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step).
 - `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
-- `timeout`: (Optional) Readiness ceiling in milliseconds (default 60000).
+- `timeout`: (Optional) Readiness ceiling in milliseconds, `1` or more (default 60000).
 
 ## Parallel arrays
 
 Pass an array to open several surfaces in one step. Names must be unique within the array (a duplicate fails the step before anything launches). The step passes only when every descriptor opened. One failure fails the step, but the other surfaces still finish opening and appear in `outputs.surfaces`, so nothing leaks half-started. After a parallel open, the **last authored** descriptor of each kind is that kind's active surface. That holds regardless of which lane finished first.
 
-Safari is the exception. `safaridriver` allows only one automation session per host, so an array with two `safari` descriptors can't open both. The second fails when the driver refuses its session, and that fails the step. The same limit covers `webkit`, which Doc Detective resolves to Safari. Pair Safari with `chrome`, `firefox`, or `edge` instead. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
+Safari is the exception. `safaridriver` allows only one automation session per host, so an array with two `safari` descriptors can't open both. The second fails when the driver refuses its session, and that fails the step. `webkit` is Safari's engine, so it hits the same limit, and a `safari` descriptor with a `webkit` one can't both open either. Pair `safari` or `webkit` with `chrome` or `firefox` instead. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows).
 
 > For comprehensive options, see the [`startSurface`](/reference/schemas/startsurface) reference.
 
@@ -275,11 +276,7 @@ Without a `device`, an iOS app runs on the context's default simulator. Doc Dete
 
 Doc Detective only ever boots an iPhone or iPad simulator for an `ios` context, so a visionOS, watchOS, or tvOS simulator is never selected. At the end of a run, Doc Detective shuts down only the simulators it booted, leaving any you had already booted running.
 
-Set a device once on the context to share it across every app the test launches. For the full list of device fields, including the fields Doc Detective reserves for later phases, see the [device descriptor](/reference/schemas/device-descriptor) reference.
-
-## Reserved fields
-
-Doc Detective validates some device-descriptor fields today but reserves them for later phases of the native app roadmap. Setting `orientation`, `udid`, or `provider` on a `device` fails the step with a message that names the roadmap, rather than silently ignoring what you asked for.
+Set a device once on the context to share it across every app the test launches. For the full list of device fields, see the [device descriptor](/reference/schemas/device-descriptor) reference.
 
 ## Wait for the app to be ready
 

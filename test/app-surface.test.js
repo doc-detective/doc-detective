@@ -1186,32 +1186,31 @@ describe("startAppSurface", function () {
     assert.equal(appSession.surfaces.get("Calculator").platform, "mac");
   });
 
-  it("fails workingDirectory on macOS with guidance but tolerates the schema default", async function () {
+  it("fails any workingDirectory on macOS with guidance, including '.'", async function () {
     const appSession = preflighted();
-    const explicit = await startAppSurface({
-      config: {},
-      step: {
-        startSurface: { app: "com.apple.TextEdit", workingDirectory: "/tmp" },
-      },
-      appSession,
-      platform: "mac",
-      serverDeps: okServerDeps(fakeDriver()),
-    });
-    assert.equal(explicit.status, "FAIL");
-    assert.match(explicit.description, /not supported by the macOS app driver/);
+    for (const workingDirectory of ["/tmp", "."]) {
+      const explicit = await startAppSurface({
+        config: {},
+        step: {
+          startSurface: { app: "com.apple.TextEdit", workingDirectory },
+        },
+        appSession,
+        platform: "mac",
+        serverDeps: okServerDeps(fakeDriver()),
+      });
+      assert.equal(explicit.status, "FAIL", workingDirectory);
+      assert.match(explicit.description, /not supported by the macOS app driver/);
+    }
 
-    // "." is the schema's injected default, not an author request — it must
-    // not trip the unsupported-field guard.
-    const defaulted = await startAppSurface({
+    // The schema has no workingDirectory default, so an omitted one passes.
+    const omitted = await startAppSurface({
       config: {},
-      step: {
-        startSurface: { app: "com.apple.Notes", workingDirectory: "." },
-      },
+      step: { startSurface: { app: "com.apple.Notes" } },
       appSession,
       platform: "mac",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.equal(defaulted.status, "PASS");
+    assert.equal(omitted.status, "PASS");
   });
 
   it("appends the TCC walkthrough when a mac launch fails with an accessibility-shaped error", async function () {
@@ -1266,37 +1265,36 @@ describe("startAppSurface", function () {
     assert.equal(caps["appium:appWorkingDir"], undefined);
   });
 
-  it("fails workingDirectory on Windows with guidance but tolerates the schema default", async function () {
+  it("fails any workingDirectory on Windows with guidance, including '.'", async function () {
     // NovaWindows v1.4.1 silently ignores appWorkingDir (the launched app
     // inherits the driver's cwd), so Doc Detective can't deliver a working
     // directory on Windows — FAIL loudly with guidance rather than accept a
     // silent no-op (matching the macOS LaunchServices precedent).
     const appSession = preflighted();
-    const explicit = await startAppSurface({
-      config: {},
-      step: {
-        startSurface: { app: "C:\\x\\app.exe", workingDirectory: "./sandbox" },
-      },
-      appSession,
-      platform: "windows",
-      serverDeps: okServerDeps(fakeDriver()),
-    });
-    assert.equal(explicit.status, "FAIL");
-    assert.match(explicit.description, /not supported by the Windows app driver/);
-    assert.match(explicit.description, /doesn't honor a launch working directory/);
+    for (const workingDirectory of ["./sandbox", "."]) {
+      const explicit = await startAppSurface({
+        config: {},
+        step: {
+          startSurface: { app: "C:\\x\\app.exe", workingDirectory },
+        },
+        appSession,
+        platform: "windows",
+        serverDeps: okServerDeps(fakeDriver()),
+      });
+      assert.equal(explicit.status, "FAIL", workingDirectory);
+      assert.match(explicit.description, /not supported by the Windows app driver/);
+      assert.match(explicit.description, /doesn't honor a launch working directory/);
+    }
 
-    // "." is the schema's injected default, not an author request — it must
-    // not trip the unsupported-field guard.
-    const defaulted = await startAppSurface({
+    // The schema has no workingDirectory default, so an omitted one passes.
+    const omitted = await startAppSurface({
       config: {},
-      step: {
-        startSurface: { app: "C:\\x\\other.exe", workingDirectory: "." },
-      },
+      step: { startSurface: { app: "C:\\x\\other.exe" } },
       appSession,
       platform: "windows",
       serverDeps: okServerDeps(fakeDriver()),
     });
-    assert.equal(defaulted.status, "PASS");
+    assert.equal(omitted.status, "PASS");
   });
 
   // --- Android (phase A3b): shared device session + activateApp switching ---
@@ -1782,6 +1780,7 @@ describe("startAppSurface", function () {
       [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
       [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
       [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
+      [{ app: "com.apple.Preferences", workingDirectory: "." }, /not meaningful for iOS/],
     ];
     for (const [descriptor, pattern] of cases) {
       const result = await startAppSurface({

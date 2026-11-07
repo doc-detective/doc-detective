@@ -45,8 +45,7 @@
           },
           "workingDirectory": {
             "type": "string",
-            "description": "Working directory for the command.",
-            "default": "."
+            "description": "Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "exitCodes": {
             "type": "array",
@@ -72,7 +71,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
@@ -94,6 +93,7 @@
           "timeout": {
             "type": "integer",
             "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+            "minimum": 1,
             "default": 60000
           },
           "background": {
@@ -153,7 +153,7 @@
   "examples": [
     {
       "language": "javascript",
-      "code": "console.log('Hello, ${process.env.USER}!');"
+      "code": "console.log(`Hello, ${require('os').userInfo().username}!`);"
     },
     {
       "language": "py",
@@ -161,24 +161,23 @@
     },
     {
       "language": "bash",
-      "code": "docker run hello-world",
+      "code": "echo \"Hello from Bash!\"",
       "timeout": 20000,
       "exitCodes": [
         0
       ],
-      "stdio": "Hello from Docker!"
+      "stdio": "Hello from Bash!"
     },
     {
       "language": "javascript",
-      "code": "return false",
+      "code": "process.exit(1);",
       "exitCodes": [
         1
       ]
     },
     {
       "language": "python",
-      "code": "print('Hello from Python')",
-      "workingDirectory": ".",
+      "code": "print('Hello from Python!')",
       "exitCodes": [
         0
       ],
