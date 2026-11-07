@@ -12,6 +12,7 @@ export default function find(authored: any, path: string, literal: boolean): any
   if (click === true) value.click = { button: "left" };
   else if (typeof click === "string") value.click = { button: click };
   // The default button first, so an authored one in the object overrides it.
+  // `null` is typeof "object" but isn't a click, so it stays as authored.
   else if (click !== null && typeof click === "object") value.click = { button: "left", ...click };
   if (value.type !== undefined && (literal || !isWholeVariable(value.type))) {
     value.type = typeAction(value.type, `${path}.type`, literal);

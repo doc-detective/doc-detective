@@ -1,7 +1,8 @@
 // The saveCookie and loadCookie string shorthand. A `.txt` path names a cookie
 // file, and the cookie is named for the file: "dir/session.txt" is
 // { name: "session", path: "dir/session.txt" }. Any other string names a cookie
-// kept in the environment variable of the same name.
+// kept in the environment variable of the same name. The schema's pattern allows
+// only `/` as a separator, so a `\` path never reaches this split.
 export function expandCookie(value: any): any {
   if (typeof value !== "string") return value;
   if (!value.endsWith(".txt")) return { name: value, variable: value };

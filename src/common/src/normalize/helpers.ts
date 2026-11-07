@@ -74,7 +74,8 @@ export function listClasses(locator: any, literal: boolean): any {
 // one of those parts doesn't, so code such a default by hand too. A part with
 // no `properties` (an if/then, say) contributes nothing.
 function plainDefaults(node: any, prefix = ""): [string, any][] {
-  const properties = Object.assign({}, node.properties, ...(node.allOf ?? []).map((part: any) => part.properties));
+  const parts = (node.allOf ?? []).map((part: any) => part.properties).filter(Boolean);
+  const properties = Object.assign({}, node.properties, ...parts);
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
     const path = prefix + key;
     if ("default" in property) return [[path, property.default]];
