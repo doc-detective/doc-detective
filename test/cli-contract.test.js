@@ -743,6 +743,51 @@ describe("CLI contract", function () {
       expect(run(["-i", "pass.spec.json"]).status).to.equal(0);
     });
 
+    it("lets a config-level loadVariables fill unset variables only, quietly", function () {
+      fs.writeFileSync(path.join(cwd, "vars.env"), "GREETING=hi\n");
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ loadVariables: "vars.env" }));
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      const filled = run(["-i", "env.spec.json"]);
+      expect(filled.status, filled.stderr).to.equal(0);
+      const shell = run(["-q", "-i", "env.spec.json"], { env: { GREETING: "shell" } });
+      expect(shell.status).to.equal(1);
+      expect(shell.stderr).to.not.include("injected env");
+    });
+
+    it("applies the deprecated DOC_DETECTIVE below flags, and warns", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "info"], {
+        env: { DOC_DETECTIVE: JSON.stringify({ config: { logLevel: "silent" } }) },
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stderr).to.match(/Running test specs/);
+      expect(r.stderr).to.include(
+        'Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.'
+      );
+    });
+
+    it("no longer allows unsafe steps for DOC_DETECTIVE's `container`", function () {
+      writeSpec("unsafe.spec.json", { runShell: "echo hi", unsafe: true });
+      const env = { DOC_DETECTIVE: JSON.stringify({ container: "docdetective/docdetective:linux" }) };
+      expect(run(["-i", "unsafe.spec.json"], { env }).status).to.equal(2);
+      expect(run(["-i", "unsafe.spec.json", "--allow-unsafe"], { env }).status).to.equal(0);
+    });
+
+    it("lets --cache-dir beat DOC_DETECTIVE_CACHE_DIR", function () {
+      const r = run(["install", "status", "--json", "--cache-dir", "flag-cache"], {
+        env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "env-cache") },
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "flag-cache"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "env-cache"))).to.equal(false);
+    });
+
+    it("installs into the discovered project config's cacheDir", function () {
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ cacheDir: "config-cache" }));
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "config-cache"))).to.equal(true);
+    });
+
     describe("precedence", function () {
       let home;
       const configDir = () => path.join(home, "doc-detective");

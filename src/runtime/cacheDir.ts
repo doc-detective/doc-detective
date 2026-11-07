@@ -1,9 +1,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface InstalledNpmPackage {
   installedVersion: string;
@@ -101,7 +98,9 @@ export function userConfigDir({
 
 /**
  * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > defaultCacheRoot(). The directory is created if missing — every
+ * > defaultCacheRoot(). The CLI writes its resolved cacheDir, where
+ * `--cache-dir` beats the variable, back into DOC_DETECTIVE_CACHE_DIR, so every
+ * lookup in a run agrees (ADR 01165). The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.
@@ -176,52 +175,10 @@ export function getRuntimeDir(ctx: CacheDirContext = {}): string {
   return path.join(getCacheDir(ctx), "runtime");
 }
 
+// Always `<cacheDir>/browsers`. 5.0 dropped the 4.x `./browser-snapshots/`
+// fallback (ADR 01165): a legacy folder gets one fresh download into the cache.
 export function getBrowsersDir(ctx: CacheDirContext = {}): string {
-  // Respect explicit cacheDir / env-var overrides first — those callers know
-  // exactly where they want browsers to live. Apply the same trim-and-
-  // ignore-whitespace rule as getCacheDir so a whitespace-only override
-  // doesn't bypass the legacy `./browser-snapshots/` probe.
-  const fromEnv = trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR);
-  const fromCfg = trimOrUndefined(ctx.cacheDir);
-  if (fromEnv || fromCfg) {
-    return path.join(getCacheDir(ctx), "browsers");
-  }
-  // No override — honor the legacy `./browser-snapshots/` directory if one
-  // exists from a prior install. The old postinstall ran the browser
-  // download from the package root (it `chdir`'d there before calling
-  // `path.resolve('browser-snapshots')`), so we have to look in BOTH
-  // places: the user's current cwd (covers same-project dev loops) and
-  // the shim's install root (covers global installs invoked from
-  // anywhere). First hit wins; the tmpdir cache is only used when neither
-  // legacy location exists.
-  for (const candidate of legacyBrowserSnapshotCandidates()) {
-    // existsSync also accepts regular files / symlinks-to-files; treating
-    // those as a legacy snapshot dir would route the browser install
-    // and read paths at something that can't hold a buildId tree.
-    // Restrict acceptance to actual directories. statSync throws when
-    // the candidate is missing/unreadable — the catch falls through to
-    // the next candidate (and ultimately to the tmpdir cache).
-    try {
-      if (fs.statSync(candidate).isDirectory()) return candidate;
-    } catch {
-      // candidate missing or inaccessible; skip
-    }
-  }
   return path.join(getCacheDir(ctx), "browsers");
-}
-
-function legacyBrowserSnapshotCandidates(): string[] {
-  const out = [path.resolve("browser-snapshots")];
-  // Compiled output lives at <pkgRoot>/dist/runtime/cacheDir.js, so
-  // `__dirname` is `<pkgRoot>/dist/runtime` and `path.resolve(..., "..", "..")`
-  // climbs two segments (`dist/runtime` → `dist` → `<pkgRoot>`) — that's
-  // the shim's package root, where the legacy postinstall would have
-  // written `browser-snapshots/`. (Mirrors the `../../package.json`
-  // pattern in src/runtime/heavyDeps.ts.)
-  const shimRoot = path.resolve(__dirname, "..", "..");
-  const fromShim = path.join(shimRoot, "browser-snapshots");
-  if (fromShim !== out[0]) out.push(fromShim);
-  return out;
 }
 
 export function getInstalledRecordPath(ctx: CacheDirContext = {}): string {

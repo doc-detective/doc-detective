@@ -327,6 +327,14 @@ function toCommand(subcommand: InstallSubcommand): Command {
       argv[argument.name()] = actionArgs[index];
     });
     jsonReports = argv.json ? [] : null;
+    // The same cache a run uses: --cache-dir, then DOC_DETECTIVE_CACHE_DIR,
+    // then the project and user configs (ADR 01165).
+    const { discoverConfigPath, setConfig } = await import("../utils.js");
+    const { cacheDir } = await setConfig({
+      configPath: discoverConfigPath(),
+      args: { cacheDir: argv.cacheDir, quiet: argv.quiet },
+    });
+    if (cacheDir) process.env.DOC_DETECTIVE_CACHE_DIR = argv.cacheDir = cacheDir;
     const spinner =
       subcommand.readOnly || argv.quiet || argv.json
         ? { stop: () => {} }

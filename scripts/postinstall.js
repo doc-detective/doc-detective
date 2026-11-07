@@ -189,8 +189,17 @@ if (isInvokedDirectly()) main().catch(() => {});
  * (unset or any other value) installs. Exported for tests.
  */
 export function isRuntimeInstallOptedOut(env = process.env) {
-  const v = String(env.DOC_DETECTIVE_AUTOINSTALL ?? "").trim().toLowerCase();
-  return v === "0" || v === "false" || v === "no" || v === "off";
+  return envFlag("DOC_DETECTIVE_AUTOINSTALL", env) === false;
+}
+
+// A copy of src/envFlag.ts, since postinstall runs without dist (ADR 01165):
+// true for 1, true, yes, or on; false for 0, false, no, or off; otherwise
+// undefined, so each caller keeps its own default.
+function envFlag(name, env = process.env) {
+  const value = String(env[name] ?? "").trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(value)) return true;
+  if (["0", "false", "no", "off"].includes(value)) return false;
+  return undefined;
 }
 
 /**
@@ -339,7 +348,7 @@ async function maybePromptInstallAgents() {
   // blocking prompt there would hang the parent install.
   if (!process.stdin.isTTY || !process.stdout.isTTY) return;
   if (process.env.CI) return;
-  if (process.env.DOC_DETECTIVE_SKIP_AGENT_PROMPT) return;
+  if (envFlag("DOC_DETECTIVE_SKIP_AGENT_PROMPT")) return;
 
   let listAdapters;
   try {

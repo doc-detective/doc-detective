@@ -4,9 +4,9 @@ description: Load environment variables from a .env file.
 ---
 
 
-The `loadVariables` action loads environment variables from a specified `.env` file. This action is useful for accessing sensitive information, such as API keys or other credentials, without hardcoding them into your tests. Variables loaded this way are available for use in subsequent steps within the same test.
+The `loadVariables` action loads environment variables from a specified `.env` file. This action is useful for accessing sensitive information, such as API keys or other credentials, without hardcoding them into your tests. Variables loaded this way are available for use in subsequent steps within the same test. The step replaces a variable that's already set, because a step sets variables on purpose.
 
-> You can also load globally applicable variables using the `loadVariables` property in the configuration file. This makes them available across all tests.
+> You can also load globally applicable variables using the `loadVariables` property in the configuration file. This makes them available across all tests. The config-level file only fills variables that aren't already set. A variable set in your shell wins, as it does over a project `.env`. See [Configuration precedence](/reference/cli#configuration-precedence).
 >
 > For comprehensive options, see the [`loadVariables`](/reference/schemas/loadvariables) reference.
 

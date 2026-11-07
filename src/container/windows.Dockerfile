@@ -25,11 +25,20 @@ LABEL authors="Doc Detective" \
 # below isn't lost to a per-boot temp-dir wipe at runtime. SKIP_AUTO_UPDATE
 # stops the runtime from quietly bumping the version baked into the image —
 # image releases own that signal.
-ENV DOC_DETECTIVE='{"container": "docdetective/docdetective:windows", "version": "'$PACKAGE_VERSION'"}' \
+#
+# The image's own defaults live in a user config, the lowest config layer, so
+# any project config, environment variable, or flag overrides them (ADR 01165).
+# The only default: the container is the sandbox, so steps marked unsafe run.
+ENV XDG_CONFIG_HOME=C:\\ProgramData\\doc-detective-xdg \
     DOC_DETECTIVE_CACHE_DIR=C:\\ProgramData\\doc-detective \
     DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# ConvertTo-Json writes the quotes, which survive no Dockerfile quoting rules;
+# ASCII keeps PowerShell 5.1 from writing a byte-order mark JSON.parse rejects.
+RUN New-Item -ItemType Directory -Force -Path C:/ProgramData/doc-detective-xdg/doc-detective | Out-Null; \
+    @{ allowUnsafeSteps = $true } | ConvertTo-Json | Set-Content -Encoding ascii -Path C:/ProgramData/doc-detective-xdg/doc-detective/config.json
 
 # Pre-warm tolerates older published versions that don't yet have the
 # `install all` subcommand — see linux.Dockerfile for the rationale.

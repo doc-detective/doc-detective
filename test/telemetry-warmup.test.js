@@ -277,27 +277,6 @@ describe("telemetry warm-up", function () {
         .filter((c) => String(c.args[0]).startsWith(POSTHOG_HOST));
       assert.equal(posthogCalls.length, 0);
     });
-
-    // The opt-out must hold for the EFFECTIVE config, not just what the caller
-    // passed: core setConfig still applies the DOC_DETECTIVE env override, and
-    // nothing may contact PostHog before that is known.
-    it("makes no PostHog request when DOC_DETECTIVE opts out, even if the caller didn't", async function () {
-      const saved = process.env.DOC_DETECTIVE;
-      process.env.DOC_DETECTIVE = JSON.stringify({ config: { telemetry: { send: false } } });
-      try {
-        const before = fetchStub.callCount;
-        const results = await run(undefined);
-        assert.equal(results.summary.steps.pass, 1);
-        const posthogCalls = fetchStub
-          .getCalls()
-          .slice(before)
-          .filter((c) => String(c.args[0]).startsWith(POSTHOG_HOST));
-        assert.deepEqual(posthogCalls.map((c) => c.args[1]?.method), []);
-      } finally {
-        if (saved === undefined) delete process.env.DOC_DETECTIVE;
-        else process.env.DOC_DETECTIVE = saved;
-      }
-    });
   });
 
   // Same guarantee end to end through the CLI, for both opt-out routes. A

@@ -45,7 +45,7 @@ The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, an
 | `--auto-screenshot` |  | boolean | `false` | Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (&lt;output&gt;/.doc-detective/runs/&lt;runId&gt;/) under the nested resource tree specs/&lt;specId&gt;/tests/&lt;testId&gt;/contexts/&lt;contextId&gt;/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it. |
 | `--auto-record` |  | boolean | `false` | Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (&lt;output&gt;/.doc-detective/runs/&lt;runId&gt;/) under the nested resource tree specs/&lt;specId&gt;/tests/&lt;testId&gt;/contexts/&lt;contextId&gt;/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it. |
 | `--verification` |  | string | `existing` | What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`. |
-| `--cache-dir` |  | string |  | Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR. |
+| `--cache-dir` |  | string |  | Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Beats `DOC_DETECTIVE_CACHE_DIR` and config `cacheDir`. Defaults to `$XDG_CACHE_HOME/doc-detective` (`%LOCALAPPDATA%\doc-detective` on Windows), or an existing `~/.doc-detective`. |
 | `--no-env-file` |  | boolean |  | Don't load a `.env` file from the current directory. Variables already set in the shell always win over `.env`. |
 | `--no-hints` |  | boolean |  | Don't show a post-run hint. Hints are on by default, and show one applicable tip with code samples and links after a run in an interactive shell. |
 | `--no-auto-update` |  | boolean |  | Don't check the npm registry on startup for a newer 5.x and self-update before running. Self-update never crosses a major version, and never runs in CI. |
@@ -155,17 +155,47 @@ When you omit `--config`, the CLI looks for a config file in the current directo
 
 ### Configuration precedence
 
-Doc Detective merges configuration in this order:
+Doc Detective layers configuration in one order. A higher layer wins. Where a layer merges deeply, objects merge key by key and arrays replace.
 
-1. CLI flags.
-2. The shell's environment, including `DOC_DETECTIVE_CONFIG`.
-3. A `.env` file in the current directory, unless you pass `--no-env-file`.
-4. The project's `.doc-detective.*` file, or the file `--config` names.
-5. Your user config, at `$XDG_CONFIG_HOME/doc-detective/config.json` (`%APPDATA%\\doc-detective\\config.json` on Windows).
+| # | Layer (highest first) | Merge |
+|---|---|---|
+| 1 | Flags, such as `--cache-dir`, `-l`, `-q`, and `-d` | Replace |
+| 2 | The shell's environment: `DOC_DETECTIVE_CONFIG`, then the single-purpose variables `DOC_DETECTIVE_CACHE_DIR` (`cacheDir`), `DOC_DETECTIVE_DEBUG` and `DEBUG` (`logLevel: debug`), `DO_NOT_TRACK` (`telemetry.send: false`), and `DOC_DETECTIVE_SKIP_AUTO_UPDATE` (`autoUpdate: false`), which win over it | Deep |
+| 3 | A `.env` file in the current directory. It only fills variables the shell left unset. `--no-env-file` skips it | — |
+| 4 | The project config: the file `--config` names, or else the first of `.doc-detective.json`, `.doc-detective.yaml`, and `.doc-detective.yml`. A config-level `loadVariables` file also only fills unset variables | Deep |
+| 5 | Your user config, at `$XDG_CONFIG_HOME/doc-detective/config.json` (`%APPDATA%\doc-detective\config.json` on Windows) | Deep |
+| 6 | Schema defaults | — |
 
-Config files and `DOC_DETECTIVE_CONFIG` are validated against the [`config_v3` schema](/reference/schemas/config).
+A `loadVariables` step still replaces variables that are already set, because a step sets them on purpose.
 
-CLI flags override the validated config; they don't bypass it, and every flag maps to a camelCase config key.
+A relative path in a config file, such as `output` or `cacheDir`, resolves against that config file. A relative path in a flag or an environment variable resolves against the current directory.
+
+Each config source is validated against the [`config_v3` schema](/reference/schemas/config) on its own, and an invalid one exits `2` with an error that names it. Flags override the validated config; they don't bypass it.
+
+`DOC_DETECTIVE` is a deprecated spelling of `DOC_DETECTIVE_CONFIG`. Its `config` object still applies, just below `DOC_DETECTIVE_CONFIG`, and Doc Detective warns until you move it. Its other keys, such as `container`, do nothing.
+
+## Environment variables
+
+Boolean variables are on for `1`, `true`, `yes`, or `on`, and off when unset, empty, or `0`, `false`, `no`, or `off`, in any case. Doc Detective ignores any other value, and warns once.
+
+| Variable | Values | Default | What it does |
+|---|---|---|---|
+| `DOC_DETECTIVE_CONFIG` | A JSON config object | Unset | Config, above the project config. See [Configuration precedence](#configuration-precedence). |
+| `DOC_DETECTIVE_CACHE_DIR` | A path | `$XDG_CACHE_HOME/doc-detective`, `%LOCALAPPDATA%\doc-detective` on Windows, or an existing `~/.doc-detective` | Where browsers and runtime dependencies are installed. Sets `cacheDir`. `--cache-dir` beats it. |
+| `DOC_DETECTIVE_DEBUG` | Boolean | Off | Shows debugging output, like `-d`. |
+| `DEBUG` | `1`, `true`, `*`, or a comma-separated list with `doc-detective` or `doc-detective:*` | Unset | Shows debugging output, like `-d`. A pattern for another package leaves it off. |
+| `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Boolean | Off | Sets `autoUpdate: false`. `--auto-update` beats it. |
+| `DO_NOT_TRACK` | Any value | Unset | Sets `telemetry.send: false`. |
+| `DOC_DETECTIVE_NO_COLOR` | Boolean | Off | Turns off color, like `--no-color`. `NO_COLOR` and `FORCE_COLOR` keep their usual meaning. |
+| `DOC_DETECTIVE_NO_INPUT` | Boolean | Off | Never prompts, like `--no-input`. |
+| `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Boolean | Off | Lets a screenshot's reference image or an OpenAPI description load from a private or loopback address. |
+| `DOC_DETECTIVE_REUSE_APPIUM` | Boolean | Off | Keeps the Appium server running after a run, so the next run with the same setup skips its startup. |
+| `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` | Boolean | Off | Skips an Android context instead of installing the Android toolchain on first use. |
+| `DOC_DETECTIVE_AUTOINSTALL` | Boolean | On | Off stops `npm install` from also installing browsers and runtime dependencies. |
+| `DOC_DETECTIVE_SKIP_AGENT_PROMPT` | Boolean | Off | Stops `npm install` from asking to install agent tools. |
+| `XDG_CONFIG_HOME`, `XDG_CACHE_HOME` | Paths | Platform defaults | Where the user config and the cache live. |
+| `DOC_DETECTIVE` | `{"config": {...}}` | Unset | Deprecated: use `DOC_DETECTIVE_CONFIG`. |
+| `DOC_DETECTIVE_RUNTIME_DEBUG` | Boolean | Off | Deprecated: use `DOC_DETECTIVE_DEBUG`. |
 
 ## Invocation
 

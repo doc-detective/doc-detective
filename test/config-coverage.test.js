@@ -825,59 +825,12 @@ describe("config.ts — setConfig", function () {
     );
   });
 
-  it("applies a DOC_DETECTIVE env-var config override via deepMerge", async function () {
-    process.env.DOC_DETECTIVE = JSON.stringify({
-      config: { concurrentRunners: 3 },
-    });
+  it("ignores DOC_DETECTIVE, which only the CLI reads (ADR 01165)", async function () {
+    process.env.DOC_DETECTIVE = JSON.stringify({ config: { concurrentRunners: 3 }, container: "x" });
     const config = await setConfig({
       config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
     });
-    assert.equal(config.concurrentRunners, 3);
-  });
-
-  it("ignores malformed JSON in the DOC_DETECTIVE env var and still resolves", async function () {
-    process.env.DOC_DETECTIVE = "{ not valid json";
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.ok(config.environment);
-  });
-
-  it("deep-merges a nested object from DOC_DETECTIVE, preserving un-overridden nested keys", async function () {
-    // Base telemetry has both keys; the env override only sets `send`. The
-    // recursive both-sides-are-objects merge keeps userId and overrides send.
-    process.env.DOC_DETECTIVE = JSON.stringify({ config: { telemetry: { send: true } } });
-    const config = await setConfig({
-      config: {
-        logLevel: "silent",
-        dryRun: true,
-        input: ["./README.md"],
-        telemetry: { send: false, userId: "keep-me" },
-      },
-    });
-    assert.equal(config.telemetry.send, true);
-    assert.equal(config.telemetry.userId, "keep-me");
-  });
-
-  it("deep-clones a nested override object when the base has no matching object key", async function () {
-    // Base has no telemetry object, so the override branch clones via
-    // deepMerge({}, override[key]).
-    process.env.DOC_DETECTIVE = JSON.stringify({
-      config: { telemetry: { send: false, userId: "cloned" } },
-    });
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.equal(config.telemetry.send, false);
-    assert.equal(config.telemetry.userId, "cloned");
-  });
-
-  it("ignores a DOC_DETECTIVE value whose parsed config is not an object", async function () {
-    process.env.DOC_DETECTIVE = JSON.stringify({ config: "a string, not an object" });
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.ok(config.environment);
+    assert.equal(config.concurrentRunners, 1);
   });
 
   it("loads an OpenAPI description into config.integrations.openApi", async function () {

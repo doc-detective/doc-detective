@@ -2,6 +2,7 @@ import axios from "axios";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import path from "node:path";
 import type { Logger, SpawnFn } from "./loader.js";
+import { isDebugRequested } from "../envFlag.js";
 
 export type InstallMode = "global" | "local" | "npx" | "unknown";
 
@@ -21,7 +22,7 @@ export interface SelfUpdateDeps {
 // logLevel; this in-module fallback is only for direct test or
 // programmatic use that calls `checkForUpdate` / `selfUpdate` without
 // passing `deps.logger`.
-const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
+const RUNTIME_DEBUG = isDebugRequested();
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);

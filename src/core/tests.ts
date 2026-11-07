@@ -1,5 +1,6 @@
 import kill from "tree-kill";
 import { noteContextDone } from "./progress.js";
+import { envFlag } from "../envFlag.js";
 import { createInterruptHandler } from "./signals.js";
 import fs from "node:fs";
 // webdriverio is loaded lazily via loadHeavyDep at the driverStart() call
@@ -960,7 +961,7 @@ async function androidContextPreflight({
     // install back into a SKIP with the manual-install pointer, for
     // environments that must never trigger a surprise multi-GB download (CI
     // legs that only assert the skip paths, air-gapped hosts, etc.).
-    if (process.env.DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL === "1") {
+    if (envFlag("DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL")) {
       return {
         ok: false,
         level: "warning",
@@ -1321,21 +1322,10 @@ function driverSkipDiagnostic({
   return msg;
 }
 
+// Only config turns on unsafe steps. The Docker images set it in their user
+// config, the lowest layer, so a project can still turn it off (ADR 01165).
 async function allowUnsafeSteps({ config }: { config: any }) {
-  // If allowUnsafeSteps is set to true, return true
-  if (config.allowUnsafeSteps === true) return true;
-  // If allowUnsafeSteps is set to false, return false
-  if (config.allowUnsafeSteps === false) return false;
-  // if DOC_DETECTIVE.container is set to true, return true
-  if (process.env.DOC_DETECTIVE) {
-    try {
-      if (JSON.parse(process.env.DOC_DETECTIVE).container) return true;
-    } catch {
-      // Invalid JSON in DOC_DETECTIVE env var; treat as unset
-    }
-  }
-  // Default: return false
-  return false;
+  return config.allowUnsafeSteps === true;
 }
 
 // Run specifications via API.

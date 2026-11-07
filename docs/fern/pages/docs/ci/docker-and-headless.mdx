@@ -21,8 +21,10 @@ docker run -v .:/app docdetective/docdetective:linux --input /app/api.spec.json
 The `-v .:/app` flag mounts your current directory to `/app` inside the container. Because the working directory is `/app`, point `--input` and `--output` at paths under `/app` so results and artifacts land back in your project.
 
 <Note>
-Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image identifies itself as a container, and Doc Detective allows unsafe steps in that environment by default. To opt out, set `allowUnsafeSteps` to `false` in your config.
+Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/cli#configuration-precedence).
 </Note>
+
+The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/cli#environment-variables).
 
 ## Step 2: Understand headless behavior
 

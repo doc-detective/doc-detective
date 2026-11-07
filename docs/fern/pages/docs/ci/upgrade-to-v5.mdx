@@ -258,6 +258,37 @@ doc-detective install agents --agent claude --scope project --yes
 
 **What to do:** Update any CI cache path that hard-codes `~/.doc-detective`. Setting `DOC_DETECTIVE_CACHE_DIR` makes the path explicit and overrides all of the defaults.
 
+A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers always install into `<cacheDir>/browsers`, so the first run downloads them once. Delete the folder after you upgrade.
+
+## One precedence order for config and environment
+
+**What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/cli#configuration-precedence), and each layer merges objects key by key:
+
+- `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
+- `install` reads `cacheDir` from your project and user config, like a run does.
+- A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
+- A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
+
+**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step.
+
+## `DOC_DETECTIVE` is deprecated
+
+**What changed:** `DOC_DETECTIVE` is a deprecated spelling of `DOC_DETECTIVE_CONFIG`. Its `config` object still applies, but just below `DOC_DETECTIVE_CONFIG`, so flags now beat it. Each run warns:
+
+```text
+Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.
+```
+
+Its `container` key no longer turns on unsafe steps. The official Docker images set `allowUnsafeSteps` in a user config instead, so they still run unsafe steps. See [Docker and headless runs](/docs/ci/docker-and-headless).
+
+**What to do:** Move the `config` object to `DOC_DETECTIVE_CONFIG`. If you set `container` in your own image to run unsafe steps, set `"allowUnsafeSteps": true` in its config, or pass `--allow-unsafe`.
+
+## Boolean environment variables
+
+**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value is ignored with a warning. See [Environment variables](/reference/cli#environment-variables).
+
+**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`.
+
 ## Telemetry notice
 
 **What changed:** The [telemetry notice](/legal/telemetry) prints once per machine on stderr, not on every run.
@@ -279,6 +310,8 @@ These still work, and each prints a warning on stderr. Replace them when you can
 | `runTests`, `runtests` | `run`, or no command |
 | `--logLevel` | `--log-level` |
 | `-e`, `--exit-on-fail` | Nothing. Failing the run is now the default, so you can delete the flag. |
+| `DOC_DETECTIVE` with a `config` object | `DOC_DETECTIVE_CONFIG` |
+| `DOC_DETECTIVE_RUNTIME_DEBUG` | `DOC_DETECTIVE_DEBUG` |
 
 ## GitHub Action
 

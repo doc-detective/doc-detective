@@ -11,6 +11,7 @@ import {
   withPeerCompanions,
 } from "./heavyDeps.js";
 import { isNpmNoiseLine } from "./installOutput.js";
+import { isDebugRequested } from "../envFlag.js";
 import {
   assertSafeRuntimePath,
   getRuntimeDir,
@@ -25,10 +26,10 @@ export type Logger = (msg: string, level?: LogLevel) => void;
 // The default logger gates `debug` output OFF so call sites that omit a
 // logger (the JIT pre-flight, the CLI startup self-update check) don't
 // flood stdout with npm child-process stdout/stderr on every run. Set
-// DOC_DETECTIVE_RUNTIME_DEBUG=1 to opt back in for debugging the
+// DOC_DETECTIVE_DEBUG=1 to opt back in for debugging the
 // installer itself. Real callers (the install CLI commands) inject a
 // logger that respects --silent/--verbose explicitly.
-const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
+const RUNTIME_DEBUG = isDebugRequested();
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !RUNTIME_DEBUG) return;
   if (level === "error") console.error(msg);
@@ -152,7 +153,7 @@ function tryResolveFromCache(
     return resolveEntry(requireFromCache, name);
   } catch (err) {
     // Keep the cause reachable for whoever is debugging the installer itself.
-    // defaultLogger drops "debug" unless DOC_DETECTIVE_RUNTIME_DEBUG=1, so this
+    // defaultLogger drops "debug" unless DOC_DETECTIVE_DEBUG=1, so this
     // stays silent on the normal path. Format defensively: a bare `${err}`
     // renders a non-Error throwable as "[object Object]" and drops an Error's
     // stack — both useless in the log this line exists to produce.
@@ -608,7 +609,7 @@ export async function ensureRuntimeInstalled(
       if (line.length === 0) return;
       // Drop npm's deprecation/funding/notice noise (about transitive deps
       // the user can't fix) so even `--verbose` install output stays calm.
-      // DOC_DETECTIVE_RUNTIME_DEBUG=1 shows everything raw for diagnostics.
+      // DOC_DETECTIVE_DEBUG=1 shows everything raw for diagnostics.
       if (!RUNTIME_DEBUG && isNpmNoiseLine(line)) return;
       logger(`npm[${stream}]: ${line}`, "debug");
     };

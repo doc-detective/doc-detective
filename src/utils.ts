@@ -2,7 +2,8 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { configErrorMessage, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
+import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
+import { envFlag, isDebugRequested } from "./envFlag.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -27,22 +28,8 @@ export {
   reporters,
   registerReporter,
   isDebugRequested,
+  discoverConfigPath,
 };
-
-// Whether the environment asks for debug output. DOC_DETECTIVE_DEBUG is the narrow
-// switch, for Doc Detective alone. DEBUG is the broad one that many packages read:
-// 1, true, *, or a comma-separated pattern matching doc-detective turns this on,
-// while a value like `express:*` is someone else's and leaves it off.
-function isDebugRequested(env: NodeJS.ProcessEnv = process.env): boolean {
-  const narrow = env.DOC_DETECTIVE_DEBUG;
-  // Trim so a templated/copy-pasted value with stray whitespace (e.g.
-  // `"true "`) still activates debug mode.
-  if (typeof narrow === "string" && /^(1|true|yes)$/i.test(narrow.trim())) return true;
-  return String(env.DEBUG ?? "")
-    .split(",")
-    .map((pattern) => pattern.trim())
-    .some((pattern) => /^(1|true|\*|doc-detective(:?\*)?)$/i.test(pattern));
-}
 
 // Log function that respects logLevel
 // Pure predicate: would `log(message, level, config)` actually print at this
@@ -195,10 +182,31 @@ async function getConfigFromEnv() {
   return envConfig;
 }
 
+// DOC_DETECTIVE's `config` object, the deprecated spelling of
+// DOC_DETECTIVE_CONFIG (ADR 01165). It sits just below that variable, and its
+// other keys, such as `container`, do nothing.
+function readLegacyEnvConfig(args: any) {
+  if (!process.env.DOC_DETECTIVE) return null;
+  let legacy: any;
+  try {
+    legacy = JSON.parse(process.env.DOC_DETECTIVE);
+  } catch (error: any) {
+    if (!args.quiet) diag(`Warning: Ignoring DOC_DETECTIVE: it isn't valid JSON (${error.message}).`);
+    return null;
+  }
+  const config = legacy?.config;
+  if (config === null || typeof config !== "object" || Array.isArray(config)) return null;
+  if (!args.quiet) {
+    diag('Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
+  }
+  assertValidConfig(config, "DOC_DETECTIVE");
+  return config;
+}
+
 // `--output` and config `output` name the results file (ADR 01146). Fail on a
 // folder rather than guessing, so nobody loses results to a misread path.
-function resolveResultsFile(output: string): string {
-  const resolved = path.resolve(output);
+function resolveResultsFile(output: string, base = process.cwd()): string {
+  const resolved = path.resolve(base, output);
   let isFolder = /[\\/]$/.test(output);
   try {
     isFolder = isFolder || fs.statSync(resolved).isDirectory();
@@ -301,6 +309,17 @@ async function loadProjectEnv(args: any) {
   dotenv.config({ path: file, override: false, quiet: true });
 }
 
+// The project config: `--config` when given, resolved to an absolute path so a
+// mistyped one fails rather than falling back, else the first of
+// `.doc-detective.json`, `.yaml`, and `.yml` in the working directory.
+function discoverConfigPath(args: { config?: unknown } = {}): string | null {
+  if (typeof args.config === "string" && args.config.trim()) return path.resolve(args.config.trim());
+  const found = [".doc-detective.json", ".doc-detective.yaml", ".doc-detective.yml"]
+    .map((name) => path.resolve(name))
+    .find((file) => fs.existsSync(file));
+  return found ?? null;
+}
+
 // Override config values based on args and validate the config
 async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
   if (args.config && !configPath) {
@@ -335,16 +354,14 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     assertValidConfig(config, /^https?:\/\//.test(configPath) ? configPath : displayPath(path.resolve(configPath)));
   }
 
-  // Project config beats user config. Both lose to the environment and to flags.
-  const userConfig = await readUserConfig();
-  if (userConfig) config = { ...userConfig, ...config };
-
-  // Check for DOC_DETECTIVE_CONFIG environment variable
+  // Lowest first: the user config, the project config, the deprecated
+  // DOC_DETECTIVE, then DOC_DETECTIVE_CONFIG. Objects merge, arrays replace
+  // (ADR 01165). Single-purpose variables and flags go on top, below.
+  config = deepMerge((await readUserConfig()) ?? {}, config);
+  const legacyConfig = readLegacyEnvConfig(args);
+  if (legacyConfig) config = deepMerge(config, legacyConfig);
   const envConfig = await getConfigFromEnv();
-  if (envConfig) {
-    // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
-    config = { ...config, ...envConfig };
-  }
+  if (envConfig) config = deepMerge(config, envConfig);
 
   readCredentialFiles(config);
 
@@ -373,6 +390,21 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     telemetry: config.telemetry || { send: true },
     hints: config.hints || { enabled: true },
   };
+  // A config's relative `output` and `cacheDir` resolve against the config
+  // file. Flags and single-purpose variables resolve against the working
+  // directory.
+  const configBase =
+    configPath && config.relativePathBase !== "cwd" && !/^https?:\/\//.test(configPath)
+      ? path.dirname(path.resolve(configPath))
+      : process.cwd();
+  // Kept relative to the working directory where it can be, so a cache path
+  // only grows the characters getCacheDir's shell check rejects when it must.
+  if (typeof config.cacheDir === "string") {
+    config.cacheDir = path.relative(process.cwd(), path.resolve(configBase, config.cacheDir)) || ".";
+  }
+  const cacheDirFromEnv = process.env.DOC_DETECTIVE_CACHE_DIR?.trim();
+  if (cacheDirFromEnv) config.cacheDir = cacheDirFromEnv;
+  if (envFlag("DOC_DETECTIVE_SKIP_AUTO_UPDATE")) config.autoUpdate = false;
   // Override config values
   if (configPath) {
     config.configPath = configPath;
@@ -397,10 +429,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   // `--output -` means stdout, the same as --json.
   const jsonOnStdout = args.json === true || args.output === "-";
   if (args.output && args.output !== "-") {
-    config.output = args.output;
-  }
-  if (typeof config.output === "string") {
-    config.output = resolveResultsFile(config.output);
+    config.output = resolveResultsFile(args.output);
+  } else if (typeof config.output === "string") {
+    config.output = resolveResultsFile(config.output, configBase);
   }
   if (args.outputDir) {
     config.outputDir = path.resolve(args.outputDir);
