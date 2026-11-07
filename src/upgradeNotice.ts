@@ -142,7 +142,7 @@ function readsAs5(value: string): boolean | undefined {
 export function legacyEnv(env: Record<string, string | undefined>): any {
   try {
     const parsed = JSON.parse(env.DOC_DETECTIVE || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -167,7 +167,8 @@ export function envWarnings(env: Record<string, string | undefined>, config: { a
   }
   for (const [name, { v4, on = "1", off = "unset it" }] of Object.entries(BOOLEAN_ENV)) {
     const value = env[name];
-    if (!value) continue;
+    // An empty value still counts: DOC_DETECTIVE_AUTOINSTALL reads it as on today.
+    if (value === undefined) continue;
     const today = v4(value);
     const next = readsAs5(value);
     if (next === today) continue;

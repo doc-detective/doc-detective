@@ -10,6 +10,7 @@ import {
   commandWarnings,
   configWarnings,
   envWarnings,
+  legacyEnv,
   flagWarnings,
   namesFolder,
   runResultWarnings,
@@ -287,6 +288,30 @@ describe("upgrade warnings", function () {
         DOC_DETECTIVE_CACHE_DIR: "no",
       };
       expect(envWarnings(same, {})).to.deep.equal([]);
+    });
+
+    it("an empty DOC_DETECTIVE_* boolean, which only DOC_DETECTIVE_AUTOINSTALL reads as on today", function () {
+      // Common from `${{ inputs.x || '' }}` in CI.
+      expect(envWarnings({ DOC_DETECTIVE_AUTOINSTALL: "" }, {})[0])
+        .to.include("`DOC_DETECTIVE_AUTOINSTALL`")
+        .and.include("on today and off in Doc Detective 5.0");
+      const empty = {
+        DOC_DETECTIVE_DEBUG: "",
+        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "",
+        DOC_DETECTIVE_SKIP_AGENT_PROMPT: "",
+        DOC_DETECTIVE_RUNTIME_DEBUG: "",
+        DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: "",
+        DOC_DETECTIVE_REUSE_APPIUM: "",
+        DOC_DETECTIVE_ALLOW_LOCAL_URLS: "",
+      };
+      expect(envWarnings(empty, {})).to.deep.equal([]);
+    });
+
+    it("legacyEnv reads only a JSON object", function () {
+      expect(legacyEnv({ DOC_DETECTIVE: '{"container":"x"}' })).to.deep.equal({ container: "x" });
+      for (const value of ["[1]", "null", "3", "not json", undefined]) {
+        expect(legacyEnv({ DOC_DETECTIVE: value })).to.deep.equal({});
+      }
     });
 
     it("reporters that aren't exact public names", function () {
