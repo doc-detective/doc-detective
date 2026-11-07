@@ -6,6 +6,7 @@ import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browsers.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
@@ -868,7 +869,7 @@ async function probeBrowserEnvironment({
 }> {
   setAppiumHome({ cacheDir: config?.cacheDir });
   const cwd = process.cwd();
-  process.chdir(path.join(__dirname, "../.."));
+  process.chdir(packageRoot() ?? cwd);
   let installedBrowsers: any[] = [];
   let browserDetectionFailed = false;
   let installedDrivers = { chromium: false, gecko: false, safari: false };
