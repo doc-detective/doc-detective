@@ -248,7 +248,8 @@ const FREE_FORM = new Set([
 ]);
 
 // Negative `wait`, `*timeout`, `*duration`, and `*delay` numbers in a step,
-// which 5.0 rejects anywhere.
+// which 5.0 rejects anywhere. It walks authored steps: shallow, parsed JSON/YAML
+// with no cycles, so the recursion needs no depth limit or cycle guard.
 function negatives(value: any, found: Set<string> = new Set()): Set<string> {
   if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
