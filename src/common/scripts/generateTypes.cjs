@@ -70,10 +70,15 @@ async function generateTypes() {
 }
 
 // Each step_v3 oneOf branch requires one action key, on the branch or in an allOf part.
+// Anything else means the schema's shape changed, so fail rather than guess.
 function renderStepActions(step) {
-  const keys = step.oneOf
-    .flatMap((branch) => [branch, ...(branch.allOf ?? [])])
-    .flatMap((part) => part.required ?? []);
+  const keys = step.oneOf.map((branch, i) => {
+    const required = [branch, ...(branch.allOf ?? [])].flatMap((part) => part.required ?? []);
+    if (required.length !== 1) {
+      throw new Error(`step_v3 oneOf[${i}] must require exactly one action key, got [${required.join(", ")}]`);
+    }
+    return required[0];
+  });
   const lines = [...new Set(keys)].sort().map((key) => `  ${JSON.stringify(key)},`);
   return `/* eslint-disable */
 /**
@@ -90,7 +95,7 @@ export type StepAction = (typeof stepActions)[number];
 `;
 }
 
-module.exports = { checkGeneratorVersion };
+module.exports = { checkGeneratorVersion, renderStepActions };
 
 if (require.main === module) {
   generateTypes().catch((error) => {

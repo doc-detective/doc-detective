@@ -17,6 +17,15 @@ describe("stepActions", function () {
     expect(derived).to.include("goTo");
     expect(stepActions).to.deep.equal(derived);
   });
+
+  it("matches step_v3's properties minus the common step keys", function () {
+    // Independent of the oneOf walk: a step's properties are its actions plus the shared keys.
+    const step = schemas.step_v3;
+    const actions = Object.keys(step.properties)
+      .filter((k) => !(k in step.components.schemas.common.properties))
+      .sort();
+    expect(stepActions).to.deep.equal(actions);
+  });
 });
 
 describe("published per-schema files", function () {
