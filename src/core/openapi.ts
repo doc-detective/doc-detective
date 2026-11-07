@@ -141,6 +141,7 @@ async function loadDescription(descriptionPath: string = "") {
               address = await privateAddressOf(file.url);
             } catch (error: any) {
               if (!error.host) throw error;
+              // A plain Error on purpose: a failed lookup isn't a guard refusal.
               throw new Error(
                 `Couldn't resolve $ref ${ref} in ${doc}: couldn't resolve host ${error.host} (${error.code}).`
               );

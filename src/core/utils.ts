@@ -1700,7 +1700,9 @@ async function getGuarded(
     }
     if (policy === "hops") {
       // Fail closed: the hop comes from a public origin unless both the
-      // connection and a fresh lookup say every address is private.
+      // connection and a fresh lookup say every address is private. Through a
+      // proxy the connection looked up the proxy, not this host, so the fresh
+      // lookup is the only signal.
       const fromPublic = hopPublic || (await freshPublic());
       refuse = undefined;
       if (fromPublic) {
