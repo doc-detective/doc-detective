@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import { normalizers } from "../dist/common/src/normalize/index.js";
 
+// 0: every handler-side shorthand branch has moved into a normalizer. Only the
+// click and find string checks in EXEMPT remain, and they aren't shorthand.
 const CEILING = 0;
 const HANDLERS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "core", "tests");
 

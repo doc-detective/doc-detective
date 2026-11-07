@@ -5707,8 +5707,9 @@ async function runStep({
   let actionResult: any;
   // Load values from environment variables
   step = replaceEnvs(step);
-  // Again, after substitution: this pass normalizes whole-variable actions, and
-  // getRunner() callers hand runStep authored steps.
+  // Not a redundant re-validation. validate() leaves a whole-variable value such
+  // as "goTo": "$URL" as authored, so this pass normalizes it now that it's
+  // substituted. It also normalizes the authored steps getRunner() callers pass.
   useEffectiveStep(step, { substituted: true });
   placeCapturePaths(step, config);
   if (typeof step.click !== "undefined") {
