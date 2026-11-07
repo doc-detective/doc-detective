@@ -340,6 +340,7 @@ describe("local URL guard (ADR 01162)", function () {
       if (!fake(host)) return realLookup(host, opts, cb);
       return reply(host === "rebind.example.test" ? "127.0.0.1" : "93.184.216.34", opts, cb);
     });
+    // http:// fake-public URLs only; an https:// one needs https.Agent stubbed too.
     const realCreateConnection = http.Agent.prototype.createConnection;
     sinon.stub(http.Agent.prototype, "createConnection").callsFake(function (options, cb) {
       // Only connections to the fake hosts are redirected; anything else
