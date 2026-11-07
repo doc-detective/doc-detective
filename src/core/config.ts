@@ -154,7 +154,7 @@ async function setConfig({ config, detectApps = true }: any) {
   // Validate inbound `config`. Thrown, not logged: the caller prints it once.
   const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
   if (!validityCheck.valid) {
-    throw new Error(configErrorMessage("", validityCheck.errorObjects, config));
+    throw new Error(configErrorMessage("", validityCheck.errorObjects, config), { cause: validityCheck.errors });
   }
   config = validityCheck.object;
 

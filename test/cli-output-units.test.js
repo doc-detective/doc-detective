@@ -26,6 +26,11 @@ describe("nearestCommand", function () {
     expect(nearestCommand("nope", ["type"])).to.equal(undefined);
     expect(nearestCommand("typo", ["type"])).to.equal("type");
   });
+  it("counts two swapped letters as one edit", function () {
+    expect(nearestCommand("ulr", ["url"])).to.equal("url");
+    expect(nearestCommand("tset", ["test"])).to.equal("test");
+    expect(nearestCommand("rnu", names)).to.equal("run");
+  });
 });
 
 describe("rewriteRootError", function () {
@@ -114,6 +119,39 @@ describe("summarizeSchemaErrors", function () {
         "integrations.heretto[0]: needs one of apiToken, apiTokenFile.",
       ].join("\n")
     );
+  });
+
+  it("keeps a missing key beside a deeper error", function () {
+    expect(summarize({ runOn: [{ platforms: "bogus" }] })).to.equal(
+      [
+        "missing required key 'tests'.",
+        'runOn[0].platforms: must be one of linux, mac, windows, android, ios (got "bogus").',
+      ].join("\n")
+    );
+    expect(summarize({ tests: [{ runOn: ["bad"] }] })).to.equal(
+      ["tests[0]: needs one of steps, contexts.", 'tests[0].runOn[0]: must be object (got "bad").'].join("\n")
+    );
+  });
+
+  it("drops a branch's missing key when another branch went deeper", function () {
+    expect(summarize({ fileTypes: [{ extends: "nope" }] }, "config_v3")).to.equal(
+      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita (got "nope").'
+    );
+  });
+
+  it("names each key a schema requires together, not as a choice", function () {
+    expect(summarize({ integrations: { heretto: [{ apiToken: "t" }] } }, "config_v3")).to.equal(
+      [
+        "integrations.heretto[0]: missing required key 'name'.",
+        "integrations.heretto[0]: missing required key 'organizationId'.",
+        "integrations.heretto[0]: missing required key 'username'.",
+      ].join("\n")
+    );
+  });
+
+  it("shortens a long value", function () {
+    const line = summarize({ concurrentRunners: { note: "x".repeat(200) } }, "config_v3");
+    expect(line).to.equal(`concurrentRunners: must be integer or boolean (got {"note":"${"x".repeat(30)}…).`);
   });
 
   it("ends any other message with a period", function () {
