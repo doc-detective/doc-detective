@@ -19,7 +19,7 @@ API_KEY=your_secret_api_key
 DATA_URL=https://api.example.com/data
 ```
 
-You can load these variables using the `loadVariables` action:
+You can load these variables using the `loadVariables` action. The `httpRequest` step then uses `$DATA_URL` as the URL and `$API_KEY` in the `Authorization` header:
 
 {/* test {"testId":"loadvariables-env-file","detectSteps":false} */}
 
@@ -35,11 +35,11 @@ You can load these variables using the `loadVariables` action:
         {
           "description": "Use the loaded API key in an HTTP request.",
           "httpRequest": {
-            "url": "$DATA_URL", // Use loaded DATA_URL
+            "url": "$DATA_URL",
             "method": "GET",
             "request": {
               "headers": {
-                "Authorization": "Bearer $API_KEY" // Use loaded API_KEY
+                "Authorization": "Bearer $API_KEY"
               }
             }
           }
