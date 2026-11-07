@@ -377,10 +377,17 @@ describe("Util tests", function () {
     expect(configOn.autoUpdate).to.equal(true);
 
     // Schema default is true; absent flag yields true via AJV useDefaults.
-    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
-    expect(argsAbsent.autoUpdate).to.equal(undefined);
-    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoUpdate).to.equal(true);
+    // CI sets DOC_DETECTIVE_SKIP_AUTO_UPDATE, which would turn it off (ADR 01165).
+    const skip = process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE;
+    delete process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE;
+    try {
+      const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+      expect(argsAbsent.autoUpdate).to.equal(undefined);
+      const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+      expect(configAbsent.autoUpdate).to.equal(true);
+    } finally {
+      if (skip !== undefined) process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE = skip;
+    }
   });
 
   it("CLI parses --exit-on-fail / --no-exit-on-fail as boolean", function () {
