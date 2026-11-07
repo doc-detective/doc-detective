@@ -181,6 +181,7 @@ describe("local URL guard (ADR 01162)", function () {
   let tmpDir;
   let localFile;
   let localFileUrl;
+  let windowsPath;
 
   before(async function () {
     ({ fetchFile } = await import("../dist/core/utils.js"));
@@ -216,8 +217,13 @@ describe("local URL guard (ADR 01162)", function () {
       "/p-cycle.yaml": () => text(`a: &a\n  b: *a\nleak:\n  $ref: '${secret()}'\n`),
       "/p-file-url.json": () => refTo(localFileUrl),
       "/p-file-url-space.json": () => refTo(`${localFileUrl} `),
-      "/p-file-back.json": () => refTo(localFile),
-      "/p-file-fwd.json": () => refTo(localFile.split(path.sep).join("/")),
+      // The parser reads a $ref as a filesystem path when it resolves to no
+      // `xx://` scheme: a drive-letter path does, on every OS. A POSIX
+      // absolute path resolves against the public document's URL instead, so
+      // it's an HTTP read on that same public host.
+      "/p-file-back.json": () => refTo(windowsPath),
+      "/p-file-fwd.json": () => refTo(windowsPath.split("\\").join("/")),
+      "/p-file-posix.json": () => refTo(localFile.split(path.sep).join("/").replace(/^[A-Za-z]:/, "")),
       "/private-then-public.json": () => refTo(`http://public.example.test:${port}/plain.json`),
     };
     const redirects = {
@@ -225,6 +231,7 @@ describe("local URL guard (ADR 01162)", function () {
       "/to-rebind": () => [302, `http://rebind.example.test:${port}/ref.png`],
       "/to-public": () => [302, `http://public.example.test:${port}/public-doc.json`],
       "/to-public-root.yaml": () => [302, `http://public.example.test:${port}/openapi.yaml`],
+      "/to-js": () => [302, "javascript:alert(1)"],
       "/loop": () => [307, "/loop"],
       "/no-location": () => [302, undefined],
     };
@@ -249,6 +256,8 @@ describe("local URL guard (ADR 01162)", function () {
     localFile = path.join(tmpDir, "local.json");
     fs.writeFileSync(localFile, JSON.stringify({ type: "boolean" }));
     localFileUrl = pathToFileURL(localFile).href;
+    windowsPath =
+      process.platform === "win32" ? localFile : "C:\\Users\\runner\\AppData\\local.json";
   });
 
   after(function () {
@@ -376,6 +385,15 @@ describe("local URL guard (ADR 01162)", function () {
   it("follows a local redirect to a local address", async function () {
     const result = await fetchFile(`http://127.0.0.1:${port}/redirect`, { binary: true });
     assert.equal(result.result, "success", String(result.message));
+  });
+
+  it("refuses a redirect to a scheme other than http or https", async function () {
+    const result = await fetchFile(`http://127.0.0.1:${port}/to-js?token=s3cret`, { binary: true });
+    assert.equal(result.result, "error");
+    assert.equal(
+      result.message.message,
+      `Couldn't fetch http://127.0.0.1:${port}/to-js: the redirect leads to an unsupported scheme (\`javascript\`).`
+    );
   });
 
   it("stops after 5 redirects, and on a redirect with no Location header", async function () {
@@ -556,6 +574,17 @@ describe("local URL guard (ADR 01162)", function () {
       });
     });
   }
+
+  it("never reads a local file for a POSIX-path $ref in a public document", async function () {
+    fakePublicHost();
+    const file = path.join(tmpDir, "openapi-p-file-posix.yaml");
+    fs.writeFileSync(file, openApiYaml(`http://public.example.test:${port}/p-file-posix.json`));
+    // It resolves to a URL on the public host, which this server doesn't
+    // serve. A file read would have hit the local-file refusal instead.
+    await assert.rejects(() => loadDescription(file), {
+      message: "Request failed with status code 404",
+    });
+  });
 
   it("lets a local description $ref a local file", async function () {
     const file = path.join(tmpDir, "openapi-local-file.yaml");

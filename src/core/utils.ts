@@ -1627,6 +1627,12 @@ async function getGuarded(
       );
     }
     const next = new URL(location, current).toString();
+    const scheme = new URL(next).protocol;
+    if (scheme !== "http:" && scheme !== "https:") {
+      throw new Error(
+        `Couldn't fetch ${redactUrlForOutput(current)}: the redirect leads to an unsupported scheme (\`${scheme.slice(0, -1)}\`).`
+      );
+    }
     if (policy === "hops") {
       // Fail closed: the hop comes from a public origin unless both the
       // connection and a fresh lookup say every address is private.
