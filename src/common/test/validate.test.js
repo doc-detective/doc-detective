@@ -5788,12 +5788,10 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
     describe("process and surface tightening (5.0)", function () {
       const step = (object) => validate({ schemaKey: "step_v3", object });
 
+      // Durations and delays start at 0, which means "don't wait".
       for (const [name, object] of [
         ["a negative wait", { wait: -5 }],
-        ["a negative runShell timeout", { runShell: { command: "echo", timeout: -1 } }],
-        ["a negative runCode timeout", { runCode: { language: "js", code: "1", timeout: -1 } }],
         ["a negative waitUntil.delayMs", { runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: -1 } } } }],
-        ["a negative startSurface timeout", { startSurface: { process: "x", name: "p", timeout: -1 } }],
       ]) {
         it(`rejects ${name}`, function () {
           const result = step(object);
@@ -5802,8 +5800,30 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
       }
 
-      it("accepts a wait of 0", function () {
+      it("accepts a wait and a delayMs of 0", function () {
         expect(step({ wait: 0 }).valid).to.be.true;
+        expect(step({ runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: 0 } } } }).valid).to.be.true;
+      });
+
+      // Timeouts start at 1: 0 meant "at once" in some actions and "no limit" in others.
+      for (const timeout of [0, -1]) {
+        for (const [name, object] of [
+          ["runShell", { runShell: { command: "echo", timeout } }],
+          ["runCode", { runCode: { language: "js", code: "1", timeout } }],
+          ["a startSurface process", { startSurface: { process: "x", name: "p", timeout } }],
+          ["a startSurface app", { startSurface: { app: "notepad", timeout } }],
+        ]) {
+          it(`rejects a ${name} timeout of ${timeout}`, function () {
+            const result = step(object);
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          });
+        }
+      }
+
+      it("accepts a timeout of 1", function () {
+        expect(step({ runShell: { command: "echo", timeout: 1 } }).valid).to.be.true;
+        expect(step({ startSurface: { app: "notepad", timeout: 1 } }).valid).to.be.true;
       });
 
       it("keeps wait: true and wait: 1 as authored when not normalizing", function () {

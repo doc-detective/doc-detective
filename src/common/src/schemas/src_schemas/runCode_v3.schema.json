@@ -93,7 +93,7 @@
           "timeout": {
             "type": "integer",
             "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
-            "minimum": 0,
+            "minimum": 1,
             "default": 60000
           },
           "background": {

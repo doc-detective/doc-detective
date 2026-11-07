@@ -26,7 +26,7 @@ activity | string | Optional. Android main activity override (defaults to the pa
 device | one of:<br/>- string<br/>- object([Device descriptor](/reference/schemas/device-descriptor)) | Optional. Device the app runs on. Omit for a host desktop app, or (in a mobile context) to use the context's default device. A string references a device by name; an object refines it. Supported on Android and iOS mobile targets. | —
 driverOptions | object | Optional. Escape-hatch passthrough: merged into the automation session's capabilities after the ones Doc Detective computes (namespaced per driver, e.g. `appium:noReset`). Driver- and version-specific; use sparingly. | —
 waitUntil | object([App readiness](/reference/schemas/app-readiness)) | Optional. Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default. | —
-timeout | integer | Optional. Startup ceiling in milliseconds (launch + install + readiness).<br/><br/>Minimum: 0 | `60000`
+timeout | integer | Optional. Startup ceiling in milliseconds (launch + install + readiness).<br/><br/>Minimum: 1 | `60000`
 
 ## Examples
 

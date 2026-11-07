@@ -1,6 +1,6 @@
 {
   "specId": "cli-process-tightening",
-  "description": "Negative durations (ADR 01171), the edge browser alias (ADR 01172), and the removed device fields make a spec invalid, through the real CLI: exit 2.",
+  "description": "Negative durations, zero timeouts (ADR 01171), the edge browser alias (ADR 01172), and the removed device fields make a spec invalid, through the real CLI: exit 2.",
   "tests": [
     {
       "testId": "setup",
@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-process-tightening',w=(n,s)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({tests:[{steps:[s]}]})),app=(device)=>({startSurface:{app:'com.example.app',device:{platform:'android',name:'Pixel_7',...device}}});fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});w('negative-wait',{wait:-5});w('negative-runshell-timeout',{runShell:{command:'echo hi',timeout:-1}});w('negative-runcode-timeout',{runCode:{language:'javascript',code:'1',timeout:-1}});w('negative-delayms',{runShell:{command:'echo hi',background:{name:'bg',waitUntil:{delayMs:-1}}}});w('edge-startsurface',{startSurface:{browser:'edge'}});w('edge-startsurface-array',{startSurface:[{browser:'edge',name:'corp'}]});w('edge-surface-object',{closeSurface:{browser:'edge'}});w('device-orientation',app({orientation:'landscape'}));w('device-udid',app({udid:'emulator-5554'}));w('device-provider',app({provider:{browserstack:{}}}));w('wait-zero',{wait:0});\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-process-tightening',w=(n,s)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({tests:[{steps:[s]}]})),app=(device)=>({startSurface:{app:'com.example.app',device:{platform:'android',name:'Pixel_7',...device}}});fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});w('negative-wait',{wait:-5});w('negative-runshell-timeout',{runShell:{command:'echo hi',timeout:-1}});w('negative-runcode-timeout',{runCode:{language:'javascript',code:'1',timeout:-1}});w('negative-delayms',{runShell:{command:'echo hi',background:{name:'bg',waitUntil:{delayMs:-1}}}});w('edge-startsurface',{startSurface:{browser:'edge'}});w('edge-startsurface-array',{startSurface:[{browser:'edge',name:'corp'}]});w('edge-surface-object',{closeSurface:{browser:'edge'}});w('device-orientation',app({orientation:'landscape'}));w('device-udid',app({udid:'emulator-5554'}));w('device-provider',app({provider:{browserstack:{}}}));w('wait-zero',{wait:0});w('zero-runshell-timeout',{runShell:{command:'echo hi',timeout:0}});w('zero-runcode-timeout',{runCode:{language:'javascript',code:'1',timeout:0}});w('zero-process-timeout',{startSurface:{process:'echo hi',name:'p',timeout:0}});w('zero-app-timeout',{startSurface:{app:'com.example.app',timeout:0}});\"",
             "workingDirectory": "../../.."
           }
         }
@@ -52,6 +52,52 @@
           "description": "A negative waitUntil.delayMs on a runShell background process.",
           "runShell": {
             "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-delayms.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "zero-timeouts-exit-2",
+      "description": "Every timeout starts at 1, so a timeout of 0 exits 2 before anything runs.",
+      "steps": [
+        {
+          "description": "A runShell timeout of 0.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/zero-runshell-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A runCode timeout of 0.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/zero-runcode-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A startSurface process timeout of 0.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/zero-process-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A startSurface app timeout of 0.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/zero-app-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2

@@ -142,10 +142,6 @@ describe("normalization", function () {
       expect(result.object.runShell).to.deep.equal({ command: "echo hi", ...OUTPUT });
     });
 
-    it("keeps an authored runShell timeout of 0", function () {
-      expect(effective({ runShell: { command: "x", timeout: 0 } }).object.runShell.timeout).to.equal(0);
-    });
-
     it("fills tty only for a background process", function () {
       const background = effective({ runShell: { command: "x", background: { name: "web" } } }).object.runShell;
       expect(background.background).to.deep.equal({ name: "web", tty: false });

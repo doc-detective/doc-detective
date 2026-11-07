@@ -4365,7 +4365,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               }
             }
@@ -4472,7 +4472,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               }
             }
@@ -5280,7 +5280,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               },
               "background": {
@@ -5423,7 +5423,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               },
               "background": {
@@ -12297,7 +12297,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               }
             }
           },
@@ -12403,7 +12403,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               }
             }
           },
@@ -13195,7 +13195,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               },
               "background": {
                 "type": "object",
@@ -13330,7 +13330,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               },
               "background": {
                 "type": "object",

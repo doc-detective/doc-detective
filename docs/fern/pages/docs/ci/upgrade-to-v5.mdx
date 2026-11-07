@@ -194,11 +194,17 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 **What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.
 
-## Durations can't be negative
+## Timeouts start at 1, and waits can't be negative
 
-**What changed:** `wait` and the `timeout` of `runShell` and `runCode` must be `0` or more, like every other duration and delay. A negative value makes the spec invalid, and the run exits `2`. Version 4 accepted `"wait": -5` and moved on without waiting. A `runShell` or `runCode` `timeout` of `0` now means 0 milliseconds, so the command times out at once. Version 4 replaced it with the 60000-millisecond default.
+**What changed:** Every `timeout` must be `1` or more, and every other duration and delay, such as `wait` and `waitUntil.delayMs`, must be `0` or more. A value out of range makes the spec invalid, and the run exits `2`:
 
-**What to do:** Remove negative values. To use the default `timeout`, leave it out instead of setting `0`.
+```text
+tests[0].steps[0].runShell.timeout: must be >= 1.
+```
+
+Version 4 accepted `"wait": -5` and moved on without waiting. It also accepted `"timeout": 0`, which meant the 60000-millisecond default in `runShell` and `runCode`, and other things elsewhere.
+
+**What to do:** Remove negative values. To use the default `timeout`, leave the key out instead of setting `0`.
 
 ## No `edge` browser surface
 
