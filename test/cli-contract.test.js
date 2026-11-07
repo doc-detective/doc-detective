@@ -909,6 +909,19 @@ describe("CLI contract", function () {
       expect(fs.existsSync(path.join(cwd, "config-cache"))).to.equal(true);
     });
 
+    for (const args of [
+      ["install", "status", "--json", "--config", "sub/x.json"],
+      ["--config", "sub/x.json", "install", "status", "--json"],
+    ]) {
+      it(`installs into a --config file's cacheDir, relative to the file: ${args.join(" ")}`, function () {
+        fs.mkdirSync(path.join(cwd, "sub"));
+        fs.writeFileSync(path.join(cwd, "sub", "x.json"), JSON.stringify({ cacheDir: "c" }));
+        const r = run(args, { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, "sub", "c"))).to.equal(true);
+      });
+    }
+
     it("lets install read the project .env, as a run does", function () {
       fs.writeFileSync(path.join(cwd, ".env"), "DOC_DETECTIVE_CACHE_DIR=dotenv-cache\n");
       const r = run(["install", "status", "--json"], { unset: ["DOC_DETECTIVE_CACHE_DIR"] });
