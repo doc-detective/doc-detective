@@ -65,7 +65,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "not both."
+            "stdio": "beforeAll: set `beforeAll` or `beforeAny`, not both."
           }
         }
       ]
