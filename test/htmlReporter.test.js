@@ -204,6 +204,20 @@ describe("HTML Reporter", function () {
     expect(html).to.include("body.dark");
   });
 
+  // Reports carry the effective step (ADR 01167): goTo is an object and the
+  // method is lowercase. The label function is pulled from the page's script.
+  it("labels effective goTo and httpRequest steps", async function () {
+    const outputFile = path.join(tmpDir, "report.html");
+    await outputResults({}, outputFile, sampleResults, { reporters: ["html"] });
+    const source = /function stepLabel\(step\) \{[\s\S]*?\n\}/.exec(fs.readFileSync(outputFile, "utf-8"))?.[0];
+    expect(source, "stepLabel in the report script").to.be.a("string");
+    const stepLabel = new Function(`${source}; return stepLabel;`)();
+    expect(stepLabel({ goTo: { url: "https://example.com" } })).to.equal("Go to https://example.com");
+    expect(stepLabel({ httpRequest: { url: "https://api.example.com", method: "get" } })).to.equal(
+      "GET https://api.example.com"
+    );
+  });
+
   it("embeds the canonical logo paths", async function () {
     const outputFile = path.join(tmpDir, "report.html");
     await outputResults({}, outputFile, sampleResults, {
