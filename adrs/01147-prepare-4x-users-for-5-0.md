@@ -74,10 +74,16 @@ a first run to a new `--output results` warns too.
 
 Spec rows come from `runTests` right after it resolves tests, so they print before any step runs,
 in a dry run too. That makes them the only rows a programmatic `runTests` call can print. Each names
-the spec file, not the line. They read resolved steps, which keep the values as written, so a
-`"click": true` still reads as a boolean. Inline steps in Markdown get the same checks.
+the spec file, not the line, and a file gets one warning per row. A row about a value, such as a URL,
+names the first one and counts the rest. They read resolved steps, which keep the values as written,
+so a `"click": true` still reads as a boolean. Inline steps in Markdown get the same checks.
 Every check is a key lookup on a step, a test, or its routing entries, plus one scan for negative
-`timeout`, `duration`, `delay`, and `wait` values. No row runs another schema validation.
+`timeout`, `duration`, `delay`, and `wait` values. That scan skips user data, such as request bodies
+and element attributes. No row runs another schema validation.
+
+Spec rows print at the effective log level, after the `DOC_DETECTIVE` override applies. A dry run
+forces silent for stdout's sake, so there they use the caller's level unless that override sets one.
+A check that throws logs at debug level and never fails the run.
 
 The official images set `DOC_DETECTIVE` themselves, with a `container` value that starts with
 `docdetective/docdetective:`. The `container` row skips that value, because the 5.0 images allow unsafe
