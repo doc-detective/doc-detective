@@ -286,7 +286,7 @@ A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers alwa
 **What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/cli#configuration-precedence), and each layer merges objects key by key:
 
 - `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
-- `install` reads `cacheDir` from your project and user config, like a run does.
+- `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
 - A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
 - A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
 
@@ -308,7 +308,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 **What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value is ignored with a warning. See [Environment variables](/reference/cli#environment-variables).
 
-**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`.
+**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both exits `2`.
 
 ## Telemetry notice
 

@@ -4,6 +4,7 @@ import {
   getBrowsersDir,
   getInstalledRecordPath,
   readInstalledRecord,
+  setRunCacheDir,
   writeInstalledRecord,
 } from "../dist/runtime/cacheDir.js";
 import fs from "node:fs";
@@ -28,6 +29,23 @@ describe("runtime/cacheDir", function () {
   });
 
   describe("precedence", function () {
+    it("a run's resolved cacheDir beats DOC_DETECTIVE_CACHE_DIR and ctx, without touching the env", function () {
+      const run = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-run-"));
+      const env = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-env-"));
+      try {
+        process.env.DOC_DETECTIVE_CACHE_DIR = env;
+        setRunCacheDir(run);
+        expect(getCacheDir({ cacheDir: "/something/else" })).to.equal(run);
+        expect(process.env.DOC_DETECTIVE_CACHE_DIR).to.equal(env);
+        setRunCacheDir(undefined);
+        expect(getCacheDir({})).to.equal(env);
+      } finally {
+        setRunCacheDir(undefined);
+        fs.rmSync(run, { recursive: true, force: true });
+        fs.rmSync(env, { recursive: true, force: true });
+      }
+    });
+
     it("DOC_DETECTIVE_CACHE_DIR env var wins over config.cacheDir and the home-dir default", function () {
       const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-prec-"));
       try {

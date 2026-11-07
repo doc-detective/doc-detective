@@ -217,7 +217,7 @@ To use a different cache location, such as a shared directory or a volume baked 
 3. **Project config**: `cacheDir` in `.doc-detective.json`, `.yaml`, or `.yml`. A relative path resolves against the config file.
 4. **User config**: `cacheDir` in `$XDG_CONFIG_HOME/doc-detective/config.json`
 
-`install` and test runs read the same settings, so they use the same cache. See [Configuration precedence](/reference/cli#configuration-precedence).
+`install` and test runs read the same settings, including the project `.env`, so they use the same cache. See [Configuration precedence](/reference/cli#configuration-precedence). An invalid config makes `install` exit `2`. `install` doesn't read `apiKeyFile` or `apiTokenFile`, so it runs before secrets are mounted, as in an image build.
 
 Browsers always install into `<cacheDir>/browsers`. A `./browser-snapshots/` folder from version 4 isn't used.
 

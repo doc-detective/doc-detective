@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
 import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage } from "./utils.js";
+import { setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -104,6 +105,9 @@ async function setConfig({ config, detectApps = true }: any) {
     throw new Error(configErrorMessage("", validityCheck.errorObjects, config), { cause: validityCheck.errors });
   }
   config = validityCheck.object;
+  // Environment warnings print at this config's level, for JS API callers too.
+  const logged = config;
+  setEnvWarningSink((message) => log(logged, "warning", message));
 
   // Replace fileType strings with objects. The schema limits the strings to the
   // built-in names. Copy the default: the normalizing below mutates entries in
