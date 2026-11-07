@@ -380,8 +380,10 @@ function getEnvironment() {
   environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
-  // Versions that fingerprint a run in its report (ADR 01163).
-  environment.docDetectiveVersion = ownVersion();
+  // Versions that fingerprint a run in its report (ADR 01163). An unknown own
+  // version leaves the optional field out rather than present but undefined.
+  const version = ownVersion();
+  if (version) environment.docDetectiveVersion = version;
   environment.nodeVersion = process.versions.node;
   environment.osRelease = os.release();
   return environment;

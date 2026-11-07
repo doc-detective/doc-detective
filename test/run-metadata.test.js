@@ -5,6 +5,29 @@ import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 import { sessionVersions } from "../dist/core/utils.js";
 import { validate } from "../dist/common/src/validate.js";
+import { getEnvironment } from "../dist/core/config.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
+
+describe("getEnvironment's version", () => {
+  it("leaves docDetectiveVersion out when its own version is unknown", () => {
+    // Make ownVersion() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    let environment;
+    try {
+      environment = getEnvironment();
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+    assert.equal("docDetectiveVersion" in environment, false);
+  });
+});
 
 describe("sessionVersions", function () {
   it("reads Chrome and chromedriver from the session capabilities", () => {
