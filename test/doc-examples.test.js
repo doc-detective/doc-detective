@@ -28,8 +28,12 @@ function classify(object) {
   return null;
 }
 
-function* fencedBlocks(file) {
-  const text = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+function* fencedBlocks(file, source = fs.readFileSync(file, "utf8")) {
+  // A ```` (or longer) fence is a sample whose inner fences render as literal text: blank it,
+  // keeping its newlines so line numbers still match.
+  const text = source
+    .replace(/\r\n/g, "\n")
+    .replace(/^([ \t]*)(`{4,})[^\n]*\n[\s\S]*?^\1\2`*[ \t]*$/gm, (sample) => sample.replace(/[^\n]/g, ""));
   // `\1` makes the closing fence match the opening fence's indentation.
   for (const m of text.matchAll(/^([ \t]*)```(json|ya?ml)([^\n]*)\n([\s\S]*?)^\1```/gm)) {
     const [, indent, lang, info, body] = m;
@@ -50,7 +54,8 @@ function checkDocExamples() {
         object = undefined; // A fragment, not a whole document.
       }
       let schemaKey = /\binvalid\b/.test(info) ? null : classify(object);
-      // A step with `"$1"` values is a markup action template, not a step.
+      // A step with `"$1"` values is a markup action template, not a step. Scoped to step_v3 on
+      // purpose: every known template is a step. Widen it if a config template appears.
       if (schemaKey === "step_v3" && /"\$\d+"/.test(body)) schemaKey = null;
       if (!schemaKey) {
         counts.skipped++;
@@ -69,6 +74,12 @@ describe("doc examples", function () {
     assert.equal(classify({ goTo: "https://example.com", find: "Welcome" }), "step_v3");
     // null: `elementText` isn't a step-level key, so the every-key-is-a-step-key guard fails.
     assert.equal(classify({ elementText: "Welcome", click: true }), null);
+  });
+
+  it("skips fences nested in a longer outer fence, which render as literal text", function () {
+    const sample = ['````markdown', '```json title="x.json"', '{ "tests": [] }', '```', '````', '```json', '{ "goTo": "/" }', '```'].join("\n");
+    const blocks = [...fencedBlocks("sample.mdx", sample)];
+    assert.deepEqual(blocks.map((b) => b.where), ["sample.mdx:6"]);
   });
 
   it("every json/yaml example validates against doc-detective-common", function () {

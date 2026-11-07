@@ -15,6 +15,7 @@ for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
   console.log(`Generated dist/schemas/${file}`);
 }
 
+// tsc copies src/schemas/schemas.json here; both loops share this outDir.
 const schemas = JSON.parse(await readFile(path.join(outDir, "schemas.json"), "utf8"));
 for (const [key, schema] of Object.entries(schemas)) {
   if (!key.endsWith("_v3")) continue;
