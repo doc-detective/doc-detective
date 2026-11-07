@@ -38,7 +38,7 @@ jobs:
           issue_mentions: claude,copilot
 ```
 
-When a test fails, the action opens an issue with the results. It adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. The action assigns the issue to Copilot rather than mentioning it.
+When a test fails, the action opens an issue with the results. It adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. For `copilot`, the action assigns the issue to Copilot instead of adding a text mention.
 
 ## Customize the prompt
 
@@ -65,7 +65,7 @@ Both inputs take effect only when `create_issue_on_fail` is `true`.
 
 ### Renamed inputs
 
-Action `@v2` renamed two inputs. The old names still work as deprecated aliases:
+GitHub Action `@v2` renames two inputs. The old names still work as deprecated aliases:
 
 | Old name | New name |
 |---|---|
