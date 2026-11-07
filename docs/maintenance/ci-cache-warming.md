@@ -2,7 +2,11 @@
 
 How the Doc Detective install cache persists across CI runs, stays warm, and
 gets repaired when something goes wrong. The cache is `~/.dd-cache`, holding
-browsers, drivers, heavy runtime npm deps, and git-bash.
+browsers, drivers, heavy runtime npm deps, and git-bash. On Windows runners
+with a `D:` drive it's `D:/dd-cache` instead, because extracting the entry
+onto `C:` took about 70 s. The path is part of the cache version.
+Windows and POSIX entries never mix, and changing either path orphans every
+existing entry for that OS until the next save.
 
 ## Design
 

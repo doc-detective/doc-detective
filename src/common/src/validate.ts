@@ -1,89 +1,42 @@
-import { schemas, SchemaKey } from "./schemas/index.js";
-import Ajv, { ValidateFunction, ErrorObject } from "ajv";
-// Ajv extra formats: https://ajv.js.org/packages/ajv-formats.html
-import addFormats from "ajv-formats";
-// Ajv extra keywords: https://ajv.js.org/packages/ajv-keywords.html
-import addKeywords from "ajv-keywords";
-// Ajv custom errors: https://ajv.js.org/packages/ajv-errors.html
-import addErrors from "ajv-errors";
-import dynamicDefaultsDef from "ajv-keywords/dist/definitions/dynamicDefaults.js";
+import type { ValidateFunction, ErrorObject } from "ajv";
+import validators from "./schemas/validators.cjs";
 
-// Browser-compatible UUID function
-/* c8 ignore next 10 - crypto.randomUUID always available in Node.js; fallback is for browsers */
-function getRandomUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+// Validators are precompiled at build time from `schemasReferenced` ($refs
+// intact) by Ajv standalone code generation (createAjv/standaloneValidatorFiles
+// in ajv.ts, written by scripts/generateValidators.js), so no schema compiles
+// at runtime and the Ajv compiler never loads. test/precompiledValidators.test.js
+// proves they validate exactly like the runtime-compiled schemas. ADR 01138.
+//
+// The MUTATING set: `useDefaults` fills in schema defaults and `coerceTypes`
+// rewrites values in place. Both mutate the data they validate, which is why
+// every validation runs against a clone.
+const ajv = validators.mutating;
 
-// Configure base Ajv. This is the MUTATING validator: `useDefaults` fills in
-// schema defaults and `coerceTypes` rewrites values in place. Both mutate the
-// data they validate, which is why every validation runs against a clone.
-// @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
-const ajv = new Ajv({
-  strictSchema: false,
-  logger: false,
-  useDefaults: true,
-  allErrors: true,
-  allowUnionTypes: true,
-  coerceTypes: true,
-});
-
-// A second, NON-mutating Ajv used only to *probe* which compatible schema an
+// A second, NON-mutating set used only to *probe* which compatible schema an
 // object matches. It has `useDefaults`/`coerceTypes` OFF, so it never touches
 // the data — that lets us try every candidate schema against the caller's
 // object directly, with no per-candidate clone. The winning schema is then
-// re-run through the mutating `ajv` on a single clone to reproduce the exact
-// defaults/coercions the old code produced. Schemas compile lazily on first
-// use, so this instance only pays for the candidates actually probed.
+// re-run through the mutating set on a single clone to reproduce the exact
+// defaults/coercions the old code produced. Loaded on first probe.
 //
-// It deliberately omits the `dynamicDefaultsDef`/`useDefaults` machinery below.
-// A consequence: any compatible schema whose VALIDITY depends on a default —
+// It deliberately runs without `useDefaults`, so neither static nor dynamic
+// (`dynamicDefaults`) defaults apply. A consequence: any compatible schema whose VALIDITY depends on a default —
 // whether a static `useDefaults` scalar (e.g. config_v2's required
 // `telemetry.send`) OR a dynamic default (e.g. a required uuid field) — will not
 // match this probe and instead falls to the mutating-probe fallback in
 // `validate()`. That fallback replays the exact old behavior, so this is a
 // correctness-preserving performance split, not a gap.
-// @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
-const ajvCheck = new Ajv({
-  strictSchema: false,
-  logger: false,
-  useDefaults: false,
-  allErrors: true,
-  allowUnionTypes: true,
-  coerceTypes: false,
-});
+const ajvCheck = () => validators.loadCheck();
 
-// Enable `uuid` dynamic default
-// @ts-expect-error - CJS/ESM interop: dynamicDefaultsDef.DEFAULTS exists at runtime
-dynamicDefaultsDef.DEFAULTS.uuid = (_args: any) => getRandomUUID;
-
-// Enhance Ajv
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addFormats(ajv);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addKeywords(ajv);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addErrors(ajv);
-// The probe instance needs the same formats/keywords/error handling so a
-// candidate's validity result is identical to the mutating validator's (minus
-// the default/coercion effects, which don't decide the compatible v2 schemas).
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addFormats(ajvCheck);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addKeywords(ajvCheck);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addErrors(ajvCheck);
-
-// Add all schemas from `schema` object to both instances.
-for (const [key, value] of Object.entries(schemas)) {
-  ajv.addSchema(value, key);
-  ajvCheck.addSchema(value, key);
+/**
+ * Look up a schema's precompiled validator. Unknown keys, including inherited
+ * names like `constructor`, return undefined.
+ */
+function getValidator(
+  set: Record<string, ValidateFunction>,
+  key: string,
+): ValidateFunction | undefined {
+  return Object.hasOwn(set, key) ? set[key] : undefined;
 }
 
 /**
@@ -215,7 +168,7 @@ export function validate({
     result.errorObjects = [];
   }
   let validationObject: any;
-  let check: ValidateFunction | undefined = ajv.getSchema(schemaKey);
+  let check: ValidateFunction | undefined = getValidator(ajv, schemaKey);
   if (!check) {
     result.valid = false;
     result.errors = `Schema not found: ${schemaKey}`;
@@ -262,10 +215,10 @@ export function validate({
     // is always a mutating match too, so this fast path is exact for any
     // candidate whose validity doesn't depend on a default/coercion.
     let matchedSchemaKey = compatibleSchemasList.find((key) => {
-      // Every compatible key is registered on ajvCheck (see the addSchema loop
-      // above), so getSchema is always defined — assert it, matching the
+      // Every compatible key is a known schema with a precompiled validator,
+      // so the validator is always defined — assert it, matching the
       // `matchedCheck!` non-null assertion below.
-      const probe = ajvCheck.getSchema(key)!;
+      const probe = getValidator(ajvCheck(), key)!;
       return probe(object) as boolean;
     });
     if (!matchedSchemaKey) {
@@ -276,7 +229,7 @@ export function validate({
       // that validated under the old code is newly rejected. Runs only on the
       // rare no-fast-match path, so the common case keeps its single-clone win.
       matchedSchemaKey = compatibleSchemasList.find((key) => {
-        const mutatingCheck = ajv.getSchema(key)!;
+        const mutatingCheck = getValidator(ajv, key)!;
         return mutatingCheck(cloneForValidation(object)) as boolean;
       });
     }
@@ -300,7 +253,7 @@ export function validate({
       // MUTATING validator for the matched schema, so its defaults/coercions are
       // applied exactly as before, then transform.
       validationObject = cloneForValidation(object);
-      const matchedCheck = ajv.getSchema(matchedSchemaKey);
+      const matchedCheck = getValidator(ajv, matchedSchemaKey);
       matchedCheck!(validationObject);
       const transformedObject = transformToSchemaKey({
         currentSchema: matchedSchemaKey,

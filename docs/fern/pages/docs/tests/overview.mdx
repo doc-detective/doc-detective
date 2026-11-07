@@ -304,7 +304,7 @@ Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that
 
 - A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
 - A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
-- `if` and [contexts](/docs/configuration/contexts) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
+- `if` and [contexts](/docs/test-docs/platforms-and-browsers) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
 
 ## Routing handlers
 

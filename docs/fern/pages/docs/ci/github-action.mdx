@@ -208,7 +208,7 @@ iOS simulators run only on macOS, so this input has no effect on Linux or Window
 
 ### Alternative: prebuild WebDriverAgent into a persisted cache
 
-Your workflow might already persist Doc Detective's [cache directory](/reference/cli/install#cache-directory) between runs, for example with `actions/cache`. You can then skip the action's WDA cache and let Doc Detective manage the build itself. Run [`doc-detective install ios --yes`](/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions. Test sessions consume the products automatically and read-only, which is safe to share across parallel jobs. Set `ios: 'false'` on the action in that case. The two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
+Your workflow might already persist Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory) between runs, for example with `actions/cache`. You can then skip the action's WDA cache and let Doc Detective manage the build itself. Run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions. Test sessions consume the products automatically and read-only, which is safe to share across parallel jobs. Set `ios: 'false'` on the action in that case. The two mechanisms overlap, and the action's cache takes precedence when both are active, so you'd pay for both.
 
 ```yaml
 jobs:

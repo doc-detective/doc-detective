@@ -3,7 +3,7 @@ import {
   isSupportedContext,
   getDefaultBrowser,
   getDriverCapabilities,
-  withChromedriverPort,
+  withDriverPort,
   combinationKey,
   warmUpDecision,
   contextRequirementsSkipMessage,
@@ -652,27 +652,27 @@ describe("applyDriverOptions", function () {
   });
 });
 
-describe("withChromedriverPort", function () {
+describe("withDriverPort (ADR 01039, 01105)", function () {
   const chromeCaps = {
     "appium:automationName": "Chromium",
     browserName: "chrome",
   };
 
   it("assigns a chromedriver port for a Chromium session", function () {
-    const out = withChromedriverPort(chromeCaps, 51234);
+    const out = withDriverPort(chromeCaps, 51234);
     assert.equal(out["appium:chromedriverPort"], 51234);
   });
 
   it("returns a copy, leaving the input capabilities untouched", function () {
     const input = { ...chromeCaps };
-    const out = withChromedriverPort(input, 51235);
+    const out = withDriverPort(input, 51235);
     assert.equal(input["appium:chromedriverPort"], undefined);
     assert.notStrictEqual(out, input);
   });
 
   it("assigns distinct ports on repeated calls (fresh free port per attempt)", function () {
-    const a = withChromedriverPort(chromeCaps, 40001);
-    const b = withChromedriverPort(chromeCaps, 40002);
+    const a = withDriverPort(chromeCaps, 40001);
+    const b = withDriverPort(chromeCaps, 40002);
     assert.notEqual(
       a["appium:chromedriverPort"],
       b["appium:chromedriverPort"]
@@ -680,19 +680,35 @@ describe("withChromedriverPort", function () {
   });
 
   it("does not override an explicitly supplied chromedriver port", function () {
-    const out = withChromedriverPort(
+    const out = withDriverPort(
       { ...chromeCaps, "appium:chromedriverPort": 9999 },
       51236
     );
     assert.equal(out["appium:chromedriverPort"], 9999);
   });
 
-  it("leaves non-Chromium capabilities untouched", function () {
+  it("assigns a geckodriver systemPort for a Gecko session", function () {
+    // appium-geckodriver's own pick (lowest free port in 5200..5300) is not
+    // reserved until geckodriver binds, so two concurrent Appium servers can
+    // both pick 5200 and proxy to one geckodriver ("unexpected session id").
     const gecko = { "appium:automationName": "Gecko", browserName: "firefox" };
-    const out = withChromedriverPort(gecko, 51237);
+    const out = withDriverPort(gecko, 51237);
+    assert.equal(out["appium:systemPort"], 51237);
     assert.equal(out["appium:chromedriverPort"], undefined);
-    // Gecko/Safari pick their own free port internally; nothing to assign.
-    assert.deepEqual(out, gecko);
+    assert.equal(gecko["appium:systemPort"], undefined);
+  });
+
+  it("does not override an explicitly supplied geckodriver systemPort", function () {
+    const out = withDriverPort(
+      { "appium:automationName": "Gecko", "appium:systemPort": 5299 },
+      51238
+    );
+    assert.equal(out["appium:systemPort"], 5299);
+  });
+
+  it("leaves capabilities of engines without a driver port untouched", function () {
+    const safari = { "appium:automationName": "Safari", browserName: "Safari" };
+    assert.strictEqual(withDriverPort(safari, 51239), safari);
   });
 
   it("gives two concurrent Chromium driver starts distinct chromedriver ports", async function () {
@@ -700,7 +716,7 @@ describe("withChromedriverPort", function () {
     // driverStart allocates its own free chromedriver port, so their caps must
     // never share a port. This is the concurrency invariant the fix restores.
     const build = async () =>
-      withChromedriverPort(
+      withDriverPort(
         { "appium:automationName": "Chromium", browserName: "chrome" },
         await findFreePort()
       );

@@ -4,7 +4,6 @@ import path from "node:path";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
-import axios from "axios";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
   loadHeavyDep,
@@ -16,6 +15,54 @@ import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+import { createRequire } from "node:module";
+import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
+
+// axios (~70 modules with its deps) loads on first use rather than at CLI
+// startup (see test/startup-modules.test.js). Cached, so hot paths pay the
+// dynamic import once.
+let axiosModule: Promise<typeof import("axios").default> | undefined;
+export function loadAxios(): Promise<typeof import("axios").default> {
+  return (axiosModule ??= import("axios").then((m) => m.default));
+}
+
+/**
+ * Browser and driver versions for a context's report (ADR 01163), read from
+ * the WebdriverIO session's capabilities, falling back to the detected app
+ * (`availableApps` entry) where the session is silent. appium-geckodriver
+ * echoes the requested capabilities rather than geckodriver's, so Firefox's
+ * versions come from the detected build ID (`nightly_161.0a1`) and the
+ * managed `geckodriver-<version>` binary name. Safari reports no driver
+ * version.
+ */
+export function sessionVersions({
+  capabilities,
+  app,
+}: {
+  capabilities?: any;
+  app?: { name?: string; version?: string; driver?: string };
+}): { browserVersion?: string; driver?: { name: string; version?: string } } {
+  const result: { browserVersion?: string; driver?: { name: string; version?: string } } = {};
+  // Runs after the driver started, so odd values are ignored, never thrown on.
+  const str = (value: unknown) =>
+    typeof value === "string" && value ? value : undefined;
+  const caps = capabilities ?? {};
+  const browserVersion =
+    str(caps.browserVersion) ?? str(app?.version)?.replace(/^[a-z]+_/, "");
+  if (browserVersion) result.browserVersion = browserVersion;
+  const chromedriver = str(caps.chrome?.chromedriverVersion);
+  if (chromedriver) {
+    result.driver = { name: "chromedriver", version: chromedriver.split(" ")[0] };
+  } else if (app?.name === "firefox") {
+    const version =
+      str(caps["moz:geckodriverVersion"]) ??
+      /geckodriver-(\d+(?:\.\d+)*)/i.exec(path.basename(str(app.driver) ?? ""))?.[1];
+    result.driver = { name: "geckodriver", ...(version && { version }) };
+  } else if (app?.name === "safari") {
+    result.driver = { name: "safaridriver" };
+  }
+  return result;
+}
 
 export {
   outputResults,
@@ -57,6 +104,9 @@ export {
   isPageBroken,
   isPageUnnavigated,
   isInitialBlankDocument,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  guardBlankDocumentNavigation,
   classifyContextRetry,
   isTransientProcessInitError,
   matchesFilter,
@@ -70,6 +120,11 @@ export {
   rollUpAssertions,
   createAppiumPool,
   evaluateContextRequirements,
+  verifiedDate,
+  shieldsBadge,
+  resolveVerifiedId,
+  applyVerifiedMarkers,
+  applyBadgeAnchoredTests,
 };
 
 export type { BackgroundProcess, ResourceRegistry };
@@ -519,11 +574,9 @@ async function spawnPtyBackgroundCommand(
   try {
     ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-color",
-      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
-      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
-      // expected width when authoring `waitUntil.stdio` patterns.
-      cols: 120,
-      rows: 30,
+      // `tty: {cols, rows}`; Ajv skips defaults inside the schema's anyOf.
+      cols: options.cols ?? 120,
+      rows: options.rows ?? 30,
       cwd: options.cwd || process.cwd(),
       env: shellSpawnEnv(options.shell) ?? process.env,
     });
@@ -650,7 +703,7 @@ async function waitForHttp(
       // Cap the per-request timeout to the time left so a single hung request
       // can't block past the overall readiness deadline (e.g. timeout: 600).
       const remaining = deadline - Date.now();
-      const resp = await axios.get(url, {
+      const resp = await (await loadAxios()).get(url, {
         validateStatus: () => true,
         timeout: Math.max(1, Math.min(5000, remaining)),
       });
@@ -938,6 +991,95 @@ function isInitialBlankDocument(url: unknown): boolean {
   return INITIAL_BLANK_DOCUMENT.test(String(url ?? "").trim());
 }
 
+// Issue a navigation, then re-issue it once if the browser is still parked on
+// its initial blank document. Chromium's `url()` can resolve with the session
+// never having left `data:,`, so the navigation silently did not take while
+// every later check passes trivially against the blank page (ADR 01084, ADR
+// 01088). Returns whether the retry fired, which is what gates
+// probeStuckOnBlankDocument below: a first attempt that landed on a real page
+// proves nothing by being re-read, so the healthy path pays no extra round trip.
+async function issueNavigation(driver: any, url: string): Promise<boolean> {
+  await driver.url(url);
+  if (!(await isPageUnnavigated(driver))) return false;
+  await driver.url(url);
+  return true;
+}
+
+// The companion verdict. Reads the URL ONCE and returns it when the browser is
+// still on the initial blank document, else null, so a caller decides and
+// reports from a single observation. Probing twice can decide on one URL and
+// print another if the page moves in between, which reads as the tool
+// contradicting itself. An unreadable URL is not evidence of anything, so it
+// reads as not stuck, matching isPageUnnavigated's own swallow.
+async function probeStuckOnBlankDocument(
+  driver: any,
+  retried: boolean
+): Promise<string | null> {
+  if (!retried) return null;
+  let observedUrl: string;
+  try {
+    observedUrl = String((await driver.getUrl()) ?? "").trim();
+  } catch {
+    return null;
+  }
+  return isInitialBlankDocument(observedUrl) ? observedUrl : null;
+}
+
+// Wrap a WebdriverIO session's `url` command with the guard above, so a caller
+// holding a raw runner gets the same protection a `goTo` step has. getRunner
+// hands out such a runner and its documented usage is `await runner.url(...)`,
+// which bypassed the guard entirely: a session parked on `data:,` returned an
+// empty title and the failure surfaced with nothing pointing at the navigation.
+// See adrs/01102-getrunner-verifies-it-left-the-blank-document.md.
+//
+// Uses WebdriverIO's own `overwriteCommand` rather than assigning to `url`,
+// because the browser object is a proxy. A runner without it (a stub in a unit
+// test) is left alone rather than failing.
+function guardBlankDocumentNavigation(runner: any, config: any): void {
+  if (typeof runner?.overwriteCommand !== "function") return;
+  runner.overwriteCommand(
+    "url",
+    async function (this: any, originalUrl: any, url?: string, ...rest: any[]) {
+      // Nothing to verify: WebdriverIO owns rejecting a missing or non-string
+      // target, and a caller deliberately asking for the blank document itself
+      // would otherwise read as stuck forever.
+      if (
+        typeof url !== "string" ||
+        url.length === 0 ||
+        isInitialBlankDocument(url)
+      ) {
+        return originalUrl.call(this, url as any, ...rest);
+      }
+      // Re-implements issueNavigation's two steps rather than calling it, for
+      // two reasons. It would recurse: `this.url` IS this wrapper, and
+      // issueNavigation navigates through the driver it is handed. And the
+      // warning has to sit BETWEEN the two navigations, so a reader of the log
+      // can see the re-issue was a response to the blank page.
+      const result = await originalUrl.call(this, url, ...rest);
+      if (!(await isPageUnnavigated(this))) return result;
+      log(
+        config,
+        "warning",
+        `Browser was still on its initial blank document after navigating to ${redactUrlForOutput(
+          url
+        )}. Re-issuing the navigation.`
+      );
+      const retriedResult = await originalUrl.call(this, url, ...rest);
+      const stuckOn = await probeStuckOnBlankDocument(this, true);
+      if (stuckOn !== null) {
+        throw new Error(
+          `The browser never left its initial blank document (${redactUrlForOutput(
+            stuckOn
+          )}): navigation to ${redactUrlForOutput(
+            url
+          )} didn't take, even after a retry. The session is alive; the page was never loaded.`
+        );
+      }
+      return retriedResult;
+    }
+  );
+}
+
 export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 
 // The retry DECISION for a FAILed context, composed from the three probes above.
@@ -956,16 +1098,22 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 //     comes from a Map's values(), whose iteration order is insertion order per
 //     the language spec, not an implementation detail.
 //
-// See adrs/01082-retries-mid-session-context-retry.md and
-// adrs/01084-retry-unnavigated-context.md.
+//   • ...and only when the context actually tried to navigate. A context that
+//     ran no goTo (process-surface steps only) is legitimately on `data:,`, so
+//     its FAIL is real; retrying it re-runs steps that aren't idempotent.
+//
+// See adrs/01082-retries-mid-session-context-retry.md,
+// adrs/01084-retry-unnavigated-context.md and
+// adrs/01119-no-unnavigated-retry-without-navigation.md.
 async function classifyContextRetry(
-  probeDrivers: any[]
+  probeDrivers: any[],
+  { navigated = true }: { navigated?: boolean } = {}
 ): Promise<ContextRetryReason | null> {
   for (const probeDriver of probeDrivers) {
     if (!(await isSessionAlive(probeDriver))) return "session-died";
     if (await isPageBroken(probeDriver)) return "page-broken";
   }
-  if (await isPageUnnavigated(probeDrivers[0])) return "unnavigated";
+  if (navigated && (await isPageUnnavigated(probeDrivers[0]))) return "unnavigated";
   return null;
 }
 
@@ -1153,11 +1301,10 @@ function appendQueryParams(
 }
 
 // Delete transient scratch files from the doc-detective temp directory.
-// PRESERVED entries: the lazy-install cache subdirectories (`browsers/`,
-// `runtime/`) and `installed.json`. The default cacheDir is
-// `<os.tmpdir()>/doc-detective/`, which means cache assets and scratch
-// files share the same root directory. A blanket wipe here would delete
-// the very chromedriver/firefox binaries the next runTests call needs
+// PRESERVED entries: every lazy-install cache entry. The default cacheDir is
+// `~/.doc-detective/` (ADR 01105), but a cacheDir explicitly pointed at
+// `<os.tmpdir()>/doc-detective/` shares this root with scratch files, and a
+// blanket wipe would delete the very binaries the next runTests call needs
 // (this regression broke sequential `runTests` calls in CI on every
 // platform — see test/core-core.test.js's getRunner suite).
 const PRESERVED_TEMP_ENTRIES = new Set([
@@ -1167,6 +1314,10 @@ const PRESERVED_TEMP_ENTRIES = new Set([
   // Tool downloads (git-bash — the MinGit backing runShell's Windows `bash`
   // shell). Wiping it would force a ~40 MB re-download on every run.
   "tools",
+  // `install android` (SDK + its JRE) and `install ios` (WDA prebuilds).
+  "android-sdk",
+  "jre",
+  "ios",
 ]);
 
 function cleanTemp() {
@@ -1244,9 +1395,22 @@ function redactUrlForOutput(value: string): string {
     const url = new URL(value);
     url.search = "";
     url.hash = "";
+    // `toString()` re-serializes userinfo, so a basic-auth URL would publish
+    // its password alongside the host. These strings land in step descriptions,
+    // warnings, reports and CI logs, so clear both before serializing.
+    url.password = "";
+    url.username = "";
     return url.toString();
   } catch {
-    return value.split("?")[0].split("#")[0];
+    const stripped = value.split("?")[0].split("#")[0];
+    // Nothing parsed this, so match the authority textually: userinfo sits
+    // between `//` and the first `/`. `[^/]*` cannot cross that boundary, so it
+    // stops at the last `@` of the authority and leaves a later `@` in the path
+    // alone.
+    return stripped.replace(
+      /^((?:[a-zA-Z][a-zA-Z0-9+.-]*:)?\/\/)[^/]*@/,
+      "$1"
+    );
   }
 }
 
@@ -1377,7 +1541,7 @@ async function fetchFile(
       // change; expanding SSRF coverage there belongs in its own PR.
       await assertUrlHostIsPublic(fileURL);
     }
-    const response = await axios.get(
+    const response = await (await loadAxios()).get(
       fileURL,
       opts.binary ? FETCH_BINARY_DEFAULTS : undefined
     );
@@ -1491,6 +1655,9 @@ function logLevelEnabled(config: any, level: string): boolean {
  */
 export const VIEWPORT_TOLERANCE_PX = 16;
 
+/** How long realizeViewport waits for a resize to show up in the page. */
+const VIEWPORT_SETTLE_MS = 2000;
+
 /**
  * Compare a requested browser viewport against the viewport the page actually
  * rendered (window.innerWidth/innerHeight read back after a resize) and produce
@@ -1526,7 +1693,7 @@ export function viewportMismatchWarning(
     }
   }
   if (parts.length === 0) return null;
-  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+  return `Requested viewport not fully realized — the browser or OS limits the window size: ${parts.join(
     "; "
   )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
 }
@@ -1604,7 +1771,8 @@ export async function realizeViewport(
   driver: any,
   requested: { width?: number; height?: number },
   config: any = {},
-  label?: string
+  label?: string,
+  level = "warning"
 ): Promise<{ width: number; height: number }> {
   const current = await readViewport(driver);
   const target = resolveViewportTarget(requested, current);
@@ -1626,16 +1794,129 @@ export async function realizeViewport(
     Math.round(windowSize.height + deltaHeight)
   );
 
-  const actual = await readViewport(driver);
+  // Some engines report the old viewport for a moment after a resize (headless
+  // Chrome on Windows CI). Poll until the target lands or the size stops
+  // changing; a stale read would otherwise skew the next resize's delta and
+  // raise a false floor warning.
+  let actual = await readViewport(driver);
+  let previous: { width: number; height: number } | undefined;
+  const deadline = Date.now() + VIEWPORT_SETTLE_MS;
+  while (
+    viewportMismatchWarning(target, actual, VIEWPORT_TOLERANCE_PX) &&
+    !(
+      previous &&
+      previous.width === actual.width &&
+      previous.height === actual.height &&
+      (actual.width !== current.width || actual.height !== current.height)
+    ) &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    previous = actual;
+    actual = await readViewport(driver);
+  }
   const warning = viewportMismatchWarning(
     requested,
     actual,
     VIEWPORT_TOLERANCE_PX
   );
   if (warning) {
-    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+    await log(config, level, label ? `${label}: ${warning}` : warning);
   }
   return actual;
+}
+
+/**
+ * Viewport for a desktop browser session nobody sized. Without it the size is
+ * whatever the engine and host pick (headless Chrome renders 758×426 on
+ * Windows, headless Firefox 1366×683), which drifts between runner images.
+ * A viewport rather than a window: the window-to-viewport offset is the part
+ * that drifts. See ADR 01144.
+ */
+export const DEFAULT_VIEWPORT = { width: 1200, height: 800 };
+
+/**
+ * The size a browser session was asked for, recorded on `driver.state` so a
+ * screenshot can tell drift from an intentional change (ADR 01144).
+ */
+export type SizeTarget = {
+  kind: "viewport" | "window" | "default";
+  width?: number;
+  height?: number;
+};
+
+// Only positive dimensions count: the schema doesn't floor these, and a
+// 0/negative/NaN value must not reach setWindowSize.
+function positiveDimensions(
+  dims: { width?: number; height?: number } | undefined
+): { width?: number; height?: number } | undefined {
+  const width = Number(dims?.width);
+  const height = Number(dims?.height);
+  if (!(width > 0) && !(height > 0)) return undefined;
+  return {
+    ...(width > 0 ? { width } : {}),
+    ...(height > 0 ? { height } : {}),
+  };
+}
+
+/**
+ * Size a freshly opened desktop browser session: an authored viewport wins,
+ * then an authored window, then DEFAULT_VIEWPORT. Records the choice as
+ * `driver.state.sizeTarget` and returns it, plus the viewport that rendered
+ * when one was realized.
+ */
+export async function applyBrowserSize(
+  driver: any,
+  authored:
+    | {
+        viewport?: { width?: number; height?: number };
+        window?: { width?: number; height?: number };
+      }
+    | undefined,
+  config: any = {},
+  label?: string
+): Promise<{ target: SizeTarget; realized?: { width: number; height: number } }> {
+  const viewport = positiveDimensions(authored?.viewport);
+  const windowDims = positiveDimensions(authored?.window);
+  let target: SizeTarget;
+  let realized: { width: number; height: number } | undefined;
+  if (viewport) {
+    target = { kind: "viewport", ...viewport };
+    realized = await realizeViewport(driver, viewport, config, label);
+  } else if (windowDims) {
+    target = { kind: "window", ...windowDims };
+    const current = await driver.getWindowSize();
+    await driver.setWindowSize(
+      windowDims.width ?? current.width,
+      windowDims.height ?? current.height
+    );
+  } else {
+    target = { kind: "default", ...DEFAULT_VIEWPORT };
+    // Nobody asked for this size, so a host too small to fit it (a headed
+    // desktop on a small display) isn't worth a warning, and a session that
+    // can't be resized at all still runs at the size it opened with.
+    try {
+      realized = await realizeViewport(
+        driver,
+        DEFAULT_VIEWPORT,
+        config,
+        label,
+        "debug"
+      );
+    } catch (error: any) {
+      await log(
+        config,
+        "debug",
+        `Couldn't apply the default ${DEFAULT_VIEWPORT.width}×${DEFAULT_VIEWPORT.height} viewport: ${error?.message ?? error}`
+      );
+    }
+  }
+  driver.state = driver.state ?? {};
+  driver.state.sizeTarget = target;
+  // The target belongs to the window that was sized, not to popups the page
+  // opens later in the same session.
+  driver.state.sizeTargetHandle = await driver.getWindowHandle?.();
+  return { target, realized };
 }
 
 async function log(config: any, level: string, message?: any) {
@@ -1840,6 +2121,399 @@ function replaceEnvs(stringOrObject: any): any {
     });
   }
   return stringOrObject;
+}
+
+// ===========================================================================
+// Verification metadata write-back. After a run, every page that lists a
+// `verified-by` entry for Doc Detective gets that entry's result written back
+// when its check passed. src/core/verification.ts holds the rules, and
+// adrs/01140-last-verified-on-marker-writeback.md records them.
+// ===========================================================================
+
+// Map a file extension to the doc format whose comment syntax we use. `.mdx`
+// shares the markdown grammar (and uses the JSX-comment variant).
+const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "markdown",
+  adoc: "asciidoc",
+  asciidoc: "asciidoc",
+  asc: "asciidoc",
+  html: "html",
+  htm: "html",
+  dita: "dita",
+  ditamap: "dita",
+  // `.xml` is intentionally omitted: it's a generic extension (POMs, SVGs, feeds,
+  // Spring configs), and treating every .xml as DITA would put unrelated files on
+  // the write-back scan path. DITA authored as `.xml` is uncommon; use `.dita`.
+};
+
+// Body of an existing DD-managed shields.io image, per format, so a badge
+// writer can find and replace its own image line on re-runs. Anchored to the
+// `Last_verified-` label shieldsBadge writes, so an author's other shields.io
+// badge on that line is never taken for ours.
+const VERIFIED_IMG_BODY: Record<string, string> = {
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge/Last_verified-[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge/Last_verified-[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge/Last_verified-\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge/Last_verified-[\\s\\S]*?</image>",
+};
+
+// Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
+// across runners/timezones), e.g. `2026-06-26`.
+function verifiedDate(d: Date = new Date()): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Escape one shields.io URL path segment: `_`→`__`, `-`→`--`, ` `→`_`. The
+// dash-doubling is the easy-to-get-wrong bit (a literal `-` is otherwise the
+// label/message/color separator), so `2026-06-26` → `2026--06--26`.
+function shieldsEscape(segment: string): string {
+  return segment.replace(/_/g, "__").replace(/-/g, "--").replace(/ /g, "_");
+}
+
+// Build a shields.io static badge, wrapped in the format's native image syntax.
+// DD only writes the URL; shields.io renders it client-side (no network call).
+function shieldsBadge(
+  format: string,
+  date: string,
+  { label = "Last verified", color = "brightgreen" }: { label?: string; color?: string } = {}
+): string {
+  const url = `https://img.shields.io/badge/${shieldsEscape(label)}-${shieldsEscape(
+    date
+  )}-${shieldsEscape(color)}`;
+  const alt = `${label} ${date}`;
+  switch (format) {
+    case "asciidoc":
+      return `image:${url}[${alt}]`;
+    case "html":
+      return `<img src="${url}" alt="${alt}">`;
+    case "dita":
+      return `<image href="${url}"><alt>${alt}</alt></image>`;
+    default:
+      return `![${alt}](${url})`;
+  }
+}
+
+// Replace a source document in one step: write a sibling temp file, then rename
+// it over the real target, so an interrupted write never leaves the document
+// half-written. The target is resolved first, so a symlink stays a symlink,
+// and its permission bits carry over. On any failure the temp file goes and
+// the document is untouched.
+function writeFileAtomic(file: string, content: string): void {
+  const target = fs.realpathSync(file);
+  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
+  // Created exclusively first, so an EEXIST throws before we own the file and
+  // cleanup can never remove someone else's.
+  const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
+  let keepTmp = false;
+  try {
+    try {
+      fs.writeFileSync(fd, content, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
+    try {
+      fs.renameSync(tmp, target);
+    } catch (error: any) {
+      // Windows refuses to replace a file another process holds open (an
+      // editor, a preview). Fall back to an in-place copy, which is no worse
+      // than a plain write, rather than skip the document.
+      if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
+      try {
+        fs.copyFileSync(tmp, target);
+      } catch (copyError: any) {
+        // The copy truncates the document first, so a failure partway can
+        // leave it incomplete. Keep the temp file, the one complete copy.
+        keepTmp = true;
+        throw new Error(`${copyError?.message ?? copyError} (the complete content is kept in ${tmp})`);
+      }
+      fs.rmSync(tmp, { force: true });
+    }
+  } catch (error) {
+    if (!keepTmp) fs.rmSync(tmp, { force: true });
+    throw error;
+  }
+}
+
+// Resolve a check against a run report: specs with a matching specId, else
+// tests with a matching testId. A routed revisit (goToTest) reports a unit
+// more than once, so it resolves to PASS only if every match passed, and to
+// the first other result otherwise. Null when nothing matches.
+function resolveVerifiedId(results: any, id: string): string | null {
+  if (!results || !Array.isArray(results.specs)) return null;
+  const specs = results.specs.filter((spec: any) => spec?.specId === id);
+  const matches = specs.length
+    ? specs
+    : results.specs.flatMap((spec: any) => (spec?.tests || []).filter((test: any) => test?.testId === id));
+  if (matches.length === 0) return null;
+  const failed = matches.find((unit: any) => unit.result !== "PASS");
+  return failed ? (failed.result ?? null) : "PASS";
+}
+
+// Post-run write-back: for every candidate source file, fill Doc Detective's
+// `verified-by` entries whose check PASSED, in front matter and in inline
+// `meta` statements. Unknown checks warn and are skipped; other results write
+// nothing. Per-file failures warn and continue. Never throws.
+//
+// The candidate set is the union of the report's content paths and the full
+// detected input set (`files`), so a prose-only page that names a check but
+// contributes no spec is still updated.
+//
+// With `init` (`verification.write: true`), a Markdown or MDX page whose spec
+// PASSED is first given a `verified-by` entry naming that spec, if it has no
+// Doc Detective entry yet (declarePage), so the fill completes it.
+function applyVerifiedMarkers({
+  config,
+  results,
+  files: detectedFiles = [],
+  init = false,
+}: {
+  config: any;
+  results: any;
+  files?: string[];
+  init?: boolean;
+}): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> the passing spec a page declares under `init`.
+  const passingSpecs = new Map<string, string>();
+  if (init) {
+    for (const spec of results.specs) {
+      const ext = (String(spec?.contentPath ?? "").split(".").pop() || "").toLowerCase();
+      if (VERIFIED_FORMAT_BY_EXT[ext] !== "markdown" || typeof spec.specId !== "string") continue;
+      if (resolveVerifiedId(results, spec.specId) === "PASS") passingSpecs.set(spec.contentPath, spec.specId);
+    }
+  }
+
+  const files = new Set<string>();
+  for (const file of detectedFiles) {
+    if (file) files.add(file);
+  }
+  for (const spec of results.specs) {
+    if (spec?.contentPath) files.add(spec.contentPath);
+    for (const test of spec?.tests || []) {
+      if (test?.contentPath) files.add(test.contentPath);
+    }
+  }
+
+  const today = verifiedDate();
+  const version: string = createRequire(import.meta.url)("../../package.json").version;
+  for (const file of files) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const specId = passingSpecs.get(file);
+      const declared = specId === undefined ? original : declarePage(original, specId);
+      // Cheap fast-path: every entry Doc Detective fills names it, so a file
+      // without the literal "doc-detective" has nothing to update.
+      if (!declared.includes(VERIFIED_TOOL)) continue;
+      const content = applyVerification(declared, format, {
+        today,
+        version,
+        resolve: (check) => resolveVerifiedId(results, check),
+        onUnknown: (check) =>
+          log(config, "warning", `verified-by check '${check}' in ${file} matches no test or spec; skipping.`),
+        onSkipped: (line, reason) =>
+          log(config, "warning", `Skipping the meta statement at ${file}:${line}: ${reason}.`),
+      });
+      if (content !== original) writeFileAtomic(file, content);
+    } catch (error: any) {
+      log(config, "warning", `Failed to update verified-by entries in ${file}: ${error?.message ?? error}`);
+    }
+  }
+}
+
+// A `test` statement with `testId` added to its options, in its own comment
+// form, or undefined when its options aren't absent or one JSON object, the
+// only shapes it can edit without re-serializing the author's statement.
+function withTestId(statement: string, id: string): string | undefined {
+  const m = /^([\s\S]*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
+  if (!m) return undefined;
+  const [, head, options, close] = m;
+  const field = `"testId": ${JSON.stringify(id)}`;
+  if (options.trim() === "") return `${head} {${field}}${close}`;
+  try {
+    const parsed = JSON.parse(options);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || "testId" in parsed) return undefined;
+  } catch {
+    return undefined;
+  }
+  const open = options.indexOf("{");
+  const rest = options.slice(open + 1).trimStart();
+  return `${head}${options.slice(0, open + 1)}${field}${rest.startsWith("}") ? "" : ", "}${rest}${close}`;
+}
+
+// Whether `statement` sets `id` as its testId (`"testId": "id"`, `testId: id`,
+// or `testId="id"`), not merely mentions it, or a longer id that starts with it.
+function setsTestId(statement: string, id: string): boolean {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`testId["']?\\s*[:=]\\s*["']?${escaped}(?=["'\\s,}>)]|$)`).test(statement);
+}
+
+// A `meta` statement declaring `checks` for Doc Detective, in the format's
+// comment form, or undefined when the payload can't be written in that form.
+function declaringStatement(format: string, ext: string, checks: string[]): string | undefined {
+  const payload = JSON.stringify({ "verified-by": checks.map((check) => ({ tool: "doc-detective", check })) });
+  if (format === "dita") return `<?manni meta ${payload}?>`;
+  if (format === "asciidoc") return payload.includes(")") ? undefined : `// (meta ${payload})`;
+  return ext === "mdx" ? `{/* meta ${payload} */}` : `<!-- meta ${payload} -->`;
+}
+
+// Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01141.
+// With `init` (`verification.write: true`), a passing inline test whose testId
+// is authored (written in its own test statement; a generated one never is) gets a `meta`
+// statement declaring it above its statement and badge, unless one already
+// does. The verification write-back then fills and pins it. See ADR 01140.
+// A statement is independent of the badge: a test without `badge: true`
+// still gets one.
+function applyBadgeAnchoredTests({ config, results, init = false }: { config: any; results: any; init?: boolean }): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> statement line -> what that line gets. A badge sits on the
+  // line above its test statement, so every badge-flagged test on one line,
+  // including a routed revisit (goToTest) of the same test, shares one badge:
+  // it passes only if every one of them passed. With `init`, `checks` holds
+  // each test id on the line, its result merged the same way, and its test
+  // statement's span: an id written inside that span was authored.
+  type LineWork = { badge?: string; checks: Map<string, { result: string; start: number; end: number }> };
+  const byFile = new Map<string, Map<number, LineWork>>();
+  const merge = (prev: string | undefined, next: string) => (prev === undefined || prev === "PASS" ? next : prev);
+  for (const spec of results.specs) {
+    for (const test of spec?.tests || []) {
+      if (test?.badge !== true && !init) continue;
+      if (!test?.contentPath) continue;
+      if (!test?.location?.line) {
+        if (test.badge === true) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
+          );
+        }
+        continue;
+      }
+      const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
+      const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };
+      if (test.badge === true) work.badge = merge(work.badge, test.result);
+      if (init && typeof test.testId === "string") {
+        const { startIndex: start = 0, endIndex: end = 0 } = test.location;
+        const result = merge(work.checks.get(test.testId)?.result, test.result);
+        work.checks.set(test.testId, { result, start, end });
+      }
+      byLine.set(test.location.line, work);
+      byFile.set(test.contentPath, byLine);
+    }
+  }
+
+  const today = verifiedDate();
+  for (const [file, byLine] of byFile) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const eol = original.includes("\r\n") ? "\r\n" : "\n";
+      const lines = original.split(/\r?\n/);
+      const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
+      const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
+      // A check some statement in the file already declares. Reading `original`,
+      // not `lines`, is deliberate: a goToTest revisit reruns the same test and
+      // reports its location, so one id reaches one line. Two authored tests
+      // sharing an id on different lines each get their own statement.
+      const declared = (id: string) =>
+        new RegExp(`"check"\\s*:\\s*${JSON.stringify(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(original);
+      let changed = false;
+
+      // Bottom-to-top so an insertion doesn't shift indices still to process.
+      for (const [line, work] of [...byLine].sort((a, b) => b[0] - a[0])) {
+        let li = line - 1; // 0-indexed into `lines`: the test statement
+        if (li < 0 || li >= lines.length) continue; // stale location vs. current file
+        const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
+
+        // Freeze a passing test's generated id: write it into the test's own
+        // statement, where it counts as authored from then on. A generated id
+        // changes whenever its test does, so a statement naming it would break.
+        // Right to left, so two statements on one line keep their positions. A
+        // statement can span lines; adding the id never adds one, so every
+        // line index this pass still uses stays valid.
+        const frozen = new Set<string>();
+        for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
+          const text = original.slice(c.start, c.end).replace(/\r\n/g, "\n");
+          if (c.result !== "PASS" || setsTestId(text, id)) continue;
+          const span = text.split("\n").length;
+          const block = lines.slice(li, li + span).join("\n");
+          const at = block.indexOf(text);
+          const next = at === -1 ? undefined : withTestId(text, id);
+          if (next === undefined) {
+            log(
+              config,
+              "warning",
+              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't absent or one JSON object. Add a testId to the statement by hand.`
+            );
+            continue;
+          }
+          lines.splice(li, span, ...(block.slice(0, at) + next + block.slice(at + text.length)).split("\n"));
+          frozen.add(id);
+          changed = true;
+        }
+
+        // Non-pass: leave the existing badge to age.
+        if (work.badge === "PASS") {
+          const img = shieldsBadge(format, today);
+          const existing = li > 0 ? lines[li - 1].match(existingImgRe) : null;
+          if (existing) {
+            if (lines[li - 1] !== `${existing[1]}${img}`) {
+              lines[li - 1] = `${existing[1]}${img}`;
+              changed = true;
+            }
+          } else {
+            lines.splice(li, 0, `${indent}${img}`);
+            li++;
+            changed = true;
+          }
+        }
+
+        const checks = [...work.checks]
+          .filter(
+            ([id, c]) =>
+              c.result === "PASS" && (frozen.has(id) || setsTestId(original.slice(c.start, c.end), id)) && !declared(id)
+          )
+          .map(([id]) => id);
+        const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
+        if (checks.length > 0 && !statement) {
+          log(
+            config,
+            "warning",
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")", so no statement can name it. Rename the testId without ")".`
+          );
+        }
+        if (statement) {
+          const top = li > 0 && existingImgRe.test(lines[li - 1]) ? li - 1 : li;
+          lines.splice(top, 0, `${format === "asciidoc" ? "" : indent}${statement}`);
+          changed = true;
+        }
+      }
+
+      if (changed) writeFileAtomic(file, lines.join(eol));
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Failed to update badge-anchored tests in ${file}: ${error?.message ?? error}`
+      );
+    }
+  }
 }
 
 // Filesystem-safe instant token, matching the `doc-detective debug` dump's

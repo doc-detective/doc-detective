@@ -8,10 +8,26 @@ realities around them.
 
 ## Merge gating on `main`
 
-- `main` has no classic branch protection. The gate is a repository **ruleset** ("main"). Its
-  real blockers are `code_quality`, meaning CodeQL code scanning at severity=errors, plus a
-  `pull_request` rule requiring 1 approving review. `require_code_owner_review` is vacuous, because
-  there's no CODEOWNERS file. **CodeQL is the only CI signal that truly blocks merge.**
+- `main` has no classic branch protection. The gate is a repository **ruleset** ("main"), so
+  `gh api repos/:owner/:repo/branches/main/protection` answers "Branch not protected" and tells you
+  nothing. Read `gh api repos/:owner/:repo/rulesets/13338220` instead. Its blockers are
+  `code_quality` (CodeQL at severity=errors), a `pull_request` rule requiring 1 approving review,
+  and a `required_status_checks` rule naming five contexts: `lint`,
+  `test / Test (ubuntu-latest, node 22, shard 1)`,
+  `test / Test (ubuntu-latest, node 22, shard 2)`,
+  `test / Coverage ratchet (src/common)`, and
+  `test / Coverage ratchet (root, cross-platform)`.
+  `require_code_owner_review` is vacuous, because there's no CODEOWNERS file.
+- **A required check that never reports blocks the PR with nothing failing.** `mergeStateStatus`
+  reads `BLOCKED` while every check shown is green, `mergeable` is `MERGEABLE`, and
+  `gh pr merge` refuses with "the base branch policy prohibits the merge". That is not a flake and
+  not a stale review. It means one of the five contexts above is absent, not red. PR #729, a
+  documentation-only change, hit this because `npm-test.yaml` was path-filtered to `src/**` and
+  friends, so the four `test / …` contexts never existed.
+  [ADR 01103](../../adrs/01103-required-test-contexts-report-on-every-pull-request.md) fixed it.
+  The workflow now always runs. When the change set has no code in it, placeholder jobs report
+  those four names. If this signature returns, compare the names the ruleset requires against
+  `gh pr checks <n> --json name,state` before reaching for `--admin`.
 - Some checks look scary but don't block. The `review` check is the "Claude PR Review - Auto"
   workflow. A red `review` never blocks merge. Treat it as a real signal anyway. It fails
   deterministically once a PR collects a large automated-comment history. The run reports
@@ -95,6 +111,38 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
   headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
   regression.
+
+## Failed npm publishes
+
+The release job publishes during semantic-release's `prepare` step, before it commits or tags
+anything ([ADR 01145](../../adrs/01145-publish-before-tagging-the-release.md)). A failed publish
+that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release behind.
+
+- **Detect:** the Release run's `release` job fails, and its log shows
+  `publish-staged-release.js` with an `npm error code`.
+- **Recover:** fix the cause, then re-run the Release workflow on the branch that failed
+  (`gh workflow run release.yml --ref <branch>`). It retries the same version.
+- If one package reached npm before the failure, the log says the version is "partly on npm".
+  npm never accepts a version twice, so the release tags it anyway, fails at its publish step, and
+  the next release moves past it. Nothing is promoted. Re-running doesn't cut that next release,
+  because no releasable commit follows the new tag. Fix the cause, then merge a `fix:` or `feat:`
+  commit.
+- If the log says `publish failed` but `npm view doc-detective@X.Y.Z` lists the version, the
+  registry was still propagating when the release checked. Re-running the release in CI is safe:
+  it reuses a published version only when npm's `gitHead` matches the commit being released. Don't
+  publish that version by hand from a different commit, because a manual run skips that check.
+- `E404` on the publish `PUT` means npm rejected `NPM_TOKEN`. npm reports a bad publish token as
+  404, not 401. Replace the token.
+- `EOTP` means the token authenticates but isn't allowed to skip 2FA. Use a granular access token
+  with **Bypass two-factor authentication** checked and read-write access to both
+  `doc-detective` and `doc-detective-common`. Also check that neither package's **Publishing
+  access** setting disallows tokens.
+- `E403` with `You may not perform that action with these credentials` usually means the token
+  works but has no write access to that package. Create a token with read-write access to both
+  packages and update the repository's `NPM_TOKEN` secret. If the token already has that, check
+  its 2FA bypass and the package's **Publishing access** setting, as for `EOTP`.
+- Tags `v4.38.2` through `v4.41.3` predate ADR 01145 and never reached npm. Leave them alone. The
+  next release moves past them.
 
 ## Promoting stale `claude/*` feature branches
 

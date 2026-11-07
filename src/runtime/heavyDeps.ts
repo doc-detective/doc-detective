@@ -104,10 +104,12 @@ export function resolveManagedDepNames(pkg: ShimPackageJson): string[] {
 }
 
 export interface ShimPackageJson {
-  // The published manifest carries heavy-dep version constraints here:
-  // the publish step moves `optionalDependencies` into this custom field so npm
-  // never auto-installs them, while the source manifest keeps
-  // `optionalDependencies` for Dependabot. See scripts/publish-manifest.js.
+  // The published manifest carries every heavy-dep version constraint here:
+  // the publish step merges `optionalDependencies` into this custom field so
+  // npm never auto-installs them. The source manifest keeps most heavy deps in
+  // `optionalDependencies` for Dependabot, and declares runtime-cache-only deps
+  // (Appium and its drivers, the PTY backend) here directly.
+  // See scripts/publish-manifest.js.
   ddRuntimeDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;

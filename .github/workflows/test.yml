@@ -17,6 +17,16 @@ name: Test Matrix
 
 on:
   workflow_call:
+    inputs:
+      # false → do no work, but still report the contexts the `main` ruleset
+      # requires, through the placeholder jobs at the end of this file
+      # (ADR 01103). Defaults to true so release.yml, which passes no inputs,
+      # keeps running the full matrix.
+      run-matrix:
+        description: Run the matrix and ratchets. When false, only report.
+        type: boolean
+        required: false
+        default: true
     secrets:
       HERETTO_ORG_ID:
         required: false
@@ -31,6 +41,7 @@ permissions:
 jobs:
   test:
     name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
+    if: ${{ inputs.run-matrix }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -50,30 +61,59 @@ jobs:
         # cells' worth of matrix time (Windows/macOS node 22).
         node:
           - 24
-        # Each cell's mocha suite is split into two parallel shard jobs by
-        # scripts/run-test-shard.cjs (deterministic weighted partition of
-        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the 8092/
-        # 8093 test servers per mocha process, so each shard self-provisions;
-        # the coverage-merge job unions the shards' raw-coverage artifacts, and
-        # the union equals the unsharded suite's coverage.
+        # Each cell's mocha suite runs as parallel shard jobs, split by
+        # scripts/run-test-shard.cjs (a deterministic partition of
+        # test/*.test.js). Mocha's root hooks (test/hooks.js) start the
+        # 8092/8093 test servers per mocha process, so each shard provisions
+        # its own. The coverage-merge job unions the shards' raw-coverage
+        # artifacts, and the union equals the unsharded suite's coverage.
+        #
+        # Shard counts (`shards`, ADR 01127): 3 on windows-latest, whose
+        # mocha step ran 6-11 min per shard, the longest in the grid. At 3
+        # shards the runner packs by measured seconds and splits core-core
+        # by top-level describe. 2 everywhere else: macOS runners are a
+        # 5-slot pool shared with the iOS fixture legs, so a third job's
+        # setup costs more there than it saves.
         shard:
           - 1
           - 2
-        # `include` entries only extend existing combinations when every listed
-        # key matches one, so the node-22 cell must spell out both shards.
+        # Every cell states its shard count. It can't be a base `shards`
+        # dimension, because `include` can't overwrite a base value, so
+        # Windows could never say 3. The first three entries extend the base
+        # cells per OS. The rest add cells (Windows shard 3, node 22), and
+        # spell out every key, since `include` only extends a combination
+        # when every listed key matches it.
         include:
+          - os: ubuntu-latest
+            shards: 2
+          - os: macos-latest
+            shards: 2
+          - os: windows-latest
+            shards: 3
+          - os: windows-latest
+            node: 24
+            shard: 3
+            shards: 3
           - os: ubuntu-latest
             node: 22
             shard: 1
+            shards: 2
           - os: ubuntu-latest
             node: 22
             shard: 2
+            shards: 2
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      # Windows: keep npm's cache on D:, before setup-node restores into it.
+      # C: is slow at small-file I/O (see the dd-cache action).
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
+
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
@@ -89,8 +129,13 @@ jobs:
         with:
           node: ${{ matrix.node }}
 
-      - run: npm ci
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      # build:ci = build minus regenerating the committed, type-only
+      # generated types, so the JS under test is identical. The two
+      # coverage-ratchet jobs below (both required) still run the full
+      # build, so a stale committed type still fails the gate
+      # (test/build-ci-contract.test.js).
+      - run: npm run build:ci
       # Pre-warm the lazy-install cache so tests that drive Chrome through
       # the lower-level runSpecs/getRunner paths (and therefore bypass the
       # JIT pre-flight in runTests) still find a browser. The published
@@ -109,7 +154,7 @@ jobs:
       # mocha half: it runs this shard's deterministic slice of test/*.test.js
       # (the two slices union to exactly the full glob — asserted by
       # test/run-test-shard.test.js).
-      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} 2
+      - run: node scripts/run-test-shard.cjs ${{ matrix.shard }} ${{ matrix.shards }}
         env:
           HERETTO_ORG_ID: ${{ secrets.HERETTO_ORG_ID }}
           HERETTO_USERNAME: ${{ secrets.HERETTO_USERNAME }}
@@ -132,7 +177,7 @@ jobs:
       # unused. Running only on the success path keeps the intent honest.
       - run: node scripts/prune-coverage.cjs coverage/tmp
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           # upload-artifact v4 needs unique names; the shard suffix provides
           # that, and coverage-merge downloads by the `raw-coverage-*` pattern
@@ -150,21 +195,33 @@ jobs:
   # run is enough. Both callers (PR gate + release gate) wait on this job, so a
   # coverage regression blocks merges and releases alike.
   coverage-ratchet:
-    name: Coverage ratchet (src/common)
+    # The one-cell matrix exists to keep this name TEMPLATED. A skipped job emits
+    # a check run under its unexpanded name, so a static name here would collide
+    # with the required context the placeholder reports (ADR 01103).
+    #
+    # `scope` feeds the NAME only. No step reads it, and the paths below are
+    # hardcoded, so adding a cell here would report a second context that tests
+    # the same thing. Change the steps first if you ever want to generalize it.
+    name: Coverage ratchet (${{ matrix.scope }})
+    if: ${{ inputs.run-matrix }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        include:
+          - scope: src/common
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run build:common
       # build:common no longer runs the suite (it builds artifacts only, so the
       # ~40 fixture/shard jobs that just need dist do not pay for — or flake on —
@@ -192,29 +249,35 @@ jobs:
   # means no separate full-suite coverage run is needed. The merged report is
   # uploaded so the measured percentage is always visible.
   coverage-merge:
-    name: Coverage ratchet (root, cross-platform)
+    # Templated for the same reason as coverage-ratchet above.
+    name: Coverage ratchet (${{ matrix.scope }})
+    if: ${{ inputs.run-matrix }}
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+          - scope: 'root, cross-platform'
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       # Build so dist/**/*.js + sourcemaps + src/** exist: c8 report remaps each
       # raw dist entry through its sourcemap back to the original src/** file,
       # exactly as the single-OS job did.
       - run: npm run build
 
       # Pull every cell's raw-coverage-* artifact into its own subdirectory.
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: raw-coverage-*
           path: raw-coverage
@@ -229,8 +292,74 @@ jobs:
       - run: npm run test:coverage:ratchet
 
       - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: root-coverage
           path: coverage/
           retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Placeholders. These exist for ONE reason: the `main` ruleset requires four
+  # of this workflow's checks by name, and a required check that never reports
+  # blocks a pull request forever with nothing failing. When there is no code to
+  # exercise, the real jobs above are skipped and these report the same four
+  # names instead, so the gate is satisfiable by a docs-only change (ADR 01103).
+  #
+  # They are mutually exclusive with the real jobs, so a context is never
+  # reported twice. Each one says in its log that it tested nothing, and the
+  # names are duplicated deliberately rather than invented, because the ruleset
+  # matches on the exact string.
+  # ---------------------------------------------------------------------------
+  test-placeholder:
+    name: Test (${{ matrix.os }}, node ${{ matrix.node }}, shard ${{ matrix.shard }})
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        # Only the two cells the ruleset requires. The rest of the real grid has
+        # nothing to report to, so spinning runners for it would be waste.
+        include:
+          - os: ubuntu-latest
+            node: 22
+            shard: 1
+          - os: ubuntu-latest
+            node: 22
+            shard: 2
+    steps:
+      - name: Nothing to exercise
+        run: |
+          echo 'No code paths changed, so the test matrix had nothing to run.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'
+          echo 'scripts/select-test-matrix.cjs made this call; see the changes job.'
+
+  coverage-ratchet-placeholder:
+    name: Coverage ratchet (${{ matrix.scope }})
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - scope: src/common
+    steps:
+      - name: Nothing to measure
+        run: |
+          echo 'No code paths changed, so coverage cannot have moved.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'
+
+  coverage-merge-placeholder:
+    name: Coverage ratchet (${{ matrix.scope }})
+    if: ${{ !inputs.run-matrix }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - scope: 'root, cross-platform'
+    steps:
+      - name: Nothing to merge
+        run: |
+          echo 'No code paths changed, so there are no coverage artifacts to union.'
+          echo 'Reporting success to satisfy the required check (ADR 01103).'

@@ -229,7 +229,7 @@ doc-detective install runtime
 
 ### Appium driver installed but not registered
 
-The **Appium registration** section reconciles the drivers that resolve from npm against the drivers Appium has actually registered, read from its `extensions.yaml` manifest. A driver that resolves from npm but isn't registered usually means `APPIUM_HOME` points at the wrong `node_modules`:
+The **Appium registration** section reconciles the drivers that resolve from npm against the drivers Appium has actually registered, read from its `extensions.yaml` manifest. Every Appium server Doc Detective starts uses the runtime cache, `<cacheDir>/runtime`, as its `APPIUM_HOME`. A driver that resolves from npm but isn't registered usually means Appium's manifest there is stale:
 
 ```
 -- Appium registration ----------------------------------------------
@@ -237,10 +237,10 @@ The **Appium registration** section reconciles the drivers that resolve from npm
     appium-chromium-driver   resolvable but not registered
 ```
 
-Reinstall the runtime so Appium registers the driver under the active `APPIUM_HOME`:
+Reinstall Appium so it rebuilds its manifest and registers the driver:
 
 ```bash
-doc-detective install runtime
+doc-detective install runtime appium --force
 ```
 
 When the manifest is missing, Doc Detective reports registration as unknown rather than flagging the drivers. A fresh environment therefore won't trigger a false alarm.
