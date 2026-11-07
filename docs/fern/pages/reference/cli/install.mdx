@@ -54,6 +54,8 @@ Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `openco
 
 The `--agent` and `--scope` options are specific to `install agents`. Using `--yes` non-interactively requires both.
 
+Doc Detective 5 installs agent-tools 2.x, the release line that matches its CLI, from the agent-tools `v2` tag. Codex, OpenCode, Gemini CLI, and Qwen Code install from that tag, and the up-to-date check for every agent reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace, which can't pin a tag. Those two install from the agent-tools default branch.
+
 ### `install runtime`
 
 Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.
