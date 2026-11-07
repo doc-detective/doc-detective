@@ -97,7 +97,8 @@ for every config source and every spec. Each problem is one line:
 - Unknown key: `unknown key '<k>'.`, plus ` Did you mean <near>?` for the nearest valid key at that path. That
   works at any depth. The key must be under 3 edits and under half the word's length away. Two swapped
   neighbors count as one edit. The half-length rule keeps `nope` from suggesting `type`.
-- Enum: `must be one of <a>, <b> (got "<v>").`
+- Enum: `must be one of <a>, <b> (got "<v>").` A single allowed value, as from `const`, reads
+  `must be <a> (got "<v>").`
 - Type: `must be <t1> or <t2> (got "<v>").`
 - `<v>` is the value as JSON, cut to 40 characters with an ellipsis. A string keeps its closing quote.
 - Required: `missing required key '<k>'.`
