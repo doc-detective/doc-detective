@@ -84,13 +84,17 @@ async function loadDescription(descriptionPath: string = "") {
     // included.
     definition = await readFile({ fileURLOrPath: descriptionPath });
   }
-  // readFile has already warned why it couldn't read it; an empty document
-  // parses to null too.
-  if (definition == null) {
+  // Only an object is a description. readFile returns null when it can't
+  // read the file, and has already warned why. Empty YAML parses to null;
+  // empty JSON and text that isn't JSON or YAML stay strings, which the ref
+  // parser would read as a path.
+  if (typeof definition !== "object" || definition === null) {
     const location = /^https?:\/\//i.test(descriptionPath)
       ? redactUrlForOutput(descriptionPath)
       : resolvePath(descriptionPath);
-    throw new Error(`Couldn't read ${location}: it doesn't exist, can't be read, or is empty.`);
+    throw new Error(
+      `Couldn't read ${location}: it doesn't exist, can't be read, is empty, or isn't a JSON or YAML object.`
+    );
   }
   // Every $ref refusal, before connecting or at connect time. It's a
   // UrlGuardError, the type getGuarded unwraps from axios's connect-error
