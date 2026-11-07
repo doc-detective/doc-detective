@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
+import { clickElement } from "../dist/core/tests/click.js";
 
 const config = { logLevel: "silent" };
 
@@ -275,5 +276,48 @@ describe("findElement unified assertion model", function () {
     const found = findAssertion(result.assertions, "found");
     assert.equal(found.result, "PASS");
     assert.ok(/Couldn't click/.test(result.description));
+  });
+
+  // ADR 01161: coercion used to turn `click: false` into the string "false",
+  // which is truthy, so the find clicked anyway.
+  it("find.click: false finds the element without clicking it", async () => {
+    let clicks = 0;
+    const element = makeElement({ clickImpl: async () => clicks++ });
+    const driver = makeDriver({ candidates: [element] });
+    const result = await findElement({
+      config,
+      step: { find: { selector: "button", click: false } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(clicks, 0, result.description);
+  });
+});
+
+// ADR 01161: a top-level boolean `click` names no element. Coercion used to
+// turn it into the text "true" or "false" and click whatever matched.
+describe("click with a boolean value", function () {
+  for (const value of [true, false]) {
+    it(`click: ${value} fails with a hint to quote it, and clicks nothing`, async () => {
+      let clicks = 0;
+      const element = makeElement({ clickImpl: async () => clicks++ });
+      const driver = makeDriver({ candidates: [element], $impl: async () => element });
+      const result = await clickElement({ config, step: { click: value }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.equal(
+        result.description,
+        `\`click\` needs an element, not ${value}. To click an element whose text is "${value}", quote it: "click": "${value}".`
+      );
+      assert.equal(clicks, 0);
+    });
+  }
+
+  it('click: "true" still clicks the element whose text is "true"', async () => {
+    let clicks = 0;
+    const element = makeElement({ clickImpl: async () => clicks++ });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await clickElement({ config, step: { click: "true" }, driver });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(clicks, 1);
   });
 });
