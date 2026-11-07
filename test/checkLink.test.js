@@ -7,6 +7,7 @@ let server;
 let serverPort;
 const requestLog = {};
 const flakyCounters = {};
+const SLOW_DELAY_MS = 200;
 
 before(async function () {
   const { expect } = await import("chai");
@@ -31,13 +32,13 @@ before(async function () {
       return;
     }
 
-    // "/slow/<ms>" -> waits <ms>, then returns 200 (query string ignored)
-    const slowMatch = url.split("?")[0].match(/^\/slow\/(\d+)$/);
-    if (slowMatch) {
+    // "/slow/200" -> waits SLOW_DELAY_MS, then returns 200 (query string
+    // ignored). The delay is fixed, never read from the request.
+    if (url.split("?")[0] === "/slow/200") {
       setTimeout(() => {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("Status 200");
-      }, parseInt(slowMatch[1], 10));
+      }, SLOW_DELAY_MS);
       return;
     }
 
@@ -579,7 +580,7 @@ describe("checkLink timeout", function () {
     const result = await checkLink({
       config: {},
       step: {
-        checkLink: { url: `http://localhost:${serverPort}/slow/50`, timeout: 5000 },
+        checkLink: { url: `http://localhost:${serverPort}/slow/200`, timeout: 5000 },
       },
     });
     assert.equal(result.status, "PASS", result.description);
