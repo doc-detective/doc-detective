@@ -872,7 +872,7 @@ describe("core/utils.ts — privateAddressOf SSRF classifier", function () {
 
   it("flags an IPv4-mapped IPv6 private address (::ffff: hex reconstruction)", async function () {
     // ::ffff:a00:1 == 10.0.0.1 after the URL parser normalizes the embedded v4.
-    assert.ok(await privateAddressOf("http://[::ffff:a00:1]/x"));
+    assert.equal(await privateAddressOf("http://[::ffff:a00:1]/x"), "::ffff:a00:1");
   });
 
   it("flags the literal 'localhost' hostname", async function () {
