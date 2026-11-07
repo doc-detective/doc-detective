@@ -4278,7 +4278,7 @@ export type Condition119 = string | [string, ...string[]];
  * Pause (in milliseconds) before performing the next action.
  */
 export type Wait1 = WaitSimple | WaitEnvironmentVariable;
-export type WaitSimple = boolean | number;
+export type WaitSimple = number | boolean;
 export type WaitEnvironmentVariable = string;
 /**
  * A condition expression, or an array of expressions combined with logical AND.

@@ -8,5 +8,5 @@
  * Pause (in milliseconds) before performing the next action.
  */
 export type Wait = WaitSimple | WaitEnvironmentVariable;
-export type WaitSimple = boolean | number;
+export type WaitSimple = number | boolean;
 export type WaitEnvironmentVariable = string;

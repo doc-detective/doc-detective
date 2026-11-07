@@ -51,7 +51,7 @@ listed types. So:
   dragAndDrop, find, goTo `waitUntil.find`, screenshot `crop`, type, waitUntil, annotation) now
   use `additionalProperties: {"type": ["boolean", "number", "string"]}`. `true`, `5`, and `"true"`
   each keep their type.
-* **`wait`** merges its number and boolean branches into one leading `["boolean", "number"]`
+* **`wait`** merges its number and boolean branches into one leading `["number", "boolean"]`
   branch, ahead of the `$VAR` string branch. `true` stays `true` and `1` stays `1`. Strings still
   coerce as before: `"5000"` becomes `5000` and `"true"` becomes `true`.
 * **`click`** (also reached by `find.click`) puts its boolean branch first as
