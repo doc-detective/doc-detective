@@ -62,7 +62,8 @@ function sendTelemetry(config: any, command: string, results: any) {
   // parse results to assemble flat list of properties for runTests actions
   if (command === "runTests") {
     // Get summary data
-    Object.entries(results.summary).forEach(([parentKey, value]: [string, any]) => {
+    // Telemetry never fails a run, so results without a summary send none.
+    Object.entries(results?.summary ?? {}).forEach(([parentKey, value]: [string, any]) => {
       if (typeof value === "object") {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {
