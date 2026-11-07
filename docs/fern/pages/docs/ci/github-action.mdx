@@ -29,7 +29,7 @@ jobs:
       - uses: doc-detective/github-action@v1
 ```
 
-This runs Doc Detective on every pull request. Pin to the major version (`@v1`) to pick up fixes automatically, or pin to a full version such as `@v1.4.1` for a fixed release.
+This runs Doc Detective on every pull request. Pin to the major version (`@v1`) to pick up fixes automatically, or pin to a full version such as `@v1.7.0` for a fixed release.
 
 ## Step 2: Point the action at your tests
 
@@ -45,18 +45,20 @@ By default, the action runs from the repository root and uses the config file Do
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `4` | Doc Detective version to run, as a version number, a range, or an npm tag. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
+| `version` | `4` (`latest` before v1.7.0) | Doc Detective version to run, as a version number, a range, or an npm tag. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `ios` | `auto` | Cache the WebDriverAgent build on macOS runners so `ios`-platform tests skip the slow cold compile. `auto` caches only when your specs use an `ios` platform, `true` always caches, and `false` never does. No effect off macOS. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
-Action `@v1` runs Doc Detective 4 and earlier, so it checks `version` before installing. The action:
+Action `@v1` runs Doc Detective 4 and earlier. Starting with v1.7.0, the action checks `version` before installing. It:
 
-- Refuses `latest` and any version or range that can install version 5 or later, such as `5`, `^5`, or the open-ended `>=4`. The job fails with a pointer to `doc-detective/github-action@v2`.
+- Refuses `latest` and any version or range that can install version 5 or later, such as `5`, `^5`, or `>=4`. The job fails with a pointer to `doc-detective/github-action@v2`.
 - Accepts a 4.x version or range, such as `4`, `^4`, or `4.41.5`.
 - Warns about other npm tags, such as `next`, and runs anyway, because it can't tell which version the tag installs.
 - Skips the check when `version` is empty.
+
+Releases before v1.7.0 default `version` to `latest` and skip this check. To get the check, use `@v1` or pin `@v1.7.0` or later.
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
