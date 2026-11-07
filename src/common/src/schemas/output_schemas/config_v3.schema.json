@@ -274,6 +274,11 @@
                         "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                         "readOnly": true
                       },
+                      "version": {
+                        "type": "string",
+                        "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                        "readOnly": true
+                      },
                       "headless": {
                         "type": "boolean",
                         "description": "If `true`, runs the browser in headless mode.",
@@ -351,6 +356,11 @@
                             "explicit": {
                               "type": "boolean",
                               "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                              "readOnly": true
+                            },
+                            "version": {
+                              "type": "string",
+                              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                               "readOnly": true
                             },
                             "headless": {
@@ -662,6 +672,11 @@
                     "explicit": {
                       "type": "boolean",
                       "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                      "readOnly": true
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                       "readOnly": true
                     },
                     "headless": {
@@ -2027,6 +2042,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -3908,6 +3929,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -5070,6 +5097,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -6732,6 +6765,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -16033,6 +16072,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -18156,6 +18201,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -20105,6 +20156,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -21448,6 +21505,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -22739,6 +22802,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -24173,6 +24242,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -28189,6 +28264,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -37152,6 +37233,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -38351,6 +38438,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -40213,6 +40306,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -41218,6 +41317,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -43462,6 +43567,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -45835,6 +45946,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -46798,6 +46915,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -48404,6 +48527,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -49586,6 +49715,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -51914,6 +52049,12 @@
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                                 "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                                "readOnly": true
                                               }
                                             },
                                             "title": "Common"
@@ -52909,6 +53050,12 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                                "readOnly": true
+                                              },
+                                              "startedAt": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                                 "readOnly": true
                                               }
                                             },
@@ -58594,6 +58741,18 @@
             "x32",
             "x64"
           ]
+        },
+        "docDetectiveVersion": {
+          "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+          "type": "string"
+        },
+        "nodeVersion": {
+          "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+          "type": "string"
+        },
+        "osRelease": {
+          "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+          "type": "string"
         }
       },
       "title": "Environment details"
@@ -59250,6 +59409,18 @@
               "x32",
               "x64"
             ]
+          },
+          "docDetectiveVersion": {
+            "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+            "type": "string"
+          },
+          "nodeVersion": {
+            "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+            "type": "string"
+          },
+          "osRelease": {
+            "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+            "type": "string"
           }
         },
         "title": "Environment details"
@@ -60278,6 +60449,12 @@
                                 "type": "integer",
                                 "minimum": 0,
                                 "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                "readOnly": true
+                              },
+                              "startedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                 "readOnly": true
                               }
                             },
@@ -62159,6 +62336,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -63321,6 +63504,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -64983,6 +65172,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -74284,6 +74479,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -76407,6 +76608,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -78356,6 +78563,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -79699,6 +79912,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -80990,6 +81209,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -82424,6 +82649,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -86440,6 +86671,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -95403,6 +95640,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -96602,6 +96845,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -98464,6 +98713,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -99469,6 +99724,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -101713,6 +101974,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -104086,6 +104353,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -105049,6 +105322,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -106655,6 +106934,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -107837,6 +108122,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },
@@ -110165,6 +110456,12 @@
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                   "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                  "readOnly": true
                                 }
                               },
                               "title": "Common"
@@ -111160,6 +111457,12 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                  "readOnly": true
+                                },
+                                "startedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                   "readOnly": true
                                 }
                               },

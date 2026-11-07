@@ -110,11 +110,13 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
             // decides unsupported combinations. Every pair gets its own
             // clone so contexts sharing one authored browser object can't
             // leak a rewrite (or any later per-context mutation) across
-            // platforms.
+            // platforms. `version` is readOnly report output (ADR 01163): an
+            // authored one is dropped so only the browser session sets it.
+            const { version: _authored, ...authoredBrowser } = browser;
             staticContext.browser =
               browser.name === "safari" && !isMobileTargetPlatform(platform)
-                ? { ...browser, name: "webkit" }
-                : { ...browser };
+                ? { ...authoredBrowser, name: "webkit" }
+                : authoredBrowser;
           }
           staticContexts.push(staticContext);
         });
