@@ -273,7 +273,8 @@ function classify(rgba: Uint8Array, width: number, height: number): { kind: Kind
   return { kind: spread <= ONE_COLOR_SPREAD ? "oneColor" : "multiColor", average, flat: false };
 }
 
-// The heights to try, in device pixels, in order.
+// The heights to try, in device pixels, in order. A multi-color file gets the common
+// sizes only, because each of its masked comparisons takes about seven times as long.
 function sweepHeights(reference: ImageReference, scale: number): number[] {
   const { kind, height, isSvg } = reference;
   const heights =
