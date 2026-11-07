@@ -5453,14 +5453,21 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        }
+                      ]
                     }
-                  ]
-                },
+                  }
+                ],
                 "default": [
                   200,
                   201
@@ -12748,14 +12755,21 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        }
+                      ]
                     }
-                  ]
-                }
+                  }
+                ]
               },
               "method": {
                 "type": "string",

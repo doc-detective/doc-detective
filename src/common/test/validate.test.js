@@ -5640,3 +5640,29 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
   });
+
+  describe("httpRequest statusCodes shapes", function () {
+    it("accepts a single integer", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: 404 } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("still accepts an array of integers", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: [200, 404] } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("rejects a non-numeric string", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: "ok" } },
+      });
+      expect(result.valid).to.be.false;
+    });
+  });

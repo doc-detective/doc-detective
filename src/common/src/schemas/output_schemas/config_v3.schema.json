@@ -18396,15 +18396,22 @@
                                                         ]
                                                       },
                                                       "statusCodes": {
-                                                        "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                                        "type": "array",
-                                                        "items": {
-                                                          "anyOf": [
-                                                            {
-                                                              "type": "integer"
+                                                        "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "integer"
+                                                          },
+                                                          {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "integer"
+                                                                }
+                                                              ]
                                                             }
-                                                          ]
-                                                        },
+                                                          }
+                                                        ],
                                                         "default": [
                                                           200,
                                                           201
@@ -18795,15 +18802,22 @@
                                                           ]
                                                         },
                                                         "statusCodes": {
-                                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                                          "type": "array",
-                                                          "items": {
-                                                            "anyOf": [
-                                                              {
-                                                                "type": "integer"
+                                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "integer"
+                                                            },
+                                                            {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "integer"
+                                                                  }
+                                                                ]
                                                               }
-                                                            ]
-                                                          },
+                                                            }
+                                                          ],
                                                           "default": [
                                                             200,
                                                             201
@@ -76647,15 +76661,22 @@
                                           ]
                                         },
                                         "statusCodes": {
-                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                          "type": "array",
-                                          "items": {
-                                            "anyOf": [
-                                              {
-                                                "type": "integer"
+                                          "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                          "anyOf": [
+                                            {
+                                              "type": "integer"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "integer"
+                                                  }
+                                                ]
                                               }
-                                            ]
-                                          },
+                                            }
+                                          ],
                                           "default": [
                                             200,
                                             201
@@ -77046,15 +77067,22 @@
                                             ]
                                           },
                                           "statusCodes": {
-                                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
-                                                  "type": "integer"
+                                            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+                                            "anyOf": [
+                                              {
+                                                "type": "integer"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "integer"
+                                                    }
+                                                  ]
                                                 }
-                                              ]
-                                            },
+                                              }
+                                            ],
                                             "default": [
                                               200,
                                               201

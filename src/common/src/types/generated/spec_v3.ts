@@ -2068,9 +2068,9 @@ export type HTTPRequestDetailed = (
   url?: HTTPRequestSimple1;
   openApi?: (string & OperationID) | (OpenApi2 & OpenAPIDefinitionHttpRequest);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
@@ -8587,9 +8587,9 @@ export type HTTPRequestDetailed1 = (
   url?: HTTPRequestSimple3;
   openApi?: (string & OperationID1) | (OpenApi4 & OpenAPIDefinitionHttpRequest1);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
