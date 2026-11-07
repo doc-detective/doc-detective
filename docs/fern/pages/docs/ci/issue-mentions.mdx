@@ -1,0 +1,100 @@
+---
+title: AI issue mentions
+sidebar-title: AI issue mentions
+description: Have the GitHub Action mention AI assistants in the issue it opens when tests fail, so they investigate the failures and suggest fixes.
+---
+
+When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action) can open an issue with the results. It can also mention AI assistants in that issue, so they investigate the failures and suggest fixes.
+
+<Note>
+`issue_mentions` and `issue_prompt` are inputs of the GitHub Action. They're unrelated to the `integrations` key in your Doc Detective config, which connects to services such as Heretto. For that key, see [Integrations options](/reference/schemas/integrations-options).
+</Note>
+
+## Before you begin
+
+- A workflow that runs `doc-detective/github-action@v2`. See [Run in CI with the GitHub Action](/docs/ci/github-action).
+- Each assistant you plan to mention, set up for the repository. See [Supported assistants](#supported-assistants).
+
+## Mention an assistant
+
+1. Set `create_issue_on_fail` to `true`, and give the job the `issues: write` permission.
+2. List the assistants in `issue_mentions`, separated by commas.
+
+```yaml title=".github/workflows/doc-detective.yml"
+name: doc-detective
+on: [pull_request]
+
+jobs:
+  doc-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: doc-detective/github-action@v2
+        with:
+          create_issue_on_fail: true
+          issue_mentions: claude,copilot
+```
+
+When a test fails, the action opens an issue with the results. It adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. The action assigns the issue to Copilot rather than mentioning it.
+
+## Customize the prompt
+
+`issue_prompt` sets the text that follows each mention. Write it to ask for the analysis you want:
+
+```yaml
+- uses: doc-detective/github-action@v2
+  with:
+    create_issue_on_fail: true
+    issue_mentions: claude
+    issue_prompt: Analyze these test failures and suggest specific fixes for the documentation.
+```
+
+To place the prompt somewhere else in the issue, put `$PROMPT` in `issue_body`. For prompt-writing patterns, see [Self-healing documentation](/ai/ai-agents/self-healing).
+
+## Inputs
+
+Both inputs take effect only when `create_issue_on_fail` is `true`.
+
+| Input | Default | Description |
+|---|---|---|
+| `issue_mentions` | None | Comma-separated assistants to mention in the issue. The action ignores unsupported values and logs a warning. |
+| `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. `$PROMPT` in `issue_body` inserts it. |
+
+### Renamed inputs
+
+Action `@v2` renamed two inputs. The old names still work as deprecated aliases:
+
+| Old name | New name |
+|---|---|
+| `integrations` | `issue_mentions` |
+| `prompt` | `issue_prompt` |
+
+When a workflow sets an old name, the action logs a warning that names the new one. When a workflow sets both names, the job fails before tests run. Rename the inputs in your workflow to clear the warning.
+
+## Supported assistants
+
+| Value | What the action adds to the issue | Setup |
+|---|---|---|
+| `claude` | `@claude`, followed by the prompt. | Install the Claude GitHub app. |
+| `copilot` | Assigns the issue to Copilot. No mention. | Enable Copilot coding agent for the repository. |
+| `cursor` | `@cursor`, followed by the prompt. | Install the Cursor GitHub app. |
+| `dosu` | `@dosu`, followed by the prompt. | Install the Dosu app. |
+| `opencode` | The `/opencode` command, followed by the prompt. | Install OpenCode. |
+| `promptless` | `@promptless`, followed by the prompt. | Connect the repository to Promptless. |
+| `doc-sentinel` | A `/cc` mention for Doc Sentinel, without the prompt. | Configure Doc Sentinel. |
+
+## Verify it works
+
+Push a change that makes a test fail, then open the issue the action creates:
+
+- The collapsible section mentions each assistant you listed, followed by your prompt.
+- With `copilot` listed, Copilot is an assignee.
+- The job log shows no deprecation warning.
+
+## What's next
+
+- [Run in CI with the GitHub Action](/docs/ci/github-action) for every issue and pull request input.
+- [Self-healing documentation](/ai/ai-agents/self-healing) to turn failure issues into suggested fixes.
