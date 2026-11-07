@@ -1471,6 +1471,7 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
 
 // The eight 16-bit groups of a valid IPv6 address. Expands `::`, reads a
 // dotted IPv4 tail (DNS answers aren't URL-normalized), and drops a zone id.
+// It doesn't validate: callers check net.isIPv6 first, or get NaN groups.
 function ipv6Groups(ip: string): number[] {
   let text = ip.toLowerCase().split("%")[0];
   const dotted = text.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
