@@ -294,7 +294,7 @@ The test suite validates `json` and `yaml` code examples in `docs/fern/pages/`, 
 
 Each recognized block must pass the Doc Detective schema for its type. The check skips blocks marked `invalid` and any JSON or YAML it doesn't recognize, such as workflow files, API responses, and output samples.
 
-The check runs with the code tests, which a pull request that only changes `docs/` doesn't trigger. A broken example in that pull request then fails the next pull request that changes code. To catch problems before you submit, run the check in a local clone of the `doc-detective/doc-detective` repository. It needs Node.js but not a browser. From the repository root, install dependencies, compile the schemas the check reads, and run it:
+The check runs with the code tests, which a pull request that only changes `docs/` doesn't trigger. A broken example in that pull request then fails the next pull request that changes code. To catch problems before you submit, run the check in a local clone of the `doc-detective/doc-detective` repository. It needs Node.js 24.15 or later but not a browser. From the repository root, install dependencies, compile the schemas the check reads, and run it:
 
 ```bash
 npm ci
