@@ -6,7 +6,7 @@ import path from "node:path";
 
 const UPGRADE_GUIDE_URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 
-const REMOVED_BINS: Record<string, string> = {
+const REMOVED_BINS = {
   "doc-detective-lsp": "Use `doc-detective lsp --stdio`, which works today.",
 };
 
@@ -33,7 +33,7 @@ export function warnUpgrade(messages: string[], logLevel?: string): void {
   }
 }
 
-export function warnRemovedBin(bin: string): void {
+export function warnRemovedBin(bin: keyof typeof REMOVED_BINS): void {
   warnUpgrade([`\`${bin}\` is removed in Doc Detective 5.0. ${REMOVED_BINS[bin]}`]);
 }
 
@@ -42,7 +42,7 @@ export function warnRemovedBin(bin: string): void {
  * unparsed argv, because yargs fills in both `-a` and `--agent` and can't tell
  * which one the user typed.
  */
-export function commandWarnings(commands: string[], rawArgs: string[], silent: boolean): string[] {
+export function commandWarnings(commands: string[], rawArgs: string[]): string[] {
   const messages: string[] = [];
   const installAgents = commands[0] === "install-agents";
   if (installAgents) {
@@ -54,7 +54,7 @@ export function commandWarnings(commands: string[], rawArgs: string[], silent: b
   ) {
     messages.push("`-a` and `-s` are removed in Doc Detective 5.0. Use `--agent` and `--scope`, which work today.");
   }
-  if (commands[0] === "install" && silent) {
+  if (commands[0] === "install" && rawArgs.some((arg) => arg === "--silent" || arg.startsWith("--silent="))) {
     messages.push("`install --silent` is removed in Doc Detective 5.0. Use `--quiet`, which works today.");
   }
   return messages;

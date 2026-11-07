@@ -47,7 +47,7 @@ async function main(argv: string[]) {
     // hides these command warnings; a config file's `logLevel: silent` doesn't.
     .middleware((args: any) =>
       warnUpgrade(
-        commandWarnings(args._.map(String), argv.slice(2), Boolean(args.silent)),
+        commandWarnings(args._.map(String), argv.slice(2)),
         args.logLevel
       )
     )

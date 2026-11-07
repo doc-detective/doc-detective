@@ -533,6 +533,11 @@ registerHooks({ load(url, ctx, next) {
       expect(commandWarnings([], ["-a"], false)).to.deep.equal([]);
     });
 
+    it("commandWarnings reads --silent from the raw arguments, not a parsed key", function () {
+      expect(commandWarnings(["install", "status"], ["install", "status", "--silent"])).to.have.length(1);
+      expect(commandWarnings(["install", "status"], ["install", "status", "--quiet"])).to.deep.equal([]);
+    });
+
     it("runResultWarnings doesn't suggest --no-exit-on-fail to an --exit-on-fail user", function () {
       expect(runResultWarnings(true, false, null)[0]).to.not.include("--no-exit-on-fail");
       expect(runResultWarnings(undefined, false, null)[0]).to.include("--no-exit-on-fail");
