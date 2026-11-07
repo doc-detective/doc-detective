@@ -1,3 +1,15 @@
+# [5.0.0-v5-rc.8](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.7...v5.0.0-v5-rc.8) (2026-11-07)
+
+
+### Bug Fixes
+
+* **core:** leave the caller's config unchanged in setConfig ([fdffe23](https://github.com/doc-detective/doc-detective/commit/fdffe23cec18423f8e73dad16103859e39b1b4c6))
+
+
+### Features
+
+* **runner:** report nothing_tested and interrupted outcomes ([4b830ae](https://github.com/doc-detective/doc-detective/commit/4b830ae864370d723606c7263d3dafba01339a7f))
+
 # [5.0.0-v5-rc.7](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.6...v5.0.0-v5-rc.7) (2026-11-06)
 
 
