@@ -5669,6 +5669,10 @@ function placeCapturePaths(step: any, config: any) {
   for (const capture of [step.screenshot, step.record]) {
     const file = capture?.path;
     if (typeof file !== "string" || path.isAbsolute(file) || file.startsWith("$") || /^https?:\/\//i.test(file)) continue;
+    // A spec file's `directory` is already absolute (resolvePaths ran during
+    // detection), so path.resolve drops outputDir and the file goes in that
+    // directory. outputDir applies only when `directory` is unset or relative: a
+    // runner-named capture, or a getRunner() step.
     capture.path = path.resolve(config?.outputDir ?? ".", capture.directory ?? "", file);
   }
 }
