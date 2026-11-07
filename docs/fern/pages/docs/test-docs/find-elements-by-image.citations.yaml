@@ -85,9 +85,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-f459db53f10de81746a35921e16c7ca0f0695d07432404275f26fc4069b5d975
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 459-468
+        lines: 460-469
         integrity: sha256-fc6c5df8967fcfe45b1c73a5f26d9901952d2db1e26d85e1097d3f7fb1ca3336
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-file-multicolor-proof
       claim:
         integrity: sha256-f459db53f10de81746a35921e16c7ca0f0695d07432404275f26fc4069b5d975
@@ -101,9 +101,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-4a5aa16a58839ba0fa91ba38f4ac1d08f3e35f36d8bbbbe5810db9bddce29063
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 293-305
+        lines: 294-306
         integrity: sha256-3fc31de5c5b4045a57c3e8032985cd6dcde64e0ae0389dfd4b56a25988563ab6
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-svg-rendered-proof
       claim:
         integrity: sha256-4a5aa16a58839ba0fa91ba38f4ac1d08f3e35f36d8bbbbe5810db9bddce29063
@@ -117,9 +117,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-a21bcccf45328c35ac00226b5eaa9fcbae1790ce364abd5a18c7e42a239ec615
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 519-521
+        lines: 520-522
         integrity: sha256-d371aaa2ca8e0b6bb1792d6b26f6c9d0a585c002eda8644016ede491ee9aae87
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-opaque-exact-proof
       claim:
         integrity: sha256-a21bcccf45328c35ac00226b5eaa9fcbae1790ce364abd5a18c7e42a239ec615
@@ -133,9 +133,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-56439a22174f37c0143972c4412c32a0045fe6f636a2e3e5adcb71481cd2bc03
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 281
+        lines: 282
         integrity: sha256-e9ed97af8da0a428214bb992800e67028b3906bc160a3e2ffecf83f358161abb
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-rescale-proof
       claim:
         integrity: sha256-56439a22174f37c0143972c4412c32a0045fe6f636a2e3e5adcb71481cd2bc03
@@ -437,9 +437,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-ba206285888387bc7fef9ecfd911ac90c1a8c52377d32e6f7fc54761e181f3c4
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 526-530
+        lines: 527-531
         integrity: sha256-76e5ac509434a31d3d127741f55289bfe0e096adc8c8ff2e43858249b3f5dc79
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-file-one-color-proof
       claim:
         integrity: sha256-ba206285888387bc7fef9ecfd911ac90c1a8c52377d32e6f7fc54761e181f3c4
@@ -461,9 +461,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-5eaf45385ca4ef6777fa5cbd87eb14efedfd562a14e6e77802f14dacbae2237a
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 283-288
+        lines: 284-289
         integrity: sha256-706092e100e2cb5058d2d61d410e81cb4311bdcf37d14ea9d5ae58136db73a8b
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-file-any-size-proof
       claim:
         integrity: sha256-5eaf45385ca4ef6777fa5cbd87eb14efedfd562a14e6e77802f14dacbae2237a
@@ -485,9 +485,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-bdb0b94b905ecfe7ef981c1204d89b437a5e3d23866f91c921c8640e7ceb3148
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 369-380
+        lines: 370-381
         integrity: sha256-c0b933479c21889339a7aa0a9860ace558f9bd6b34f3f0e09024321133db0ca7
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-color-hue-proof
       claim:
         integrity: sha256-bdb0b94b905ecfe7ef981c1204d89b437a5e3d23866f91c921c8640e7ceb3148
@@ -509,9 +509,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-d42bfc8ef40df917a028e75e1631bcba8a3a69b974efef80e11b5ab5a11eb4b1
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 378
+        lines: 379
         integrity: sha256-b9091fc50a94301844aa0e173169c33b5e776acdfaccec2ae3b34d050d45cf22
-        commit-sha: adf40761bb8b35ec2c8bc0c6a5eb5c56dc834d8c
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-color-thin-proof
       claim:
         integrity: sha256-d42bfc8ef40df917a028e75e1631bcba8a3a69b974efef80e11b5ab5a11eb4b1
@@ -621,9 +621,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-b933945bf0aab88fb5a103ab63ca3b7b1d8f785df0cbff77ee323abb14b647ac
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 649-657
+        lines: 650-658
         integrity: sha256-4379d3c22963da8c0c15cd806af0c8273129c0e92567c10e65f58fc95ce49133
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-first-match-proof
       claim:
         integrity: sha256-b933945bf0aab88fb5a103ab63ca3b7b1d8f785df0cbff77ee323abb14b647ac
@@ -645,9 +645,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-746b845adc662d3678d5e0c368a1e4fc8ca82da2a13771aaa3818d181ed07fc2
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 673-679
+        lines: 674-680
         integrity: sha256-c51abf324e3a2627607dcc97dd1ce6328d879d770da4c1c196832a5d6192b9cd
-        commit-sha: e4ae30184fb91d9afb8f501c5659d075f9c7e580
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-miss-message-proof
       claim:
         integrity: sha256-746b845adc662d3678d5e0c368a1e4fc8ca82da2a13771aaa3818d181ed07fc2
@@ -661,9 +661,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-bfe392740eb006e203fc210152563f8eaea6a4c86a22d6ce47738b111fad698e
       source:
         file: src/core/tests/imageMatch.ts
-        lines: 644-646
+        lines: 645-647
         integrity: sha256-7fb2a7cc9fe6deb2d3f04e7dd395468ac4efbc92c1d48a9de9673ecbb45581a9
-        commit-sha: d608cf05f39c3866c5d16cd9e7bcc179e83d323f
+        commit-sha: 40d338621248c31ee00888a6d93def71a59454a2
     - id: image-oversized-reference-proof
       claim:
         integrity: sha256-bfe392740eb006e203fc210152563f8eaea6a4c86a22d6ce47738b111fad698e
