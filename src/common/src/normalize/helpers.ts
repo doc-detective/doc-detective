@@ -15,6 +15,14 @@ export function passthrough(value: any): any {
   return value;
 }
 
+/**
+ * Whether `value` is a whole variable reference, such as `"$URL"`: exactly what
+ * the runner's `$VAR` substitution can replace with any value, even an object.
+ */
+export function isWholeVariable(value: unknown): boolean {
+  return typeof value === "string" && /^\$[A-Za-z0-9_]+$/.test(value);
+}
+
 const warned = new Set<string>();
 
 /**
