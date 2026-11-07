@@ -4,13 +4,21 @@ import assert from "assert";
 // Ratchet (ADR 01161): Ajv runs with coerceTypes and tries anyOf/oneOf branches
 // in order, so a branch with a `type` coerces a value meant for a later branch
 // before that branch sees it. Keys are the coercing type; values are the later
-// types it would steal (`false` → "false", `true` → 1, `1` → true).
+// types it would steal (`false` → "false", `true` → 1, `1` → true, "true" → true).
 const STEALS = {
   string: ["boolean", "number", "integer"],
   number: ["boolean"],
   integer: ["boolean"],
-  boolean: ["number", "integer"],
+  boolean: ["number", "integer", "string"],
 };
+// A string branch steals only free-form text: one with a `pattern`, `enum`, or
+// `const` never wanted "true" or "false" (record_v3, screenshot_v3).
+function freeString(schema) {
+  if (!schema || typeof schema !== "object") return false;
+  if ([].concat(schema.type ?? []).includes("string") &&
+      !schema.pattern && !schema.enum && !("const" in schema)) return true;
+  return ["anyOf", "oneOf"].some((k) => (schema[k] ?? []).some(freeString));
+}
 // Types a branch names in `type` (Ajv coerces only through `type`), plus, with
 // `withValues`, the types of its enum/const values. Nested unions count too.
 function branchTypes(schema, withValues) {
@@ -35,7 +43,8 @@ function coercionHazards(schema, path, found = [], seen = new Set()) {
       for (const S of branchTypes(branch, false))
         for (const T of STEALS[S] ?? [])
           branches.slice(i + 1).forEach((later, j) => {
-            if (!accepts.has(T) && branchTypes(later, true).has(T))
+            const takes = T === "string" ? freeString(later) : branchTypes(later, true).has(T);
+            if (!accepts.has(T) && takes)
               found.push(`${path}.${key}: [${i}] coerces ${T} meant for [${i + 1 + j}]`);
           });
     });

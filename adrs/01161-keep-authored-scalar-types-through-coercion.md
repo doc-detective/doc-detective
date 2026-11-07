@@ -88,7 +88,8 @@ The schema docs generator renders a type-less boolean `enum` as `boolean`.
 * A ratchet in [src/common/test/schema.test.js](../src/common/test/schema.test.js) walks every
   schema. It fails on any `anyOf`/`oneOf` where a branch's `type` would coerce a value meant for a
   later branch. That's a string branch before a boolean or number branch, or a number branch and
-  a boolean branch in either order.
+  a boolean branch in either order. It also catches a `type: boolean` branch before a string
+  branch with no `pattern`, `enum`, or `const`.
 * [test/findElement.test.js](../test/findElement.test.js) checks that `find.click: false` clicks
   nothing, and that `click: true` and `click: false` FAIL with the message above.
 * [test/core-artifacts/interactions/coercion.spec.json](../test/core-artifacts/interactions/coercion.spec.json)
