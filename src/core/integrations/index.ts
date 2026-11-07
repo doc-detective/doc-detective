@@ -144,14 +144,10 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     }
 
     if (integrationConfig.uploadOnChange !== true) {
-      const name = file.sourceIntegration.integrationName;
-      log(config, "debug", `Skipping ${file.localPath}: uploadOnChange isn't enabled for integration ${name}.`);
+      const reason = `Skipped: \`uploadOnChange\` isn't enabled for integration ${file.sourceIntegration.integrationName}.`;
+      log(config, "debug", `${file.localPath}: ${reason}`);
       results.skipped++;
-      results.details.push({
-        localPath: file.localPath,
-        status: "SKIPPED",
-        reason: `Skipped: \`uploadOnChange\` isn't enabled for integration ${name}.`,
-      });
+      results.details.push({ localPath: file.localPath, status: "SKIPPED", reason });
       continue;
     }
 

@@ -270,6 +270,14 @@ describe("integrations/index — uploadChangedFiles orchestration", function () 
         status: "SKIPPED",
         reason: "Skipped: `uploadOnChange` isn't enabled for integration unset.",
       });
+      assert.ok(
+        log.entries.some(
+          (e) =>
+            e.level === "debug" &&
+            e.message ===
+              "/tmp/unset.png: Skipped: `uploadOnChange` isn't enabled for integration unset."
+        )
+      );
     });
   });
 
