@@ -209,6 +209,18 @@ describe("normalization", function () {
       expect(normalizers.startSurface([{ name: "x" }], "startSurface")).to.deep.equal([{ name: "x" }]);
     });
 
+    it("leaves a startSurface descriptor as it is when its kind's schema is missing", function () {
+      const components = schemas.startSurface_v3.components.schemas;
+      const saved = components.processDescriptor;
+      delete components.processDescriptor;
+      try {
+        const descriptor = { process: "x", name: "p" };
+        expect(normalizers.startSurface(descriptor, "startSurface")).to.deep.equal({ process: "x", name: "p" });
+      } finally {
+        components.processDescriptor = saved;
+      }
+    });
+
     it("leaves loadVariables as authored", function () {
       expect(effective({ loadVariables: ".env" }).object).to.deep.equal({ loadVariables: ".env" });
     });
@@ -335,9 +347,10 @@ describe("normalization", function () {
       })(component, []);
       return defaults;
     }
-    // Actions with no object form, so no plain defaults to check. Every other
-    // moved action needs a MINIMAL entry, or this test fails.
-    const NO_DEFAULTS = ["wait", "closeSurface", "loadVariables"];
+    // Moved actions with no object form, so no plain defaults to check. Every
+    // other moved action needs a MINIMAL entry, or this test fails. Passthroughs,
+    // like loadVariables, skip on their own.
+    const NO_DEFAULTS = ["wait", "closeSurface"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
         if (normalizers[action] === passthrough || NO_DEFAULTS.includes(action)) this.skip();

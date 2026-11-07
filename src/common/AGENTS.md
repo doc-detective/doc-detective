@@ -76,6 +76,9 @@ templates), and reports aren't walked.
   branch via `applyDefaults`. Conditional ones are coded, often as `applyDefaults`'s `skip` list.
 - A normalizer is idempotent. It never touches `$VAR` or `$$` values, paths, config, or runtime state. Step-level
   `unsafe`, `breakpoint`, `outputs`, and `variables` stay as authored.
+- A normalizer gets a value from `validate()`'s own clone, never the caller's object, so it may change that value
+  in place and return it. The runner's literal pass after substitution also works on the object `validate()`
+  returned.
 - A whole-variable action value (`isWholeVariable`, such as `"goTo": "$URL"`) never reaches its normalizer.
   `validate()` leaves it as authored, because the variable can hold the whole action, even an object. The runner
   normalizes it after `$VAR` substitution with `normalize(..., { literal: true })`, which treats a variable left
