@@ -162,6 +162,12 @@ describe("normalization", function () {
       });
     }
 
+    // validate() turns a null click into false before this, but the normalizer
+    // never reads null as a click.
+    it("doesn't turn a null find.click into a click", function () {
+      expect(normalizers.find({ selector: "#a", click: null }, "find", false).click).to.equal(null);
+    });
+
     it("fills find's defaults and lists its classes", function () {
       expect(action({ find: { elementClass: "btn" } }).find).to.deep.equal({ elementClass: ["btn"], timeout: 5000, moveTo: false });
     });

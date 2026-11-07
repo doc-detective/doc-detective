@@ -10,7 +10,7 @@ export default function find(value: any, path: string, literal: boolean): any {
   const { click } = value;
   if (click === true) value.click = { button: "left" };
   else if (typeof click === "string") value.click = { button: click };
-  else if (typeof click === "object") value.click = { button: "left", ...click };
+  else if (click !== null && typeof click === "object") value.click = { button: "left", ...click };
   if (value.type !== undefined && (literal || !isWholeVariable(value.type))) {
     value.type = typeAction(value.type, `${path}.type`, literal);
   }
