@@ -6232,23 +6232,29 @@
     },
     "click_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
+      "allOf": [
         {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+          "not": {
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "errorMessage": {
+            "not": "must be string or object (got ${0}). To click an element whose text is \"${0}\", quote it: \"click\": \"${0}\""
+          }
         },
         {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+          "anyOf": [
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+            },
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+            }
+          ]
         }
       ],
-      "not": {
-        "enum": [
-          true,
-          false
-        ]
-      },
-      "errorMessage": {
-        "not": "must be string or object (got a boolean). To click an element whose text is ${0}, quote it: \"click\": ${0}"
-      },
       "components": {
         "schemas": {
           "string": {
@@ -14149,23 +14155,29 @@
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
+      "allOf": [
         {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+          "not": {
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "errorMessage": {
+            "not": "must be string or object (got ${0}). To click an element whose text is \"${0}\", quote it: \"click\": \"${0}\""
+          }
         },
         {
-          "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+          "anyOf": [
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
+            },
+            {
+              "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
+            }
+          ]
         }
       ],
-      "not": {
-        "enum": [
-          true,
-          false
-        ]
-      },
-      "errorMessage": {
-        "not": "must be string or object (got a boolean). To click an element whose text is ${0}, quote it: \"click\": ${0}"
-      },
       "components": {
         "schemas": {
           "string": {

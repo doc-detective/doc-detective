@@ -335,12 +335,15 @@ Also, a shared/`$ref`'d schema's `default:` values reach every consumer. Outside
 branch. Keep shared schemas default-free unless every consumer wants the default (this is why
 `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its own).
 
-To reject a value that a later branch would coerce, such as a boolean `click`, put a
-`not: {enum: [true, false]}` beside the union. Ajv checks `not` before `anyOf`, so it sees the
-authored value. Give the guard an ajv-errors `errorMessage` that says how to fix it. That message
-renders after `anyOf` has coerced the value, so `${0}` shows `"true"`, not `true`
-([ADR 01175](../../adrs/01175-reject-boolean-click-and-constrain-find-click.md)). A message's
-`${0}` is the value, JSON-encoded, and `src/core/utils.ts` keeps `errorMessage` text whole.
+To reject a value that a later branch would coerce, such as a boolean `click`, make the root an
+`allOf` whose first member is a `not: {enum: [true, false]}` guard and whose second is the union.
+`allOf` checks its members in order, so the guard sees the authored value. Give the guard an
+ajv-errors `errorMessage` that says how to fix it. In that member, `${0}` renders the authored
+value, JSON-encoded. A guard beside the union instead renders after `anyOf` has coerced the value, so
+`${0}` shows `"true"`, not `true`
+([ADR 01175](../../adrs/01175-reject-boolean-click-and-constrain-find-click.md)). Leave the
+trailing period off an `errorMessage`: the error summary adds it, and `src/core/utils.ts` keeps
+`errorMessage` text whole.
 
 ### Selector match spans
 

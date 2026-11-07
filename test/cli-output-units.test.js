@@ -85,7 +85,7 @@ describe("summarizeSpecErrors", function () {
   for (const [step, line] of [
     [
       { click: true },
-      'tests[0].steps[0].click: must be string or object (got a boolean). To click an element whose text is "true", quote it: "click": "true".',
+      'tests[0].steps[0].click: must be string or object (got true). To click an element whose text is "true", quote it: "click": "true".',
     ],
     [
       { find: { selector: "#a", type: { keys: "x", selector: "#b" } } },

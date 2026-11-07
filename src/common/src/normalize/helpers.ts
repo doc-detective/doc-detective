@@ -80,9 +80,12 @@ const cache = new Map<string, [string, any][]>();
  */
 export function applyDefaults(value: any, action: string, skip: string[] = []): any {
   if (!cache.has(action)) {
-    // The object branch of a union, or the schema itself for an action that's always an object.
+    // The object branch of a root union, the schema itself for an action that's
+    // always an object, or else its `object` component (click's root is an allOf).
     const schema = (schemas as any)[`${action}_v3`];
-    const branch = schema.anyOf?.find((part: any) => part.properties || part.allOf) ?? schema;
+    const branch =
+      schema.anyOf?.find((part: any) => part.properties || part.allOf) ??
+      (schema.properties ? schema : schema.components.schemas.object);
     cache.set(action, plainDefaults(branch));
   }
   for (const [path, fallback] of cache.get(action)!) {

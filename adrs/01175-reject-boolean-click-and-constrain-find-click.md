@@ -45,12 +45,12 @@ expanded its own shorthand and applied its own defaults, which ADR 01167 moves i
 
 Chosen option: **1**.
 
-- **`click` has no boolean branch.** A `not: {enum: [true, false]}` guard stops Ajv from coercing a
-  boolean into the string branch. Ajv checks `not` before `anyOf`, so it sees the authored value. The
-  guard's `errorMessage` reads
-  ``must be string or object (got a boolean). To click an element whose text is "true", quote it: "click": "true"``.
-  ajv-errors renders it after `anyOf` has coerced the value, so it can't echo `true` unquoted. It
-  says "a boolean" instead, and the hint quotes the coerced text.
+- **`click` has no boolean branch.** The root is an `allOf`: first a `not: {enum: [true, false]}`
+  guard, then the `anyOf` of the string and object forms. Without the guard, Ajv's `coerceTypes` would
+  turn `true` into `"true"` for the string branch. `allOf` checks its members in order, so the guard,
+  and its ajv-errors `errorMessage`, see the authored boolean before the `anyOf` coerces it. The message
+  reads
+  ``must be string or object (got true). To click an element whose text is "true", quote it: "click": "true"``.
 - **`find.click` is `boolean | "left" | "right" | "middle" | {button, duration}`.** The boolean branch
   comes first as a plain `type: boolean`, which is safe because the next branch is an enum (ADR 01161).
   Any other string is invalid: `must be equal to one of the allowed values`, which the shared error
@@ -112,11 +112,12 @@ Chosen option: **1**.
 
 - Good: one rule for every `validate()` consumer and for editors that read the published schema.
 - Good: the message lives next to the rule.
-- Bad: ajv-errors renders after coercion, so the `click` message can't echo the authored boolean.
+- Bad: the guard has to sit in an `allOf` member ahead of the union. Beside the union, ajv-errors
+  renders after `anyOf` has coerced the value, and the message would echo `"true"`.
 
 ### Reject in the normalizer
 
-- Good: the normalizer sees the authored boolean, so the message could say `(got true)`.
+- Good: the normalizer sees the authored boolean.
 - Bad: the published schema would still list a boolean branch, so editors would accept `"click": true`.
 
 ### Keep the run-time FAIL

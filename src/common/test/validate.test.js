@@ -2450,11 +2450,11 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
       for (const value of [true, false]) {
         it(`rejects click: ${value} and says how to click that text`, function () {
-          const result = check({ click: value });
+          const result = validate({ schemaKey: "step_v3", object: { click: value }, structuredErrors: true });
           expect(result.valid).to.be.false;
-          expect(result.errors).to.include(
-            `/click must be string or object (got a boolean). To click an element whose text is "${value}", quote it: "click": "${value}"`
-          );
+          expect(result.errorObjects.filter((error) => error.instancePath === "/click").map((error) => error.message)).to.deep.equal([
+            `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`,
+          ]);
         });
       }
 
