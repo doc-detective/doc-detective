@@ -17,6 +17,7 @@ import {
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
 import { createRequire } from "node:module";
+import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
@@ -1552,7 +1553,9 @@ function proxyConfigured(): boolean {
 // address.
 async function getGuarded(
   url: string,
-  opts: object = FETCH_BINARY_DEFAULTS,
+  // Binary defaults fit every caller: each decodes the raw bytes itself
+  // (OpenAPI reads decode to text), and the size and time caps apply to all.
+  opts: AxiosRequestConfig = FETCH_BINARY_DEFAULTS,
   refuseFirst?: (address: string) => Error
 ): Promise<{ data: any; url: string; reachedPublic: boolean }> {
   const policy = localUrlPolicy();

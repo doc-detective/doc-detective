@@ -45,6 +45,10 @@ async function loadDescription(descriptionPath: string = "") {
   // document asked for it. `lastPublic` is the most recent public document,
   // named in the message. Every document, the root included, counts as public
   // when any hop of its fetch reached a public address.
+  // The parser resolves sibling $refs concurrently and tells a read only its
+  // URL, not its parent. So `lastPublic` can name a sibling rather than the
+  // document that asked; that only changes which document the message names,
+  // never whether a read is refused.
   const guard = localUrlPolicy() !== "allow";
   let lastPublic: string | undefined;
   let definition: any;
@@ -78,7 +82,9 @@ async function loadDescription(descriptionPath: string = "") {
     resolve: {
       file: {
         async read(file: { url: string }) {
-          if (lastPublic) throw refused(file.url.split("#")[0], lastPublic, "a local file");
+          if (lastPublic) {
+            throw refused(redactUrlForOutput(file.url.split("#")[0]), lastPublic, "a local file");
+          }
           return (FileResolver.read as (file: unknown) => Promise<Buffer>)(file);
         },
       },
