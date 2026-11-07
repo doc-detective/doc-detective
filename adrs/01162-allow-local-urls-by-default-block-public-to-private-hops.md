@@ -142,6 +142,8 @@ caller words its own message.
   corporate proxies are. The proxy resolves the target itself, so a name that rebinds between the
   pre-connect check and the proxy's own lookup gets through. Operators who need strict mode behind
   a proxy should also enforce egress rules at the proxy.
+* Bad: with `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1`, a remote OpenAPI root skips the guarded fetch's
+  50 MB size cap and 30-second timeout. Allow mode turns off the whole guard, limits included.
 
 ### Confirmation
 
