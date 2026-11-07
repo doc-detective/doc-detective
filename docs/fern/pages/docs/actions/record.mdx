@@ -24,7 +24,7 @@ You can specify the recording action in several ways:
 
 **Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
 
-**Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to the folder you ran Doc Detective from.
+**Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
 ## Recording engines
 

@@ -76,14 +76,14 @@ templates), and reports aren't walked.
   branch via `applyDefaults`. Conditional ones are coded, often as `applyDefaults`'s `skip` list.
 - A normalizer gets the action's value, its path, and the step, which it only reads. It's idempotent. It never
   touches `$VAR` or `$$` values, paths, config, or runtime state. The one path it writes is a capture's default
-  file name, `<stepId>.png` or `<stepId>.mp4`, which the runner places under `outputDir`
+  file name, `<stepId>.png` or `<stepId>.mp4`. The runner then places it under `outputDir`
   ([ADR 01173](../../adrs/01173-capture-paths-default-under-outputdir.md)). Step-level `unsafe`, `breakpoint`,
   `outputs`, and `variables` stay as authored.
-- A whole-variable action value (`isWholeVariable`, such as `"goTo": "$URL"`) never reaches its normalizer:
+- A whole-variable action value (`isWholeVariable`, such as `"goTo": "$URL"`) never reaches its normalizer.
   `validate()` leaves it as authored, because the variable can hold the whole action, even an object. The runner
   normalizes it after `$VAR` substitution with `normalize(..., { literal: true })`, which treats a variable left
   unset as text. A `$VAR` inside an object field or inside a longer string still normalizes around it.
-- When you move an action, delete its handler's shorthand and default handling, add its minimal step to the
+- When you move an action, delete its handler's shorthand and default handling. Add its minimal step to the
   parity test in `test/normalize.test.js`, and lower `CEILING` in the root `test/shorthand-ratchet.test.js`.
 - A plain default the handler never applied is a wrong default. Remove it from the schema, as
   `httpRequest.response.body` did.

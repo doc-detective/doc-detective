@@ -200,13 +200,31 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 |---|---|
 | `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
 | A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
-| A spec loaded from a URL (`--input https://…`) wrote relative paths, such as `screenshot: "example.png"`, beside its temporary download, which the system deletes. | Its relative paths resolve against `outputDir`. |
+| A step with `screenshot: true` or `record: true` and no `stepId`, such as one passed to the JavaScript `getRunner()` API, wrote `undefined.png` or `undefined.mp4`. | The step fails: ``Couldn't name the screenshot. Set `path`, or set the step's `stepId`.`` A recording says ``Couldn't name the recording.`` |
 | `screenshot: false` took a screenshot. | It skips the step. |
 | `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
 
-`outputDir` defaults to the current folder, so the first row only matters when you set it. Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its file name: `{"screenshot": true}` appears as `{"screenshot": {"path": "<stepId>.png", "maxVariation": 0.05, "overwrite": "aboveVariation"}}`.
+`outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder. So the first row matters in two cases:
 
-**What to do:** If you set `outputDir` and keep reference images from `screenshot: true` in the current folder, move them to `outputDir`, or give the step a `path`. For a URL reference, collect the new screenshot from the run folder.
+- You set `outputDir`.
+- You run with a config file in another folder, such as `--config sub/doc-detective.json`, and don't set `outputDir`. The screenshots and recordings move from the current folder to `sub/`.
+
+Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its full path. For example, `{"stepId": "home", "screenshot": true}` appears as `{"stepId": "home", "screenshot": {"path": "<outputDir>/home.png", "maxVariation": 0.05, "overwrite": "aboveVariation"}}`, with `<outputDir>` spelled out.
+
+**What to do:** If reference images from `screenshot: true` sit in the current folder and `outputDir` is elsewhere, move them to `outputDir`. You can also give the step a `path`. For a URL reference, collect the new screenshot from the run folder. Give `getRunner()` steps a `stepId` or a `path`.
+
+## Relative paths in a spec loaded from a URL
+
+**What changed:** A spec loaded from a URL (`--input https://…`) has no folder of its own. Version 4 resolved its relative paths against its temporary download, which the system deletes. So a sample's `screenshot: "example.png"` was lost. Version 5 resolves them against `outputDir`. That covers every path in the spec:
+
+- `screenshot` and `record` paths and directories
+- `loadVariables`, and a test's `before` and `after`
+- `workingDirectory`
+- the output `path` and `directory` of `httpRequest`, `runShell`, `runCode`, and `runBrowserScript`
+- `saveCookie` and `loadCookie` paths and directories
+- `openApi` `descriptionPath`
+
+**What to do:** Put the files a remote spec reads, such as a `loadVariables` file, in `outputDir`, or give the spec absolute paths.
 
 ## `--output` is a results file
 
