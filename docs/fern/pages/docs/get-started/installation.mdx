@@ -142,7 +142,7 @@ The default cache location is `$XDG_CACHE_HOME/doc-detective`, or `~/.cache/doc-
 DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective doc-detective install all --yes
 ```
 
-You can also set `cacheDir` in your `.doc-detective.json` config file or use the `--cache-dir` CLI flag.
+You can also set `cacheDir` in your `.doc-detective.json` config file or pass `--cache-dir`. When you set more than one, `--cache-dir` wins over `DOC_DETECTIVE_CACHE_DIR`, which wins over `cacheDir`. A relative `cacheDir` resolves against the folder that holds the config file, and a relative `--cache-dir` or `DOC_DETECTIVE_CACHE_DIR` resolves against the current directory. Test runs and `install` commands follow the same order, so with the same flags, variables, and config, they use the same cache.
 
 ## Auto-update
 

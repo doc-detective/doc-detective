@@ -769,7 +769,7 @@ docker run -v .:/app docdetective/docdetective --input /app/inline-tests.md,http
 
 ### Filter tests by ID
 
-Use the `--test` and `--spec` CLI flags to run specific tests or specs. These flags accept case-insensitive regex patterns that match against `testId` and `specId` values.
+Use the `--test` and `--spec` CLI flags to run specific tests or specs. These flags accept case-insensitive regex patterns that match against `testId` and `specId` values. Give each flag once, with several patterns as one comma-separated list. Repeating `--test` or `--spec` stops the run with exit code `2`.
 
 <Tabs>
   <Tab title="NPX" language="npx">
@@ -847,7 +847,7 @@ You can also set this in your configuration file using the `concurrentRunners` p
 }
 ```
 
-Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
+Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners. On the command line, `--concurrent-runners true` works the same as `--concurrent-runners auto`.
 
 <Warning>
 **Cross-context variables**: Some tests share variables between contexts through `loadVariables` or `variables` steps. Those won't work correctly with concurrent runners, because variables write to a `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
