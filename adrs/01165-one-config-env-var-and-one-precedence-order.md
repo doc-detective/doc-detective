@@ -94,7 +94,9 @@ Chosen option: **A**, with the order below.
 - **Renamed variables.** Names stay as they are, except `DOC_DETECTIVE_RUNTIME_DEBUG`, a deprecated alias of
   `DOC_DETECTIVE_DEBUG`. When it's on, config setup warns once:
   ``Warning: `DOC_DETECTIVE_RUNTIME_DEBUG` is deprecated. Rename it to `DOC_DETECTIVE_DEBUG`.`` Setting both,
-  with either one on, is a usage error, exit `2`: ``Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both.``
+  with either one on, is a usage error, exit `2`, that names the one that's on:
+  ``Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.``
+  With both on, it ends `Both are on.`
 - **Warnings respect the log level.** Environment warnings wait until `setConfig` knows the level, then go
   through `log()`. `-q`, `-l error`, and `-l silent` hide them.
 

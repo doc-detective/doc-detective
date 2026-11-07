@@ -48,8 +48,11 @@ const ALIASES = [{ oldName: "DOC_DETECTIVE_RUNTIME_DEBUG", newName: "DOC_DETECTI
 export function checkEnvAliases(env: NodeJS.ProcessEnv = process.env) {
   for (const { oldName, newName } of ALIASES) {
     // Both set and either on: which one meant it is unclear. Both off is harmless.
-    if (env[oldName]?.trim() && env[newName]?.trim() && (envFlag(oldName, env) || envFlag(newName, env))) {
-      throw new Error(`set \`${newName}\` or \`${oldName}\`, not both.`);
+    const on = [newName, oldName].filter((name) => envFlag(name, env));
+    if (env[oldName]?.trim() && env[newName]?.trim() && on.length) {
+      throw new Error(
+        `set \`${newName}\` or \`${oldName}\`, not both. ${on.length > 1 ? "Both are on." : `\`${on[0]}\` is on.`}`
+      );
     }
     if (envFlag(oldName, env)) warnOnce(oldName, `\`${oldName}\` is deprecated. Rename it to \`${newName}\`.`);
   }

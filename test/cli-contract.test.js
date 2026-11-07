@@ -945,9 +945,18 @@ describe("CLI contract", function () {
     });
 
     it("rejects both names of the debug variable", function () {
-      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_DEBUG: "1", DOC_DETECTIVE_RUNTIME_DEBUG: "1" } });
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_DEBUG: "0", DOC_DETECTIVE_RUNTIME_DEBUG: "1" } });
       expect(r.status).to.equal(2);
-      expect(r.stderr).to.equal("Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both.\n");
+      expect(r.stderr).to.equal(
+        "Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.\n"
+      );
+    });
+
+    it("exits 2 from install on an invalid project config", function () {
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevl: "info" }));
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown key 'logLevl'. Did you mean logLevel?");
     });
 
     describe("precedence", function () {

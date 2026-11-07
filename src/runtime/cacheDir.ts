@@ -98,7 +98,9 @@ export function userConfigDir({
 
 // The cache a CLI run resolved, with `--cache-dir` over DOC_DETECTIVE_CACHE_DIR
 // over config (ADR 01165). Held in process, not written to the environment,
-// so steps' child processes never inherit it.
+// so steps' child processes never inherit it. Nothing resets it: it lasts for
+// the process, so code that runs more than once in one process sets it again
+// each time, or clears it with `setRunCacheDir(undefined)`, as the tests do.
 let runCacheDir: string | undefined;
 export function setRunCacheDir(dir: string | undefined) {
   runCacheDir = dir;
