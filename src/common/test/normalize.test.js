@@ -294,9 +294,13 @@ describe("normalization", function () {
       })(component, []);
       return defaults;
     }
+    // Actions with no object form, so no plain defaults to check. Every other
+    // moved action needs a MINIMAL entry, or this test fails.
+    const NO_DEFAULTS = ["wait", "closeSurface", "loadVariables"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
-        if (normalizers[action] === passthrough || !MINIMAL[action]) this.skip();
+        if (normalizers[action] === passthrough || NO_DEFAULTS.includes(action)) this.skip();
+        expect(MINIMAL, `add ${action}'s minimal step to MINIMAL`).to.have.property(action);
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
         const cases = Array.isArray(MINIMAL[action]) ? MINIMAL[action] : [["object", MINIMAL[action]]];
         for (const [component, minimal] of cases) {
