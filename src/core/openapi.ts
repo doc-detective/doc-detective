@@ -53,6 +53,8 @@ async function loadDescription(descriptionPath: string = "") {
   // sibling sets `lastPublic`, and that's intended, since local descriptions
   // are trusted. And `lastPublic` can name a sibling rather than the document
   // that asked, which only changes the message.
+  // getGuarded reads localUrlPolicy() again on purpose; with both switches
+  // set, either call throws the same usage error.
   const guard = localUrlPolicy() !== "allow";
   let lastPublic: string | undefined;
   let definition: any;
@@ -126,7 +128,7 @@ async function loadDescription(descriptionPath: string = "") {
           const { data, url, reachedPublic } = await getGuarded(
             file.url,
             FETCH_TEXT_DEFAULTS,
-            doc ? () => refused(ref, doc, "a private address") : undefined
+            doc ? (address) => refused(ref, doc, `${address}, a private address`) : undefined
           );
           if (guard && reachedPublic) lastPublic = url.split("#")[0];
           return data;

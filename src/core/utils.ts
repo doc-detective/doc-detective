@@ -1665,7 +1665,7 @@ async function getGuarded(
       // Names the original URL on purpose: it's the one the spec named.
       throw new Error(
         `Couldn't fetch ${redactUrlForOutput(url)}: ${
-          location ? "it redirects more than 5 times" : `the ${response.status} redirect has no Location header`
+          location ? "it needs more than 5 redirects" : `the ${response.status} redirect has no Location header`
         }.`
       );
     }

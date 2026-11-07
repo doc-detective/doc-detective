@@ -408,7 +408,7 @@ describe("local URL guard (ADR 01162)", function () {
     const loop = await fetchFile(`http://127.0.0.1:${port}/loop`, { binary: true });
     assert.equal(
       loop.message.message,
-      `Couldn't fetch http://127.0.0.1:${port}/loop: it redirects more than 5 times.`
+      `Couldn't fetch http://127.0.0.1:${port}/loop: it needs more than 5 redirects.`
     );
     const bare = await fetchFile(`http://127.0.0.1:${port}/no-location`, { binary: true });
     assert.equal(
@@ -707,10 +707,10 @@ describe("local URL guard (ADR 01162)", function () {
     await assert.rejects(
       () => loadDescription(`http://public.example.test:${port}/openapi-rebind.yaml`),
       {
-        message: refMessage(
-          `http://rebind.example.test:${port}/plain.json`,
-          `http://public.example.test:${port}/openapi-rebind.yaml`
-        ),
+        message:
+          `Couldn't resolve $ref http://rebind.example.test:${port}/plain.json in ` +
+          `http://public.example.test:${port}/openapi-rebind.yaml: a public document can't refer to 127.0.0.1, a private address.\n` +
+          "Hint: If you trust this document, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1, or download it and point descriptionPath at the local copy.",
       }
     );
   });
