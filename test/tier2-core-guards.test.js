@@ -73,15 +73,18 @@ describe("Tier-2 core guard/error paths", function () {
       assert.match(result.description, /Invalid step definition/);
     });
 
-    it("FAILs a valid env-ref string that parses to NaN", async function () {
-      // "$DD_UNSET..." satisfies the schema pattern but is not substituted in
-      // a direct unit call, so parseInt() yields NaN -> the invalid-wait branch.
+    it("FAILs a variable that never resolved, naming it", async function () {
+      // "$DD_UNSET..." satisfies the schema pattern, but the variable isn't
+      // set, so the effective step still holds the variable, not a duration.
       const result = await wait({
         step: { wait: "$DD_UNSET_WAIT_VALUE" },
         driver: undefined,
       });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid wait value/);
+      assert.equal(
+        result.description,
+        "Couldn't wait: the variable '$DD_UNSET_WAIT_VALUE' in `wait` isn't set. Set it to a number of milliseconds."
+      );
     });
 
     it("FAILs when driver.pause throws (outer catch)", async function () {
