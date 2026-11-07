@@ -27,7 +27,7 @@ function renameDeprecatedConfigKeys(
 ) {
   let renamed = false;
   for (const config of sources) {
-    if (config?.beforeAny == null) continue;
+    if (config?.beforeAny == null) continue; // null means absent
     if (config.beforeAll !== undefined) {
       throw new Error("Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.");
     }
@@ -174,7 +174,9 @@ async function setConfig({ config, detectApps = true }: any) {
     }
   }
   // Rename each source before the merge, so the override wins whichever name it
-  // uses. The callback only captures the warning.
+  // uses. The callback only captures the warning. The rename rejects both names
+  // in one source; config_v3's `not: {required}` is the backstop for API callers
+  // that skip the rename.
   let deprecation: string | undefined;
   renameDeprecatedConfigKeys([config, envOverrides], (message) => (deprecation = message));
   if (envOverrides) config = deepMerge(config, envOverrides);

@@ -28,6 +28,7 @@ import {
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 import { schemas } from "../dist/common/src/schemas/index.js";
+import { captureErrors } from "./capture-errors.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -700,18 +701,14 @@ describe("config.ts — setConfig", function () {
 
   // ADR 01169: beforeAny is a deprecated alias for beforeAll.
   it("renames a deprecated beforeAny to beforeAll and warns once", async function () {
-    const errors = sinon.stub(console, "error");
-    let config;
-    try {
-      config = await setConfig({
+    const { result: config, lines } = await captureErrors(() =>
+      setConfig({
         config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./setup.json" },
-      });
-    } finally {
-      errors.restore();
-    }
+      })
+    );
     assert.deepEqual(config.beforeAll, ["./setup.json"]);
     assert.equal("beforeAny" in config, false);
-    const warnings = errors.args.map(([line]) => line).filter((line) => /beforeAny/.test(line));
+    const warnings = lines.filter((line) => /beforeAny/.test(line));
     assert.deepEqual(warnings, ["Warning: `beforeAny` is deprecated. Rename it to `beforeAll`."]);
   });
 
@@ -721,21 +718,21 @@ describe("config.ts — setConfig", function () {
     it(`lets a DOC_DETECTIVE ${envKey} override a config ${configKey}`, async function () {
       const saved = process.env.DOC_DETECTIVE;
       process.env.DOC_DETECTIVE = JSON.stringify({ config: { [envKey]: "./b.json" } });
-      const errors = sinon.stub(console, "error");
       let config;
+      let lines;
       try {
-        config = await setConfig({
-          config: { logLevel: "warning", dryRun: true, input: "./README.md", [configKey]: "./a.json" },
-        });
+        ({ result: config, lines } = await captureErrors(() =>
+          setConfig({
+            config: { logLevel: "warning", dryRun: true, input: "./README.md", [configKey]: "./a.json" },
+          })
+        ));
       } finally {
-        errors.restore();
         if (saved === undefined) delete process.env.DOC_DETECTIVE;
         else process.env.DOC_DETECTIVE = saved;
       }
       assert.deepEqual(config.beforeAll, ["./b.json"]);
       assert.equal("beforeAny" in config, false);
-      const warnings = errors.args.map(([line]) => line).filter((line) => /beforeAny/.test(line));
-      assert.equal(warnings.length, 1);
+      assert.equal(lines.filter((line) => /beforeAny/.test(line)).length, 1);
     });
   }
 
@@ -750,19 +747,20 @@ describe("config.ts — setConfig", function () {
   it("doesn't warn about beforeAny when a DOC_DETECTIVE override is silent", async function () {
     const saved = process.env.DOC_DETECTIVE;
     process.env.DOC_DETECTIVE = JSON.stringify({ config: { logLevel: "silent" } });
-    const errors = sinon.stub(console, "error");
     let config;
+    let lines;
     try {
-      config = await setConfig({
-        config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
-      });
+      ({ result: config, lines } = await captureErrors(() =>
+        setConfig({
+          config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+        })
+      ));
     } finally {
-      errors.restore();
       if (saved === undefined) delete process.env.DOC_DETECTIVE;
       else process.env.DOC_DETECTIVE = saved;
     }
     assert.deepEqual(config.beforeAll, ["./a.json"]);
-    assert.deepEqual(errors.args.filter(([line]) => /beforeAny/.test(line)), []);
+    assert.deepEqual(lines.filter((line) => /beforeAny/.test(line)), []);
   });
 
   it("rejects a config that sets both beforeAll and beforeAny", async function () {

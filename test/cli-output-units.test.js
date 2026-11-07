@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
-import sinon from "sinon";
+import { captureErrors } from "./capture-errors.js";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
@@ -341,15 +341,6 @@ describe("beforeAll in the CLI config", function () {
     const file = path.join(dir, "config.json");
     fs.writeFileSync(file, JSON.stringify(config));
     return setConfig({ configPath: file, args: {} });
-  };
-  const captureErrors = async (run) => {
-    const errors = sinon.stub(console, "error");
-    try {
-      const result = await run();
-      return { result, lines: errors.args.map(([line]) => String(line)) };
-    } finally {
-      errors.restore();
-    }
   };
 
   it("resolves beforeAll relative to the config file", async function () {

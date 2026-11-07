@@ -331,7 +331,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   // Check for DOC_DETECTIVE_CONFIG environment variable
   const envConfig = await getConfigFromEnv();
   // Rename each source before the merge, so a later source wins whichever name
-  // it uses. The callback only captures the warning.
+  // it uses. The callback only captures the warning. The rename rejects both
+  // names in one source; config_v3's `not: {required}` is the backstop for API
+  // callers that skip the rename.
   let deprecation: string | undefined;
   renameDeprecatedConfigKeys([userConfig, config, envConfig], (message) => (deprecation = message));
   if (userConfig) config = { ...userConfig, ...config };
