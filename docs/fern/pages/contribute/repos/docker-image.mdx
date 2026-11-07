@@ -4,7 +4,9 @@ title: docker-image (alpha)
 
 > This repo is in alpha. It's not ready for production use.
 
-[`docker-image`](https://github.com/doc-detective/docker-image) runs Doc Detective in a container. Doc Detective runs on most machines as-is. This Docker image simplifies installing and running it on machines without Node.js, or with heightened security requirements.
+The Docker image runs Doc Detective in a container. Doc Detective runs on most machines as-is. This Docker image simplifies installing and running it on machines without Node.js, or with heightened security requirements.
+
+The image's configs live in the [`doc-detective`](doc-detective) repo, in [`src/container/`](https://github.com/doc-detective/doc-detective/tree/main/src/container). The separate [`docker-image`](https://github.com/doc-detective/docker-image) repo is archived. For the reasoning, see [ADR 00147](https://github.com/doc-detective/doc-detective/blob/main/adrs/00147-merge-docker-configs-into-monorepo.md).
 
 ## Supported platforms
 
@@ -31,4 +33,4 @@ The Docker image includes:
 - **DITA-OT**: DITA Open Toolkit for DITA content transformation
 - **Java Runtime**: Required for DITA-OT operations
 
-This repo depends on [`doc-detective`](doc-detective) for performing the tests.
+The image installs [`doc-detective`](doc-detective) to perform the tests.

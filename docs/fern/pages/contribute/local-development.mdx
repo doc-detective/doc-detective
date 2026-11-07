@@ -36,9 +36,11 @@ Should show `v22.0.0` or higher.
 
 ## Fork and clone the repository
 
+The docs live in the `docs/` directory of the [`doc-detective`](https://github.com/doc-detective/doc-detective) repo, alongside the code they describe.
+
 ### 1. Fork the repository
 
-1. Go to [https://github.com/doc-detective/doc-detective.github.io](https://github.com/doc-detective/doc-detective.github.io).
+1. Go to [https://github.com/doc-detective/doc-detective](https://github.com/doc-detective/doc-detective).
 2. Click **Fork** in the top right.
 3. Select your GitHub account as the destination.
 
@@ -46,8 +48,8 @@ Should show `v22.0.0` or higher.
 
 ```bash
 # Replace YOUR-USERNAME with your GitHub username
-git clone https://github.com/YOUR-USERNAME/doc-detective.github.io.git
-cd doc-detective.github.io
+git clone https://github.com/YOUR-USERNAME/doc-detective.git
+cd doc-detective
 ```
 
 ### 3. Add upstream remote
@@ -55,7 +57,7 @@ cd doc-detective.github.io
 This lets you sync with the main repository:
 
 ```bash
-git remote add upstream https://github.com/doc-detective/doc-detective.github.io.git
+git remote add upstream https://github.com/doc-detective/doc-detective.git
 ```
 
 Verify remotes:
@@ -67,51 +69,20 @@ git remote -v
 Should show:
 
 ```
-origin    https://github.com/YOUR-USERNAME/doc-detective.github.io.git (fetch)
-origin    https://github.com/YOUR-USERNAME/doc-detective.github.io.git (push)
-upstream  https://github.com/doc-detective/doc-detective.github.io.git (fetch)
-upstream  https://github.com/doc-detective/doc-detective.github.io.git (push)
+origin    https://github.com/YOUR-USERNAME/doc-detective.git (fetch)
+origin    https://github.com/YOUR-USERNAME/doc-detective.git (push)
+upstream  https://github.com/doc-detective/doc-detective.git (fetch)
+upstream  https://github.com/doc-detective/doc-detective.git (push)
 ```
 
 ## Install dependencies
 
-Choose the option that works best for you:
+Install the docs dependencies from the `docs/` directory:
 
-### Option 1: Dev Container (recommended for consistency)
-
-Use VS Code Dev Containers for a zero-config environment:
-
-#### Prerequisites
-
-- [Docker Desktop](https://docs.docker.com/get-docker/)
-- [VS Code](https://code.visualstudio.com/)
-- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-#### Steps
-
-1. **Fork and clone** the repository (see steps below)
-2. **Open in VS Code**
-3. **Reopen in Container**:
-   - Press `F1` or `Cmd/Ctrl+Shift+P`
-   - Select "Dev Containers: Reopen in Container"
-   - Wait for container to build (first time takes 5-10 minutes)
-4. **Start the dev server**:
-   ```bash
-   npm run start
-   ```
-
-Everything is pre-configured and ready to go.
-
-### Option 2: Local installation
-
-Install dependencies directly on your machine:
-
-1. **Fork and clone** the repository (see steps below).
-2. **Install dependencies**:
-   ```bash
-   cd doc-detective.github.io
-   npm install
-   ```
+```bash
+cd docs
+npm install
+```
 
 ## Working locally
 
