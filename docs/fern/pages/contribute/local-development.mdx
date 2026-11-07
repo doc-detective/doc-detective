@@ -116,30 +116,15 @@ To make changes,
    git commit -m "Descriptive commit message"
    ```
 
-### Build the site
+### Check the site
 
-Before submitting, verify the production build works:
-
-```bash
-npm run build
-```
-
-This runs the full build process including:
-
-- Schema generation
-- Production optimization
-- Link checking
-- Build verification
-
-Fix any errors before submitting your PR.
-
-### Preview the production build
+Before submitting, validate the Fern configuration and pages from the `docs/` directory:
 
 ```bash
-npm run serve
+npx fern check
 ```
 
-View the production build at `http://localhost:3000`.
+Fix any errors before submitting your PR. After you open it, a bot comments with a link to a preview of the built site.
 
 ## Run automated checks
 
@@ -239,15 +224,14 @@ Stop other development servers or use a different port:
 npm run start -- --port 3001
 ```
 
-### Build fails with module errors
+### Fern fails with module errors
 
-Clear cache and reinstall:
+Reinstall and check again:
 
 ```bash
-npm run clear
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+rm -rf node_modules
+npm ci
+npx fern check
 ```
 
 ### Changes aren't appearing

@@ -746,6 +746,8 @@ The `-v` argument is not necessary for remotely hosted tests since Docker doesn'
 
 These tests run the same way as local tests. Doc Detective fetches the test file from the specified URL and stores it in a temporary directory. The URL must be accessible to the machine running the tests and must return the file itself, not a web page that displays it. For a file on GitHub, use its `raw.githubusercontent.com` URL rather than its `github.com` page.
 
+Relative paths in a remote test file resolve against that temporary directory, and Doc Detective deletes its contents when the run ends. The sample's `example.png` screenshot doesn't survive the run. To keep the files a remote test writes, download the test file and run your local copy.
+
 ### Run tests with multiple files
 
 You can run tests using multiple files in multiple directories. Add as many comma-separated input values as necessary.
