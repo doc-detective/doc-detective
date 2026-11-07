@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-config-errors';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/bad.json',JSON.stringify({logLevl:'info',concurrentRunners:'lots',shell:'zsh'}));fs.writeFileSync(d+'/nested.json',JSON.stringify({integrations:{heretto:[{name:'x',organizationId:'o',username:'u',apiTokn:'t'}]}}));fs.writeFileSync(d+'/enum.spec.json',JSON.stringify({tests:[{stepz:[],steps:[{click:{selector:'#go',button:'middle-ish'}},{runShell:{comand:'echo hi'}}]}]}));\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-config-errors';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/bad.json',JSON.stringify({logLevl:'info',concurrentRunners:'lots',shell:'zsh'}));fs.writeFileSync(d+'/nested.json',JSON.stringify({integrations:{heretto:[{name:'x',organizationId:'o',username:'u',apiTokn:'t'}]}}));fs.writeFileSync(d+'/choice.json',JSON.stringify({integrations:{heretto:[{name:'x',organizationId:'o',username:'u'}]}}));fs.writeFileSync(d+'/enum.spec.json',JSON.stringify({tests:[{stepz:[],steps:[{click:{selector:'#go',button:'middle-ish'}},{runShell:{comand:'echo hi'}}]}]}));\"",
             "workingDirectory": "../../.."
           }
         }
@@ -52,7 +52,7 @@
     },
     {
       "testId": "nested-config-key",
-      "description": "A nested config key gets a suggestion, and a choice of required keys names each one.",
+      "description": "A nested config key gets a suggestion, and a choice of required keys names each one when nothing suggests one.",
       "steps": [
         {
           "runShell": {
@@ -66,7 +66,7 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/nested.json",
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/choice.json",
             "workingDirectory": "../../..",
             "exitCodes": [
               2

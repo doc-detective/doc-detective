@@ -39,9 +39,6 @@ main(processArgv).catch((err) => {
     reportCrash(err, { version: cliRequire("../package.json").version });
   } else {
     console.error(`Error: ${err?.message || err}`);
-    // An invalid config carries AJV's raw errors, for -d.
-    const debug = isDebugRequested() || ["-d", "--debug", "--verbose"].some((flag) => processArgv.includes(flag));
-    if (debug && err?.cause) console.error(err.cause);
   }
   process.exit(2);
 });
@@ -86,7 +83,15 @@ async function runTestsHandler(args: any) {
   await readStdinInputs(args);
 
   // Set config
-  const config: any = await setConfig({ configPath: discoverConfigPath(args), args: args });
+  // An invalid config carries AJV's raw errors as its cause. With -d, they go
+  // out at debug level before the summary the top-level catch prints.
+  const debugConfigErrors = (error: any) => {
+    if (error?.cause && (args.debug || args.logLevel === "debug" || isDebugRequested())) {
+      log(`CLI:CONFIG ERRORS: ${String(error.cause).trim()}`, "debug", { logLevel: "debug" });
+    }
+    throw error;
+  };
+  const config: any = await setConfig({ configPath: discoverConfigPath(args), args: args }).catch(debugConfigErrors);
   // One cache for the whole run, including runtime lookups that only read the
   // environment, now that the flag and the config file have had their say.
   if (config.cacheDir) process.env.DOC_DETECTIVE_CACHE_DIR = config.cacheDir;
@@ -181,7 +186,9 @@ async function runTestsHandler(args: any) {
   const results = await (resolvedTests
     ? runTests(config, { resolvedTests, updateJoin, strictSpecs })
     : runTests(config, { updateJoin, strictSpecs })
-  ).finally(stopProgress);
+  )
+    .catch(debugConfigErrors)
+    .finally(stopProgress);
 
   // Dry-run already emitted the resolved-tests JSON inside runTests().
   // Skip both reporters (which assume executed-result shape) and the

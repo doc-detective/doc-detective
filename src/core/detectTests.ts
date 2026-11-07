@@ -935,12 +935,9 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         fileType: fileType,
         filePath: file,
         testIdBase: id,
-        onInvalid: (reason: string, details?: { schemaKey: string; object: any }) => {
-          // Common hands over AJV's string; validate again for the structured errors.
-          const errorObjects = details
-            ? validate({ ...details, addDefaults: false, structuredErrors: true }).errorObjects
-            : [];
-          const summary = (details && summarizeSchemaErrors(errorObjects, details.object, details.schemaKey)) || reason;
+        onInvalid: (reason: string, details?: { schemaKey: string; object: any; errorObjects?: any[] }) => {
+          const summary =
+            (details && summarizeSchemaErrors(details.errorObjects, details.object, details.schemaKey)) || reason;
           noteInvalidSpec(config, file, details ? `${JSON.stringify(details.object)}: ${summary}` : summary);
         },
       });
