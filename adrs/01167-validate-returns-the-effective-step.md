@@ -71,7 +71,8 @@ Chosen option: **A**.
   to an object, so it ships in 5.0.
 - This change moves `goTo` and `httpRequest`. The other 19 actions are registered as passthroughs, and their
   area chunks move them. `test/shorthand-ratchet.test.js` counts the handler files that still branch on
-  shorthand. It's 15 after this change, and it reaches 0 when every action has moved.
+  shorthand. A check against `false`, the canonical disabled value an effective step keeps, doesn't count. It's
+  13 after this change, and it reaches 0 when every action has moved.
 
 The pilots keep today's behavior, with three exceptions:
 
