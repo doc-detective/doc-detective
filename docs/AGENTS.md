@@ -32,6 +32,9 @@ This project uses Doc Detective to test its own documentation.
 - You can find a test example at `fern/pages/docs/get-started/sample.spec.json`.
 
 - **DO:** When you change documentation related to a feature, review the corresponding `.spec.json` file to see if the test needs to be updated.
+- **Example check.** [`test/doc-examples.test.js`](../test/doc-examples.test.js) runs in `npm test`. It validates every fenced `json` and `yaml` block in `fern/pages/**/*.mdx` and the READMEs that looks like a spec, test, step, or config against `doc-detective-common`. Fix an example that fails, don't skip it.
+  - To keep a deliberately incomplete or wrong example, add `invalid` to the fence's info string, and always pair it with a title: ```` ```json title="first-test.spec.json" invalid ````. Fern renders the text after the language as the block title, so a bare ```` ```json invalid ```` shows "invalid" as the title.
+  - Fences nested inside a ```` ````markdown ```` sample render literally, `invalid` included. Explain the marker in the page text when you use it there.
 
 ### Test servers
 
