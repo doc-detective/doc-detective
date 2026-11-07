@@ -611,7 +611,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       assert.equal(step.result, "FAIL");
       assert.match(
         step.resultDescription,
-        /^Couldn't fetch remote reference image \(http:\/\/localhost:8092\/url-reference-fixture\.png\): Couldn't fetch http:\/\/localhost:8092\/url-reference-fixture\.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses\.\nHint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs\.$/
+        /^Couldn't fetch http:\/\/localhost:8092\/url-reference-fixture\.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses\.\nHint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs\.$/
       );
     } finally {
       if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
