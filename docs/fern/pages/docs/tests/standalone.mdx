@@ -58,16 +58,12 @@ Editors that read JSON Schema, such as VS Code, offer completion and validation.
 
 ```json
 {
-  "$schema": "https://unpkg.com/doc-detective-common@5/dist/schemas/spec_v3.schema.json",
+  "$schema": "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json",
   "tests": []
 }
 ```
 
 Swap `spec_v3` for `test_v3`, `step_v3`, `context_v3`, or `config_v3` to match the file.
-
-<Note>
-The versioned `unpkg.com` URLs resolve once Doc Detective 5 publishes the per-schema files. Until then, use the legacy `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json` URL. It still works, but it serves an older copy of the schema.
-</Note>
 
 ## Example
 
