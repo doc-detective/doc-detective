@@ -852,11 +852,6 @@
       }
     },
     {
-      "click": {
-        "$ref": "click_v3.schema.json#/examples/3"
-      }
-    },
-    {
       "httpRequest": {
         "$ref": "httpRequest_v3.schema.json#/examples/0"
       }
