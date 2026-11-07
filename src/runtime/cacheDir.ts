@@ -96,11 +96,18 @@ export function userConfigDir({
   return path.join(home, ".config", "doc-detective");
 }
 
+// The cache a CLI run resolved, with `--cache-dir` over DOC_DETECTIVE_CACHE_DIR
+// over config (ADR 01165). Held in process, not written to the environment,
+// so steps' child processes never inherit it.
+let runCacheDir: string | undefined;
+export function setRunCacheDir(dir: string | undefined) {
+  runCacheDir = dir;
+}
+
 /**
- * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > defaultCacheRoot(). The CLI writes its resolved cacheDir, where
- * `--cache-dir` beats the variable, back into DOC_DETECTIVE_CACHE_DIR, so every
- * lookup in a run agrees (ADR 01165). The directory is created if missing — every
+ * Resolve the cache root, honoring the run's resolved cacheDir >
+ * DOC_DETECTIVE_CACHE_DIR > config.cacheDir > defaultCacheRoot(), so every
+ * lookup in a run agrees. The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.
@@ -114,6 +121,7 @@ export function getCacheDir(ctx: CacheDirContext = {}): string {
   // whitespace-only values, preventing the surprise of creating a "   "
   // directory relative to the cwd.
   const resolved =
+    trimOrUndefined(runCacheDir) ??
     trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
     trimOrUndefined(ctx.cacheDir) ??
     defaultCacheRoot();

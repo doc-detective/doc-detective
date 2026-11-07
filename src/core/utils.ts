@@ -1742,7 +1742,8 @@ function deepMerge(target: any, override: any): any {
   const result = { ...target };
   const isObject = (value: any) => value != null && typeof value === "object" && !Array.isArray(value);
   for (const key of Object.keys(override)) {
-    if (key === "__proto__") continue;
+    // A config key never reaches an object's prototype.
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
     result[key] = isObject(override[key])
       ? deepMerge(isObject(result[key]) ? result[key] : {}, override[key])
       : override[key];

@@ -965,7 +965,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is disabled (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1). Install it with \`doc-detective install android\`.`,
+        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is off (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL is on). Install it with \`doc-detective install android\`.`,
       };
     }
     // Loud warning to the terminal AND the report, then run the installer.

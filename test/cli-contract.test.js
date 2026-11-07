@@ -23,20 +23,17 @@ describe("CLI contract", function () {
       JSON.stringify({ specId: name, tests: [{ testId: `${name}-t`, steps: [step] }] })
     );
 
-  function run(args, { env = {}, input } = {}) {
+  function run(args, { env = {}, input, unset = [] } = {}) {
     const baseEnv = { ...process.env };
     for (const key of ["CI", "NO_COLOR", "FORCE_COLOR", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete baseEnv[key];
-    return spawnSync(process.execPath, [CLI, ...args], {
-      cwd,
-      encoding: "utf8",
-      input: input ?? "",
-      env: {
-        ...baseEnv,
-        DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
-        DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
-        ...env,
-      },
-    });
+    const fullEnv = {
+      ...baseEnv,
+      DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+      ...env,
+    };
+    for (const key of unset) delete fullEnv[key];
+    return spawnSync(process.execPath, [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "", env: fullEnv });
   }
 
   beforeEach(function () {
@@ -795,6 +792,34 @@ describe("CLI contract", function () {
       const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
       expect(r.status, r.stderr).to.equal(0);
       expect(fs.existsSync(path.join(cwd, "config-cache"))).to.equal(true);
+    });
+
+    it("lets install read the project .env, as a run does", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "DOC_DETECTIVE_CACHE_DIR=dotenv-cache\n");
+      const r = run(["install", "status", "--json"], { unset: ["DOC_DETECTIVE_CACHE_DIR"] });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "dotenv-cache"))).to.equal(true);
+    });
+
+    it("doesn't fail install on a credential file it never reads", function () {
+      fs.writeFileSync(
+        path.join(cwd, ".doc-detective.json"),
+        JSON.stringify({ integrations: { docDetectiveApi: { apiKeyFile: "missing.key" } } })
+      );
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("keeps the run's cache out of a step's environment", function () {
+      writeSpec("cache-env.spec.json", { runShell: 'node -e "process.exit(process.env.DOC_DETECTIVE_CACHE_DIR ? 7 : 0)"' });
+      const r = run(["-i", "cache-env.spec.json", "--cache-dir", "flag-cache"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("rejects both names of the debug variable", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_DEBUG: "1", DOC_DETECTIVE_RUNTIME_DEBUG: "1" } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal("Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both.\n");
     });
 
     describe("precedence", function () {

@@ -497,7 +497,8 @@ describe("Util tests", function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--cache-dir", "/tmp/ddc"]);
     const config = await setConfig({ configPath: null, args });
-    expect(config.cacheDir).to.equal("/tmp/ddc");
+    // Absolute, against the working directory (ADR 01165).
+    expect(config.cacheDir).to.equal(path.resolve("/tmp/ddc"));
 
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
@@ -609,23 +610,18 @@ describe("Util tests", function () {
     expect(config.cacheDir).to.equal(undefined);
   });
 
-  it("setConfig applies a whitespace-only --cache-dir verbatim (runtime neutralizes it)", async function () {
+  it("setConfig ignores a whitespace-only --cache-dir", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--cache-dir", "   "]);
     const config = await setConfig({ configPath: null, args });
-    // Assignment-only contract: setConfig no longer sanitizes per-flag. The
-    // value is stored as-is; getCacheDir() trims it to nothing and falls back
-    // to the default at the consumption site (see runtime-cache-dir.test.js).
-    expect(config.cacheDir).to.equal("   ");
+    expect(config.cacheDir).to.equal(undefined);
   });
 
-  it("setConfig applies --cache-dir verbatim without trimming", async function () {
+  it("setConfig trims --cache-dir and makes it absolute", async function () {
     this.timeout(5000);
     const args = setArgs(["node", "runTests.js", "--cache-dir", "  /tmp/dd  "]);
     const config = await setConfig({ configPath: null, args });
-    // No per-flag trim in the override block; trimming is deferred to
-    // getCacheDir() in runtime/cacheDir.ts.
-    expect(config.cacheDir).to.equal("  /tmp/dd  ");
+    expect(config.cacheDir).to.equal(path.resolve("/tmp/dd"));
   });
 
   it("setConfig stores --reporters arg on config.reporters", async function () {

@@ -816,7 +816,7 @@ describe("utils.ts coverage", function () {
       assert.equal(cfg.autoUpdate, false);
       assert.equal(cfg.autoScreenshot, true);
       assert.equal(cfg.autoRecord, false);
-      assert.equal(cfg.cacheDir, "mycache");
+      assert.equal(cfg.cacheDir, path.resolve("mycache"));
       assert.equal(cfg.browserFallback, "off"); // normalized lower-case
       assert.equal(cfg.concurrentRunners, 4);
     });
