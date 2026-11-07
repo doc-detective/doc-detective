@@ -8,15 +8,15 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-process-tightening',w=(n,s)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({tests:[{steps:[s]}]}));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});w('negative-wait',{wait:-5});w('negative-timeout',{runShell:{command:'echo hi',timeout:-1}});w('edge-surface',{startSurface:{browser:'edge'}});w('device-orientation',{startSurface:{app:'com.example.app',device:{platform:'android',name:'Pixel_7',orientation:'landscape'}}});w('wait-zero',{wait:0});\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-process-tightening',w=(n,s)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify({tests:[{steps:[s]}]})),app=(device)=>({startSurface:{app:'com.example.app',device:{platform:'android',name:'Pixel_7',...device}}});fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});w('negative-wait',{wait:-5});w('negative-runshell-timeout',{runShell:{command:'echo hi',timeout:-1}});w('negative-runcode-timeout',{runCode:{language:'javascript',code:'1',timeout:-1}});w('negative-delayms',{runShell:{command:'echo hi',background:{name:'bg',waitUntil:{delayMs:-1}}}});w('edge-startsurface',{startSurface:{browser:'edge'}});w('edge-startsurface-array',{startSurface:[{browser:'edge',name:'corp'}]});w('edge-surface-object',{closeSurface:{browser:'edge'}});w('device-orientation',app({orientation:'landscape'}));w('device-udid',app({udid:'emulator-5554'}));w('device-provider',app({provider:{browserstack:{}}}));w('wait-zero',{wait:0});\"",
             "workingDirectory": "../../.."
           }
         }
       ]
     },
     {
-      "testId": "invalid-exit-2",
-      "description": "Each removed or out-of-range shape exits 2 before anything runs.",
+      "testId": "negative-durations-exit-2",
+      "description": "Each negative duration exits 2 before anything runs.",
       "steps": [
         {
           "description": "A negative wait.",
@@ -31,7 +31,7 @@
         {
           "description": "A negative runShell timeout.",
           "runShell": {
-            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-runshell-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2
@@ -39,9 +39,9 @@
           }
         },
         {
-          "description": "A startSurface browser named edge.",
+          "description": "A negative runCode timeout.",
           "runShell": {
-            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/edge-surface.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-runcode-timeout.spec.json --output-dir .tmp/fixture-process-tightening/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2
@@ -49,9 +49,81 @@
           }
         },
         {
-          "description": "A device with the removed orientation field.",
+          "description": "A negative waitUntil.delayMs on a runShell background process.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/negative-delayms.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "edge-exit-2",
+      "description": "edge is no browser name in any surface form, so each exits 2.",
+      "steps": [
+        {
+          "description": "A startSurface browser descriptor.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/edge-startsurface.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A browser descriptor in a startSurface array.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/edge-startsurface-array.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A surface browser object, here in closeSurface.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/edge-surface-object.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "device-fields-exit-2",
+      "description": "Each removed device field is an unknown key, so each exits 2.",
+      "steps": [
+        {
+          "description": "orientation.",
           "runShell": {
             "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/device-orientation.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "udid.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/device-udid.spec.json --output-dir .tmp/fixture-process-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "provider.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-process-tightening/device-provider.spec.json --output-dir .tmp/fixture-process-tightening/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2
