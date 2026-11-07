@@ -120,6 +120,7 @@
   },
   "examples": [
     { "continue": true },
+    { "stop": "test" },
     { "stop": "spec" },
     { "if": "$$platform == windows", "goToTest": "cleanup" }
   ]

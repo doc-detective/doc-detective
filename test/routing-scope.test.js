@@ -14,11 +14,11 @@ describe("routing scopes through the CLI", function () {
   this.timeout(60000);
   let cwd;
 
-  function run(spec) {
+  function run(spec, args = []) {
     fs.writeFileSync(path.join(cwd, "a.spec.json"), JSON.stringify(spec));
     const env = { ...process.env };
     for (const key of ["CI", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete env[key];
-    return spawnSync(process.execPath, [CLI, "-i", "a.spec.json"], {
+    return spawnSync(process.execPath, [CLI, "-i", "a.spec.json", ...args], {
       cwd,
       encoding: "utf8",
       input: "",
@@ -57,9 +57,10 @@ describe("routing scopes through the CLI", function () {
     });
   }
 
-  it("runs a test whose onPass stops the spec", function () {
-    const r = run({ tests: [{ steps: [echo], onPass: [{ stop: "spec" }] }, { steps: [echo] }] });
+  it("runs a test whose onPass stops the spec, and skips the rest", function () {
+    const r = run({ tests: [{ steps: [echo], onPass: [{ stop: "spec" }] }, { steps: [echo] }] }, ["--json"]);
     expect(r.status, r.stderr).to.equal(0);
+    expect(JSON.parse(r.stdout).specs[0].tests.map((test) => test.result)).to.deep.equal(["PASS", "SKIPPED"]);
   });
 
   it("accepts retry in a step's onSkip", function () {

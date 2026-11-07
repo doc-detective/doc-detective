@@ -3124,6 +3124,9 @@
                       "continue": true
                     },
                     {
+                      "stop": "test"
+                    },
+                    {
                       "stop": "spec"
                     },
                     {
@@ -3351,6 +3354,9 @@
                   "examples": [
                     {
                       "continue": true
+                    },
+                    {
+                      "stop": "test"
                     },
                     {
                       "stop": "spec"
@@ -3582,6 +3588,9 @@
                       "continue": true
                     },
                     {
+                      "stop": "test"
+                    },
+                    {
                       "stop": "spec"
                     },
                     {
@@ -3809,6 +3818,9 @@
                   "examples": [
                     {
                       "continue": true
+                    },
+                    {
+                      "stop": "test"
                     },
                     {
                       "stop": "spec"

@@ -331,7 +331,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   // Check for DOC_DETECTIVE_CONFIG environment variable
   const envConfig = await getConfigFromEnv();
   // Rename each source before the merge, so a later source wins whichever name
-  // it uses. Warn after the merge, so the merged logLevel decides.
+  // it uses. The callback only captures the warning.
   let deprecation: string | undefined;
   renameDeprecatedConfigKeys([userConfig, config, envConfig], (message) => (deprecation = message));
   if (userConfig) config = { ...userConfig, ...config };
@@ -339,6 +339,7 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
     config = { ...config, ...envConfig };
   }
+  // Emit after the merge, so the merged logLevel decides.
   if (deprecation) log(deprecation, "warning", config);
 
   readCredentialFiles(config);

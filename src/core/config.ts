@@ -18,7 +18,9 @@ export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiag
 
 // Rename deprecated config keys in place, in each config source before they're
 // merged, so a later source wins whichever name either one uses (ADR 01169).
-// Setting both names in one source is an error. Warns once for all the sources.
+// Setting both names in one source is an error. Calls `warn` at most once for
+// all the sources. Callers should capture that message and log it after they
+// merge the sources, so the merged `logLevel` applies.
 function renameDeprecatedConfigKeys(
   sources: (Record<string, any> | null | undefined)[],
   warn: (message: string) => void
@@ -172,10 +174,11 @@ async function setConfig({ config, detectApps = true }: any) {
     }
   }
   // Rename each source before the merge, so the override wins whichever name it
-  // uses. Warn after the merge, so the merged logLevel decides.
+  // uses. The callback only captures the warning.
   let deprecation: string | undefined;
   renameDeprecatedConfigKeys([config, envOverrides], (message) => (deprecation = message));
   if (envOverrides) config = deepMerge(config, envOverrides);
+  // Emit after the merge, so the merged logLevel decides.
   if (deprecation) log(config, "warning", deprecation);
 
   // Validate inbound `config`.

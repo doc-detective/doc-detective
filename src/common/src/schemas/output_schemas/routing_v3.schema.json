@@ -215,6 +215,9 @@
       "continue": true
     },
     {
+      "stop": "test"
+    },
+    {
       "stop": "spec"
     },
     {
