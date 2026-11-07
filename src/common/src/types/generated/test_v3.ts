@@ -865,7 +865,7 @@ export type ClickElementDetailed = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -1167,7 +1167,7 @@ export type FindElementDetailed = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine1 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine1 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -1272,7 +1272,7 @@ export type TypeKeysSimple1 = string | string[];
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface2 | AppSurface2;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**
@@ -1737,7 +1737,7 @@ export type GoToURLDetailed = {
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine2 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -2643,7 +2643,7 @@ export type RunBrowserScriptSimple = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine3 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -2916,7 +2916,7 @@ export type TypeKeysSimple3 = string | string[];
  */
 export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface5 | AppSurface3;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName1 = string;
 /**
@@ -3265,7 +3265,7 @@ export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDon
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine4 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -4036,7 +4036,7 @@ export type RecordSimple = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine5 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine5 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -4471,7 +4471,7 @@ export type CloseSurface1 = Surface2 | [Surface3, ...Surface3[]];
  */
 export type Surface2 = SurfaceByName2 | ProcessSurface2 | BrowserSurface8 | AppSurface6;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName2 = string;
 /**
@@ -4515,7 +4515,7 @@ export type ByName24 = string;
  */
 export type Surface3 = SurfaceByName3 | ProcessSurface3 | BrowserSurface9 | AppSurface7;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName3 = string;
 /**
@@ -5354,7 +5354,7 @@ export type ElementDetailed1 = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine6 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine6 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -5800,7 +5800,7 @@ export type SwipeSimple1 = "up" | "down" | "left" | "right";
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine7 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine7 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -5840,7 +5840,7 @@ export type ByName32 = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine8 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine8 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -6058,7 +6058,7 @@ export type Routing83 = (
  */
 export type Condition124 = string | [string, ...string[]];
 /**
- * Pause (in milliseconds) before performing the next action.
+ * Pause before the next action, in milliseconds. `true` pauses for 5000 milliseconds, and `false` skips the step.
  */
 export type Wait1 = WaitSimple | WaitEnvironmentVariable;
 export type WaitSimple = number | boolean;
@@ -7382,7 +7382,7 @@ export type ClickElementDetailed1 = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine9 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine9 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -7684,7 +7684,7 @@ export type FindElementDetailed1 = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine10 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine10 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -7789,7 +7789,7 @@ export type TypeKeysSimple5 = string | string[];
  */
 export type Surface4 = SurfaceByName4 | ProcessSurface4 | BrowserSurface15 | AppSurface12;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName4 = string;
 /**
@@ -8254,7 +8254,7 @@ export type GoToURLDetailed1 = {
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine11 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine11 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -9160,7 +9160,7 @@ export type RunBrowserScriptSimple1 = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine12 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine12 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -9433,7 +9433,7 @@ export type TypeKeysSimple7 = string | string[];
  */
 export type Surface5 = SurfaceByName5 | ProcessSurface5 | BrowserSurface18 | AppSurface13;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName5 = string;
 /**
@@ -9782,7 +9782,7 @@ export type CaptureScreenshotDetailed1 = CaptureScreenshotFields1 & AppCapturesD
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine13 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine13 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -10553,7 +10553,7 @@ export type RecordSimple1 = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine14 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine14 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -10988,7 +10988,7 @@ export type CloseSurface3 = Surface6 | [Surface7, ...Surface7[]];
  */
 export type Surface6 = SurfaceByName6 | ProcessSurface6 | BrowserSurface21 | AppSurface16;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName6 = string;
 /**
@@ -11032,7 +11032,7 @@ export type ByName60 = string;
  */
 export type Surface7 = SurfaceByName7 | ProcessSurface7 | BrowserSurface22 | AppSurface17;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName7 = string;
 /**
@@ -11871,7 +11871,7 @@ export type ElementDetailed3 = (
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine15 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine15 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -12317,7 +12317,7 @@ export type SwipeSimple3 = "up" | "down" | "left" | "right";
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine16 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine16 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -12357,7 +12357,7 @@ export type ByName68 = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine17 = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine17 = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -12575,7 +12575,7 @@ export type Routing167 = (
  */
 export type Condition250 = string | [string, ...string[]];
 /**
- * Pause (in milliseconds) before performing the next action.
+ * Pause before the next action, in milliseconds. `true` pauses for 5000 milliseconds, and `false` skips the step.
  */
 export type Wait3 = WaitSimple1 | WaitEnvironmentVariable1;
 export type WaitSimple1 = number | boolean;
@@ -13777,20 +13777,6 @@ export interface DeviceDescriptor {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * OpenAPI definition object loaded from the `descriptionPath`. This is a resolved version of the OpenAPI description and should not be user-defined.
@@ -14366,7 +14352,7 @@ export interface BrowserSurface {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -14668,7 +14654,7 @@ export interface BrowserSurface1 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -14753,7 +14739,7 @@ export interface BrowserSurface2 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -14824,7 +14810,7 @@ export interface ProcessReadiness {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
@@ -14841,7 +14827,7 @@ export interface BrowserReadiness {
 }
 export interface AppReadiness {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria1;
@@ -15101,7 +15087,7 @@ export interface BrowserSurface3 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -15698,7 +15684,7 @@ export interface RunShellCommandDetailed {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -15714,7 +15700,7 @@ export interface RunShellCommandDetailed {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -16012,7 +15998,7 @@ export interface RunCodeDetailed {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -16028,7 +16014,7 @@ export interface RunCodeDetailed {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -16334,7 +16320,7 @@ export interface RunBrowserScriptDetailed {
    */
   path?: string;
   /**
-   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -16355,7 +16341,7 @@ export interface BrowserSurface4 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -16642,7 +16628,7 @@ export interface BrowserSurface5 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -16713,7 +16699,7 @@ export interface ProcessReadiness1 {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
@@ -16730,7 +16716,7 @@ export interface BrowserReadiness1 {
 }
 export interface AppReadiness1 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria3;
@@ -17016,7 +17002,7 @@ export interface BrowserSurface6 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -18088,7 +18074,7 @@ export interface BrowserSurface7 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -18684,7 +18670,7 @@ export interface BrowserSurface8 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -18759,7 +18745,7 @@ export interface BrowserSurface9 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -19071,7 +19057,7 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
    */
   workingDirectory?: string;
   /**
@@ -19129,36 +19115,22 @@ export interface DeviceDescriptor1 {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness2 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria4;
 }
 export interface BrowserDescriptor {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -19216,7 +19188,7 @@ export interface ProcessDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -19263,7 +19235,7 @@ export interface AppDescriptor1 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
    */
   workingDirectory?: string;
   /**
@@ -19321,36 +19293,22 @@ export interface DeviceDescriptor2 {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness3 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria5;
 }
 export interface BrowserDescriptor1 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -19408,7 +19366,7 @@ export interface ProcessDescriptor1 {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -19932,7 +19890,7 @@ export interface BrowserSurface10 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -20461,7 +20419,7 @@ export interface BrowserSurface11 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -20568,7 +20526,7 @@ export interface BrowserSurface12 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -22644,7 +22602,7 @@ export interface BrowserSurface13 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -22946,7 +22904,7 @@ export interface BrowserSurface14 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -23031,7 +22989,7 @@ export interface BrowserSurface15 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -23102,7 +23060,7 @@ export interface ProcessReadiness2 {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
@@ -23119,7 +23077,7 @@ export interface BrowserReadiness2 {
 }
 export interface AppReadiness4 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria7;
@@ -23379,7 +23337,7 @@ export interface BrowserSurface16 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -23976,7 +23934,7 @@ export interface RunShellCommandDetailed1 {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -23992,7 +23950,7 @@ export interface RunShellCommandDetailed1 {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -24290,7 +24248,7 @@ export interface RunCodeDetailed1 {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -24306,7 +24264,7 @@ export interface RunCodeDetailed1 {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -24612,7 +24570,7 @@ export interface RunBrowserScriptDetailed1 {
    */
   path?: string;
   /**
-   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -24633,7 +24591,7 @@ export interface BrowserSurface17 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -24920,7 +24878,7 @@ export interface BrowserSurface18 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -24991,7 +24949,7 @@ export interface ProcessReadiness3 {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
@@ -25008,7 +24966,7 @@ export interface BrowserReadiness3 {
 }
 export interface AppReadiness5 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria9;
@@ -25294,7 +25252,7 @@ export interface BrowserSurface19 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -26366,7 +26324,7 @@ export interface BrowserSurface20 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -26962,7 +26920,7 @@ export interface BrowserSurface21 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -27037,7 +26995,7 @@ export interface BrowserSurface22 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -27349,7 +27307,7 @@ export interface AppDescriptor2 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
    */
   workingDirectory?: string;
   /**
@@ -27407,36 +27365,22 @@ export interface DeviceDescriptor3 {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness6 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria10;
 }
 export interface BrowserDescriptor2 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -27494,7 +27438,7 @@ export interface ProcessDescriptor2 {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -27541,7 +27485,7 @@ export interface AppDescriptor3 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
+   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
    */
   workingDirectory?: string;
   /**
@@ -27599,36 +27543,22 @@ export interface DeviceDescriptor4 {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness7 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria11;
 }
 export interface BrowserDescriptor3 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -27686,7 +27616,7 @@ export interface ProcessDescriptor3 {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -28210,7 +28140,7 @@ export interface BrowserSurface23 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -28739,7 +28669,7 @@ export interface BrowserSurface24 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -28846,7 +28776,7 @@ export interface BrowserSurface25 {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */

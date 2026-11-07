@@ -1976,7 +1976,8 @@
           "type": [
             "number",
             "boolean"
-          ]
+          ],
+          "minimum": 0
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
@@ -2252,8 +2253,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ]
                     }
                   }
@@ -2304,8 +2304,7 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
             "transform": [
               "trim"
@@ -2341,8 +2340,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -4814,8 +4812,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -4890,8 +4887,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "tty": {
                 "type": "boolean",
@@ -4902,7 +4898,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               }
             }
@@ -4961,8 +4957,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "minLength": 1,
-                "default": "."
+                "minLength": 1
               },
               "env": {
                 "type": "object",
@@ -5010,7 +5005,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000
               }
             }
@@ -5047,20 +5042,6 @@
               },
               "headless": {
                 "type": "boolean"
-              },
-              "orientation": {
-                "type": "string",
-                "enum": [
-                  "portrait",
-                  "landscape"
-                ]
-              },
-              "udid": {
-                "type": "string",
-                "minLength": 1
-              },
-              "provider": {
-                "type": "object"
               }
             }
           }
@@ -5790,8 +5771,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "exitCodes": {
                 "type": "array",
@@ -5832,6 +5812,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 1,
                 "default": 60000
               },
               "background": {
@@ -5933,8 +5914,7 @@
                 "default": []
               },
               "workingDirectory": {
-                "type": "string",
-                "default": "."
+                "type": "string"
               },
               "exitCodes": {
                 "type": "array",
@@ -5975,6 +5955,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 1,
                 "default": 60000
               },
               "background": {
@@ -9990,7 +9971,8 @@
           "type": [
             "number",
             "boolean"
-          ]
+          ],
+          "minimum": 0
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
@@ -10264,8 +10246,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ]
                     }
                   }
@@ -10316,8 +10297,7 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
             "transform": [
               "trim"
@@ -10353,8 +10333,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -12782,8 +12761,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               },
               "name": {
@@ -12867,7 +12845,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               }
             }
           },
@@ -12973,7 +12951,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 1
               }
             }
           },
@@ -13009,20 +12987,6 @@
               },
               "headless": {
                 "type": "boolean"
-              },
-              "orientation": {
-                "type": "string",
-                "enum": [
-                  "portrait",
-                  "landscape"
-                ]
-              },
-              "udid": {
-                "type": "string",
-                "minLength": 1
-              },
-              "provider": {
-                "type": "object"
               }
             }
           }
@@ -13776,7 +13740,8 @@
                 ]
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
               },
               "background": {
                 "type": "object",
@@ -13910,7 +13875,8 @@
                 ]
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
               },
               "background": {
                 "type": "object",

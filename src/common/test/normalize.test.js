@@ -273,6 +273,99 @@ describe("normalization", function () {
     });
   });
 
+  describe("process and surface actions", function () {
+    const OUTPUT = { args: [], exitCodes: [0], maxVariation: 0, overwrite: "aboveVariation", timeout: 60000 };
+
+    it("expands the runShell shorthand and fills its defaults, but not workingDirectory", function () {
+      const result = effective({ runShell: "echo hi" });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object.runShell).to.deep.equal({ command: "echo hi", ...OUTPUT });
+    });
+
+    it("fills tty only for a background process", function () {
+      const background = effective({ runShell: { command: "x", background: { name: "web" } } }).object.runShell;
+      expect(background.background).to.deep.equal({ name: "web", tty: false });
+      const code = effective({ runCode: { language: "js", code: "1", background: { name: "api", tty: true } } }).object;
+      expect(code.runCode.background.tty).to.equal(true);
+    });
+
+    it("fills runCode's defaults", function () {
+      const result = effective({ runCode: { language: "python", code: "print(1)" } });
+      expect(result.object.runCode).to.deep.equal({ language: "python", code: "print(1)", ...OUTPUT });
+    });
+
+    it("expands the runBrowserScript shorthand and fills its defaults", function () {
+      const result = effective({ runBrowserScript: "return 1;" });
+      expect(result.object.runBrowserScript).to.deep.equal({
+        script: "return 1;",
+        args: [],
+        maxVariation: 0,
+        overwrite: "aboveVariation",
+        timeout: 60000,
+      });
+    });
+
+    for (const [authored, value] of [
+      [true, 5000],
+      ["true", 5000],
+      [false, false],
+      [0, 0],
+      [1, 1],
+      ["250", 250],
+      ["$WAIT", "$WAIT"],
+    ]) {
+      it(`makes wait: ${JSON.stringify(authored)} wait: ${JSON.stringify(value)}`, function () {
+        const result = effective({ wait: authored });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.wait).to.equal(value);
+      });
+    }
+
+    it("wraps one closeSurface reference in a list", function () {
+      expect(effective({ closeSurface: "web" }).object.closeSurface).to.deep.equal(["web"]);
+      expect(effective({ closeSurface: { process: "web" } }).object.closeSurface).to.deep.equal([{ process: "web" }]);
+      expect(effective({ closeSurface: ["web", "chrome"] }).object.closeSurface).to.deep.equal(["web", "chrome"]);
+    });
+
+    it("fills each startSurface descriptor's defaults, by kind", function () {
+      const process = { process: "node server.js", name: "api" };
+      expect(effective({ startSurface: process }).object.startSurface).to.deep.equal({
+        ...process,
+        args: [],
+        tty: false,
+        timeout: 60000,
+      });
+      expect(effective({ startSurface: { app: "notepad" } }).object.startSurface).to.deep.equal({
+        app: "notepad",
+        timeout: 60000,
+      });
+      expect(effective({ startSurface: { browser: "firefox" } }).object.startSurface).to.deep.equal({ browser: "firefox" });
+      const array = effective({ startSurface: [{ browser: "chrome", name: "web" }, process] }).object.startSurface;
+      expect(array).to.deep.equal([{ browser: "chrome", name: "web" }, { ...process, args: [], tty: false, timeout: 60000 }]);
+    });
+
+    it("leaves a startSurface descriptor of no known kind as it is", function () {
+      expect(normalizers.startSurface({ name: "x" }, "startSurface")).to.deep.equal({ name: "x" });
+      expect(normalizers.startSurface([{ name: "x" }], "startSurface")).to.deep.equal([{ name: "x" }]);
+    });
+
+    it("leaves a startSurface descriptor as it is when its kind's schema is missing", function () {
+      const components = schemas.startSurface_v3.components.schemas;
+      const saved = components.processDescriptor;
+      delete components.processDescriptor;
+      try {
+        const descriptor = { process: "x", name: "p" };
+        expect(normalizers.startSurface(descriptor, "startSurface")).to.deep.equal({ process: "x", name: "p" });
+      } finally {
+        components.processDescriptor = saved;
+      }
+    });
+
+    it("leaves loadVariables as authored", function () {
+      expect(effective({ loadVariables: ".env" }).object).to.deep.equal({ loadVariables: ".env" });
+    });
+  });
+
   // ADR 01175: the browser actions move their shorthand and defaults here.
   describe("browser actions", function () {
     const action = (step) => effective(step).object;
@@ -402,6 +495,12 @@ describe("normalization", function () {
 
   describe("idempotence", function () {
     for (const [name, step] of [
+      ["runShell shorthand", { runShell: "echo hi" }],
+      ["runCode in the background", { runCode: { language: "js", code: "1", background: { name: "api" } } }],
+      ["runBrowserScript shorthand", { runBrowserScript: "return 1;" }],
+      ["wait: true", { wait: true }],
+      ["one closeSurface reference", { closeSurface: "web" }],
+      ["startSurface array", { startSurface: [{ app: "notepad" }, { process: "x", name: "p" }] }],
       ["goTo shorthand", { goTo: "https://example.com" }],
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
@@ -471,12 +570,17 @@ describe("normalization", function () {
     // default in its schema's object branch. Defaults under anyOf/oneOf are
     // conditional and coded by hand. Add your action's minimal step as you
     // move its normalization out of the handler.
+    // An action whose object form isn't `components.schemas.object` names the
+    // component its minimal step belongs to.
     const MINIMAL = {
       checkLink: { url: "https://example.com" },
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
       screenshot: {},
       record: {},
+      runShell: { command: "echo hi" },
+      runCode: { language: "python", code: "print(1)" },
+      runBrowserScript: { script: "return 1;" },
       click: { selector: "#a" },
       find: { selector: "#a" },
       type: { keys: ["a"] },
@@ -485,7 +589,29 @@ describe("normalization", function () {
       loadCookie: { name: "session", variable: "session" },
       saveCookie: { name: "session", path: "session.txt" },
       stopRecord: { name: "demo" },
+      startSurface: [
+        ["processDescriptor", { process: "node server.js", name: "api" }],
+        ["appDescriptor", { app: "notepad" }],
+      ],
     };
+    // Plain defaults only: not under anyOf/oneOf, and not inside a nested
+    // object with required keys, whose defaults the normalizer codes by hand.
+    function plainDefaultsOf(component) {
+      const defaults = [];
+      (function walk(node, trail) {
+        if (!node || typeof node !== "object") return;
+        if (trail[trail.length - 2] === "properties" && Array.isArray(node.required)) return;
+        if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
+          defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
+        }
+        for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
+      })(component, []);
+      return defaults;
+    }
+    // Moved actions with no object form, so no plain defaults to check. Every
+    // other moved action needs a MINIMAL entry, or this test fails. Passthroughs,
+    // like loadVariables, skip on their own.
+    const NO_OBJECT_FORM = ["wait", "closeSurface"];
     // Where an action's own defaults live, when it isn't the `object` component (or
     // screenshot's `objectShape`, since its object branch is allOf[$ref objectShape, guard]):
     // dragAndDrop is always an object, and swipe's directional form has the most.
@@ -497,24 +623,23 @@ describe("normalization", function () {
     const NO_DEFAULTS = ["loadCookie", "stopRecord"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
-        if (normalizers[action] === passthrough) this.skip();
+        if (normalizers[action] === passthrough || NO_OBJECT_FORM.includes(action)) this.skip();
+        expect(MINIMAL, `add ${action}'s minimal step to MINIMAL`).to.have.property(action);
         if (NO_DEFAULTS.includes(action)) {
           expect(normalizers[action](structuredClone(MINIMAL[action]), action)).to.deep.equal(MINIMAL[action]);
           return;
         }
         const schema = JSON.parse(fs.readFileSync(path.join(SRC_SCHEMAS, `${action}_v3.schema.json`), "utf8"));
-        const defaults = [];
-        (function walk(node, trail) {
-          if (!node || typeof node !== "object") return;
-          if (!Array.isArray(node) && "default" in node && !trail.some((key) => key === "anyOf" || key === "oneOf")) {
-            defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
+        const cases = Array.isArray(MINIMAL[action])
+          ? MINIMAL[action].map(([component, minimal]) => [component, schema.components.schemas[component], minimal])
+          : [["object", (BRANCH[action] ?? ((s) => s.components.schemas.objectShape ?? s.components.schemas.object))(schema), MINIMAL[action]]];
+        for (const [component, node, minimal] of cases) {
+          const defaults = plainDefaultsOf(node);
+          expect(defaults, `no defaults found in ${component}`).to.not.be.empty;
+          const output = normalizers[action](structuredClone(minimal), action, false, {});
+          for (const [keys, value] of defaults) {
+            expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
           }
-          for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
-        })((BRANCH[action] ?? ((s) => s.components.schemas.objectShape ?? s.components.schemas.object))(schema), []);
-        expect(defaults, "no defaults found").to.not.be.empty;
-        const output = normalizers[action](structuredClone(MINIMAL[action]), action, false, {});
-        for (const [keys, value] of defaults) {
-          expect(keys.reduce((node, key) => node?.[key], output), keys.join(".")).to.deep.equal(value);
         }
       });
     }

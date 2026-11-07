@@ -181,6 +181,8 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 Steps that skip, such as the ones after a failure, show it too. Step-level fields that you didn't set, such as `unsafe` or `variables`, stay out of the results. Step and test IDs don't change.
 
+Other shorthand appears in its full form too. For example, `"wait": true` appears as `"wait": 5000`, `"runShell": "npm test"` as an object with `command`, and `"closeSurface": "web"` as `["web"]`.
+
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
 
 ## `goTo` and `httpRequest` defaults
@@ -206,6 +208,36 @@ Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with
 **What changed:** A `saveCookie` or `loadCookie` object with a `path` and no `directory` reads and writes the file in `outputDir`, like the string form `"session.txt"`. Version 4 used the spec's folder. A spec that saves a cookie and a spec in another folder that loads it now use the same file.
 
 **What to do:** To keep a cookie file beside its spec, add `"directory": "."`.
+
+## Timeouts start at 1, and waits can't be negative
+
+**What changed:** A `timeout` that limits how long an operation runs must be `1` or more. That covers `runShell`, `runCode`, and opening a surface with `startSurface`. A locator's `timeout`, as in `find` or `click`, can still be `0`, which checks once without waiting. Every other duration and delay, such as `wait` and `waitUntil.delayMs`, must be `0` or more. A value out of range makes the spec invalid, and the run exits `2`:
+
+```text
+tests[0].steps[0].runShell.timeout: must be >= 1.
+```
+
+Version 4 accepted `"wait": -5` and moved on without waiting. It also accepted `"timeout": 0`, which meant the 60000-millisecond default in `runShell` and `runCode`, and other things elsewhere.
+
+**What to do:** Remove negative values. To use the default `timeout`, leave the key out instead of setting `0`.
+
+## No `edge` browser surface
+
+**What changed:** `startSurface` and `surface` don't accept `"browser": "edge"`. Version 4 opened Chrome for it, so a test that named Edge ran in Chrome. A spec that sets it is invalid, and the run exits `2`:
+
+```text
+tests[0].steps[0].startSurface.browser: must be one of chrome, firefox, safari, webkit (got "edge").
+```
+
+A plain `"surface": "edge"` now names a background process, not a browser.
+
+**What to do:** Use `"browser": "chrome"`.
+
+## Removed device fields
+
+**What changed:** A `device` descriptor, in `startSurface` or in a context, no longer has `orientation`, `udid`, or `provider`. They never did anything. A spec or config that sets one is invalid, and the run exits `2`.
+
+**What to do:** Delete those fields.
 
 ## `click`, `find`, and other browser steps
 

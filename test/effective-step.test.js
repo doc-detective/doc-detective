@@ -12,6 +12,19 @@ describe("useEffectiveStep", function () {
     expect(step.goTo).to.include({ url: "https://example.com", timeout: 30000 });
   });
 
+  it("makes wait: true wait 5000 ms, not 1", function () {
+    const step = { wait: true };
+    useEffectiveStep(step);
+    expect(step.wait).to.equal(5000);
+  });
+
+  it("expands runShell, leaving workingDirectory unset so the command runs in the current folder", function () {
+    const step = { runShell: "echo hi" };
+    useEffectiveStep(step);
+    expect(step.runShell).to.include({ command: "echo hi", timeout: 60000 });
+    expect(step.runShell).to.not.have.property("workingDirectory");
+  });
+
   it("keeps the runner's markers", function () {
     const step = { record: { path: "x.mp4" }, __autoRecord: true };
     Object.defineProperty(step, "_fromAfter", { value: true, enumerable: false });

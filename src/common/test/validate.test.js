@@ -1094,7 +1094,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.runBrowserScript).to.equal(
+        // The effective step expands the shorthand (ADR 01167).
+        expect(result.object.runBrowserScript.script).to.equal(
           "return document.title;"
         );
       });
@@ -2657,12 +2658,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         [{ find: { selector: "#a", click: "right" } }, ["find", "click"], { button: "right" }],
         [{ click: "true" }, ["click"], "true"],
         [{ click: "false" }, ["click"], "false"],
-        [{ wait: true }, ["wait"], true],
+        // A true that survives coercion becomes the effective step's 5000. A
+        // true coerced to 1 would stay 1.
+        [{ wait: true }, ["wait"], 5000],
         [{ wait: false }, ["wait"], false],
         [{ wait: 1 }, ["wait"], 1],
         [{ wait: 0 }, ["wait"], 0],
         [{ wait: "5000" }, ["wait"], 5000],
-        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "true" }, ["wait"], 5000],
         [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
         [{ record: false }, ["record"], false],
         // "true" becomes `true`, which the effective step expands to its named file (ADR 01173).
@@ -5152,7 +5155,7 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a device string reference and the reserved device fields", function () {
+      it("should validate a device string reference", function () {
         const byRef = validate({
           schemaKey: "step_v3",
           object: {
@@ -5160,25 +5163,25 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
           },
         });
         expect(byRef.valid).to.be.true;
-
-        const reserved = validate({
-          schemaKey: "step_v3",
-          object: {
-            startSurface: {
-              app: "com.example.myapp",
-              device: {
-                platform: "ios",
-                name: "iPhone 15",
-                orientation: "landscape",
-                udid: "00008110-001234567890ABCD",
-                provider: { browserstack: { app: "bs://abc123" } },
-              },
-            },
-          },
-        });
-        expect(reserved.valid).to.be.true;
-        expect(reserved.errors).to.equal("");
       });
+
+      // The unimplemented orientation, udid, and provider fields are gone (5.0).
+      for (const [key, value] of [
+        ["orientation", "landscape"],
+        ["udid", "00008110-001234567890ABCD"],
+        ["provider", { browserstack: { app: "bs://abc123" } }],
+      ]) {
+        it(`should reject the removed device field ${key}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              startSurface: { app: "com.example.myapp", device: { platform: "ios", name: "iPhone 15", [key]: value } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
 
       it("should reject a startSurface without app", function () {
         const result = validate({
@@ -6025,6 +6028,77 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+    });
+
+    // ADR 01171: durations can't be negative. ADR 01172: no browser aliases.
+    describe("process and surface tightening (5.0)", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      // Durations and delays start at 0, which means "don't wait".
+      for (const [name, object] of [
+        ["a negative wait", { wait: -5 }],
+        ["a negative waitUntil.delayMs", { runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: -1 } } } }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      it("accepts a wait and a delayMs of 0", function () {
+        expect(step({ wait: 0 }).valid).to.be.true;
+        expect(step({ runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: 0 } } } }).valid).to.be.true;
+      });
+
+      // Timeouts start at 1: 0 meant "at once" in some actions and "no limit" in others.
+      for (const timeout of [0, -1]) {
+        for (const [name, object] of [
+          ["runShell", { runShell: { command: "echo", timeout } }],
+          ["runCode", { runCode: { language: "js", code: "1", timeout } }],
+          ["a startSurface process", { startSurface: { process: "x", name: "p", timeout } }],
+          ["a startSurface app", { startSurface: { app: "notepad", timeout } }],
+        ]) {
+          it(`rejects a ${name} timeout of ${timeout}`, function () {
+            const result = step(object);
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          });
+        }
+      }
+
+      for (const [name, object] of [
+        ["runShell", { runShell: { command: "echo", timeout: 1 } }],
+        ["runCode", { runCode: { language: "js", code: "1", timeout: 1 } }],
+        ["a startSurface process", { startSurface: { process: "x", name: "p", timeout: 1 } }],
+        ["a startSurface app", { startSurface: { app: "notepad", timeout: 1 } }],
+      ]) {
+        it(`accepts a ${name} timeout of 1`, function () {
+          expect(step(object).valid).to.be.true;
+        });
+      }
+
+      it("keeps wait: true and wait: 1 as authored when not normalizing", function () {
+        expect(validate({ schemaKey: "step_v3", object: { wait: true }, addDefaults: false }).object.wait).to.equal(true);
+        expect(validate({ schemaKey: "step_v3", object: { wait: 1 }, addDefaults: false }).object.wait).to.equal(1);
+      });
+
+      for (const [name, object] of [
+        ["a startSurface browser", { startSurface: { browser: "edge" } }],
+        ["a startSurface browser in an array", { startSurface: [{ browser: "edge", name: "corp" }] }],
+        ["a browser surface object", { click: { selector: "#a", surface: { browser: "edge" } } }],
+        ["a browser-only surface keyword", { runBrowserScript: { script: "1", surface: "edge" } }],
+      ]) {
+        it(`rejects edge as ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include('"allowedValues":["chrome","firefox","safari","webkit"]');
+        });
+      }
+
+      it("treats a bare 'edge' surface as a process name", function () {
+        expect(step({ closeSurface: "edge" }).valid).to.be.true;
       });
     });
   });

@@ -58,7 +58,7 @@
           },
           "directory": {
             "type": "string",
-            "description": "Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+            "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
           },
           "maxVariation": {
             "type": "number",
