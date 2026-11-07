@@ -462,6 +462,101 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
   });
 });
 
+// `tty: true` and `tty: {}` must spawn a 120x30 PTY. Ajv doesn't inject the
+// `cols`/`rows` defaults (they sit inside an anyOf branch), so the runtime
+// owns them. These tests run on every host: a stub node-pty seeded into a
+// throwaway runtime cache records what `pty.spawn` receives.
+describe("PTY size defaults reach node-pty's spawn (stubbed node-pty)", function () {
+  this.timeout(20000);
+  const PTY = "@homebridge/node-pty-prebuilt-multiarch";
+  let cacheDir;
+  let savedCacheEnv;
+
+  before(async function () {
+    savedCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    delete process.env.DOC_DETECTIVE_CACHE_DIR; // it outranks ctx.cacheDir
+    cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-pty-stub-"));
+    const pkgDir = path.join(cacheDir, "runtime", "node_modules", PTY);
+    fs.mkdirSync(pkgDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, "runtime", "package.json"), "{}");
+    fs.writeFileSync(
+      path.join(pkgDir, "package.json"),
+      JSON.stringify({ name: PTY, version: "0.0.0", main: "index.js" })
+    );
+    // Exits right away, so the Windows ConPTY probe (which loads this same
+    // stub in a worker) reports healthy instead of timing out.
+    fs.writeFileSync(
+      path.join(pkgDir, "index.js"),
+      `exports.spawn = function (file, args, opts) {
+  (globalThis.__ddPtySpawns = globalThis.__ddPtySpawns || []).push(opts);
+  return {
+    pid: 4242,
+    onData() {},
+    onExit(cb) { setImmediate(() => cb({ exitCode: 0 })); },
+    write() {},
+    kill() {},
+  };
+};
+`
+    );
+    const { resolveHeavyDepPath } = await import("../dist/runtime/loader.js");
+    if (resolveHeavyDepPath(PTY, { cacheDir }) !== path.join(pkgDir, "index.js")) {
+      // A real node-pty in the package's own node_modules wins over the cache.
+      this.skip();
+    }
+  });
+
+  after(function () {
+    if (savedCacheEnv !== undefined) process.env.DOC_DETECTIVE_CACHE_DIR = savedCacheEnv;
+    delete globalThis.__ddPtySpawns;
+    if (cacheDir) fs.rmSync(cacheDir, { recursive: true, force: true });
+  });
+
+  beforeEach(function () {
+    globalThis.__ddPtySpawns = [];
+  });
+
+  function lastSize() {
+    assert.equal(globalThis.__ddPtySpawns.length, 1, "pty.spawn calls");
+    const { cols, rows } = globalThis.__ddPtySpawns[0];
+    return { cols, rows };
+  }
+
+  for (const [label, options, expected] of [
+    ["no size", {}, { cols: 120, rows: 30 }],
+    ["{cols: 80, rows: 24}", { cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+  ]) {
+    it(`spawnPtyBackgroundCommand with ${label} spawns ${expected.cols}x${expected.rows}`, async function () {
+      const bg = await spawnPtyBackgroundCommand("my-tui", [], { ...options, cacheDir });
+      await bg.kill();
+      assert.deepEqual(lastSize(), expected);
+    });
+  }
+
+  // runShell's `background.tty` and startSurface's process `tty` both hand
+  // `tty` verbatim to this shared launcher.
+  for (const [tty, expected] of [
+    [true, { cols: 120, rows: 30 }],
+    [{}, { cols: 120, rows: 30 }],
+    [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+  ]) {
+    it(`a background process with tty ${JSON.stringify(tty)} spawns ${expected.cols}x${expected.rows}`, async function () {
+      const { startBackgroundProcessSurface } = await import(
+        "../dist/core/tests/processSurface.js"
+      );
+      const registry = new Map();
+      const result = await startBackgroundProcessSurface({
+        config: { cacheDir },
+        descriptor: { command: "my-tui", name: "tui", tty },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      await registry.get("tui").bg.kill();
+      assert.deepEqual(lastSize(), expected);
+    });
+  }
+});
+
 describe("waitForOutputMatch", function () {
   this.timeout(10000);
 
