@@ -2171,7 +2171,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
-    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // sequential phases. Config-level `beforeAll` specs all finish before any
     // `main` test starts, and `afterAll` specs run only after every `main` test
     // finishes. Within a phase, jobs still run concurrently up to `limit`.
     // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
@@ -2221,25 +2221,27 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       }
     };
 
-    const PHASES = ["beforeAny", "main", "afterAll"];
+    const PHASES = ["beforeAll", "main", "afterAll"];
+    // Constrain to the known set before indexing: a programmatic caller could
+    // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+    // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw. A plan
+    // resolved before ADR 01169 still says "beforeAny", which is "beforeAll".
+    const phaseOf = (spec: any) => {
+      const phase = spec?._phase === "beforeAny" ? "beforeAll" : spec?._phase;
+      return PHASES.includes(phase) ? phase : "main";
+    };
     const jobsByPhase: { [phase: string]: any[] } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };
     for (const job of jobs) {
-      // Constrain to the known set before indexing: a programmatic caller could
-      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
-      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
-      const phase = PHASES.includes(job.spec?._phase)
-        ? job.spec._phase
-        : "main";
-      jobsByPhase[phase].push(job);
+      jobsByPhase[phaseOf(job.spec)].push(job);
     }
     // Routed specs are conceptually main-phase work too, so bucket them by the
     // same `_phase` and run each phase's routed specs right after that phase's
     // flat jobs. This keeps #377's ordering guarantee intact under routing: all
-    // `beforeAny` work (flat + routed) finishes before any `main` test, and all
+    // `beforeAll` work (flat + routed) finishes before any `main` test, and all
     // `afterAll` work runs after every `main` test — a routed main spec can't
     // slip past the teardown. Within a phase, routed specs still run
     // sequentially AFTER the flat jobs (unchanged relative order), reusing the
@@ -2248,18 +2250,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // in order with test-level routing evaluated between them; the sequencer
     // only pushes onto the already-registered specReport — it never touches the
     // summary (Phase-3 below remains the sole tally site). With no
-    // beforeAny/afterAll specs (the common case) this is identical to running
+    // beforeAll/afterAll specs (the common case) this is identical to running
     // the main flat pool and then every routed spec.
     const routedByPhase: { [phase: string]: typeof routedSpecs } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };
     for (const entry of routedSpecs) {
-      const phase = PHASES.includes(entry.spec?._phase)
-        ? entry.spec._phase
-        : "main";
-      routedByPhase[phase].push(entry);
+      routedByPhase[phaseOf(entry.spec)].push(entry);
     }
     for (const phase of PHASES) {
       if (limit > 1) {
@@ -2474,7 +2473,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *     next test. This is the FAIL default, so a FAILing test with no handler
  *     does NOT stop its siblings — exactly like the flat pool.
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
- *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
  *
  * goToTest jumps the cursor to the target test within this spec (first-occurrence
  * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
@@ -2531,11 +2529,9 @@ async function runRoutedSpec({
     runHasDisplayRecording: boolean;
   };
 }): Promise<void> {
-  // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
-  // remaining tests are recorded SKIPPED with the stop reason and not executed.
+  // Set once a `stop:spec` decision halts the spec; the remaining tests are
+  // recorded SKIPPED with the stop reason and not executed.
   let stopRest = false;
-  // Warn only once per spec if a deferred `stop:run` is encountered.
-  let warnedRunStop = false;
   // Map testId -> first index within this spec, for `goToTest` jumps.
   // First-occurrence wins (testIds aren't guaranteed unique within a spec),
   // mirroring the step loop's `indexByStepId`.
@@ -2753,7 +2749,7 @@ async function runRoutedSpec({
     testReport.result = testResult;
     // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
     // so its tests are SKIPPED with the spec-guard reason and their onSkip
-    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // handlers must NOT change flow (no stopRest).
     // Only evaluate test-level routing for a reached spec.
     if (!specGuardSkip) {
       const decision = await resolveTestRouting({
@@ -2766,18 +2762,6 @@ async function runRoutedSpec({
 
       if (decision.action === "stop") {
         if (decision.scope === "spec") {
-          stopRest = true;
-        } else if (decision.scope === "run") {
-          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
-          // scoped to this runRoutedSpec call) and treat as spec.
-          if (!warnedRunStop) {
-            log(
-              config,
-              "warning",
-              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
-            );
-            warnedRunStop = true;
-          }
           stopRest = true;
         }
         // scope === "test": no-op — the test already finished; continue to the
@@ -3819,9 +3803,9 @@ function resolveAutoScreenshot({
  * `stop` and `goToStep` are the meaningful decisions for a skipped step; the
  * caller applies them. `continue` is the no-op default, and `retry` is
  * meaningless for a step that never ran (there is nothing to re-run) — both
- * leave execution flowing. (An in-runner SKIPPED *result* from a step that DID
- * run — e.g. a no-op action — goes through the normal retry loop, where its
- * onSkip `retry` would re-run it.) `skipRetry` is passed so a `retry` entry is
+ * leave execution flowing. (A step whose action returned SKIPPED — e.g.
+ * `wait: false` — goes through the normal retry loop, where its onSkip `retry`
+ * re-runs it.) `skipRetry` is passed so a `retry` entry is
  * treated as a non-match and a later `goToStep`/`stop` entry can apply.
  */
 async function resolveStepSkipRouting(
@@ -5223,20 +5207,14 @@ async function runContext({
       pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
-      // `stop` halts the remaining steps in this context (`spec`/`run` scope —
-      // skipping later tests/specs — is deferred to the test-routing phase);
+      // `stop` halts the remaining steps in this context (the step schema
+      // allows only `stop: "test"`, ADR 01168);
       // `goToStep` jumps the cursor to the target step. flow != verdict: a
       // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
       // via rollUpResults. EXCEPTION: a cleanup (`_fromAfter`) step never stops
       // execution — cleanup is best-effort and must not cascade-skip later
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
-        if (routingDecision.scope !== "test") {
-          clog(
-            "warning",
-            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
-          );
-        }
         stepExecutionFailed = true;
         // Preserve the historical wording when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.

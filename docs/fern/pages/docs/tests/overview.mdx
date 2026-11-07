@@ -315,8 +315,8 @@ Each handler is an array of routing entries. An entry has an optional `if` condi
 Routing entries support these actions:
 
 - **`continue`**: Run the next step. Set `continue` to `true`.
-- **`stop`**: Stop the test. Set `stop` to the scope at which to stop execution.
-- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. See [Retry a step](#retry-a-step).
+- **`stop`**: Stop the test. Set `stop` to `test`, the only scope a step can stop.
+- **`retry`**: Re-run the step. Set `retry` to an object that defines how many times to retry and how long to wait between attempts. In an `onSkip` handler, `retry` re-runs only a step whose action ran and reported SKIPPED. See [Retry a step](#retry-a-step).
 - **`goToStep`**: Jump to another step. Set `goToStep` to the `stepId` of the step to run next. See [Jump to another step](#jump-to-another-step).
 
 The following step keeps the test running after a failure instead of stopping it:
@@ -341,8 +341,8 @@ The following step keeps the test running after a failure instead of stopping it
 
 The handler that fires depends on the step's result:
 
-- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result.
-- A step that's reached but skipped fires `onSkip`. That happens when it's an unsafe step that isn't allowed, or when its [`if` condition](#conditional-execution) is false.
+- A step that runs fires `onPass`, `onFail`, or `onWarning`, depending on its result. If its action reports SKIPPED, as `wait: false` does, it fires `onSkip`.
+- A step that's reached but skipped before it runs fires `onSkip`. That happens when it's an unsafe step that isn't allowed, or when its [`if` condition](#conditional-execution) is false.
 - A step that's never reached, because an earlier step stopped the test, fires no handler.
 
 ### Routing controls flow, not the verdict
@@ -383,7 +383,9 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+At the step level, `stop` halts the remaining steps in the current test, and `test` is its only scope. A step can't stop later tests or specs, so a step-level `stop: spec` or `stop: run` makes the spec invalid, and the run exits `2` before anything runs. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+
+A step-level entry also can't use `goToTest`. Doc Detective reports it as an unknown key, because jumping between tests is a test-level action.
 
 ### Retry a step
 
@@ -396,6 +398,8 @@ Set `retry` to an object with a `limit`, plus an optional `delay` and `backoff`:
 - **`backoff`**: How the delay grows between retries. Use `fixed` to wait the same `delay` before every retry, or `exponential` to double the wait each time (`delay`, then `delay × 2`, then `delay × 4`, and so on). Defaults to `fixed`. No matter how many retries you allow, the computed wait never exceeds the one-hour maximum.
 
 When the result matches, Doc Detective re-runs the whole step (including its assertions) up to `limit` times, waiting `delay` between attempts. It stops as soon as the result no longer matches the handler. If a retry passes, the step passes.
+
+In an `onSkip` handler, `retry` re-runs a step whose action ran and reported SKIPPED, such as `wait: false`. A step skipped before it ran can't be re-run. That covers a step whose `if` was false and an unsafe step that isn't allowed. For that step, Doc Detective passes over `retry` entries and applies the next matching entry.
 
 The following step retries a flaky command up to three times, waiting one second between attempts:
 
@@ -512,21 +516,18 @@ Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detectiv
 
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number. That's `2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
-<Note>
-At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test).
-</Note>
-
 ## Route between tests
 
 Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test. Once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers. Each is an array of entries, each with an optional `if` condition and exactly one action, and the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
 
-At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
+At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so a test-level entry that uses either one makes the spec invalid, and the run exits `2`. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
 
 `stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
 
 - **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
 - **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
-- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests.
+
+A test can't stop the whole run, so `stop: run` makes the spec invalid, and the run exits `2` before anything runs.
 
 As with step-level routing, test-level routing controls flow only. It never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution. A spec whose tests have no routing handlers runs exactly as it does today.
 
@@ -657,21 +658,25 @@ Doc Detective uses only the `steps` from the first test in the referenced spec.
 
 ### Set up and tear down the whole run
 
-Set `beforeAny` and `afterAll` in your config to run setup and cleanup specs around the entire run:
+Set `beforeAll` and `afterAll` in your config to run setup and cleanup specs around the entire run:
 
-- **`beforeAny`**: One or more paths to specifications that run before any other test starts. All `beforeAny` specs finish before the rest of the run begins.
+- **`beforeAll`**: One or more paths to specifications that run before any other test starts. All `beforeAll` specs finish before the rest of the run begins.
 - **`afterAll`**: One or more paths to specifications that run after every test in every spec finishes. These specs run even if earlier tests failed.
 
 ```json
 {
-  "beforeAny": "global-setup.json",
+  "beforeAll": "global-setup.json",
   "afterAll": "global-teardown.json"
 }
 ```
 
+<Note>
+`beforeAll` was named `beforeAny` before version 5. `beforeAny` still works and prints a warning on stderr. A config that sets both exits `2`.
+</Note>
+
 ### Execution order
 
-Doc Detective runs in three sequential phases: `beforeAny` specs first, then your `input` tests, then `afterAll` specs. Setup always finishes before your tests, and cleanup always runs after them. Within each phase, tests still run concurrently up to your configured number of runners.
+Doc Detective runs in three sequential phases: `beforeAll` specs first, then your `input` tests, then `afterAll` specs. Setup always finishes before your tests, and cleanup always runs after them. Within each phase, tests still run concurrently up to your configured number of runners.
 
 ## Run tests
 

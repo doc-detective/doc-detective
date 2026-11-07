@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { validate, transformToSchemaKey } from "../dist/validate.js";
+import { schemas } from "../dist/index.js";
 
   describe("validate", function () {
     describe("input validation", function () {
@@ -2823,7 +2824,8 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
         expect(result.detectSteps).to.equal(true);
-        expect(result.beforeAny).to.equal("./setup.js");
+        expect(result.beforeAll).to.equal("./setup.js");
+        expect(result).to.not.have.property("beforeAny");
         expect(result.afterAll).to.equal("./cleanup.js");
       });
 
@@ -3538,15 +3540,120 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01169: beforeAll replaces beforeAny, which stays as a deprecated alias.
+    describe("beforeAll", function () {
+      for (const value of ["setup.spec.json", ["a.spec.json", "b.spec.json"]]) {
+        it(`accepts beforeAll: ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { beforeAll: value }, addDefaults: false });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("rejects a beforeAll that isn't a string or an array of strings", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAll: { path: "a.spec.json" } }, addDefaults: false });
+        expect(result.valid).to.be.false;
+      });
+
+      it("keeps beforeAny as a deprecated alias", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAny: "setup.spec.json" }, addDefaults: false });
+        expect(result.valid, result.errors).to.be.true;
+        const property = schemas.config_v3.properties.beforeAny;
+        expect(property.deprecated).to.equal(true);
+        expect(property.description).to.equal("Deprecated: use `beforeAll`.");
+      });
+
+      it("rejects a config that sets both beforeAll and beforeAny", function () {
+        for (const addDefaults of [true, false]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { beforeAll: "a.spec.json", beforeAny: "b.spec.json" },
+            addDefaults,
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set `beforeAll` or `beforeAny`, not both.");
+        }
+      });
+    });
+
+    // ADR 01168: each scope accepts only the routing actions the runner performs there.
+    describe("routing scopes", function () {
+      const step = (handler) => ({ goTo: { url: "https://example.com" }, onFail: [handler] });
+      const test = (handler) => ({ steps: [{ runShell: "echo hi" }], onFail: [handler] });
+      const check = (schemaKey, object) => validate({ schemaKey, object, addDefaults: false });
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a step`, function () {
+          const result = check("step_v3", step(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      // retry re-runs a step whose own action returned SKIPPED.
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} in a step's onSkip`, function () {
+          const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [handler] });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { stop: "spec" }, { goToTest: "t" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a test`, function () {
+          const result = check("test_v3", test(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("accepts stop: spec in a test's onPass", function () {
+        const result = check("test_v3", { steps: [{ runShell: "echo hi" }], onPass: [{ stop: "spec" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const value of ["spec", "run"]) {
+        it(`rejects stop: ${value} on a step`, function () {
+          const result = check("step_v3", step({ stop: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+          expect(result.errors).to.include('"allowedValues":["test"]');
+        });
+      }
+
+      it("rejects goToTest on a step as an unknown key", function () {
+        const result = check("step_v3", step({ goToTest: "t" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('"additionalProperty":"goToTest"');
+      });
+
+      it("rejects stop: run on a test", function () {
+        const result = check("test_v3", test({ stop: "run" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+        expect(result.errors).to.include('"allowedValues":["test","spec"]');
+      });
+
+      for (const [key, value] of [["retry", { limit: 1 }], ["goToStep", "s"]]) {
+        it(`rejects ${key} on a test as an unknown key`, function () {
+          const result = check("test_v3", test({ [key]: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
+
+      it("names the full path when a spec's step stops the run", function () {
+        const result = check("spec_v3", { tests: [{ steps: [step({ stop: "run" })] }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("/tests/0/steps/0/onFail/0/stop");
+      });
+    });
+
     describe("dynamic routing (Phase 1 schema foundation)", function () {
       // Positive cases — must validate.
-      it("validates a step with onFail conditional goToTest + unconditional stop", function () {
+      it("validates a step with onFail conditional goToStep + unconditional stop", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             goTo: { url: "https://example.com" },
             onFail: [
-              { if: "$$platform == windows", goToTest: "x" },
+              { if: "$$platform == windows", goToStep: "x" },
               { stop: "test" },
             ],
           },
@@ -3705,9 +3812,9 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
 
       it("rejects goToTest whitespace-only string", function () {
         const result = validate({
-          schemaKey: "step_v3",
+          schemaKey: "test_v3",
           object: {
-            goTo: { url: "https://example.com" },
+            steps: [{ goTo: { url: "https://example.com" } }],
             onFail: [{ goToTest: "   " }],
           },
         });

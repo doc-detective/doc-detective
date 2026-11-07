@@ -116,7 +116,7 @@ weighted scheme replaces that.
 | **20**, current-run problems | Something failed *this run* or the env is misconfigured. Old Node, no tests resolved, brittle selectors, no recording on failure. |
 | **30**, output and reporting | Better artifacts. HTML reporter, JSON for CI artifacts, output dir. |
 | **40**, feature discovery | A first-class step type the user hasn't reached for yet. screenshot, checkLink, httpRequest, runCode. |
-| **50**, optimization and advanced | Power-user setup. concurrency hints, beforeAny/afterAll, origin, fileTypes, telemetry userId. |
+| **50**, optimization and advanced | Power-user setup. concurrency hints, beforeAll/afterAll, origin, fileTypes, telemetry userId. |
 
 Omit `priority` only if you genuinely mean priority 50 (the default).
 Better to be explicit.
