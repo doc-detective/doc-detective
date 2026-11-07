@@ -1,6 +1,6 @@
 {
   "specId": "recording-permutations",
-  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab), macOS (avfoundation), and Linux (x11grab on a per-runner Xvfb display); the browser engine needs headed Chrome (Windows/macOS).",
+  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, an uppercase extension, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab), macOS (avfoundation), and Linux (x11grab on a per-runner Xvfb display); the browser engine needs headed Chrome (Windows/macOS).",
   "tests": [
     {
       "testId": "rec-perm-record-true",
@@ -378,6 +378,52 @@
         },
         {
           "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-uppercase-mp4",
+      "description": "An uppercase extension (.MP4) is valid, and the recording is written as an mp4 (ADR 01173).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-uppercase.MP4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "REC_UPPER_PATH": "$$recordingPath",
+            "REC_UPPER_FORMAT": "$$format"
+          }
+        },
+        {
+          "description": "The file exists, and its format reads as mp4.",
+          "runShell": "node -e \"const ok = process.env.REC_UPPER_FORMAT === 'mp4' && require('fs').existsSync(process.env.REC_UPPER_PATH); process.exit(ok ? 0 : 1)\""
         }
       ]
     },

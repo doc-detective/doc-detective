@@ -41,6 +41,19 @@ describe("useEffectiveStep", function () {
     });
   }
 
+  it("names a whole-variable screenshot for its step after substitution (ADR 01173)", function () {
+    process.env.DD_EFFECTIVE_STEP = JSON.stringify({ directory: "shots" });
+    try {
+      const step = { stepId: "s", screenshot: "$DD_EFFECTIVE_STEP" };
+      useEffectiveStep(step, { beforeSubstitution: true });
+      replaceEnvs(step);
+      useEffectiveStep(step);
+      expect(step.screenshot).to.deep.equal({ directory: "shots", path: "s.png", maxVariation: 0.05, overwrite: "aboveVariation" });
+    } finally {
+      delete process.env.DD_EFFECTIVE_STEP;
+    }
+  });
+
   it("normalizes a whole-variable action that's unset after substitution", function () {
     const step = { goTo: "$DD_EFFECTIVE_STEP_UNSET" };
     useEffectiveStep(step, { beforeSubstitution: true });
