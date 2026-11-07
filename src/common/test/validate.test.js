@@ -1844,6 +1844,21 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    // ADR 01166: config `reporters` takes the six public names, exactly.
+    describe("config reporters", function () {
+      const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
+
+      it("accepts each public reporter name", function () {
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+      });
+
+      it("rejects other spellings and internal reporters", function () {
+        expect(reporters(["JSON"])).to.be.false;
+        expect(reporters(["plainReporter"])).to.be.false;
+        expect(reporters(["htm"])).to.be.false;
+      });
+    });
+
     describe("structuredErrors option", function () {
       it("omits errorObjects by default", function () {
         const result = validate({

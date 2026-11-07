@@ -492,7 +492,9 @@ describe("CLI contract", function () {
     });
 
     it("explains exit codes for runs", function () {
-      expect(run(["--help"]).stdout).to.include("Exit codes:");
+      const help = run(["--help"]).stdout;
+      expect(help).to.include("Exit codes:");
+      expect(help).to.include("0  No test failed, and at least one passed or warned\n");
     });
 
     it("lists every asset under install", function () {
@@ -702,6 +704,119 @@ describe("CLI contract", function () {
 
     it("hasn't a stack trace for expected errors", function () {
       expect(run(["-c", "nope.json"]).stderr).to.not.match(/^\s+at /m);
+    });
+  });
+
+  // ADR 01166: a list option takes one comma-separated value, given once.
+  describe("lists", function () {
+    const usage = (r, line) => {
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(`${line}\n(add --help for usage)\n`);
+    };
+
+    it("takes a positional input after -r", function () {
+      const r = run(["run", "-r", "json", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("takes reporters as one comma-separated list", function () {
+      const r = run(["-i", "pass.spec.json", "-r", "terminal,junit,markdown", "--output-dir", "reports"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "reports", "junit.xml"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "reports", "doc-detective-summary.md"))).to.equal(true);
+    });
+
+    it("takes everything at once", function () {
+      fs.mkdirSync(path.join(cwd, "docs"));
+      fs.mkdirSync(path.join(cwd, "api"));
+      writeSpec(path.join("docs", "login.spec.json"), { runShell: "echo hi" });
+      writeSpec(path.join("api", "auth.spec.json"), { runShell: "echo hi" });
+      const r = run([
+        "run", "docs/", "api/", "-i", "pass.spec.json", "-t", "login,smoke", "-s", "auth,login",
+        "-r", "terminal,junit", "-o", "out.json", "--output-dir", "reports", "--concurrent-runners", "true",
+      ]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "out.json"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "reports", "junit.xml"))).to.equal(true);
+    });
+
+    it("names the reporters it allows", function () {
+      usage(
+        run(["-r", "foo"]),
+        "error: option '-r, --reporters <names>' argument 'foo' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
+    it("names the one bad reporter in a list", function () {
+      usage(
+        run(["-r", "terminal, bogus,json"]),
+        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
+    it("rejects a repeated -r, and shows the comma form", function () {
+      usage(
+        run(["-r", "json", "-r", "html"]),
+        "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: json,html."
+      );
+    });
+
+    it("rejects a repeated -i, and shows the comma form", function () {
+      usage(
+        run(["-i", "a", "-i", "b"]),
+        "error: option '-i, --input <paths>' argument 'b' is invalid. Give it once, as a comma-separated list: a,b."
+      );
+    });
+
+    it("explains the old space-separated reporters", function () {
+      usage(
+        run(["-r", "terminal", "html"]),
+        "error: unknown command 'html'. To use several reporters, give one comma-separated list: -r terminal,html"
+      );
+    });
+
+    it("still points a path after -r at `run`", function () {
+      usage(run(["-r", "terminal", "docs/"]), "error: unknown command 'docs/'. To test a path, use: doc-detective run docs/");
+    });
+
+    it("rejects an invalid reporter in config, in the shared error format", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify({ reporters: ["htm"] }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
+          'reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").',
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("writes an empty report to --output when it finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-i", "empty.md", "-o", "out.json"]);
+      expect(r.status).to.equal(2);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "out.json"), "utf8")).specs).to.deep.equal([]);
+    });
+
+    for (const mode of [["--json"], ["--plain"], ["-o", "-"]]) {
+      it(`leaves no run folder for ${mode.join(" ")} -r terminal`, function () {
+        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, ".doc-detective"))).to.equal(false);
+      });
+    }
+
+    it("takes --agent as one comma-separated list", function () {
+      const r = run(["install", "agents", "--agent", "claude,copilot", "--scope", "project", "--yes", "--dry-run", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(new Set(JSON.parse(r.stdout).map((report) => report.adapterId))).to.deep.equal(new Set(["claude", "copilot"]));
+    });
+
+    it("rejects a repeated --agent", function () {
+      const r = run(["install", "agents", "--agent", "claude", "--agent", "copilot", "--scope", "project", "--yes"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("Give it once, as a comma-separated list: claude,copilot.");
     });
   });
 

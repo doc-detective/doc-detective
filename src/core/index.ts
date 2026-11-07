@@ -59,12 +59,19 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   return resolvedTests;
 }
 
-// Run tests defined in specifications and documentation source files.
+// A run that found nothing to test still returns a report (ADR 01152).
+function emptyReport() {
+  const zero = () => ({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+  return { summary: { specs: zero(), tests: zero(), contexts: zero(), steps: zero() }, specs: [] };
+}
+
+// Run tests defined in specifications and documentation source files. Returns
+// the report, or the resolved test plan for a dry run. Prints nothing to stdout.
 async function runTests(config: any, options: any = {}) {
   let results: any;
   try {
     results = await runTestsAndReport(config, options);
-    return results;
+    return results ?? emptyReport();
   } finally {
     // Every path that returns results has sent telemetry, and that send owns
     // the warm-up. Any other exit (no tests found, a throw) sends nothing, and
@@ -176,8 +183,8 @@ async function runTestsAndReport(config: any, options: any) {
     await options.updateJoin();
   }
 
+  // The CLI prints the plan. A library leaves stdout alone.
   if (config.dryRun) {
-    console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
     if (telemetryOn) {
       await sendTelemetry(config, "runTests:dryRun", {
@@ -216,8 +223,7 @@ async function runTestsAndReport(config: any, options: any) {
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
     // so config.logLevel filters npm install stdout/stderr (which the
     // runtime logs at "debug") and prevents flooded output during a
-    // routine `doc-detective` run. Map "warn" → "warning" since
-    // core/utils.ts uses the latter.
+    // routine `doc-detective` run. Both use the level "warning".
     // c8 ignore justification (preflightLogger through the matching `if
     // (needs.browsers.size > 0)` block below, per ADR 01017): the outer
     // shell above (willRunViaApi dispatch, the try/inferRuntimeNeeds setup)
@@ -243,10 +249,7 @@ async function runTestsAndReport(config: any, options: any) {
     // testing core/index.ts's orchestration, just re-asserting loader.ts's
     // contract.
     /* c8 ignore start */
-    const preflightLogger = (msg: string, level: string = "info") => {
-      const mapped = level === "warn" ? "warning" : level;
-      log(config, mapped, msg);
-    };
+    const preflightLogger = (msg: string, level: string = "info") => log(config, level, msg);
     if (needs.npmPackages.size > 0) {
       await ensureRuntimeInstalled([...needs.npmPackages], {
         ctx,

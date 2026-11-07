@@ -5,6 +5,7 @@ import {
   isDocDetectiveLspCommand,
   isLspInvocation,
   readAncestorCommandLines,
+  agentInstallArgs,
 } from "../scripts/postinstall.js";
 
 before(async function () {
@@ -170,5 +171,17 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
         })
       ).to.deep.equal([]);
     });
+  });
+});
+
+// ADR 01166: --agent takes one comma-separated list, given once.
+describe("agentInstallArgs", function () {
+  it("passes every agent in one --agent list", function () {
+    expect(agentInstallArgs([{ id: "claude" }, { id: "copilot" }])).to.deep.equal([
+      "install",
+      "agents",
+      "--agent",
+      "claude,copilot",
+    ]);
   });
 });

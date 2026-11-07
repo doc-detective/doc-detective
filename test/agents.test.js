@@ -96,16 +96,17 @@ describe("install-agents subcommand arg parsing", function () {
     assert.equal(capturedArgv.yes, true);
   });
 
-  it("allows repeated --agent flags", async function () {
-    await parse([
-      "agents",
-      "--agent", "claude",
-      "--agent", "opencode",
-      "--scope", "global",
-      "--yes",
-    ]);
+  it("takes --agent as one comma-separated list", async function () {
+    await parse(["agents", "--agent", "claude, opencode", "--scope", "global", "--yes"]);
     assert.deepEqual(capturedArgv.agent, ["claude", "opencode"]);
     assert.equal(capturedArgv.scope, "global");
+  });
+
+  it("rejects a repeated --agent, and names the comma form", async function () {
+    await assert.rejects(
+      async () => parse(["agents", "--agent", "claude", "--agent", "opencode", "--scope", "global", "--yes"]),
+      /Give it once, as a comma-separated list: claude,opencode\./
+    );
   });
 
   it("accepts --force and --dry-run as booleans", async function () {

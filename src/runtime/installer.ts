@@ -254,7 +254,7 @@ export async function installBrowsers(
       // across browsers when one is missing or broken).
       const detail = err instanceof Error ? err.message : String(err);
       const message = `failed to install and was skipped: ${detail}`;
-      logger(`${name} ${message}`, "warn");
+      logger(`${name} ${message}`, "warning");
       reports.push({
         assetId: name,
         kind: "browser",

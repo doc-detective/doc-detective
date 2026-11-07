@@ -188,6 +188,12 @@ if (isInvokedDirectly()) main().catch(() => {});
  * DOC_DETECTIVE_AUTOINSTALL (0/false/no/off, case-insensitive). Default
  * (unset or any other value) installs. Exported for tests.
  */
+// `install agents` for these adapters: one comma-separated --agent list, given
+// once (ADR 01166). Exported for tests.
+export function agentInstallArgs(adapters) {
+  return ["install", "agents", "--agent", adapters.map((adapter) => adapter.id).join(",")];
+}
+
 export function isRuntimeInstallOptedOut(env = process.env) {
   return envFlag("DOC_DETECTIVE_AUTOINSTALL", env) === false;
 }
@@ -520,10 +526,7 @@ async function maybePromptInstallAgents() {
 
   // Pre-fill --agent so the CLI doesn't re-prompt for the picker. Scope stays
   // interactive on purpose — project vs global is a per-user decision.
-  const cliArgs = ["install", "agents"];
-  for (const a of adaptersNeedingInstall) {
-    cliArgs.push("--agent", a.id);
-  }
+  const cliArgs = agentInstallArgs(adaptersNeedingInstall);
   // Hand the child the sanitized PATH under the actual key (PATH or Path) so
   // its adapter spawns can't resolve a fake `claude`/`gh`/etc from
   // `node_modules/.bin` during the install step either.

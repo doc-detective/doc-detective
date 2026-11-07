@@ -20,7 +20,7 @@ import {
   type CacheDirContext,
 } from "./cacheDir.js";
 
-export type LogLevel = "info" | "warn" | "error" | "debug";
+export type LogLevel = "info" | "warning" | "error" | "debug";
 export type Logger = (msg: string, level?: LogLevel) => void;
 
 // The default logger gates `debug` output OFF so call sites that omit a

@@ -29,17 +29,17 @@ The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, an
 | Option | Alias | Type | Default | Description |
 |--------|-------|------|---------|-------------|
 | `--config` | `-c` | string |  | Path to a `config.json` or `config.yaml` file. |
-| `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Comma-separate multiple values. |
+| `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Give one comma-separated list, once. Repeating the flag is a usage error. |
 | `--output` | `-o` | string |  | Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. A folder isn't valid here: use `--output-dir`. |
 | `--output-dir` |  | string | `.` | Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports. |
-| `--reporters` | `-r` | string (array) | ``["terminal","runFolder"]`` | Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in &lt;output&gt;/.doc-detective/runs/&lt;runId&gt;/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside &lt;output&gt; when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside &lt;output&gt; when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html). |
-| `--test` | `-t` | string |  | Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches. |
-| `--spec` | `-s` | string |  | Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches. |
+| `--reporters` | `-r` | string | ``["terminal","runFolder"]`` | Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in &lt;outputDir&gt;/.doc-detective/runs/&lt;runId&gt;/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside &lt;output&gt; when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside &lt;output&gt; when it names a file). Give one comma-separated list, once (e.g. --reporters terminal,html). Repeating the flag is a usage error. |
+| `--test` | `-t` | string |  | Run only tests whose testId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a test passes if any pattern matches. |
+| `--spec` | `-s` | string |  | Run only specs whose specId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a spec passes if any pattern matches. |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
 | `--plain` |  | boolean |  | Print one tab-separated line per test. |
 | `--no-exit-on-fail` |  | boolean |  | Exit `0` even when tests fail or nothing was tested, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. `WARNING` and `SKIPPED` results never fail a run. |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |
-| `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported. |
+| `--concurrent-runners` |  | string | `1` | Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` (or `true`, as in config) to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported. |
 | `--browser-fallback` |  | string | `auto` | How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage. |
 | `--shell` |  | string | `bash` | Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field. |
 | `--auto-screenshot` |  | boolean | `false` | Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (&lt;output&gt;/.doc-detective/runs/&lt;runId&gt;/) under the nested resource tree specs/&lt;specId&gt;/tests/&lt;testId&gt;/contexts/&lt;contextId&gt;/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it. |
@@ -220,7 +220,7 @@ npx doc-detective --input ./docs --dry-run
 Run a filtered subset with specific reporters:
 
 ```bash
-npx doc-detective --input ./docs --test "smoke" --reporters terminal json
+npx doc-detective --input ./docs --test "smoke" --reporters terminal,json
 ```
 
 Start the language server:

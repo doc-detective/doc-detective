@@ -67,11 +67,18 @@
           "default": "."
         },
         "reporters": {
-          "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+          "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "terminal",
+              "json",
+              "html",
+              "runFolder",
+              "junit",
+              "markdown"
+            ]
           },
           "default": [
             "terminal",
@@ -3443,7 +3450,7 @@
           "default": "bash"
         },
         "cacheDir": {
-          "description": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `~/.doc-detective/` (the user's home directory). Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI to share one cache across users or place it on another volume.",
+          "description": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `$XDG_CACHE_HOME/doc-detective` (`%LOCALAPPDATA%\\doc-detective` on Windows), or `~/.cache/doc-detective`. An existing `~/.doc-detective` keeps being used. A relative path resolves against the config file. `DOC_DETECTIVE_CACHE_DIR` and `--cache-dir` override it, in that order.",
           "type": "string",
           "minLength": 1,
           "pattern": "\\S"

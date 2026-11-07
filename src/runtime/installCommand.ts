@@ -32,7 +32,7 @@ export interface InstallArgv {
 function pickLogLevel(argv: InstallArgv): LogLevel {
   if (argv.debug || argv.logLevel === "debug") return "debug";
   if (argv.quiet || argv.logLevel === "silent" || argv.logLevel === "error") return "error";
-  if (argv.logLevel === "warning") return "warn";
+  if (argv.logLevel === "warning") return "warning";
   return "info";
 }
 
@@ -40,7 +40,7 @@ function makeLogger(level: LogLevel): Logger {
   const order: Record<LogLevel, number> = {
     debug: 0,
     info: 1,
-    warn: 2,
+    warning: 2,
     error: 3,
   };
   const threshold = order[level];

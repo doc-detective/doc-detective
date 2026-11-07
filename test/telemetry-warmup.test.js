@@ -262,7 +262,7 @@ describe("telemetry warm-up", function () {
         logLevel: "silent",
         telemetry: { send: true },
       });
-      assert.equal(result, null);
+      assert.deepEqual(result.specs, []);
       const warmups = fetchStub.getCalls().filter((c) => c.args[1]?.method === "OPTIONS");
       assert.equal(warmups.length, 1, "expected the run to start a warm-up");
       assert.equal(warmups[0].args[1].signal.aborted, true, "warm-up left in flight");

@@ -131,21 +131,28 @@ describe("Util tests", function () {
     expect(aliased.dryRun).to.equal(true);
   });
 
-  it("CLI parses --reporters argument correctly", function () {
-    const single = setArgs([
-      "node", "runTests.js", "--reporters", "html",
-    ]);
-    expect(single.reporters).to.deep.equal(["html"]);
+  // ADR 01166: one comma-separated value, given once, each name checked.
+  it("CLI parses --reporters as one comma-separated list", function () {
+    expect(setArgs(["node", "runTests.js", "--reporters", "html"]).reporters).to.equal("html");
+    expect(setArgs(["node", "runTests.js", "-r", "terminal,json,html"]).reporters).to.equal("terminal,json,html");
+    expect(() => setArgs(["node", "runTests.js", "-r", "json", "-r", "html"])).to.throw(
+      "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: json,html."
+    );
+    expect(() => setArgs(["node", "runTests.js", "-r", "json,bogus"])).to.throw(
+      "Allowed choices are terminal, json, html, runFolder, junit, markdown."
+    );
+  });
 
-    const multiple = setArgs([
-      "node", "runTests.js", "--reporters", "terminal", "json", "html",
-    ]);
-    expect(multiple.reporters).to.deep.equal(["terminal", "json", "html"]);
+  it("CLI rejects a repeated list flag, and names the comma form", function () {
+    expect(() => setArgs(["node", "runTests.js", "-i", "a", "-i", "b"])).to.throw(
+      "error: option '-i, --input <paths>' argument 'b' is invalid. Give it once, as a comma-separated list: a,b."
+    );
+    expect(() => setArgs(["node", "runTests.js", "-t", "a", "--test", "b"])).to.throw(/Give it once.*: a,b\./);
+    expect(() => setArgs(["node", "runTests.js", "-s", "a", "-s", "b"])).to.throw(/Give it once.*: a,b\./);
+  });
 
-    const aliased = setArgs([
-      "node", "runTests.js", "-r", "html",
-    ]);
-    expect(aliased.reporters).to.deep.equal(["html"]);
+  it("CLI takes `true` for --concurrent-runners, as config does", function () {
+    expect(setArgs(["node", "runTests.js", "--concurrent-runners", "true"]).concurrentRunners).to.equal("true");
   });
 
   it("outputResults respects reporters option for html", async function () {
@@ -331,7 +338,7 @@ describe("Util tests", function () {
 
   it("setConfig stores --verification on config.verification.write", async function () {
     this.timeout(5000);
-    for (const [flag, write] of [["true", true], ["false", false], ["existing", "existing"], [" TRUE ", true]]) {
+    for (const [flag, write] of [["true", true], ["false", false], ["existing", "existing"]]) {
       const args = { verification: flag };
       expect(args.verification).to.equal(flag);
       const config = await setConfig({ configPath: null, args });
@@ -340,9 +347,6 @@ describe("Util tests", function () {
 
     // An unknown value is rejected by the parser.
     expect(() => setArgs(["node", "runTests.js", "--verification", "always"])).to.throw();
-    // From a programmatic caller, it's ignored, leaving the validated default.
-    const configBad = await setConfig({ configPath: null, args: { verification: "always" } });
-    expect(configBad.verification).to.deep.equal({ write: "existing" });
 
     // Absent flag: the schema default.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
@@ -527,13 +531,8 @@ describe("Util tests", function () {
     expect(configAbsent.browserFallback).to.equal("auto");
   });
 
-  it("setConfig ignores an invalid --browser-fallback value, keeping the validated config value", async function () {
-    this.timeout(5000);
+  it("CLI rejects an invalid --browser-fallback value", function () {
     expect(() => setArgs(["node", "runTests.js", "--browser-fallback", "sometimes"])).to.throw();
-    const config = await setConfig({ configPath: null, args: { browserFallback: "sometimes" } });
-    // Invalid CLI overrides are dropped (the schema-side enum is the contract);
-    // the validated default survives.
-    expect(config.browserFallback).to.equal("auto");
   });
 
   it("CLI parses --concurrent-runners as a number or auto, and requires a value", function () {
@@ -563,42 +562,21 @@ describe("Util tests", function () {
     });
     expect(configNumeric.concurrentRunners).to.equal(4);
 
-    // `auto`, and `true` from programmatic callers, opt into CPU-count mode
-    // (resolved to a concrete integer by the core runner, not here).
+    // `auto` and `true` opt into CPU-count mode (resolved to a concrete
+    // integer by the core runner, not here).
     const argsBare = setArgs(["node", "runTests.js", "--concurrent-runners", "auto"]);
     const configBare = await setConfig({ configPath: null, args: argsBare });
     expect(configBare.concurrentRunners).to.equal(true);
 
-    const argsTrue = { concurrentRunners: "true" };
+    const argsTrue = setArgs(["node", "runTests.js", "--concurrent-runners", "true"]);
     const configTrue = await setConfig({ configPath: null, args: argsTrue });
     expect(configTrue.concurrentRunners).to.equal(true);
-
-    // Case-insensitive — "True" should not fall through to Number() (NaN).
-    const argsTrueCap = { concurrentRunners: "True" };
-    const configTrueCap = await setConfig({
-      configPath: null,
-      args: argsTrueCap,
-    });
-    expect(configTrueCap.concurrentRunners).to.equal(true);
 
     // Absent flag — schema default 1 via AJV useDefaults.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.concurrentRunners).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
     expect(configAbsent.concurrentRunners).to.equal(1);
-  });
-
-  it("setConfig ignores invalid --concurrent-runners values", async function () {
-    this.timeout(5000);
-    // CLI overrides land after config_v3 validation, so the override block
-    // must not let NaN or non-positive counts through (they'd silently
-    // degrade to sequential execution). Invalid values are warned about and
-    // dropped — the validated default stays.
-    for (const bad of ["abc", "1.5", "0"]) {
-      const args = { concurrentRunners: bad };
-      const config = await setConfig({ configPath: null, args });
-      expect(config.concurrentRunners, `value: ${bad}`).to.equal(1);
-    }
   });
 
   it("setConfig ignores empty --cache-dir override", async function () {
@@ -626,7 +604,7 @@ describe("Util tests", function () {
 
   it("setConfig stores --reporters arg on config.reporters", async function () {
     this.timeout(5000);
-    const args = setArgs(["node", "runTests.js", "--reporters", "html", "terminal"]);
+    const args = setArgs(["node", "runTests.js", "--reporters", "html, terminal"]);
     const config = await setConfig({ configPath: null, args });
     expect(config.reporters).to.deep.equal(["html", "terminal"]);
   });

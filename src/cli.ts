@@ -139,11 +139,8 @@ async function runTestsHandler(args: any) {
   if (updateCheckAllowed(config)) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
-    // helper so config.logLevel is respected. Map "warn" → "warning".
-    const cliLogger = (msg: string, level: string = "info") => {
-      const mapped = level === "warn" ? "warning" : level;
-      log(msg, mapped, config);
-    };
+    // helper so config.logLevel is respected.
+    const cliLogger = (msg: string, level: string = "info") => log(msg, level, config);
     const currentVersion: string = cliRequire("../package.json").version;
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
@@ -193,11 +190,13 @@ async function runTestsHandler(args: any) {
     .catch(debugConfigErrors)
     .finally(stopProgress);
 
-  // Dry-run already emitted the resolved-tests JSON inside runTests().
+  // A dry run prints the resolved test plan here; runTests() only returns it.
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
-    if (!results && config.exitOnFail !== false) {
+    if (results?.specs?.length > 0) {
+      console.log(JSON.stringify(results, null, 2));
+    } else if (config.exitOnFail !== false) {
       // Dry runs silence logs to keep stdout clean, so say why there's no plan.
       console.error("No tests found, so there's no test plan to print.");
       process.exitCode = 2;
