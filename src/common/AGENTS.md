@@ -335,9 +335,9 @@ Also, a shared/`$ref`'d schema's `default:` values reach every consumer. Outside
 branch. Keep shared schemas default-free unless every consumer wants the default (this is why
 `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its own).
 
-To reject a value that a later branch would coerce, such as a boolean `click`, make the root an
-`allOf` whose first member is a `not: {enum: [true, false]}` guard and whose second is the union.
-`allOf` checks its members in order, so the guard sees the authored value. Give the guard an
+Sometimes a value that a later branch would coerce must be rejected, such as a boolean `click`. Make
+the root an `allOf`. Its first member is a `not: {enum: [true, false]}` guard, and its second is the
+union. `allOf` checks its members in order, so the guard sees the authored value. Give the guard an
 ajv-errors `errorMessage` that says how to fix it. In that member, `${0}` renders the authored
 value, JSON-encoded. A guard beside the union instead renders after `anyOf` has coerced the value, so
 `${0}` shows `"true"`, not `true`
