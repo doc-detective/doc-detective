@@ -635,13 +635,18 @@ describe("local URL guard (ADR 01162)", function () {
     });
   });
 
-  it("lets a local description $ref a local file", async function () {
+  // Strict mode governs network addresses. A local file isn't one, so only a
+  // public document read first makes a local file $ref refused.
+  it("lets a local description $ref a local file, in default and strict mode", async function () {
     const file = path.join(tmpDir, "openapi-local-file.yaml");
     fs.writeFileSync(file, openApiYaml(localFileUrl));
-    const definition = await loadDescription(file);
-    const schema =
-      definition.paths["/items"].get.responses["200"].content["application/json"].schema;
-    assert.equal(schema.type, "boolean");
+    for (const block of [undefined, "1"]) {
+      if (block) process.env[BLOCK] = block;
+      const definition = await loadDescription(file);
+      const schema =
+        definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+      assert.equal(schema.type, "boolean", `${BLOCK}=${block}`);
+    }
   });
 
   it("refuses a private $ref two documents deep under a public description", async function () {

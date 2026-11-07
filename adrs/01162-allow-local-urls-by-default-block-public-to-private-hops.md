@@ -84,6 +84,9 @@ in any case, ignoring surrounding whitespace.
 | `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` | Public-to-private hops are allowed too, so the guard is off. |
 | `DOC_DETECTIVE_BLOCK_LOCAL_URLS=1` | Strict mode: the guarded fetches refuse every private or loopback address, including direct ones. |
 
+Strict mode governs network addresses. A local file isn't one, so strict mode doesn't refuse a local
+file `$ref`. Only a public document read first does.
+
 Setting both is a usage error. The CLI exits 2 before it reads config:
 `Error: DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set.`
 Through the API, each guarded fetch fails with the same message.
