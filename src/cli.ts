@@ -42,9 +42,13 @@ main(processArgv).catch((err) => {
 
 async function main(argv: string[]) {
   // Conflicting local-URL switches are a usage error for every command
-  // (ADR 01162). The library throws; the CLI reports it and exits 2.
+  // (ADR 01162). The library throws; the CLI reports it and exits 2. Help
+  // and version still answer, since people reach for them to diagnose it.
+  const args = argv.slice(2);
+  const wantsHelpOrVersion =
+    args[0] === "help" || args.some((arg) => ["--help", "-h", "--version"].includes(arg));
   try {
-    localUrlPolicy();
+    if (!wantsHelpOrVersion) localUrlPolicy();
   } catch (error: any) {
     log(`Error: ${error.message}`, "error");
     process.exitCode = 2;

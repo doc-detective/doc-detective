@@ -456,16 +456,19 @@ describe("local URL guard (ADR 01162)", function () {
     );
   });
 
-  // Every command, not just a test run: `install browsers --help` would
-  // otherwise print help and exit 0 without fetching anything.
-  for (const args of [[], ["install", "browsers", "--help"]]) {
+  const runCli = (args) =>
+    spawnSync(process.execPath, [path.resolve("bin/doc-detective.js"), ...args], {
+      cwd: tmpDir,
+      env: { ...process.env, [ALLOW]: "1", [BLOCK]: "1", DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
+      encoding: "utf8",
+    });
+
+  // Every command, not just a test run. Bare `install` would otherwise fail
+  // fast with exit 1, without fetching anything.
+  for (const args of [[], ["install"]]) {
     it(`exits 2 when both switches are set (${["doc-detective", ...args].join(" ")})`, function () {
       this.timeout(60000);
-      const run = spawnSync(process.execPath, [path.resolve("bin/doc-detective.js"), ...args], {
-        cwd: tmpDir,
-        env: { ...process.env, [ALLOW]: "1", [BLOCK]: "1", DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
-        encoding: "utf8",
-      });
+      const run = runCli(args);
       assert.equal(run.status, 2, run.stderr);
       assert.ok(
         run.stderr.includes(
@@ -473,6 +476,16 @@ describe("local URL guard (ADR 01162)", function () {
         ),
         run.stderr
       );
+    });
+  }
+
+  // Help and version still work, for diagnosing the misconfiguration.
+  for (const args of [["--help"], ["-h"], ["help"], ["install", "--help"], ["--version"]]) {
+    it(`still answers ${args.join(" ")} when both switches are set`, function () {
+      this.timeout(60000);
+      const run = runCli(args);
+      assert.equal(run.status, 0, run.stderr);
+      assert.ok(run.stdout.trim().length > 0);
     });
   }
 
