@@ -37,7 +37,7 @@ node ./bin/doc-detective.js install all --yes   # browsers + drivers, if you'll 
 
 Don't reach for `--no-verify` when a husky hook fails for a missing dependency. Install the deps
 instead. Verify runnable changes against the real toolchain (e.g. run a doc's inline tests with
-`doc-detective runTests --input <file>`) rather than guessing at CI behavior.
+`doc-detective --input <file>`) rather than guessing at CI behavior.
 
 ## Don't rewrite whole files with scripts (CRLF landmine)
 
