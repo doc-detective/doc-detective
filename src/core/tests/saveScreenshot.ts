@@ -513,11 +513,6 @@ async function captureScreenshot({
   // we download it to a temp file for comparison, and write the new capture
   // to a local run-specific folder (URLs can't be written back to).
   const isUrlPath = /^https?:\/\//i.test(filePath);
-  // A path from a spec file is already absolute. One the runner named, or one
-  // with no spec file behind it, resolves against `directory`, else outputDir.
-  if (!isUrlPath) {
-    filePath = path.resolve(config?.outputDir ?? ".", step.screenshot.directory ?? "", filePath);
-  }
   const originalUrlPath = isUrlPath ? filePath : undefined;
   // Safe form for logs/descriptions/outputs: strips query + fragment so
   // presigned-URL signatures/tokens don't leak into the report.

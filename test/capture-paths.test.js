@@ -11,6 +11,7 @@ import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { detectTests } from "../dist/core/detectTests.js";
 import { getRunOutputDir } from "../dist/core/utils.js";
+import { useEffectiveStep, placeCapturePaths } from "../dist/core/tests.js";
 
 const sharp = createRequire(import.meta.url)("sharp");
 
@@ -44,14 +45,22 @@ describe("capture paths", function () {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
+  // The step a handler gets from the runner: effective, with its capture placed.
+  const runnerStep = (step, config) => {
+    useEffectiveStep(step);
+    placeCapturePaths(step, config);
+    return step;
+  };
+
   for (const [name, screenshot] of [
     ["true", true],
     ["{}", {}],
   ]) {
     it(`writes screenshot: ${name} to <outputDir>/<stepId>.png`, async function () {
+      const config = { outputDir: tmp };
       const result = await saveScreenshot({
-        config: { outputDir: tmp },
-        step: { stepId: "shot", screenshot },
+        config,
+        step: runnerStep({ stepId: "shot", screenshot }, config),
         driver: fakeDriver(await png()),
       });
       assert.equal(result.status, "PASS", result.description);
@@ -61,9 +70,10 @@ describe("capture paths", function () {
   }
 
   it("resolves a relative directory with no spec file against outputDir", async function () {
+    const config = { outputDir: tmp };
     const result = await saveScreenshot({
-      config: { outputDir: tmp },
-      step: { stepId: "shot", screenshot: { directory: "shots" } },
+      config,
+      step: runnerStep({ stepId: "shot", screenshot: { directory: "shots" } }, config),
       driver: fakeDriver(await png()),
     });
     assert.equal(result.outputs.screenshotPath, path.join(tmp, "shots", "shot.png"));
@@ -82,10 +92,11 @@ describe("capture paths", function () {
   it("names record: true <outputDir>/<stepId>.mp4", async function () {
     const target = path.join(tmp, "demo.mp4");
     fs.writeFileSync(target, "");
+    const config = { outputDir: tmp };
     const result = await startRecording({
-      config: { outputDir: tmp },
+      config,
       context: {},
-      step: { stepId: "demo", record: true },
+      step: runnerStep({ stepId: "demo", record: true }, config),
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");

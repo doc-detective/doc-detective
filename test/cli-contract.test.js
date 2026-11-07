@@ -329,7 +329,8 @@ describe("CLI contract", function () {
     // ADR 01167: the report echoes the effective step, not the authored shorthand.
     // The page server lives in this process, so the CLI runs asynchronously
     // (spawnSync would block the server it browses) and is killed if it stalls.
-    it("reports the effective goTo and httpRequest steps", async function () {
+    // ADR 01173: a screenshot the runner names is reported at its place in outputDir.
+    it("reports the effective goTo, httpRequest, and screenshot steps", async function () {
       this.timeout(180000);
       const server = http.createServer((req, res) => res.end("<html><body>ok</body></html>"));
       await new Promise((resolve) => server.listen(0, resolve));
@@ -343,12 +344,12 @@ describe("CLI contract", function () {
               {
                 testId: "effective-t",
                 runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
-                steps: [{ goTo: url }, { httpRequest: url }],
+                steps: [{ goTo: url }, { httpRequest: url }, { stepId: "shot", screenshot: true }],
               },
             ],
           })
         );
-        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json"], {
+        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json", "--output-dir", "out"], {
           cwd,
           env: childEnv(),
           stdio: ["ignore", "pipe", "pipe"],
@@ -361,9 +362,13 @@ describe("CLI contract", function () {
         const status = await new Promise((resolve) => child.on("close", resolve));
         clearTimeout(stall);
         expect(status, stderr).to.equal(0);
-        const [goTo, httpRequest] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
+        const [goTo, httpRequest, shot] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
         expect(goTo.goTo).to.include({ url, timeout: 30000 });
         expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });
+        // Compare real paths: temp folders can be symlinks (macOS) or short names (Windows).
+        expect(shot.screenshot.overwrite).to.equal("aboveVariation");
+        expect(path.isAbsolute(shot.screenshot.path), shot.screenshot.path).to.equal(true);
+        expect(fs.realpathSync(shot.screenshot.path)).to.equal(fs.realpathSync(path.join(cwd, "out", "shot.png")));
       } finally {
         server.close();
       }

@@ -249,6 +249,7 @@ export {
   runViaApi,
   getRunner,
   useEffectiveStep,
+  placeCapturePaths,
   ensureChromeAvailable,
   ensureContextBrowserInstalled,
   combinationKey,
@@ -4878,6 +4879,7 @@ async function runContext({
       // After the ID, which hashes the authored step: steps that never run
       // still report their effective form (ADR 01167).
       useEffectiveStep(step, { beforeSubstitution: true });
+      placeCapturePaths(step, config);
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
     // so a duplicated stepId routes to the earliest one).
@@ -5657,6 +5659,18 @@ function useEffectiveStep(step: any, { beforeSubstitution = false } = {}) {
   if (validation.valid) Object.assign(step, validation.object);
 }
 
+// Place a capture's relative path under its `directory`, else outputDir, in
+// place (ADR 01173). That's a file the normalizer named for its step, or a path
+// with no spec file behind it: a path written in a spec file is already
+// absolute. A URL stays, and a `$VAR` path waits for substitution.
+function placeCapturePaths(step: any, config: any) {
+  for (const capture of [step.screenshot, step.record]) {
+    const file = capture?.path;
+    if (typeof file !== "string" || path.isAbsolute(file) || file.startsWith("$") || /^https?:\/\//i.test(file)) continue;
+    capture.path = path.resolve(config?.outputDir ?? ".", capture.directory ?? "", file);
+  }
+}
+
 // Run a specific step
 async function runStep({
   config = {},
@@ -5685,6 +5699,7 @@ async function runStep({
   // Again, after substitution: this pass normalizes whole-variable actions, and
   // getRunner() callers hand runStep authored steps.
   useEffectiveStep(step);
+  placeCapturePaths(step, config);
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
       config: config,

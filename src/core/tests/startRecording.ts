@@ -144,9 +144,8 @@ async function startRecording({
     result.description = "Couldn't name the recording. Set `path`, or set the step's `stepId`.";
     return result;
   }
-  // A path from a spec file is already absolute. One the runner named, or one
-  // with no spec file behind it, resolves against `directory`, else outputDir.
-  let filePath = path.resolve(config?.outputDir ?? ".", step.record.directory ?? "", step.record.path);
+  // The runner placed the path under outputDir (ADR 01173).
+  let filePath = step.record.path;
   const baseName = path.basename(filePath, path.extname(filePath));
 
   // Set path directory
