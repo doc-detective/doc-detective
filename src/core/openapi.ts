@@ -108,12 +108,13 @@ async function loadDescription(descriptionPath: string = "") {
   // Written against @apidevtools/json-schema-ref-parser 16.0.5, whose own
   // type for a resolver's `read` also allows a string or object. Check that
   // it's a function rather than cast, so an upgrade that changes it fails here.
-  const readLocalFile = FileResolver.read;
-  if (typeof readLocalFile !== "function") {
+  if (typeof FileResolver.read !== "function") {
     throw new Error(
       "Couldn't load the OpenAPI description: json-schema-ref-parser's FileResolver.read isn't a function."
     );
   }
+  // Bound to its owner, so it keeps working if `read` ever uses `this`.
+  const readLocalFile = FileResolver.read.bind(FileResolver);
   const dereferencedDefinition = await parser.dereference(definition as any, {
     resolve: {
       file: {
