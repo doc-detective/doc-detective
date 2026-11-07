@@ -79,7 +79,9 @@ Chosen option: **1**.
 - **`click` and `find` strings stay strings.** They search by any identifier: text, ARIA name, ID, test
   ID, or selector. No object field means "any of these", so there's no object form to expand to, and
   their handlers dispatch on the string. The shorthand ratchet in `test/shorthand-ratchet.test.js`
-  bottoms out at those two files.
+  exempts exactly those expressions: `typeof step.click === "string"` in `click.ts`, and
+  `typeof step.find === "string"` and `=== "object"` in `findElement.ts`. Any other shorthand branch
+  in those files still counts.
 
 ### Consequences
 
