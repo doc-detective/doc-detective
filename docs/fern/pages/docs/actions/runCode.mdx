@@ -25,7 +25,7 @@ You must specify the `runCode` action using an object format with the following 
   - `background`: (Optional) An object that starts the code as a long-running background process. The step returns as soon as the process is ready, instead of waiting for it to exit. Including this object enables background mode. Omit it for a normal blocking run. See [Background processes](#background-processes).
     - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
-    - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
+    - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 80, "rows": 24}` sets the size. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
   - *Output Saving:* You can also save the code's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runCode`](/reference/schemas/runcode) reference for details.
 
 **Output Regression Testing:** Set both `path` and `maxVariation`, with a reference file present at that `path`. The action then compares the new code output to the reference file's content. A difference within `maxVariation` passes the step. A difference beyond the threshold returns WARNING, and behavior then depends on the `overwrite` setting:
@@ -72,6 +72,8 @@ Some processes, such as certain Docker images and databases, fork a daemon and t
 By default, a background process runs behind a pipe. That works for line-oriented REPLs and basic CLIs, but not for full-screen terminal UIs (TUIs). Programs built with frameworks like Ink check whether their output is attached to a terminal (`process.stdout.isTTY`). They won't render or accept keystrokes over a pipe. Set `tty` to `true` to run the process under a real pseudo-terminal (PTY) instead. These interactive TUIs then render and respond to the keystrokes a [`type`](/docs/actions/type) step sends.
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
+
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. To pick the size, set `tty` to an object with `cols` and `rows`, such as `{"cols": 80, "rows": 24}`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis) in `runShell` for why the width matters.
 
 ## Examples
 

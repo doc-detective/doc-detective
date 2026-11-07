@@ -1,5 +1,7 @@
 import { setConfig, outputResults, reporters, spawnCommand } from "../dist/utils.js";
 import { setArgs } from "../dist/cliOptions.js";
+import { buildProgram } from "../dist/cliProgram.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import {
   appendQueryParams,
   compileFilter,
@@ -1211,6 +1213,30 @@ describe("Util tests", function () {
   });
 });
 
+describe("--version", function () {
+  it("prints unknown when its own package.json can't be found", function () {
+    // Make ownVersion() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    const printed = [];
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    try {
+      const program = buildProgram({ runTests: () => {} });
+      program.configureOutput({ writeOut: (s) => printed.push(s) });
+      // exitOverride() turns commander's exit after printing into a throw.
+      expect(() => program.parse(["--version"], { from: "user" })).to.throw();
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+    expect(printed).to.deep.equal(["unknown\n"]);
+  });
+});
+
 describe("appendQueryParams", function () {
   it("returns URL unchanged when params is undefined, null, or empty", function () {
     const url = "https://example.com/foo";
@@ -1427,6 +1453,9 @@ describe("runSpecs filter short-circuit", function () {
     expect(result.summary.tests.warning).to.equal(0);
     expect(result.summary.tests.skipped).to.equal(0);
     expect(result.summary.specs.pass).to.equal(0);
+    // Run metadata is present even when nothing ran (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 
@@ -1456,6 +1485,9 @@ describe("runViaApi filter short-circuit", function () {
     expect(result.specs).to.deep.equal([]);
     expect(result.summary.tests.pass).to.equal(0);
     expect(result.summary.tests.fail).to.equal(0);
+    // Run metadata matches runSpecs' short-circuit (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 

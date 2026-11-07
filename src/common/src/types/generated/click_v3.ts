@@ -7,7 +7,7 @@
 /**
  * Click or tap an element.
  */
-export type Click = ClickElementSimple | ClickElementDetailed | boolean;
+export type Click = (true | false) | ClickElementSimple | ClickElementDetailed;
 /**
  * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID.
  */
@@ -55,7 +55,7 @@ export type ClickElementDetailed = {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: string | number | boolean;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.

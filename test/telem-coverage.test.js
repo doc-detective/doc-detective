@@ -71,6 +71,20 @@ describe("telem coverage: sendTelemetry", function () {
     assert.ok(event.properties.core_version);
   });
 
+  it("replaces every space in a flattened summary key", function () {
+    const results = {
+      summary: {
+        "all spec runs": { "not run": 1, "by run kind": { "first try ok": 2 } },
+        "total wall clock": 3,
+      },
+    };
+    sendTelemetry({ ...config }, "runTests", results);
+    const { properties } = captureStub.firstCall.args[0];
+    assert.equal(properties.all_spec_runs_not_run, 1);
+    assert.equal(properties.all_spec_runs_by_run_kind_first_try_ok, 2);
+    assert.equal(properties.total_wall_clock, 3);
+  });
+
   it("honors DOC_DETECTIVE_META and falls back to an anonymous id for a non-runTests command", function () {
     process.env.DOC_DETECTIVE_META = JSON.stringify({
       distribution: "custom",

@@ -7,12 +7,10 @@ import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
 import { getBrowsersDir, readInstalledRecord } from "../runtime/cacheDir.js";
+import { packageRoot, ownVersion } from "../runtime/heavyDeps.js";
 import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browsers.js";
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
 
@@ -382,6 +380,10 @@ function getEnvironment() {
   environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
+  // Versions that fingerprint a run in its report (ADR 01163).
+  environment.docDetectiveVersion = ownVersion();
+  environment.nodeVersion = process.versions.node;
+  environment.osRelease = os.release();
   return environment;
 }
 
@@ -571,7 +573,7 @@ async function probeBrowserEnvironment({
 }> {
   setAppiumHome({ cacheDir: config?.cacheDir });
   const cwd = process.cwd();
-  process.chdir(path.join(__dirname, "../.."));
+  process.chdir(packageRoot() ?? cwd);
   let installedBrowsers: any[] = [];
   let browserDetectionFailed = false;
   let installedDrivers = { chromium: false, gecko: false, safari: false };
