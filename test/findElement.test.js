@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
+import { clickElement } from "../dist/core/tests/click.js";
 
 const config = { logLevel: "silent" };
 
@@ -219,12 +220,29 @@ describe("findElement unified assertion model", function () {
     assert.deepEqual(calls[0], [{ button: "right" }]);
   });
 
-  // A schema `default` is documentation, not behavior: find_v3's properties
-  // sit inside an `anyOf`, and Ajv skips defaults there, so nothing injects
-  // the value. The runtime carries its own default in the `step.find = {...}`
-  // normalization block, and the two drifted apart unnoticed — the schema and
-  // docs advertised `true` while every run behaved as `false`. These pin them
-  // together so the next divergence fails here instead of shipping.
+  // find.click is the button in the effective step (ADR 01175), and false
+  // clicks nothing. Coercion used to turn false into the string "false",
+  // which is truthy, so the find clicked anyway (ADR 01161).
+  for (const [click, expected] of [
+    [false, []],
+    [true, [[]]],
+    ["middle", [[{ button: "middle" }]]],
+  ]) {
+    it(`find.click: ${JSON.stringify(click)} clicks ${JSON.stringify(expected)}`, async () => {
+      const calls = [];
+      const element = makeElement({ clickImpl: async (...args) => calls.push(args) });
+      const driver = makeDriver({ candidates: [element] });
+      const result = await findElement({ config, step: { find: { selector: "button", click } }, driver });
+      assert.equal(result.status, "PASS", result.description);
+      assert.deepEqual(calls, expected);
+    });
+  }
+
+  // The schema's defaults are what runs: since ADR 01167, validate() fills
+  // them in the effective step, which findElement acts on. Before, find_v3's
+  // `moveTo` default advertised `true` while every run behaved as `false`.
+  // These pin them together so the next divergence fails here instead of
+  // shipping.
   it("moveTo's declared default is false", function () {
     assert.equal(FIND_V3.components.schemas.object.properties.moveTo.default, false);
   });
@@ -275,5 +293,30 @@ describe("findElement unified assertion model", function () {
     const found = findAssertion(result.assertions, "found");
     assert.equal(found.result, "PASS");
     assert.ok(/Couldn't click/.test(result.description));
+  });
+});
+
+// ADR 01175: a boolean `click` names no element, so it's invalid. Coercion used
+// to turn it into the text "true" or "false" and click whatever matched.
+describe("click with a boolean value", function () {
+  for (const value of [true, false]) {
+    it(`click: ${value} fails with a hint to quote it, and clicks nothing`, async () => {
+      let clicks = 0;
+      const element = makeElement({ clickImpl: async () => clicks++ });
+      const driver = makeDriver({ candidates: [element], $impl: async () => element });
+      const result = await clickElement({ config, step: { click: value }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.match(result.description, new RegExp(`To click an element whose text is "${value}", quote it: "click": "${value}"`));
+      assert.equal(clicks, 0);
+    });
+  }
+
+  it('click: "true" still clicks the element whose text is "true"', async () => {
+    let clicks = 0;
+    const element = makeElement({ clickImpl: async () => clicks++ });
+    const driver = makeDriver({ $impl: async () => element });
+    const result = await clickElement({ config, step: { click: "true" }, driver });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(clicks, 1);
   });
 });

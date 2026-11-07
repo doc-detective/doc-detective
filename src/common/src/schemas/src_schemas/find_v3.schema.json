@@ -107,17 +107,7 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
+              "type": ["boolean", "number", "string"]
             }
           },
           "elementAria": {
@@ -126,6 +116,7 @@
           },
           "timeout": {
             "type": "integer",
+            "minimum": 0,
             "description": "Max duration in milliseconds to wait for the element to exist.",
             "default": 5000
           },
@@ -133,13 +124,17 @@
             "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
             "type": "boolean",
             "default": false,
-            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
+            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does. Since ADR 01175, validate() fills this default in the effective step."
           },
           "click": {
-            "description": "Click the element.",
+            "description": "Click the element after finding it. `true` left-clicks, `false` finds without clicking, and a button name (`left`, `right`, or `middle`) clicks with that button. The object form sets the `button` and a press `duration`. Unlike the `click` action, a string here names the button, not the element.",
             "anyOf": [
               {
-                "$ref": "click_v3.schema.json#"
+                "type": "boolean",
+                "$comment": "Boolean first (ADR 01161). Safe as a plain `type`: the next branch is an enum, so it never wanted \"true\" or \"false\", and a $VAR that resolves to \"true\" still means true."
+              },
+              {
+                "$ref": "click_v3.schema.json#/components/schemas/button"
               },
               {
                 "type": "object",
@@ -163,18 +158,50 @@
                 "$ref": "type_v3.schema.json#"
               },
               {
+                "$comment": "find already locates the element, so a locator here would be ignored (ADR 01175). `type: object` keeps the keys shorthand valid: `required` passes any string or array.",
                 "not": {
+                  "title": "Find element and type",
                   "type": "object",
-                  "required": [
-                    "selector",
-                    "elementText",
-                    "elementId",
-                    "elementTestId",
-                    "elementClass",
-                    "elementAttribute",
-                    "elementAria"
-                  ],
-                  "title": "Find element and type"
+                  "anyOf": [
+                    {
+                      "required": [
+                        "selector"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementText"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementId"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementTestId"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementClass"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementAttribute"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "elementAria"
+                      ]
+                    }
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set its own locator, such as selector or elementText (find already locates the element)"
                 }
               }
             ]

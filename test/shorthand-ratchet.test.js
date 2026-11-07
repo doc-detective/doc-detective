@@ -1,15 +1,16 @@
 // ADR 01167: validate() returns the effective step, so action handlers shouldn't
 // branch on an action's shorthand forms. This ratchet counts the handler files
 // that still do. When you move an action's normalization into
-// src/common/src/normalize/<action>.ts, lower CEILING. It reaches 0 when every
-// action has moved.
+// src/common/src/normalize/<action>.ts, lower CEILING. It bottoms out at 2:
+// click.ts and findElement.ts dispatch on find's string, which searches by any
+// identifier and has no object form, so it isn't shorthand (ADR 01175).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import { normalizers } from "../dist/common/src/normalize/index.js";
 
-const CEILING = 15;
+const CEILING = 13;
 const HANDLERS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "core", "tests");
 
 describe("shorthand ratchet", function () {

@@ -18,13 +18,14 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object click has its defaults filled.
   step = isValidStep.object;
   let findStep: any;
 
+  // A string searches by any identifier, so it's find's string (ADR 01175).
   if (typeof step.click === "string") {
     findStep = { find: step.click };
-  } else if (typeof step.click === "object") {
+  } else {
     // `button` and `duration` describe the click itself, not the element
     // search — destructure them out so the find gets only element criteria,
     // and put them under the click sub-effect.
@@ -32,10 +33,7 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
     findStep = {
       find: {
         ...findCriteria,
-        click: {
-          button: button || "left",
-          ...(duration !== undefined && { duration }),
-        },
+        click: { button, ...(duration !== undefined && { duration }) },
       },
     };
   }

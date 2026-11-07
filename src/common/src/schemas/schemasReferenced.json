@@ -2040,6 +2040,7 @@
                   },
                   "inputDelay": {
                     "type": "number",
+                    "minimum": 0,
                     "default": 100
                   },
                   "surface": {
@@ -2091,16 +2092,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -3696,16 +3691,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -3714,6 +3703,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               }
             }
@@ -4205,16 +4195,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -4223,6 +4207,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               }
             }
@@ -6144,16 +6129,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -6162,6 +6141,7 @@
               },
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               },
               "moveTo": {
@@ -6171,13 +6151,18 @@
               "click": {
                 "anyOf": [
                   {
-                    "$ref": "click_v3.nodefaults.schema.json#"
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button",
+                    "default": "left"
                   },
                   {
                     "type": "object",
                     "properties": {
                       "button": {
-                        "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
+                        "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button",
+                        "default": "left"
                       },
                       "duration": {
                         "$ref": "click_v3.nodefaults.schema.json#/components/schemas/duration"
@@ -6195,15 +6180,46 @@
                   {
                     "not": {
                       "type": "object",
-                      "required": [
-                        "selector",
-                        "elementText",
-                        "elementId",
-                        "elementTestId",
-                        "elementClass",
-                        "elementAttribute",
-                        "elementAria"
+                      "anyOf": [
+                        {
+                          "required": [
+                            "selector"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
+                        }
                       ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set its own locator, such as selector or elementText (find already locates the element)"
                     }
                   }
                 ]
@@ -6222,11 +6238,17 @@
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
+      "not": {
+        "enum": [
+          true,
+          false
+        ]
+      },
+      "errorMessage": {
+        "not": "must be string or object (got a boolean). To click an element whose text is ${0}, quote it: \"click\": ${0}"
+      },
       "components": {
         "schemas": {
           "string": {
@@ -6238,7 +6260,8 @@
               "left",
               "right",
               "middle"
-            ]
+            ],
+            "default": "left"
           },
           "duration": {
             "type": "integer",
@@ -6287,10 +6310,12 @@
             "properties": {
               "timeout": {
                 "type": "integer",
+                "minimum": 0,
                 "default": 5000
               },
               "button": {
-                "$ref": "#/components/schemas/button"
+                "$ref": "#/components/schemas/button",
+                "default": "left"
               },
               "duration": {
                 "$ref": "#/components/schemas/duration"
@@ -6336,16 +6361,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -10020,7 +10039,8 @@
                     "$ref": "type_v3.nodefaults.schema.json#/components/schemas/keys"
                   },
                   "inputDelay": {
-                    "type": "number"
+                    "type": "number",
+                    "minimum": 0
                   },
                   "surface": {
                     "$ref": "surface_v3.nodefaults.schema.json#"
@@ -10070,16 +10090,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -11656,16 +11670,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -11673,7 +11681,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -12159,16 +12168,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -12176,7 +12179,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           }
@@ -14046,16 +14050,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -14063,7 +14061,8 @@
                 "type": "string"
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "moveTo": {
                 "type": "boolean"
@@ -14071,7 +14070,10 @@
               "click": {
                 "anyOf": [
                   {
-                    "$ref": "click_v3.nodefaults.schema.json#"
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
                   },
                   {
                     "type": "object",
@@ -14095,15 +14097,46 @@
                   {
                     "not": {
                       "type": "object",
-                      "required": [
-                        "selector",
-                        "elementText",
-                        "elementId",
-                        "elementTestId",
-                        "elementClass",
-                        "elementAttribute",
-                        "elementAria"
+                      "anyOf": [
+                        {
+                          "required": [
+                            "selector"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementText"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementTestId"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementClass"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAttribute"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "elementAria"
+                          ]
+                        }
                       ]
+                    },
+                    "errorMessage": {
+                      "not": "must not set its own locator, such as selector or elementText (find already locates the element)"
                     }
                   }
                 ]
@@ -14122,11 +14155,17 @@
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
+      "not": {
+        "enum": [
+          true,
+          false
+        ]
+      },
+      "errorMessage": {
+        "not": "must be string or object (got a boolean). To click an element whose text is ${0}, quote it: \"click\": ${0}"
+      },
       "components": {
         "schemas": {
           "string": {
@@ -14186,7 +14225,8 @@
             ],
             "properties": {
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               },
               "button": {
                 "$ref": "click_v3.nodefaults.schema.json#/components/schemas/button"
@@ -14235,16 +14275,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },

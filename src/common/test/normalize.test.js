@@ -133,12 +133,83 @@ describe("normalization", function () {
     });
   });
 
+  // ADR 01175: the browser actions move their shorthand and defaults here.
+  describe("browser actions", function () {
+    const action = (step) => effective(step).object;
+    const TYPE = { inputDelay: 100, timeout: 5000 };
+
+    it("leaves click and find strings as they are, since they search by any identifier", function () {
+      expect(action({ click: "Submit" })).to.deep.equal({ click: "Submit" });
+      expect(action({ find: "Submit" })).to.deep.equal({ find: "Submit" });
+    });
+
+    it("fills click's defaults", function () {
+      expect(action({ click: { selector: "#a" } }).click).to.deep.equal({ selector: "#a", timeout: 5000, button: "left" });
+      expect(action({ click: { selector: "#a", button: "right", timeout: 0 } }).click).to.include({ button: "right", timeout: 0 });
+    });
+
+    for (const [click, expected] of [
+      [true, { button: "left" }],
+      ["left", { button: "left" }],
+      ["right", { button: "right" }],
+      ["middle", { button: "middle" }],
+      [{ duration: 800 }, { button: "left", duration: 800 }],
+      [{ button: "middle" }, { button: "middle" }],
+      [false, false],
+    ]) {
+      it(`makes find.click ${JSON.stringify(click)} the click it performs`, function () {
+        expect(action({ find: { selector: "#a", click } }).find.click).to.deep.equal(expected);
+      });
+    }
+
+    it("fills find's defaults and lists its classes", function () {
+      expect(action({ find: { elementClass: "btn" } }).find).to.deep.equal({ elementClass: ["btn"], timeout: 5000, moveTo: false });
+    });
+
+    it("normalizes find.type like a type step", function () {
+      expect(action({ find: { selector: "#a", type: "x" } }).find.type).to.deep.equal({ keys: ["x"], ...TYPE });
+    });
+
+    for (const [type, expected] of [
+      ["abc", { keys: ["abc"], ...TYPE }],
+      [["a", "$ENTER$"], { keys: ["a", "$ENTER$"], ...TYPE }],
+      [{ keys: "a", inputDelay: 0 }, { keys: ["a"], inputDelay: 0, timeout: 5000 }],
+      [{ keys: ["a"], selector: "#a", elementClass: "x" }, { keys: ["a"], selector: "#a", elementClass: ["x"], ...TYPE }],
+      ["$KEYS", { keys: ["$KEYS"], ...TYPE }],
+    ]) {
+      it(`expands type ${JSON.stringify(type)}`, function () {
+        expect(action({ type }).type).to.deep.equal(expected);
+      });
+    }
+
+    it("fills dragAndDrop's duration and keeps an authored 0", function () {
+      expect(action({ dragAndDrop: { source: "a", target: "b" } }).dragAndDrop.duration).to.equal(1000);
+      expect(action({ dragAndDrop: { source: "a", target: "b", duration: 0 } }).dragAndDrop.duration).to.equal(0);
+    });
+
+    for (const [swipe, expected] of [
+      ["up", { direction: "up", distance: 0.5, duration: 500 }],
+      [{ direction: "left", distance: 0.8 }, { direction: "left", distance: 0.8, duration: 500 }],
+      [{ from: { x: 1, y: 2 }, to: { x: 3, y: 4 } }, { from: { x: 1, y: 2 }, to: { x: 3, y: 4 }, duration: 500 }],
+    ]) {
+      it(`expands swipe ${JSON.stringify(swipe)}`, function () {
+        expect(action({ swipe }).swipe).to.deep.equal(expected);
+      });
+    }
+  });
+
   describe("idempotence", function () {
     for (const [name, step] of [
       ["goTo shorthand", { goTo: "https://example.com" }],
       ["httpRequest", { httpRequest: { url: "https://x.com", statusCodes: [200] } }],
       ["httpRequest with OpenAPI", { httpRequest: { openApi: "getUsers" } }],
       ["httpRequest with a request", { httpRequest: { url: "https://x.com", request: {} } }],
+      ["click", { click: { elementText: "Go" } }],
+      ["find with click and type", { find: { selector: "#a", click: "right", type: "x", elementClass: "b" } }],
+      ["type shorthand", { type: "abc" }],
+      ["dragAndDrop", { dragAndDrop: { source: "a", target: "b" } }],
+      ["swipe shorthand", { swipe: "down" }],
+      ["swipe point to point", { swipe: { from: { x: 1, y: 2 }, to: { x: 3, y: 4 } } }],
     ]) {
       it(`changes nothing the second time: ${name}`, function () {
         const once = effective(step).object;
@@ -184,6 +255,17 @@ describe("normalization", function () {
     const MINIMAL = {
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },
+      click: { selector: "#a" },
+      find: { selector: "#a" },
+      type: { keys: ["a"] },
+      dragAndDrop: { source: "a", target: "b" },
+      swipe: { direction: "up" },
+    };
+    // Where an action's own defaults live, when it isn't the `object` component:
+    // dragAndDrop is always an object, and swipe's directional form has the most.
+    const BRANCH = {
+      dragAndDrop: (schema) => ({ properties: schema.properties }),
+      swipe: (schema) => schema.components.schemas.directional,
     };
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
@@ -196,7 +278,7 @@ describe("normalization", function () {
             defaults.push([trail.filter((key, i) => trail[i - 1] === "properties"), node.default]);
           }
           for (const [key, child] of Object.entries(node)) walk(child, [...trail, key]);
-        })(schema.components.schemas.object, []);
+        })((BRANCH[action] ?? ((s) => s.components.schemas.object))(schema), []);
         expect(defaults, "no defaults found").to.not.be.empty;
         const output = normalizers[action](structuredClone(MINIMAL[action]), action);
         for (const [keys, value] of defaults) {

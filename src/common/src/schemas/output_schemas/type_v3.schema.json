@@ -49,6 +49,7 @@
             },
             "inputDelay": {
               "type": "number",
+              "minimum": 0,
               "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
               "default": 100
             },
@@ -959,16 +960,10 @@
               "type": "object",
               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
               "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "boolean"
-                  }
+                "type": [
+                  "boolean",
+                  "number",
+                  "string"
                 ]
               }
             },
@@ -1546,6 +1541,7 @@
               },
               "inputDelay": {
                 "type": "number",
+                "minimum": 0,
                 "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                 "default": 100
               },
@@ -2456,16 +2452,10 @@
                 "type": "object",
                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },

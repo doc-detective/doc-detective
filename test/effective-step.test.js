@@ -21,9 +21,12 @@ describe("useEffectiveStep", function () {
 
   // The runner's first pass runs before $VAR substitution, and a whole-variable
   // action can hold an object. It must wait for the pass after substitution.
-  for (const [action, value] of [
-    ["goTo", { url: "https://example.com/x", timeout: 5000 }],
-    ["httpRequest", { url: "https://example.com/api", timeout: 5000 }],
+  for (const [action, value, filled] of [
+    ["goTo", { url: "https://example.com/x", timeout: 5000 }, "waitUntil"],
+    ["httpRequest", { url: "https://example.com/api", timeout: 5000 }, "method"],
+    ["find", { selector: "#a", timeout: 50 }, "moveTo"],
+    ["type", { keys: ["a"], inputDelay: 0 }, "timeout"],
+    ["swipe", { direction: "up", duration: 100 }, "distance"],
   ]) {
     it(`normalizes a whole-variable ${action} after substitution`, function () {
       process.env.DD_EFFECTIVE_STEP = JSON.stringify(value);
@@ -33,8 +36,8 @@ describe("useEffectiveStep", function () {
         expect(step[action]).to.equal("$DD_EFFECTIVE_STEP");
         replaceEnvs(step);
         useEffectiveStep(step);
-        expect(step[action]).to.include(value);
-        expect(step[action]).to.have.property(action === "goTo" ? "waitUntil" : "method");
+        expect(step[action]).to.deep.include(value);
+        expect(step[action]).to.have.property(filled);
       } finally {
         delete process.env.DD_EFFECTIVE_STEP;
       }

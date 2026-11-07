@@ -36,6 +36,12 @@ export function renameAliases(value: any, aliases: Record<string, string>, path:
   return value;
 }
 
+/** A locator's `elementClass` as a list: one class is shorthand for a list of one. */
+export function listClasses(locator: any): any {
+  if (typeof locator.elementClass === "string") locator.elementClass = [locator.elementClass];
+  return locator;
+}
+
 // Every plain default in a schema node's properties, as [dotted path, value].
 // Defaults under anyOf/oneOf, or in nested objects with required keys, depend on
 // the rest of the step, so the action's normalizer codes them by hand.
@@ -58,7 +64,9 @@ const cache = new Map<string, [string, any][]>();
  */
 export function applyDefaults(value: any, action: string, skip: string[] = []): any {
   if (!cache.has(action)) {
-    const branch = (schemas as any)[`${action}_v3`].anyOf.find((part: any) => part.properties || part.allOf);
+    // The object branch of a union, or the schema itself for an action that's always an object.
+    const schema = (schemas as any)[`${action}_v3`];
+    const branch = schema.anyOf?.find((part: any) => part.properties || part.allOf) ?? schema;
     cache.set(action, plainDefaults(branch));
   }
   for (const [path, fallback] of cache.get(action)!) {

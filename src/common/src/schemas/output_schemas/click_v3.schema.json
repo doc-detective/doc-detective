@@ -6,7 +6,7 @@
     {
       "title": "Click element (simple)",
       "type": "string",
-      "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
+      "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID. The string always names the element, so `\"click\": \"right\"` clicks the element whose text is \"right\". To pick the mouse button, use the object form's `button`, or `find` with `click`."
     },
     {
       "title": "Click element (detailed)",
@@ -52,6 +52,7 @@
       "properties": {
         "timeout": {
           "type": "integer",
+          "minimum": 0,
           "description": "Max duration in milliseconds to wait for the element to exist.",
           "default": 5000
         },
@@ -62,7 +63,8 @@
             "left",
             "right",
             "middle"
-          ]
+          ],
+          "default": "left"
         },
         "duration": {
           "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
@@ -323,16 +325,10 @@
           "type": "object",
           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
           "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
+            "type": [
+              "boolean",
+              "number",
+              "string"
             ]
           }
         },
@@ -341,17 +337,24 @@
           "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
         }
       }
-    },
-    {
-      "type": "boolean"
     }
   ],
+  "not": {
+    "enum": [
+      true,
+      false
+    ]
+  },
+  "errorMessage": {
+    "not": "must be string or object (got a boolean). To click an element whose text is ${0}, quote it: \"click\": ${0}"
+  },
+  "$comment": "A boolean names no element, so it's rejected (ADR 01175). Without the `not`, Ajv's coerceTypes turns true into \"true\" for the string branch and clicks the element whose text is \"true\". Ajv checks `not` before `anyOf`, so it sees the authored boolean. The message can't echo it: ajv-errors renders after `anyOf` has coerced the value, so ${0} is the quoted string.",
   "components": {
     "schemas": {
       "string": {
         "title": "Click element (simple)",
         "type": "string",
-        "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID."
+        "description": "Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID. The string always names the element, so `\"click\": \"right\"` clicks the element whose text is \"right\". To pick the mouse button, use the object form's `button`, or `find` with `click`."
       },
       "button": {
         "description": "Kind of click to perform.",
@@ -360,7 +363,8 @@
           "left",
           "right",
           "middle"
-        ]
+        ],
+        "default": "left"
       },
       "duration": {
         "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
@@ -411,6 +415,7 @@
         "properties": {
           "timeout": {
             "type": "integer",
+            "minimum": 0,
             "description": "Max duration in milliseconds to wait for the element to exist.",
             "default": 5000
           },
@@ -421,7 +426,8 @@
               "left",
               "right",
               "middle"
-            ]
+            ],
+            "default": "left"
           },
           "duration": {
             "description": "How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.",
@@ -682,16 +688,10 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
+              "type": [
+                "boolean",
+                "number",
+                "string"
               ]
             }
           },
@@ -704,7 +704,6 @@
     }
   },
   "examples": [
-    true,
     "Submit",
     {
       "button": "left",
