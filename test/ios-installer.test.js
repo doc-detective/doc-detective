@@ -209,7 +209,7 @@ describe("install ios: WebDriverAgent prebuild", function () {
     const warns = [];
     let attempt = 0;
     env.deps.logger = (msg, level) => {
-      if (level === "warn") warns.push(msg);
+      if (level === "warning") warns.push(msg);
     };
     env.deps.sleep = async () => {};
     env.deps.runBuild = async (command, args) => {

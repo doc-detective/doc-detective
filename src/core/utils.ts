@@ -1,5 +1,7 @@
 import { diag } from "../cliOutput.js";
 import { nearestCommand } from "../cliHelp.js";
+import { envFlag } from "../envFlag.js";
+import type { ErrorObject } from "ajv";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -29,7 +31,7 @@ export function loadAxios(): Promise<typeof import("axios").default> {
 }
 
 export {
-  outputResults,
+  deepMerge,
   loadEnvs,
   log,
   logLevelEnabled,
@@ -77,7 +79,9 @@ export {
   selectSpecsForRun,
   shouldFailRun,
   runExitCode,
-  summarizeSpecErrors,
+  summarizeSchemaErrors,
+  knownKeysAt,
+  configErrorMessage,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -1173,68 +1177,145 @@ function shouldFailRun(results: any): boolean {
   return typeof failCount === "number" && failCount > 0;
 }
 
-// Loaded only here, on the way to an error: the file is tens of megabytes.
-let loadedSpecSchemas: any;
-function specSchemas() {
-  return (loadedSpecSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+// Every bundled schema, by key. Loaded only here, on the way to an error: the
+// file is tens of megabytes.
+let loadedAllSchemas: any;
+function allSchemas() {
+  return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
 }
 
-// The keys valid at a spec, test, or step. Anything deeper gets no suggestion.
-function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
-  const parent = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]) ? parts[parts.length - 2] : undefined;
-  const schemaKey = parts.length === 0 ? rootSchemaKey : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
-  return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
+// Every schema node that can describe the value at `parts`, following
+// properties, patternProperties, and items through anyOf, oneOf, allOf, and an
+// if's then and else. The bundled schemas are dereferenced, so there's no $ref
+// left to follow. `root` is a bundled schema's key, or a schema itself.
+function schemasAt(parts: string[], root: string | object): any[] {
+  // A pattern that doesn't compile matches nothing: the formatter must never
+  // throw and hide the error it's describing.
+  const matches = (pattern: string, key: string) => {
+    try {
+      return new RegExp(pattern, "u").test(key);
+    } catch {
+      return false;
+    }
+  };
+  const expand = (node: any): any[] =>
+    node && typeof node === "object"
+      ? [
+          node,
+          ...[...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? []), ...[node.then, node.else].filter(Boolean)].flatMap(expand),
+        ]
+      : [];
+  let nodes = expand(typeof root === "string" ? allSchemas()[root] : root);
+  for (const part of parts) {
+    nodes = nodes.flatMap((node) =>
+      /^\d+$/.test(part)
+        ? expand(node.items)
+        : [
+            node.properties?.[part],
+            ...Object.entries(node.patternProperties ?? {})
+              .filter(([pattern]) => matches(pattern, part))
+              .map(([, schema]) => schema),
+          ].flatMap(expand)
+    );
+  }
+  return nodes;
+}
+
+// The keys valid at a path, for "did you mean". Only `properties` names them:
+// a patternProperties pattern isn't a key to suggest.
+function knownKeysAt(parts: string[], root: string | object): string[] {
+  return [...new Set(schemasAt(parts, root).flatMap((node) => Object.keys(node.properties ?? {})))];
 }
 
 const ONE_ACTION_MESSAGE = "a step can only have one action.";
 
-// Turn AJV's error string into something a person can act on: one line per
-// problem, with `anyOf` branches collapsed, and the nearest real key named when
-// something is unknown. Raw errors stay available at debug level.
-function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
-  const byPath = new Map<string, string[]>();
-  const unknownByPath = new Map<string, string[]>();
-  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
-    const [, instancePath = "", message, params = ""] = match;
-    if (/"passingSchemas":\[/.test(params)) {
-      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), ONE_ACTION_MESSAGE]);
-      continue;
-    }
-    if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
-    byPath.set(instancePath, byPath.get(instancePath) ?? []);
-    const unknownKey = /"additionalProperty":"([^"]+)"/.exec(params)?.[1];
-    if (unknownKey) {
-      unknownByPath.set(instancePath, [...(unknownByPath.get(instancePath) ?? []), unknownKey]);
-    } else {
-      byPath.get(instancePath)!.push(message);
+// "a or b", "a, b, or c".
+const disjunction = new Intl.ListFormat("en", { type: "disjunction" });
+const orList = (items: unknown[]) => disjunction.format(items.map(String));
+
+// A value as JSON, cut to 40 characters. The cut counts the encoded text and
+// never splits an escape such as `\n` or `é`. A string keeps both quotes; a cut
+// object or array ends at `…` without its closing `}` or `]`, by design.
+// Only a JS API caller can pass what JSON can't show: a function or an object
+// JSON can't encode (a cycle, a nested bigint) is named, and undefined, a
+// symbol, or a bigint falls back to String().
+function shortJson(value: unknown): string {
+  let shown: string | undefined;
+  if (typeof value === "function") shown = "a function";
+  else {
+    try {
+      shown = JSON.stringify(value);
+    } catch {
+      if (typeof value === "object") shown = "an object that can't be shown";
     }
   }
-  const lines: string[] = [];
-  for (const [instancePath, messages] of byPath) {
-    const parts = instancePath.split("/").filter(Boolean);
+  shown ??= String(value);
+  if (shown.length <= 40) return shown;
+  const cut = (text: string, max: number) => {
+    let kept = "";
+    for (const token of text.match(/\\u[0-9a-fA-F]{4}|\\.|[^\\]/gsu) ?? []) {
+      if (kept.length + token.length > max) break;
+      kept += token;
+    }
+    return kept;
+  };
+  if (typeof value === "string") return `"${cut(shown.slice(1, -1), 37)}…"`;
+  return `${cut(shown, 39)}…`;
+}
+
+// Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
+// something a person can act on: one `<path>: <message>` line per problem, with
+// the noise of anyOf/oneOf branches the value didn't take dropped, and the
+// nearest real key named when something is unknown. Config and specs read the
+// same (ADR 01150). Raw errors stay available at debug level.
+function summarizeSchemaErrors(errorObjects: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
+  const byPath = new Map<string, any[]>();
+  for (const error of errorObjects) {
+    byPath.set(error.instancePath, [...(byPath.get(error.instancePath) ?? []), error]);
+  }
+  const partsOf = (instancePath: string) =>
+    instancePath.split("/").slice(1).map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"));
+  // `tests[0].steps[1]: `, or nothing at the root.
+  const prefixOf = (parts: string[]) => {
     const place = parts.reduce((all, part) => (/^\d+$/.test(part) ? `${all}[${part}]` : all ? `${all}.${part}` : part), "");
-    const prefix = place ? `${place}: ` : "";
-    const actions = messages
-      .map((message) => /required property '([^']+)'/.exec(message)?.[1])
-      .filter(Boolean) as string[];
-    const unknownKeys = [...new Set(unknownByPath.get(instancePath) ?? [])];
+    return place ? `${place}: ` : "";
+  };
+  const lines: string[] = [];
+  for (const [instancePath, errors] of byPath) {
+    const before = lines.length;
+    const parts = partsOf(instancePath);
+    const prefix = prefixOf(parts);
+    const value = parts.reduce((current: any, part) => current?.[part], object);
+    const got = ` (got ${shortJson(value)}).`;
+    const of = (keyword: string) => errors.filter((error) => error.keyword === keyword);
+    const required = of("required");
     // The other branches' "required" errors are only noise once two matched.
-    if (messages.includes(ONE_ACTION_MESSAGE)) {
+    if (of("oneOf").some((error) => Array.isArray(error.params.passingSchemas))) {
       lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
       continue;
     }
+    // anyOf, oneOf, and if only summarize the errors around them. AJV reports a
+    // failed then or else under keyword "if" (`must match "then" schema`), with
+    // the branch in params.failingKeyword, so "if" covers both.
+    const rest = errors.filter(
+      (error) => !["required", "additionalProperties", "anyOf", "oneOf", "if"].includes(error.keyword)
+    );
+    let unknownKeys = [...new Set(of("additionalProperties").map((error) => error.params.additionalProperty))];
     const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
-    if (isStep && actions.length > 0 && actions.length === messages.length) {
-      const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
-      const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
-      const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+    if (isStep && required.length > 0 && rest.length === 0) {
+      const actions = required.map((error) => error.params.missingProperty);
+      // step_v3 keeps the keys every step shares (description, stepId, ...)
+      // under components.schemas.common. If that ever moves, read every key as
+      // an action rather than throw while reporting another error.
+      const step = allSchemas().step_v3;
+      const metadata = new Set(Object.keys(step?.components?.schemas?.common?.properties ?? {}));
+      const stepKeys = new Set(Object.keys(step?.properties ?? {}));
+      const keys = Object.keys(value ?? {});
       // A real action whose value is wrong has its own, more useful errors.
-      if (!unknownKeys.length && Object.keys(value).some((key) => stepKeys.has(key) && !metadata.has(key))) {
+      if (!unknownKeys.length && keys.some((key) => stepKeys.has(key) && !metadata.has(key))) {
         continue;
       }
-      const unknown = unknownKeys.length
-        ? unknownKeys
-        : Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      const unknown = unknownKeys.length ? unknownKeys : keys.filter((key) => !metadata.has(key) && !actions.includes(key));
       if (unknown.length === 0) {
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
@@ -1243,16 +1324,89 @@ function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_
       }
       continue;
     }
-    const known = knownKeysAt(parts, rootSchemaKey);
+    // A key some branch allows was only rejected by a branch the value didn't take.
+    const known = unknownKeys.length ? knownKeysAt(parts, rootSchemaKey) : [];
+    unknownKeys = unknownKeys.filter((key) => !known.includes(key));
+    const suggested = new Set<string>();
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
+      if (near) suggested.add(near);
       lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
     }
-    for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
+    // An error deeper down means the value took a branch that got further, so a
+    // key only one branch requires came from a branch it didn't take. A key the
+    // object itself requires, or a choice of keys, is still missing. At the
+    // root, instancePath is "", so any nested error counts as deeper: the root's
+    // missing keys still print (the choices below come before the `deeper`
+    // check), but its type and enum errors give way to the nested ones.
+    const deeper = errorObjects.some((error) => error.instancePath.startsWith(`${instancePath}/`));
+    // Group the required errors by where they come from. Each branch of one
+    // anyOf or oneOf (or an allOf inside such a branch) that requires a key
+    // offers a choice, so those share a group and print "needs one of". A key
+    // the object requires directly gets a group of its own, and its own line,
+    // even beside another one. The pattern stops at that one level: deeper
+    // nesting reads as separate groups, which only means separate lines.
+    const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
+    const choices = new Map<string, { keys: string[]; branch?: string }>();
+    for (const error of required) {
+      const branch = branchRequired.exec(error.schemaPath)?.[1];
+      const group = branch
+        ? error.schemaPath.replace(branchRequired, `/${branch}`)
+        : `${error.schemaPath}#${error.params.missingProperty}`;
+      const choice = choices.get(group) ?? { keys: [], branch };
+      choice.keys.push(error.params.missingProperty);
+      choices.set(group, choice);
+    }
+    for (const { keys, branch } of choices.values()) {
+      // A suggestion that names a missing key already says it.
+      if (keys.some((key) => suggested.has(key))) continue;
+      if (keys.length > 1) {
+        if (!deeper || branch === "anyOf") lines.push(`${prefix}needs one of ${keys.join(", ")}.`);
+      } else if (!deeper || !branch) {
+        lines.push(`${prefix}missing required key '${keys[0]}'.`);
+      }
+    }
+    // Only type and enum lines from here. Required and unknown-key lines were
+    // emitted above, so keep this check below them.
+    if (deeper) continue;
+    // An object never matches a list of scalars, so that list came from another branch.
+    const isObject = value !== null && typeof value === "object";
+    const allowed = [
+      ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
+    ];
+    if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
+    else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
+    const others = rest.filter((error) => !["enum", "const", "type", "not"].includes(error.keyword));
+    for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
+    // A type error only matters when nothing else here says what's wrong.
+    const types = [...new Set(of("type").flatMap((error) => error.params.type))];
+    const said = lines.length > before;
+    if (types.length && !said) lines.push(`${prefix}must be ${orList(types)}${got}`);
+    // AJV's "must NOT be valid" helps only when it's all there is.
+    else if (!said && of("not").length) lines.push(`${prefix}${of("not")[0].message}.`);
+  }
+  // Never hide every error: fall back to AJV's own messages.
+  if (lines.length === 0) {
+    const raw = new Set<string>();
+    for (const error of errorObjects) {
+      if (["anyOf", "oneOf", "if"].includes(error.keyword)) continue;
+      raw.add(`${prefixOf(partsOf(error.instancePath))}${error.message}.`);
+    }
+    lines.push(...raw);
   }
   const shown = lines.slice(0, 5);
   if (lines.length > shown.length) shown.push(`and ${lines.length - shown.length} more`);
   return shown.join("\n");
+}
+
+// An invalid config, from any source, as one message: the source, one line per
+// problem, and where to read about each key.
+function configErrorMessage(source: string, errorObjects: ErrorObject[] | undefined, object: any): string {
+  return `Invalid config${source ? ` in ${source}` : ""}:\n${summarizeSchemaErrors(
+    errorObjects,
+    object,
+    "config_v3"
+  )}\nSee https://docs.doc-detective.com/reference/schemas/config`;
 }
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
@@ -1543,7 +1697,7 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
 // wire in an agent that validates the actual remote address at connect
 // time. This guard covers the common misuse cases.
 async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
-  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+  if (envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS")) return;
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1641,13 +1795,24 @@ async function fetchFile(
   }
 }
 
-async function outputResults(path: string, results: any, config: any) {
-  let data = JSON.stringify(results, null, 2);
-  fs.writeFileSync(path, data);
-  log(config, "info", "RESULTS:");
-  log(config, "info", results);
-  log(config, "info", `See results at ${path}`);
-  log(config, "info", "Cleaning up and finishing post-processing.");
+/**
+ * Deep merge two objects, with override properties taking precedence. Objects
+ * merge key by key; arrays and scalars replace.
+ * @param {Object} target - The target object to merge into
+ * @param {Object} override - The override object containing properties to merge
+ * @returns {Object} A new object with merged properties
+ */
+function deepMerge(target: any, override: any): any {
+  const result = { ...target };
+  const isObject = (value: any) => value != null && typeof value === "object" && !Array.isArray(value);
+  for (const key of Object.keys(override)) {
+    // A config key never reaches an object's prototype.
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    result[key] = isObject(override[key])
+      ? deepMerge(isObject(result[key]) ? result[key] : {}, override[key])
+      : override[key];
+  }
+  return result;
 }
 
 /**
@@ -1655,15 +1820,19 @@ async function outputResults(path: string, results: any, config: any) {
  *
  * @async
  * @param {string} envsFile - Path to the environment variables file.
+ * @param {Object} [options]
+ * @param {boolean} [options.override=true] - Replace variables already set. The
+ *   `loadVariables` step does, on purpose. A config-level `loadVariables` only
+ *   fills unset ones, so the shell wins (ADR 01165).
  * @returns {Promise<Object>} An object containing the operation result.
  * @returns {string} returns.status - "PASS" if environment variables were loaded successfully, "FAIL" otherwise.
  * @returns {string} returns.description - A description of the operation result.
  */
-async function loadEnvs(envsFile: string) {
+async function loadEnvs(envsFile: string, { override = true }: { override?: boolean } = {}) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     const { default: dotenv } = await import("dotenv");
-    dotenv.config({ path: envsFile, override: true });
+    dotenv.config({ path: envsFile, override, quiet: true });
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };
@@ -2690,8 +2859,9 @@ function getRunOutputDir(
 //
 // The reporter gate mirrors outputResults *exactly* so the gate never reserves
 // a folder the reporter won't write to (which would leave it empty). Like
-// outputResults: a non-empty `reporters` array is the override, otherwise the
-// default set (`["terminal", "json", "runFolder"]`) applies; tokens are matched
+// outputResults: a `reporters` array is the override, and an empty one means
+// none, as when `--json` replaces the only reporter; otherwise the default set
+// (`["terminal", "json", "runFolder"]`) applies; tokens are matched
 // verbatim (no trimming — outputResults doesn't trim, so a padded `" runFolder "`
 // runs no reporter); the `runFolder` shorthand matches case-insensitively (its
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
@@ -2720,9 +2890,7 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
     return true;
   }
   const active =
-    Array.isArray(config?.reporters) && config.reporters.length > 0
-      ? config.reporters
-      : ["terminal", "json", "runFolder"];
+    Array.isArray(config?.reporters) ? config.reporters : ["terminal", "json", "runFolder"];
   return active.some(
     (reporter: any) =>
       typeof reporter === "string" &&

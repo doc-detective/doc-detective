@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import { addGlobalOptions, cliArgv } from "../cliOptions.js";
+import { addGlobalOptions, cliArgv, commaList, splitList } from "../cliOptions.js";
 
 export interface InstallAgentsArgv {
   agent?: string[];
@@ -31,9 +31,11 @@ export function buildInstallAgentsCommand(
   return addGlobalOptions(new Command("agents"))
     .addOption(
       new Option(
-        "--agent <id...>",
-        "Install for this agent; repeatable. One of claude, copilot, gemini, codex, qwen, or opencode"
-      ).helpGroup(AGENT_GROUP)
+        "--agent <ids>",
+        "Install for these agents, comma-separated: claude, copilot, gemini, codex, qwen, opencode"
+      )
+        .argParser(commaList())
+        .helpGroup(AGENT_GROUP)
     )
     .addOption(
       new Option(
@@ -47,6 +49,10 @@ export function buildInstallAgentsCommand(
     .addOption(new Option("-f, --force", "Reinstall even if up to date").helpGroup(AGENT_GROUP))
     .addOption(new Option("-n, --dry-run", "Show what would happen without doing it").helpGroup(AGENT_GROUP))
     .action(async (_options, command: Command) => {
-      await handler(cliArgv(command));
+      const argv = cliArgv(command);
+      if (typeof argv.agent === "string") {
+        argv.agent = splitList(argv.agent);
+      }
+      await handler(argv);
     });
 }

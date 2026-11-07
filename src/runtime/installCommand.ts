@@ -4,6 +4,7 @@ import { addGlobalOptions, cliArgv } from "../cliOptions.js";
 import { clearSpinner, startSpinner } from "../cliOutput.js";
 import type { Logger, LogLevel } from "./loader.js";
 import { HEAVY_NPM_DEPS } from "./heavyDeps.js";
+import { setRunCacheDir } from "./cacheDir.js";
 
 // One `install <asset>` subcommand: what it's called, its extra arguments and
 // options, and the handler that receives its parsed options.
@@ -31,7 +32,7 @@ export interface InstallArgv {
 function pickLogLevel(argv: InstallArgv): LogLevel {
   if (argv.debug || argv.logLevel === "debug") return "debug";
   if (argv.quiet || argv.logLevel === "silent" || argv.logLevel === "error") return "error";
-  if (argv.logLevel === "warning") return "warn";
+  if (argv.logLevel === "warning") return "warning";
   return "info";
 }
 
@@ -39,7 +40,7 @@ function makeLogger(level: LogLevel): Logger {
   const order: Record<LogLevel, number> = {
     debug: 0,
     info: 1,
-    warn: 2,
+    warning: 2,
     error: 3,
   };
   const threshold = order[level];
@@ -313,13 +314,16 @@ export const installSubcommands: Record<string, InstallSubcommand> = {
 
 function toCommand(subcommand: InstallSubcommand): Command {
   const command = addGlobalOptions(new Command(subcommand.command));
+  const group = subcommand.readOnly ? "Status options:" : INSTALL_GROUP;
   if (subcommand.readOnly) {
     command.addOption(
-      new Option("--cache-dir <dir>", "Check here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup("Status options:")
+      new Option("--cache-dir <dir>", "Check here (also DOC_DETECTIVE_CACHE_DIR)").helpGroup(group)
     );
   } else {
     sharedInstallOptions(command);
   }
+  // The config whose cacheDir a run would use, as `doc-detective --config` takes.
+  command.addOption(new Option("-c, --config <file>", "Read cacheDir from this config file").helpGroup(group));
   subcommand.configure?.(command);
   return command.action(async (...actionArgs: any[]) => {
     const argv = cliArgv(command);
@@ -327,6 +331,19 @@ function toCommand(subcommand: InstallSubcommand): Command {
       argv[argument.name()] = actionArgs[index];
     });
     jsonReports = argv.json ? [] : null;
+    // The same cache a run uses: --cache-dir, then DOC_DETECTIVE_CACHE_DIR
+    // (from the shell or the project .env), then the project and user configs
+    // (ADR 01165). Credential files stay unread: install never uses them, and
+    // an image build may run before secrets are mounted.
+    const { discoverConfigPath, loadProjectEnv, setConfig } = await import("../utils.js");
+    await loadProjectEnv(argv);
+    const { cacheDir } = await setConfig({
+      configPath: discoverConfigPath(argv),
+      args: { cacheDir: argv.cacheDir, quiet: argv.quiet },
+      readCredentials: false,
+    });
+    setRunCacheDir(cacheDir);
+    argv.cacheDir = cacheDir;
     const spinner =
       subcommand.readOnly || argv.quiet || argv.json
         ? { stop: () => {} }

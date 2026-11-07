@@ -1,7 +1,5 @@
 import { Command, Option } from "commander";
 import { addGlobalOptions, addInputOptions, cliArgv } from "../cliOptions.js";
-import path from "node:path";
-import fs from "node:fs";
 
 export interface DebugArgv {
   config?: string;
@@ -37,28 +35,13 @@ export function buildDebugCommand(): Command {
 
 export const debugHandler = async (args: DebugArgv): Promise<void> => {
     // Lazy-load so the default `runTests` path doesn't pay the import cost.
-    const { loadProjectEnv, setConfig } = await import("../utils.js");
+    const { loadProjectEnv, setConfig, discoverConfigPath } = await import("../utils.js");
     await loadProjectEnv(args);
     const { printDebug, defaultDebugDir } = await import("./index.js");
     const outDir = defaultDebugDir();
-
-    const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
-    const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
-    const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-    // Treat any non-empty `--config` as authoritative (resolved to an
-    // absolute path) — a mistyped path must surface as a CONFIG INVALID
-    // dump for that path, not silently fall back to auto-discovery.
-    const hasExplicitConfig =
-      typeof args.config === "string" && args.config.trim().length > 0;
-    const configPath = hasExplicitConfig
-      ? path.resolve((args.config as string).trim())
-      : fs.existsSync(configPathJSON)
-      ? configPathJSON
-      : fs.existsSync(configPathYAML)
-      ? configPathYAML
-      : fs.existsSync(configPathYML)
-      ? configPathYML
-      : null;
+    // A mistyped `--config` must surface as a CONFIG INVALID dump for that
+    // path, not silently fall back to auto-discovery.
+    const configPath = discoverConfigPath(args);
 
     // `--include-env` lands on argv as both kebab and camel; tolerate either.
     const includeEnv = Boolean(args["include-env"] ?? args.includeEnv);

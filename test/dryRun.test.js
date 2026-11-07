@@ -46,7 +46,7 @@ describe("--dry-run short-circuits before execution", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("returns the resolved-tests shape and prints it as JSON", async function () {
+  it("returns the resolved-tests shape, and prints nothing", async function () {
     const result = await runTests({
       input: [specPath],
       output: tmpDir,
@@ -73,12 +73,8 @@ describe("--dry-run short-circuits before execution", function () {
     // windows+node22 mocha timeout. Resolution never reads environment.apps.
     expect(result.config.environment.apps).to.deep.equal([]);
 
-    // JSON was emitted to stdout and round-trips with the same shape.
-    const stdoutDump = captured.join("\n");
-    const parsed = JSON.parse(stdoutDump);
-    expect(parsed).to.have.property("resolvedTestsId", result.resolvedTestsId);
-    expect(parsed).to.not.have.property("summary");
-    expect(parsed.specs).to.have.lengthOf(1);
+    // A library leaves stdout alone: the CLI prints the plan (ADR 01152).
+    expect(captured).to.deep.equal([]);
   });
 
   it("without dryRun, runTests returns an executed-results shape", async function () {
@@ -124,7 +120,6 @@ describe("--dry-run short-circuits before execution", function () {
       dryRun: true,
       telemetry: { send: false },
     });
-    captured.length = 0; // discard the seed run's stdout dump
 
     // Mutate the seed's embedded config so dryRun is FALSE there. If the
     // merge regresses, runTests would proceed to execute tests.
@@ -140,15 +135,13 @@ describe("--dry-run short-circuits before execution", function () {
     expect(result).to.have.property("resolvedTestsId");
     expect(result).to.not.have.property("summary");
 
-    // stdout received the JSON dump (one entry from this re-run).
-    const parsed = JSON.parse(captured.join("\n"));
-    expect(parsed).to.have.property("resolvedTestsId");
+    expect(captured).to.deep.equal([]);
   });
 
-  it("emits clean JSON to stdout at default logLevel (no telemetry/support pollution)", async function () {
+  it("writes nothing to stdout at default logLevel (no telemetry/support pollution)", async function () {
     // Regression for #292: telemetryNotice and the support-message log
     // both wrote to stdout at the default info logLevel and broke
-    // `JSON.parse` of the output. Confirm nothing extra leaks.
+    // `JSON.parse` of the CLI's output. Confirm nothing leaks.
     await runTests({
       input: [specPath],
       output: tmpDir,
@@ -157,9 +150,6 @@ describe("--dry-run short-circuits before execution", function () {
       telemetry: { send: false },
     });
 
-    const stdoutDump = captured.join("\n").trim();
-    // The whole stdout must round-trip as a single JSON document.
-    const parsed = JSON.parse(stdoutDump);
-    expect(parsed).to.have.property("resolvedTestsId");
+    expect(captured).to.deep.equal([]);
   });
 });

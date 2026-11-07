@@ -6,7 +6,8 @@ import { expect } from "chai";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
-import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { knownKeysAt, summarizeSchemaErrors } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/index.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
 import { checkForUpdate } from "../dist/runtime/selfUpdate.js";
@@ -21,6 +22,15 @@ describe("nearestCommand", function () {
   it("leaves distant words alone", function () {
     expect(nearestCommand("docs/guide.md", names)).to.equal(undefined);
   });
+  it("doesn't stretch a short word to a different one", function () {
+    expect(nearestCommand("nope", ["type"])).to.equal(undefined);
+    expect(nearestCommand("typo", ["type"])).to.equal("type");
+  });
+  it("counts two swapped letters as one edit", function () {
+    expect(nearestCommand("ulr", ["url"])).to.equal("url");
+    expect(nearestCommand("tset", ["test"])).to.equal("test");
+    expect(nearestCommand("rnu", names)).to.equal("run");
+  });
 });
 
 describe("rewriteRootError", function () {
@@ -31,6 +41,17 @@ describe("rewriteRootError", function () {
     );
     expect(out).to.include("unknown command 'instal'");
     expect(out).to.include("Did you mean install?");
+  });
+  it("suggests a command with two swapped letters", function () {
+    const out = rewriteRootError("error: too many arguments. Expected 0 arguments but got 1: rnu.\n", ["run", "install"]);
+    expect(out).to.include("Did you mean run?");
+  });
+  it("names the bad item of a list option", function () {
+    const raw =
+      "error: option '-r, --reporters <names>' argument 'terminal, bogus,json' is invalid. Allowed choices are terminal, json, html.\n";
+    expect(rewriteRootError(raw, [])).to.equal(
+      "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html.\n"
+    );
   });
   it("passes other errors through", function () {
     expect(rewriteRootError("error: unknown option '--x'\n", [])).to.equal(
@@ -57,32 +78,183 @@ describe("verdictLine", function () {
   });
 });
 
-describe("summarizeSpecErrors", function () {
-  const required = (key) => `/tests/0/steps/0 must have required property '${key}' ({"missingProperty":"${key}"})`;
+// One line format for every schema error, config and spec alike (ADR 01150).
+describe("summarizeSchemaErrors", function () {
+  const summarize = (object, schemaKey = "spec_v3") =>
+    summarizeSchemaErrors(
+      validate({ schemaKey, object, addDefaults: false, structuredErrors: true }).errorObjects,
+      object,
+      schemaKey
+    );
+  const spec = (step) => ({ tests: [{ steps: [step] }] });
 
   it("names an unknown action and the nearest real one", function () {
-    const errors = [required("goTo"), required("find"), "/tests/0/steps/0 must match a schema in anyOf ({})"].join(", ");
-    const object = { tests: [{ steps: [{ goToo: "x" }] }] };
-    expect(summarizeSpecErrors(errors, object)).to.equal(
-      "tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?"
-    );
-  });
-
-  it("collapses anyOf noise and drops parameter dumps", function () {
-    const errors = `/tests/0/steps/0/goTo must be string ({"type":"string"}), /tests/0 must match a schema in anyOf ({})`;
-    const object = { tests: [{ steps: [{ goTo: 1 }] }] };
-    expect(summarizeSpecErrors(errors, object)).to.equal("tests[0].steps[0].goTo: must be string");
+    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?");
   });
 
   it("handles a step with no recognizable key", function () {
-    const errors = required("goTo");
-    expect(summarizeSpecErrors(errors, { tests: [{ steps: [{}] }] })).to.include("tests[0].steps[0]: no action");
+    expect(summarize(spec({}))).to.include("tests[0].steps[0]: no action");
   });
 
-  it("falls back to the message for a root error", function () {
-    expect(summarizeSpecErrors(` must have required property 'tests' ({"missingProperty":"tests"})`, {})).to.equal(
-      "must have required property 'tests'"
+  it("names a missing required key", function () {
+    expect(summarize({})).to.equal("missing required key 'tests'.");
+  });
+
+  it("lists every allowed type, and the value it got", function () {
+    expect(summarize(spec({ goTo: [] }))).to.equal("tests[0].steps[0].goTo: must be string or object (got []).");
+    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal(
+      'concurrentRunners: must be integer or boolean (got "lots").'
     );
+  });
+
+  it("lists the allowed values, and drops the other branches' type errors", function () {
+    expect(summarize(spec({ click: { selector: "#go", button: "middle-ish" } }))).to.equal(
+      'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").'
+    );
+  });
+
+  it("suggests a nested key, in place of the missing key it means", function () {
+    expect(summarize(spec({ runShell: { comand: "echo hi" } }))).to.equal(
+      "tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?"
+    );
+    expect(summarize(spec({ goTo: { url: "https://example.com", waitUntil: { netwrkIdleTime: 1 } } }))).to.equal(
+      "tests[0].steps[0].goTo.waitUntil: unknown key 'netwrkIdleTime'. Did you mean networkIdleTime?"
+    );
+  });
+
+  it("names the alternatives when one of several keys is required", function () {
+    const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u" }] } };
+    expect(summarize(object, "config_v3")).to.equal("integrations.heretto[0]: needs one of apiToken, apiTokenFile.");
+  });
+
+  it("lets a suggestion stand in for the choice it names", function () {
+    const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
+    expect(summarize(object, "config_v3")).to.equal(
+      "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
+    );
+  });
+
+  it("keeps a missing key beside a deeper error", function () {
+    expect(summarize({ runOn: [{ platforms: "bogus" }] })).to.equal(
+      [
+        "missing required key 'tests'.",
+        'runOn[0].platforms: must be one of linux, mac, windows, android, ios (got "bogus").',
+      ].join("\n")
+    );
+    expect(summarize({ tests: [{ runOn: ["bad"] }] })).to.equal(
+      ["tests[0]: needs one of steps, contexts.", 'tests[0].runOn[0]: must be object (got "bad").'].join("\n")
+    );
+  });
+
+  it("drops a branch's missing key when another branch went deeper", function () {
+    expect(summarize({ fileTypes: [{ extends: "nope" }] }, "config_v3")).to.equal(
+      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita (got "nope").'
+    );
+  });
+
+  it("names each key a schema requires together, not as a choice", function () {
+    expect(summarize({ integrations: { heretto: [{ apiToken: "t" }] } }, "config_v3")).to.equal(
+      [
+        "integrations.heretto[0]: missing required key 'name'.",
+        "integrations.heretto[0]: missing required key 'organizationId'.",
+        "integrations.heretto[0]: missing required key 'username'.",
+      ].join("\n")
+    );
+  });
+
+  it("shortens a long value", function () {
+    const line = summarize({ concurrentRunners: { note: "x".repeat(200) } }, "config_v3");
+    expect(line).to.equal(`concurrentRunners: must be integer or boolean (got {"note":"${"x".repeat(30)}…).`);
+  });
+
+  it("shortens a long string, and keeps its quotes", function () {
+    expect(summarize({ shell: "z".repeat(100) }, "config_v3")).to.equal(
+      `shell: must be one of bash, cmd, powershell (got "${"z".repeat(37)}…").`
+    );
+  });
+
+  it("counts escapes when it shortens, and never cuts one in half", function () {
+    const got = (shell) => /\(got (.*)\)\.$/.exec(summarize({ shell }, "config_v3"))[1];
+    for (const shell of ["\n".repeat(37), '"'.repeat(50), `${"a".repeat(36)}\\${"b".repeat(10)}`]) {
+      const shown = got(shell);
+      expect(shown.length, shown).to.be.at.most(40);
+      expect(shown, shown).to.match(/^".*…"$/);
+      expect(shown, shown).to.not.match(/(^|[^\\])(\\\\)*\\…/);
+    }
+    expect(got(`${"a".repeat(36)}\\${"b".repeat(10)}`)).to.equal(`"${"a".repeat(36)}…"`);
+  });
+
+  it("says `must be` when only one value is allowed", function () {
+    const errorObjects = [
+      { instancePath: "/mode", keyword: "const", params: { allowedValue: "fast" }, schemaPath: "#/properties/mode/const" },
+    ];
+    expect(summarizeSchemaErrors(errorObjects, { mode: "slow" }, "config_v3")).to.equal('mode: must be fast (got "slow").');
+  });
+
+  it("names a value JSON can't show, from a JS API caller", function () {
+    const errorObjects = [
+      { instancePath: "/output", keyword: "type", params: { type: "string" }, schemaPath: "#/properties/output/type" },
+    ];
+    const line = (output) => summarizeSchemaErrors(errorObjects, { output }, "config_v3");
+    expect(line(() => "x")).to.equal("output: must be string (got a function).");
+    expect(line(10n)).to.equal("output: must be string (got 10).");
+    const cycle = {};
+    cycle.self = cycle;
+    expect(line(cycle)).to.equal("output: must be string (got an object that can't be shown).");
+    expect(line({ big: 1n })).to.equal("output: must be string (got an object that can't be shown).");
+  });
+
+  it("drops AJV's if summary for a failed then or else", function () {
+    // AJV 8's own output for { if: { required: ["kind"] }, then: { required: ["x"] }, else: ... }:
+    // a failed then or else reports keyword "if", with the branch in failingKeyword.
+    for (const [branch, key] of [
+      ["then", "x"],
+      ["else", "y"],
+    ]) {
+      const errorObjects = [
+        {
+          instancePath: "",
+          schemaPath: `#/${branch}/required`,
+          keyword: "required",
+          params: { missingProperty: key },
+          message: `must have required property '${key}'`,
+        },
+        { instancePath: "", schemaPath: "#/if", keyword: "if", params: { failingKeyword: branch }, message: `must match "${branch}" schema` },
+      ];
+      expect(summarizeSchemaErrors(errorObjects, { kind: "a" }, "config_v3")).to.equal(`missing required key '${key}'.`);
+    }
+  });
+
+  it("finds keys under a key that patternProperties matches", function () {
+    const schema = {
+      type: "object",
+      patternProperties: { "^x-": { type: "object", properties: { inner: {} } } },
+      properties: { plain: {} },
+    };
+    expect(knownKeysAt(["x-custom"], schema)).to.deep.equal(["inner"]);
+    expect(knownKeysAt(["other"], schema)).to.deep.equal([]);
+    expect(knownKeysAt([], schema)).to.deep.equal(["plain"]);
+  });
+
+  it("treats a patternProperties pattern it can't compile as no match", function () {
+    const schema = { type: "object", patternProperties: { "(": { properties: { inner: {} } } }, properties: { plain: {} } };
+    expect(knownKeysAt(["x"], schema)).to.deep.equal([]);
+  });
+
+  it("finds keys a conditional branch defines", function () {
+    const schema = { type: "object", if: { required: ["kind"] }, then: { properties: { onlyThen: {} } }, else: { properties: { onlyElse: {} } } };
+    expect(knownKeysAt([], schema)).to.include.members(["onlyThen", "onlyElse"]);
+  });
+
+  it("ends any other message with a period", function () {
+    expect(summarize({ concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must be >= 1.");
+  });
+
+  it("shows five lines, then a count", function () {
+    const object = { a1: 1, a2: 1, a3: 1, a4: 1, a5: 1, a6: 1, a7: 1 };
+    const lines = summarize(object, "config_v3").split("\n");
+    expect(lines).to.have.lengthOf(6);
+    expect(lines[5]).to.equal("and 2 more");
   });
 });
 
@@ -317,6 +489,13 @@ describe("credentials from files", function () {
       heretto: [{ name: "h", organizationId: "o", username: "u", apiTokenFile: token }],
     });
     expect(config.integrations.heretto[0].apiToken).to.equal("secret");
+  });
+  it("accepts a partial config source, whose required keys have defaults", async function () {
+    const file = path.join(dir, "config.json");
+    fs.writeFileSync(file, JSON.stringify({ logLevel: "info", telemetry: { userId: "x" }, hints: {} }));
+    const config = await setConfig({ configPath: file, args: {} });
+    expect(config.telemetry).to.deep.equal({ userId: "x", send: true });
+    expect(config.hints.enabled).to.equal(true);
   });
   it("names the file it couldn't read", async function () {
     let message = "";

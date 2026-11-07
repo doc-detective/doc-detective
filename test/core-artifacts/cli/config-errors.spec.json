@@ -1,0 +1,116 @@
+{
+  "specId": "cli-config-errors",
+  "description": "Schema errors read the same for config and specs (ADR 01150): one line per problem, a nested suggestion, the allowed values, and exit 2. Runs the real CLI.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the config files and specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-config-errors';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/bad.json',JSON.stringify({logLevl:'info',concurrentRunners:'lots',shell:'zsh'}));fs.writeFileSync(d+'/nested.json',JSON.stringify({integrations:{heretto:[{name:'x',organizationId:'o',username:'u',apiTokn:'t'}]}}));fs.writeFileSync(d+'/choice.json',JSON.stringify({integrations:{heretto:[{name:'x',organizationId:'o',username:'u'}]}}));fs.writeFileSync(d+'/enum.spec.json',JSON.stringify({tests:[{stepz:[],steps:[{click:{selector:'#go',button:'middle-ish'}},{runShell:{comand:'echo hi'}}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-file",
+      "description": "An invalid -c file names the file, suggests the key, and states the type and the allowed values.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/bad.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown key 'logLevl'\\. Did you mean logLevel\\?/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/bad.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "shell: must be one of bash, cmd, powershell (got \"zsh\")."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/bad.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "See https://docs.doc-detective.com/reference/schemas/config"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "nested-config-key",
+      "description": "A nested config key gets a suggestion, and a choice of required keys names each one when nothing suggests one.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/nested.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-config-errors/choice.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "integrations.heretto[0]: needs one of apiToken, apiTokenFile."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "spec",
+      "description": "An invalid spec gets the same line format: a suggestion for a test key and a nested step key, and the allowed values.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-config-errors/enum.spec.json --output-dir .tmp/fixture-config-errors/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[1].runShell: unknown key 'comand'. Did you mean command?"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-config-errors/enum.spec.json --output-dir .tmp/fixture-config-errors/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].click.button: must be one of left, right, middle (got \"middle-ish\")."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-config-errors/enum.spec.json --output-dir .tmp/fixture-config-errors/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0]: unknown key 'stepz'. Did you mean steps?"
+          }
+        }
+      ]
+    }
+  ]
+}

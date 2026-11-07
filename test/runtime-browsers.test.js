@@ -160,7 +160,7 @@ describe("runtime/browsers", function () {
     const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
     const warnings = [];
     const logger = (msg, level) => {
-      if (level === "warn") warnings.push(msg);
+      if (level === "warning") warnings.push(msg);
     };
     const result = await ensureBrowserInstalled("chrome", {
       deps: { browsersModule, logger },
