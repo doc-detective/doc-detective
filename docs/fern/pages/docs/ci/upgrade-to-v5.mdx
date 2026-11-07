@@ -187,7 +187,7 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 
 **What changed:** Doc Detective fills these defaults the same way for every step, so two edge cases behave differently:
 
-- An authored `timeout: 0` is kept. Version 4 replaced it with the default. A `goTo` step with `timeout: 0` now fails, because the page can't finish loading in no time. An `httpRequest` step with `timeout: 0` now waits with no time limit.
+- A `goTo` or `httpRequest` `timeout` below `1` makes the spec invalid, so the run exits `2`. Version 4 replaced `timeout: 0` with the default. A timeout is the most milliseconds to wait, and `0` meant "no limit" to some actions and "time out at once" to others.
 - An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. With `validateAgainstSchema` set to `request` or `both`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
 
 **What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`.

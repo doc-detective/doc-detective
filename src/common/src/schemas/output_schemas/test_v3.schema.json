@@ -17570,9 +17570,9 @@
                               },
                               "timeout": {
                                 "type": "integer",
-                                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                 "default": 30000,
-                                "minimum": 0
+                                "minimum": 1
                               },
                               "waitUntil": {
                                 "type": "object",
@@ -18112,9 +18112,9 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                  "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                   "default": 30000,
-                                  "minimum": 0
+                                  "minimum": 1
                                 },
                                 "waitUntil": {
                                   "type": "object",
@@ -19725,8 +19725,9 @@
                           },
                           "timeout": {
                             "type": "integer",
-                            "description": "Timeout for the HTTP request, in milliseconds.",
-                            "default": 60000
+                            "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                            "default": 60000,
+                            "minimum": 1
                           },
                           "request": {
                             "type": "object",
@@ -20161,8 +20162,9 @@
                             },
                             "timeout": {
                               "type": "integer",
-                              "description": "Timeout for the HTTP request, in milliseconds.",
-                              "default": 60000
+                              "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                              "default": 60000,
+                              "minimum": 1
                             },
                             "request": {
                               "type": "object",
@@ -75068,9 +75070,9 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                      "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                       "default": 30000,
-                                      "minimum": 0
+                                      "minimum": 1
                                     },
                                     "waitUntil": {
                                       "type": "object",
@@ -75610,9 +75612,9 @@
                                       },
                                       "timeout": {
                                         "type": "integer",
-                                        "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.",
+                                        "description": "Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.",
                                         "default": 30000,
-                                        "minimum": 0
+                                        "minimum": 1
                                       },
                                       "waitUntil": {
                                         "type": "object",
@@ -77223,8 +77225,9 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Timeout for the HTTP request, in milliseconds.",
-                                  "default": 60000
+                                  "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                                  "default": 60000,
+                                  "minimum": 1
                                 },
                                 "request": {
                                   "type": "object",
@@ -77659,8 +77662,9 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Timeout for the HTTP request, in milliseconds.",
-                                    "default": 60000
+                                    "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+                                    "default": 60000,
+                                    "minimum": 1
                                   },
                                   "request": {
                                     "type": "object",

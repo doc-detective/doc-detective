@@ -2880,7 +2880,8 @@
               },
               "timeout": {
                 "type": "integer",
-                "default": 60000
+                "default": 60000,
+                "minimum": 1
               },
               "request": {
                 "type": "object",
@@ -3109,7 +3110,7 @@
                   "timeout": {
                     "type": "integer",
                     "default": 30000,
-                    "minimum": 0
+                    "minimum": 1
                   },
                   "waitUntil": {
                     "type": "object",
@@ -10830,7 +10831,8 @@
                 ]
               },
               "timeout": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 1
               },
               "request": {
                 "type": "object",
@@ -11049,7 +11051,7 @@
                   },
                   "timeout": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 1
                   },
                   "waitUntil": {
                     "type": "object",

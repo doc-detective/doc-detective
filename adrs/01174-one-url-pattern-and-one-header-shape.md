@@ -66,6 +66,10 @@ Chosen option: **A**.
     value.
   - When httpRequest uses `openApi`, its `request.headers` override the OpenAPI `headers` by name, in either
     shape.
+- **Timeouts.** goTo's and httpRequest's `timeout` take `minimum: 1`, in milliseconds, under the timeout rule in
+  [ADR 01171](01171-duration-bounds-with-units-kept-in-names.md). A `timeout` of `0` meant "no limit" to axios and
+  "time out at once" elsewhere, so `0` and negative values make the spec invalid. This replaces ADR 01167's note
+  that an authored `timeout: 0` is kept.
 - **Status codes.** httpRequest's `statusCodes` accepts an integer or a list, like checkLink's. The integer branch
   comes first, so Ajv's coercion turns `"200"` into `200`. The normalizer turns a single code into a one-item
   list, so the effective step always holds a list.
@@ -88,6 +92,7 @@ Chosen option: **A**.
 - Good: `$BASE_URL/...` works on checkLink, and httpRequest can use the same `origin` as goTo.
 - Good: save and load agree on a cookie file across specs and folders.
 - Bad: a goTo or httpRequest URL that only contains a variable, such as `"foo $X"`, now makes its spec invalid.
+- Bad: a goTo or httpRequest `timeout` of `0` or less now makes its spec invalid.
 - Bad: a cookie object `path` without `directory` moves from the spec's folder to `outputDir`. A spec that relied on
   the old place must add `directory: "."`.
 - Bad: generated TypeScript types change names. checkLink's string form is now `CheckLinkSimple`, its object form
@@ -97,7 +102,8 @@ Chosen option: **A**.
 ### Confirmation
 
 - `src/common/test/validate.test.js` covers the three URL forms, and the rejected ones, on all three actions. It
-  also covers both header shapes on all three fields, an object header value, and a single status code.
+  also covers both header shapes on all three fields, an object header value, a single status code, timeouts below
+  1, and cookie strings with no valid object form.
 - `src/common/test/normalize.test.js` covers each shorthand, the status-code list, idempotence, and that a
   normalized step validates again.
 - `test/cookie-paths.test.js` covers path resolution and the save and load handlers. `test/httprequest-coverage.test.js`

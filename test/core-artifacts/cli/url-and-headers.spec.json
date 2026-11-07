@@ -9,7 +9,7 @@
         {
           "description": "Write the specs and the origin config.",
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-url-headers';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(f,steps)=>fs.writeFileSync(d+'/'+f,JSON.stringify({tests:[{steps}]}));w('goto-contains-variable.spec.json',[{goTo:'foo \\$X'}]);w('http-contains-variable.spec.json',[{httpRequest:'foo \\$X'}]);w('header-object-value.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',request:{headers:{a:{}}}}}]);w('path.spec.json',[{httpRequest:{url:'/api/users',statusCodes:200}}]);w('cookie-dir-without-txt.spec.json',[{saveCookie:'dir/session'}]);fs.writeFileSync(d+'/origin.json',JSON.stringify({origin:'http://localhost:8092',telemetry:{send:false}}));\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-url-headers';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(f,steps)=>fs.writeFileSync(d+'/'+f,JSON.stringify({tests:[{steps}]}));w('goto-contains-variable.spec.json',[{goTo:'foo \\$X'}]);w('http-contains-variable.spec.json',[{httpRequest:'foo \\$X'}]);w('header-object-value.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',request:{headers:{a:{}}}}}]);w('path.spec.json',[{httpRequest:{url:'/api/users',statusCodes:200}}]);w('cookie-dir-without-txt.spec.json',[{saveCookie:'dir/session'}]);w('timeout-zero.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',timeout:0}}]);w('timeout-negative.spec.json',[{httpRequest:{url:'http://localhost:8092/api/x',timeout:-1}}]);fs.writeFileSync(d+'/origin.json',JSON.stringify({origin:'http://localhost:8092',telemetry:{send:false}}));\"",
             "workingDirectory": "../../.."
           }
         },
@@ -47,6 +47,26 @@
           "description": "A cookie string with a folder but no .txt file name exits 2.",
           "runShell": {
             "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/cookie-dir-without-txt.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "An httpRequest timeout of 0 exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/timeout-zero.spec.json --output-dir .tmp/fixture-url-headers/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "A negative httpRequest timeout exits 2.",
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-url-headers/timeout-negative.spec.json --output-dir .tmp/fixture-url-headers/out",
             "workingDirectory": "../../..",
             "exitCodes": [
               2

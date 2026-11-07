@@ -72,8 +72,10 @@ describe("normalization", function () {
       expect(partial.object.goTo.waitUntil).to.deep.equal({ domIdleTime: 0, networkIdleTime: 500 });
     });
 
+    // A timeout is at least 1 (ADR 01171), so the 0 is a duration.
     it("keeps an authored 0", function () {
-      expect(effective({ goTo: { url: "https://x.com", timeout: 0 } }).object.goTo.timeout).to.equal(0);
+      const { goTo } = effective({ goTo: { url: "https://x.com", waitUntil: { networkIdleTime: 0 } } }).object;
+      expect(goTo.waitUntil.networkIdleTime).to.equal(0);
     });
 
     it("lets an OpenAPI operation supply the method, status codes, and body", function () {

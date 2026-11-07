@@ -20,7 +20,7 @@ url | string | Optional. An absolute `http://` or `https://` URL, a path that st
 openApi | one of:<br/>- string<br/>- object([openApi](/reference/schemas/openapi)) | Optional. No description provided. | —
 statusCodes | one of:<br/>- integer<br/>- array of integer | Optional. Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list. | ``[200,201]``
 method | string | Optional. Method of the HTTP request<br/><br/>Accepted values: `get`, `put`, `post`, `patch`, `delete` | `get`
-timeout | integer | Optional. Timeout for the HTTP request, in milliseconds. | `60000`
+timeout | integer | Optional. Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.<br/><br/>Minimum: 1 | `60000`
 request | object([Request](/reference/schemas/request)) | Optional. No description provided. | —
 response | object([Response](/reference/schemas/response)) | Optional. No description provided. | —
 allowAdditionalFields | boolean | Optional. If `false`, the step fails when the response data contains fields not specified in the response body. | `true`

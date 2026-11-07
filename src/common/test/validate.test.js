@@ -1482,6 +1482,23 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         }
       });
 
+      // ADR 01171: a timeout is at least 1 ms, because 0 meant "no limit" to one
+      // action and "time out at once" to another.
+      it("rejects a goTo or httpRequest timeout below 1 ms", function () {
+        for (const timeout of [0, -1]) {
+          for (const object of [
+            { goTo: { url: "https://x.com", timeout } },
+            { httpRequest: { url: "https://x.com", timeout } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          }
+        }
+        expect(step({ goTo: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+        expect(step({ httpRequest: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+      });
+
       it("accepts a single status code or a list on checkLink and httpRequest", function () {
         for (const statusCodes of [200, [200, 404], "200"]) {
           for (const object of [
