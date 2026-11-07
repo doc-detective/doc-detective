@@ -111,7 +111,7 @@ describe("upgrade warnings", function () {
         const r = runCli(["--input", empty(), "--output", out(), ...flags]);
         expect(r.status).to.equal(0);
         expect(r.stderr).to.include("exit 2").and.include(URL);
-        expect(r.stderr).to.include("make sure your inputs always find tests");
+        expect(r.stderr).to.match(/make sure your inputs always find tests/i);
       }
     });
 
@@ -531,6 +531,11 @@ registerHooks({ load(url, ctx, next) {
       expect(commandWarnings(["install", "agents"], ["install", "agents", "-sy", "project"], false)).to.have.length(1);
       // Only the agents command has -a and -s.
       expect(commandWarnings([], ["-a"], false)).to.deep.equal([]);
+    });
+
+    it("runResultWarnings doesn't suggest --no-exit-on-fail to an --exit-on-fail user", function () {
+      expect(runResultWarnings(true, false, null)[0]).to.not.include("--no-exit-on-fail");
+      expect(runResultWarnings(undefined, false, null)[0]).to.include("--no-exit-on-fail");
     });
 
     it("runResultWarnings counts a zero-spec summary as nothing tested", function () {

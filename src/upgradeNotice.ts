@@ -392,9 +392,11 @@ export function runResultWarnings(exitOnFail: boolean | undefined, failed: boole
   const testedNothing =
     !results || (!!specs && [specs.pass, specs.fail, specs.warning, specs.skipped].every((n) => !n));
   if (testedNothing) {
-    return [
-      "This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. To allow empty runs, set `--no-exit-on-fail`, which also stops failed tests from failing the run. Otherwise, make sure your inputs always find tests.",
-    ];
+    const fix =
+      exitOnFail === true
+        ? "Make sure your inputs always find tests."
+        : "To allow empty runs, set `--no-exit-on-fail`, which also stops failed tests from failing the run. Otherwise, make sure your inputs always find tests.";
+    return [`This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. ${fix}`];
   }
   if (failed && exitOnFail === undefined) {
     return [
