@@ -69,10 +69,11 @@ Chosen option: **A**.
   or default handling.
 - The report echoes the effective step. That changes a report field's shape, for example `goTo` from a string
   to an object, so it ships in 5.0.
-- This change moves `goTo` and `httpRequest`. The other 19 actions are registered as passthroughs, and their
-  area chunks move them. `test/shorthand-ratchet.test.js` counts the handler files that still branch on
-  shorthand. A check against `false`, the canonical disabled value an effective step keeps, doesn't count. It's
-  13 after this change, and it reaches 0 when every action has moved.
+- This change moved `goTo` and `httpRequest` first, and area chunks moved the other actions. Every action now
+  has its own normalizer. `annotate` and `loadVariables` have nothing to normalize, so theirs pass the value
+  through. `test/shorthand-ratchet.test.js` counts the handler files that still branch on shorthand. A check
+  against `false`, the canonical disabled value an effective step keeps, doesn't count. The count is 0, so a
+  new shorthand branch in a handler fails the test.
 
 The pilots keep today's behavior, with three exceptions:
 
