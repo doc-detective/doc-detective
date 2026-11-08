@@ -173,13 +173,11 @@ export const HINTS: Hint[] = [
     // Screenshots and recordings land in a run folder by default (ADR
     // 01177), so with the default `outputDir` of `.` that's `.doc-detective/`.
     markdown: [
-      "Keep Doc Detective's screenshots, recordings, and results out of commits. With the default `outputDir` (`.`), add `.doc-detective/` to `.gitignore`:",
+      "Keep Doc Detective's screenshots, recordings, and results out of commits. Add the `outputDir` you set to `.gitignore`. With the default `outputDir` (`.`), add `.doc-detective/`:",
       "",
       "```bash",
       "echo \".doc-detective/\" >> .gitignore",
       "```",
-      "",
-      "If you set `outputDir`, add that folder instead.",
     ].join("\n"),
     when: (ctx) =>
       !ctx.outputDirGitignored && typeof ctx.config?.outputDir === "string",
