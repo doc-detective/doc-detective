@@ -603,10 +603,7 @@ export function transformToSchemaKey({
           });
         return transformedFileType;
       });
-    const result = validate({
-      schemaKey: "config_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "config_v3", object: transformedObject }, false);
     // Defensive: transformation always produces valid config_v3, unreachable
     /* c8 ignore next 3 */
     if (!result.valid) {
@@ -633,10 +630,7 @@ export function transformToSchemaKey({
         },
       });
     }
-    const result = validate({
-      schemaKey: "context_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "context_v3", object: transformedObject }, false);
     if (!result.valid) {
       throw new Error(`Invalid object: ${result.errors}`);
     }
@@ -649,10 +643,7 @@ export function transformToSchemaKey({
     intermediaryObject.headers = object.requestHeaders;
     transformedObject = { ...intermediaryObject };
 
-    const result = validate({
-      schemaKey: "openApi_v3",
-      object: transformedObject,
-    });
+    const result = validateObject({ schemaKey: "openApi_v3", object: transformedObject }, false);
     if (!result.valid) {
       throw new Error(`Invalid object: ${result.errors}`);
     }
