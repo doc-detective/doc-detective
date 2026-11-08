@@ -49,6 +49,13 @@ realities around them.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses
   the approval gate. `--delete-branch` prints a harmless "failed to delete local branch" when the
   branch is checked out in another worktree; the remote branch still gets deleted.
+- **An approving comment from the maintainer counts as approval.** A PR comment that approves it is enough
+  to merge, with no formal review needed. Agents carry their PRs through approval and merge. On `main`,
+  merge a single PR with `gh pr merge <n> --merge --admin` once its checks are green and the comment is
+  there. Bot comments, such as CodeRabbit's or the Claude review's, never count as approval.
+- Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
+  layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
+  `feat/v5-rc`, which has no ruleset, merges once its checks are green and an approving comment is there.
 - Stale CodeQL on old branches clears by merging current `origin/main` into the branch.
   `reviewDecision: CHANGES_REQUESTED` persists even after fixes. Only an APPROVED review or a
   dismissal clears it. A later COMMENTED review does not.

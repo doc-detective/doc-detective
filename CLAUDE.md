@@ -310,6 +310,31 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 - `refactor(agents)!: rename agent ids to bare names`
 - `ci: start local test server for Test GitHub Action job`
 
+## Pull requests (required)
+
+Open your PRs and carry them through approval and merge. An approving PR comment from the maintainer counts as
+approval, and the PR is then ready to merge. Bot comments never count. For how to merge past the `main`
+ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
+
+### Stacked pull requests
+
+Develop and merge any change that spans more than one pull request as a GitHub stacked pull request, through
+the `gh stack` extension. Don't open independent PRs for dependent work, and don't hand-rebase a chain of
+branches.
+
+- Install the extension once: `gh extension install github/gh-stack`. Stacked PRs must be enabled for the
+  repository. `gh stack` exits 9 when they aren't.
+- Start on the stack's trunk, which is `main` or a release branch such as `feat/v5-rc`:
+  `gh stack init --base <trunk> <first-branch>`. Add each layer with `gh stack add <branch>`. Keep each layer
+  one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
+- Open or update every PR in the stack with `gh stack submit --open`. Each PR targets the branch below it.
+- When the trunk or a lower layer moves, run `gh stack sync` or `gh stack rebase`, not a manual rebase.
+- Merge bottom-up with `gh stack merge <pr> --merge`. It merges every PR up to and including `<pr>`, all or
+  nothing. Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
+- A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See
+  [release-operations.md](docs/maintenance/release-operations.md).
+- Put independent work in separate stacks.
+
 ## How version selection works
 
 Versions and releases are fully automated by **semantic-release** based on commit types:
