@@ -4157,7 +4157,7 @@ function autoScreenshotSurface({
   processRegistry?: Map<string, any>;
   surfaceTracker?: ActiveSurfaceTracker;
 }): { kind: "browser" | "app"; surface?: any } | null {
-  if (!step || typeof step !== "object" || step.__autoRecord) return null;
+  if (!step || typeof step !== "object" || isSyntheticAutoRecordStep(step)) return null;
   if (typeof step.screenshot !== "undefined") return null;
   const drivesUi =
     driverActions.some((action) => typeof step[action] !== "undefined") ||
@@ -5556,7 +5556,7 @@ async function runContext({
           })
         : null;
       if (shotSurface) {
-        const synthetic = context.steps[0]?.__autoRecord ? 1 : 0;
+        const synthetic = context.steps.filter(isSyntheticAutoRecordStep).length;
         const capturedPath = await captureAutoScreenshot({
           config,
           driver: autoScreenshotDriver,

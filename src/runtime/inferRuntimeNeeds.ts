@@ -34,7 +34,7 @@ export interface InferRuntimeNeedsOptions {
   autoRecord?: boolean;
 }
 
-const SCREENSHOT_PACKAGES = ["sharp", "pngjs", "pixelmatch"];
+export const SCREENSHOT_PACKAGES = ["sharp", "pngjs", "pixelmatch"];
 
 // Set view of the shared canonical list for O(1) membership checks below.
 const BROWSER_STEP_KEY_SET = new Set<string>(BROWSER_STEP_KEYS);

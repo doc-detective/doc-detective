@@ -228,7 +228,7 @@ async function runTestsAndReport(config: any, options: any) {
       "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
     );
   } else try {
-    const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
+    const { inferRuntimeNeeds, SCREENSHOT_PACKAGES } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
     // The config runSpecs reads, always set by now (the dryRun check above
     // reads it). setConfig deep-clones the caller's config, so auto-capture
@@ -279,9 +279,7 @@ async function runTestsAndReport(config: any, options: any) {
         ensureRuntimeInstalled(packages, { ctx, deps: { logger: preflightLogger } }));
     // Packages needed only by automatic screenshots install on their own, so
     // a failure turns those off for the run instead of failing it (ADR 01177).
-    const autoShotPackages = needs.autoScreenshotOnly
-      ? ["sharp", "pngjs", "pixelmatch"]
-      : [];
+    const autoShotPackages = needs.autoScreenshotOnly ? [...SCREENSHOT_PACKAGES] : [];
     const corePackages = [...needs.npmPackages].filter(
       (name) => !autoShotPackages.includes(name)
     );
