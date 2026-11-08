@@ -4,12 +4,11 @@ import { validate } from "../common/src/validate.js";
 import { requireYaml } from "./lazyYaml.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
-// An error's message as a trailing sentence: " <text>." keeping its own final
-// `.`, `!` or `?`. Nothing for an empty or blank message, so the line ends at
-// one period.
-const cause = (text?: string) => {
+// An error's message as the reason that ends a sentence: ": <text>." keeping
+// its own final `.`, `!` or `?`. Just "." for an empty or blank message.
+const reason = (text?: string) => {
   const trimmed = text?.trim();
-  return !trimmed ? "" : ` ${/[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`}`;
+  return !trimmed ? "." : `: ${/[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`}`;
 };
 
 /**
@@ -47,20 +46,19 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
       const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
-      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}.${cause(error.message)}`);
+      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}${reason(error.message)}`);
       return null;
     }
   } else {
     try {
       content = await fs.promises.readFile(fileURLOrPath, "utf8");
     } catch (error: any) {
-      const absolute = path.resolve(fileURLOrPath);
       log(
         {},
         "warning",
-        error.code === "ENOENT"
-          ? `Couldn't read ${absolute}: the file doesn't exist.`
-          : `Couldn't read ${absolute}.${cause(error.message)}`
+        `Couldn't read ${path.resolve(fileURLOrPath)}${
+          error.code === "ENOENT" ? ": the file doesn't exist." : reason(error.message)
+        }`
       );
       return null;
     }
