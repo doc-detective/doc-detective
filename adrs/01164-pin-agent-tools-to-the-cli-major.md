@@ -49,9 +49,12 @@ Chosen option: **A**, with agent-tools' `feat/v5-rc` branch standing in for `v2`
   defaults to the pinned ref.
 - Both URL shapes take a branch name with a slash as-is, so neither needs a `refs/heads/` prefix.
 - Gemini CLI and Qwen Code pass `--ref <ref>` to `extensions install`. Both CLIs document `--ref` for git sources.
-- Claude Code (`claude plugin marketplace add`) and Copilot CLI (`copilot plugin marketplace add`) add the bare
-  `doc-detective/agent-tools` marketplace, so they keep tracking the default branch. The `install agents` reference
-  page says so. Both CLIs document an `owner/repo#ref` source, so pinning these two is an open follow-up.
+- Claude Code and Copilot CLI add the marketplace as `doc-detective/agent-tools#<ref>`. Both CLIs document the
+  `owner/repo#ref` source for `plugin marketplace add`. Claude Code documents that `marketplace update` follows it.
+- On an update, both adapters re-add the marketplace at the ref before updating. That moves an install made before
+  the pin onto the ref. A failed re-add logs a warning and doesn't block the update.
+- Claude Code's settings-file fallback writes `ref` on the marketplace's `github` source. An entry without it gets
+  rewritten in place under the same key.
 
 #### Release candidate: `feat/v5-rc`
 
@@ -80,9 +83,10 @@ branch.
 - Good: the GA switch and the next major each change one constant.
 - Bad: the GA switch is a manual step. Ship GA with `feat/v5-rc` and CLI 5 keeps tracking a branch.
 - Bad: switch before the `v2` tag exists and installs for Codex, OpenCode, Gemini CLI, and Qwen Code fail.
-- Bad: Claude Code and Copilot CLI installs follow the default branch. agent-tools 2.x must merge to it at CLI 5 GA.
-  Their up-to-date check reads the pinned ref. When the default branch's version differs, those two report an update
-  on every run. The update itself is harmless.
+- Good: every agent installs from the same ref its up-to-date check reads, so a repeat install is "already up to
+  date".
+- Bad: neither CLI documents whether re-adding a marketplace at a new ref changes the ref it tracks. If it doesn't,
+  an install made before the pin keeps its old ref. Its up-to-date check can then report an update on every run.
 - Neutral: whether a host CLI's `extensions update` follows a moved tag is up to that CLI.
 
 ### Confirmation
@@ -93,6 +97,9 @@ branch.
   It also asserts that `fetchAgentToolsZip` requests `zip/<AGENT_TOOLS_REF>`, and that Codex and OpenCode pass the
   ref to `fetchZip`.
 - `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref <AGENT_TOOLS_REF>` on a fresh install.
+- `test/agents.test.js` and `test/agents-copilot.test.js` assert `marketplace add doc-detective/agent-tools#<ref>` on
+  a fresh install and before an update. They also assert that a failed re-add doesn't block the update.
+- `test/agents.test.js` asserts that the settings-file fallback writes `ref`, and repoints an entry without it.
 - The `install-agents integration` workflow installs every agent for real, then checks that a second run is
   already up to date.
 - At GA, only the value assertion changes to `v2`. The rest read the constant.
