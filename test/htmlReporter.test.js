@@ -275,6 +275,8 @@ describe("HTML Reporter automatic media", function () {
     const outputFile = path.join(tmpDir, "fns.html");
     await outputResults({ autoScreenshot: false, autoRecord: false }, outputFile, sampleResults, { reporters: ["html"] });
     const html = fs.readFileSync(outputFile, "utf-8");
+    // Each function ends at the first `}` in column 0, so these functions must
+    // keep their closing brace there and no other line may start with `}`.
     const fn = (name) => new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`).exec(html)?.[0];
     const source = ["runFolderSrc", "collectMedia", "autoRecording"].map(fn);
     expect(source.every(Boolean), "the page defines the media functions").to.equal(true);
@@ -296,6 +298,14 @@ describe("HTML Reporter automatic media", function () {
     ]);
     // The field's future name reads the same way.
     expect(collectMedia({ autoScreenshotPath: shot })[0].path).to.equal(`.doc-detective/runs/r1/${shot}`);
+  });
+
+  it("loads an absolute automatic screenshot through the media base only inside the run folder", async function () {
+    const { collectMedia } = await pageFunctions({ runDir }, ".doc-detective/runs/r1");
+    expect(collectMedia({ autoScreenshot: `${runDir}/${shot}` })[0].path).to.equal(`.doc-detective/runs/r1/${shot}`);
+    for (const outside of ["/unrelated/absolute/path.png", "C:\\elsewhere\\shot.png"]) {
+      expect(collectMedia({ autoScreenshot: outside })[0].path).to.equal(outside);
+    }
   });
 
   it("shows the context's automatic recording once and leaves its synthetic steps out", async function () {
