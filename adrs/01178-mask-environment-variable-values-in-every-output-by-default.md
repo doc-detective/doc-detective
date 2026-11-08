@@ -242,10 +242,12 @@ See https://docs.doc-detective.com/reference/schemas/config
     input value;
   - they skip a `<script>`, and blur nothing when no secret is registered.
 
-  With a stubbed driver, it checks three things:
+  With a stubbed driver, it checks four things:
   - no page script receives a secret value;
+  - a blur the page won't run fails the screenshot, naming why;
   - typing hides the field only when the keys hold a secret;
   - a page that rejects the style doesn't fail the `type` step.
+- `test/screenshot-resize-to-reference.test.js` checks that the retake at a reference's size blurs too.
 - A focused test in `test/core-core.test.js` screenshots an element that holds a secret. Inside that element, the
   image differs from one taken with `publicVariables: ["*"]`. Below it, the two match.
 - Fixture `test/core-artifacts/interactions/type-secret.spec.json` types a secret, a public variable, and literal
