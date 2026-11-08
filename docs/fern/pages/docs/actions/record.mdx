@@ -26,6 +26,8 @@ You can specify the recording action in several ways:
 
 **Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
+## Secrets in recordings
+
 Doc Detective doesn't blur page text during a recording. A page that displays the value of a secret environment variable, such as an API key on a settings page, shows it in the video. End the recording before the test reaches that page. In a browser, a field that a `type` step typed a secret into shows dots, so the typed value stays out of the video. Native app and device recordings don't hide typed values. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
 ## Recording engines
