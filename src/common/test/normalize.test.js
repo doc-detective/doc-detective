@@ -33,6 +33,7 @@ const CHECK_LINK = {
   url: "https://example.com",
   params: {},
   statusCodes: [200, 301, 302, 307, 308],
+  timeout: 10000,
   headers: {},
 };
 

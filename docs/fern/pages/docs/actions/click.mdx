@@ -11,6 +11,8 @@ The `click` action works in several ways:
 - **String Shorthand:** The display text or selector of the element to find and click.
 - **Object Format:** Use an object with detailed properties for more control over the click action.
 
+`click` needs an element, so `"click": true` and `"click": false` fail the step. To click an element whose text is `true` or `false`, quote the value: `"click": "true"`.
+
 To find an element before clicking it, consider the [`find`](/docs/actions/find) action. It locates elements and optionally clicks them in a single step.
 
 A `click` string always names the element, so `"click": "right"` clicks the element whose text is "right". To choose the mouse button, use the object format's `button`. In [`find`](/docs/actions/find), a `click` string names the button instead.

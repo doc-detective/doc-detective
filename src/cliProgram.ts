@@ -1,6 +1,5 @@
 import { Command, Option } from "commander";
 import { applyHelpText, rewriteRootError } from "./cliHelp.js";
-import { createRequire } from "node:module";
 import { buildInstallAgentsCommand } from "./agents/command.js";
 import {
   addGlobalOptions,
@@ -13,15 +12,14 @@ import {
 import { buildDebugCommand } from "./debug/command.js";
 import { buildLspCommand } from "./lsp/command.js";
 import { buildInstallCommand } from "./runtime/installCommand.js";
-
-const require = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 type RunHandler = (args: Record<string, any>) => Promise<void> | void;
 
 // Settings commander copies into `.command()` children but not into commands
 // mounted with `addCommand`, so apply them across the finished tree.
 function applyShared(command: Command) {
-  const { version } = require("../package.json");
+  const version = ownVersion() ?? "unknown";
   command
     .exitOverride()
     .showHelpAfterError("(add --help for usage)")

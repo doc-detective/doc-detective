@@ -7,6 +7,7 @@ let server;
 let serverPort;
 const requestLog = {};
 const flakyCounters = {};
+const SLOW_DELAY_MS = 200;
 
 before(async function () {
   const { expect } = await import("chai");
@@ -28,6 +29,16 @@ before(async function () {
       requestLog["echo-headers-url"] = req.url;
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("ok");
+      return;
+    }
+
+    // "/slow/200" -> waits SLOW_DELAY_MS, then returns 200 (query string
+    // ignored). The delay is fixed, never read from the request.
+    if (url.split("?")[0] === "/slow/200") {
+      setTimeout(() => {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("Status 200");
+      }, SLOW_DELAY_MS);
       return;
     }
 
@@ -175,6 +186,20 @@ describe("checkLink non-2xx status code regression", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Invalid or unresolvable URL/);
+  });
+
+  it("redacts the query string from the unresolvable-URL message", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: "http://this-domain-does-not-exist-12345.invalid/?token=abc",
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid or unresolvable URL/);
+    assert.ok(!result.description.includes("abc"), result.description);
   });
 });
 
@@ -539,6 +564,84 @@ describe("checkLink live smoke (portal.prove.com)", function () {
     );
     // Diagnostic, not a regression gate.
     assert.ok(result.status === "PASS" || result.status === "FAIL");
+  });
+});
+
+describe("checkLink timeout", function () {
+  this.timeout(30000);
+
+  it("FAILs fast with a named message when an attempt outlives `timeout`", async function () {
+    // Mocha adds the Windows CI freeze allowance (ADR 01105) to this bound.
+    this.timeout(1000);
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: `http://localhost:${serverPort}/slow/200?token=secret`,
+          timeout: 50,
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    // The query string is redacted from the message.
+    assert.equal(
+      result.description,
+      `Couldn't reach http://localhost:${serverPort}/slow/200: no response within 50 ms (ECONNABORTED).`
+    );
+  });
+
+  it("PASSes when the response arrives within `timeout`", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: { url: `http://localhost:${serverPort}/slow/200`, timeout: 5000 },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+  });
+
+  it("gives each attempt 10000 ms by default", async function () {
+    const axios = (await import("axios")).default;
+    const request = axios.request;
+    const seen = [];
+    axios.request = function (cfg) {
+      seen.push(cfg.timeout);
+      return request.call(this, cfg);
+    };
+    try {
+      // The handler takes the effective step's object form (ADR 01167), and
+      // its validate() call fills the schema's timeout default.
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: { url: `http://localhost:${serverPort}/200` } },
+      });
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      axios.request = request;
+    }
+    assert.deepEqual(seen, [10000]);
+  });
+
+  it("gives the HEAD fallback the same per-attempt timeout", async function () {
+    const axios = (await import("axios")).default;
+    const request = axios.request;
+    const seen = [];
+    axios.request = function (cfg) {
+      seen.push([String(cfg.method).toLowerCase(), cfg.timeout]);
+      return request.call(this, cfg);
+    };
+    try {
+      // GET answers 429 on every attempt, so checkLink falls back to HEAD.
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: { url: `http://localhost:${serverPort}/method-sensitive/head-timeout`, timeout: 4321 } },
+      });
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      axios.request = request;
+    }
+    assert.ok(seen.some(([method]) => method === "head"), JSON.stringify(seen));
+    assert.ok(seen.every(([, timeout]) => timeout === 4321), JSON.stringify(seen));
   });
 });
 

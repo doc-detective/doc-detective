@@ -113,17 +113,46 @@ export interface ShimPackageJson {
   ddRuntimeDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;
+  version?: string;
 }
 
+// undefined: not walked yet. null: walked, and not inside the package.
+let cachedRoot: string | null | undefined;
 let cachedPkg: ShimPackageJson | null = null;
 
-function readShimPackageJson(): ShimPackageJson {
-  if (cachedPkg) return cachedPkg;
-  // dist/runtime/heavyDeps.js sits two directories below the shim root.
-  const pkgPath = path.resolve(__dirname, "../../package.json");
-  const raw = fs.readFileSync(pkgPath, "utf8");
-  cachedPkg = JSON.parse(raw) as ShimPackageJson;
-  return cachedPkg;
+/**
+ * doc-detective's own package root: the nearest ancestor of this module whose
+ * package.json is named doc-detective. Walks up rather than using a fixed
+ * `../..`: modules run from dist/<dir>/ in the ESM build and from the
+ * dist/index.cjs bundle, one level shallower. Matching the name keeps it off a
+ * user's package.json. Undefined only when run outside the package.
+ */
+export function packageRoot(): string | undefined {
+  if (cachedRoot === undefined) {
+    cachedRoot = null;
+    for (let dir = __dirname; !cachedRoot; dir = path.dirname(dir)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+        if (pkg.name === "doc-detective") {
+          cachedRoot = dir;
+          cachedPkg = pkg;
+        }
+      } catch {}
+      if (path.dirname(dir) === dir) break;
+    }
+  }
+  return cachedRoot ?? undefined;
+}
+
+/** doc-detective's own version, from the package.json packageRoot() found. */
+export function ownVersion(): string | undefined {
+  packageRoot();
+  return cachedPkg?.version;
+}
+
+export function readShimPackageJson(): ShimPackageJson {
+  if (!packageRoot()) throw new Error("doc-detective's package.json not found");
+  return cachedPkg as ShimPackageJson;
 }
 
 /**
@@ -168,6 +197,7 @@ export function resolveDeclaredVersion(
 
 /** Test seam: drop the cached package.json read. */
 export function _resetCacheForTests(): void {
+  cachedRoot = undefined;
   cachedPkg = null;
 }
 

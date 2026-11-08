@@ -13,6 +13,7 @@ You can specify the target URL directly as a string, or use an object for more o
 - `statusCodes`: (Optional) A single integer or an array of integers representing acceptable HTTP status codes, including non-2xx codes like `429` (rate limited), `403` (forbidden), or `500` (server error). If omitted, defaults to `[200, 301, 302, 307, 308]`.
 - `headers`: (Optional) Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Accepts either a key/value object or a newline-separated string. Useful for sites that allowlist specific headers or bypass tokens. Defaults to `{}`.
 - `params`: (Optional) Query parameters to append to the resolved URL. Merged with config-level `originParams`. Values support environment variable substitution with `$VAR` syntax. Defaults to `{}`.
+- `timeout`: (Optional) Time in milliseconds each request attempt may take. Each retry gets the same time. Minimum `1`. Defaults to `10000`.
 
 **Outputs:** the action exposes `outputs.statusCode`, the HTTP status code returned by the request. To capture it for later steps, use the step-level `variables` object with the expression `$$statusCode`.
 
@@ -22,7 +23,7 @@ You can specify the target URL directly as a string, or use an object for more o
 
 Each `checkLink` step:
 
-1. Issues a `GET` request with browser-mimicking default headers (`User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Upgrade-Insecure-Requests`, and the `Sec-Fetch-*` and `Sec-Ch-Ua*` Client Hints set) to reduce false 429 or 403 responses from bot-protection layers.
+1. Issues a `GET` request with browser-mimicking default headers (`User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Upgrade-Insecure-Requests`, and the `Sec-Fetch-*` and `Sec-Ch-Ua*` Client Hints set) to reduce false 429 or 403 responses from bot-protection layers. If no response arrives within `timeout`, the step fails right away without retrying.
 2. Retries up to three times (four attempts total) with exponential backoff (1 second, then 2 seconds, then 4 seconds) on `429` or `5xx` responses. If the server sends a `Retry-After` header, Doc Detective waits that duration (capped at 10 seconds) instead.
 3. If the final response is still `429` or `403`, retries the URL once with a `HEAD` request. Some web application firewalls (WAFs) rate-limit HTML `GET` requests but allow `HEAD` requests. If the `HEAD` returns an accepted status code, the step passes.
 4. Compares the final status code against `statusCodes` and reports PASS or FAIL.
@@ -180,6 +181,39 @@ Doc Detective's retry-with-backoff and HEAD-fallback logic, described above in [
 
 {/* step {"stepId":"checklink-origin","description":"Check a path against a specific origin","checkLink":{"url":"/status/200","origin":"http://localhost:8092"}} */}
 {/* test end */}
+
+### Set how long each attempt may take
+
+Use `timeout` to fail faster on a slow host, or to give a slow host more time. The value applies to each request attempt, including retries.
+
+{/* test {"testId":"checklink-timeout","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Check a link, giving each attempt up to 5 seconds.",
+          "checkLink": {
+            "url": "https://www.google.com",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"checklink-timeout","description":"Check a URL with a 5000 ms per-attempt timeout","checkLink":{"url":"http://localhost:8092/status/200","timeout":5000}} */}
+{/* test end */}
+
+If no response arrives in time, the step fails with a message like this:
+
+```text
+Couldn't reach https://www.google.com/: no response within 5000 ms (ECONNABORTED).
+```
 
 ### Pass custom headers (allowlist or bypass)
 

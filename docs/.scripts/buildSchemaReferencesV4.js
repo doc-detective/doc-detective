@@ -512,6 +512,12 @@ function generatePropertyRow(propName, propSchema, parentSchema) {
   return `${propName} | ${type} | ${description} | ${defaultValue}`;
 }
 
+// A type array (`["number", "boolean"]`) is a union: "number or boolean", the
+// action pages' convention. A bare `|` would split the markdown table cell.
+function typeName(type) {
+  return Array.isArray(type) ? type.join(" or ") : type;
+}
+
 // Function to get a string representation of a type
 function getTypeString(schema) {
   if (!schema) return "unknown";
@@ -529,7 +535,7 @@ function getTypeString(schema) {
 
   // Direct type
   if (schema.type) {
-    let type = schema.type;
+    let type = typeName(schema.type);
 
     // Handle objects with titles (reference to other schemas)
     if (schema.type === "object" && schema.title) {
@@ -621,7 +627,7 @@ function getArrayItemTypeString(items) {
       );
     }
 
-    return items.type || "unknown";
+    return typeName(items.type) || "unknown";
   }
 
   // Multiple item schemas (tuple validation)

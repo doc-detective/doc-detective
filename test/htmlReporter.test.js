@@ -120,6 +120,16 @@ describe("HTML Reporter", function () {
     expect(html).to.include("test-report-001");
   });
 
+  it("keeps report-only timing fields out of the step input panel", async function () {
+    const outputFile = path.join(tmpDir, "report.html");
+    await outputResults({}, outputFile, sampleResults, {
+      reporters: ["html"],
+    });
+    const html = fs.readFileSync(outputFile, "utf-8");
+    expect(html).to.include("delete rest.durationMs;");
+    expect(html).to.include("delete rest.startedAt;");
+  });
+
   it("contains key CSS classes from the design", async function () {
     const outputFile = path.join(tmpDir, "report.html");
     await outputResults({}, outputFile, sampleResults, {

@@ -26,6 +26,7 @@ import {
   buildCheckpointOutputs,
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
+import { RECORDER_SETTLE_MS } from "./timing.js";
 
 export { stopRecording };
 
@@ -889,7 +890,7 @@ async function waitForStableFile(
       stableReads = 0;
     }
     lastSize = size;
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, RECORDER_SETTLE_MS));
   }
   // Timed out without the size ever holding steady — the file is missing or
   // still being written. Report not-stable so the caller fails cleanly rather

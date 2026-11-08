@@ -290,6 +290,11 @@
                             "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                             "readOnly": true
                           },
+                          "version": {
+                            "type": "string",
+                            "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                            "readOnly": true
+                          },
                           "headless": {
                             "type": "boolean",
                             "description": "If `true`, runs the browser in headless mode.",
@@ -367,6 +372,11 @@
                                 "explicit": {
                                   "type": "boolean",
                                   "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                  "readOnly": true
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                   "readOnly": true
                                 },
                                 "headless": {
@@ -661,6 +671,11 @@
                         "explicit": {
                           "type": "boolean",
                           "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                          "readOnly": true
+                        },
+                        "version": {
+                          "type": "string",
+                          "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                           "readOnly": true
                         },
                         "headless": {
@@ -2146,9 +2161,34 @@
                                         }
                                       },
                                       "tty": {
-                                        "type": "boolean",
                                         "default": false,
-                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                        "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                        "anyOf": [
+                                          {
+                                            "type": "boolean"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "cols": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000,
+                                                "default": 120,
+                                                "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                              },
+                                              "rows": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000,
+                                                "default": 30,
+                                                "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                              }
+                                            }
+                                          }
+                                        ]
                                       }
                                     }
                                   }
@@ -2297,9 +2337,34 @@
                                           }
                                         },
                                         "tty": {
-                                          "type": "boolean",
                                           "default": false,
-                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                          "anyOf": [
+                                            {
+                                              "type": "boolean"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                "cols": {
+                                                  "type": "integer",
+                                                  "minimum": 1,
+                                                  "maximum": 1000,
+                                                  "default": 120,
+                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                },
+                                                "rows": {
+                                                  "type": "integer",
+                                                  "minimum": 1,
+                                                  "maximum": 1000,
+                                                  "default": 30,
+                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                }
+                                              }
+                                            }
+                                          ]
                                         }
                                       }
                                     }
@@ -2387,6 +2452,19 @@
                                   }
                                 },
                                 "timeout": 60000
+                              },
+                              {
+                                "command": "my-tui",
+                                "background": {
+                                  "name": "tui",
+                                  "tty": {
+                                    "cols": 80,
+                                    "rows": 24
+                                  },
+                                  "waitUntil": {
+                                    "stdio": "/Ready/"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -2840,6 +2918,18 @@
                 "x32",
                 "x64"
               ]
+            },
+            "docDetectiveVersion": {
+              "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+              "type": "string"
+            },
+            "nodeVersion": {
+              "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+              "type": "string"
+            },
+            "osRelease": {
+              "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+              "type": "string"
             }
           },
           "title": "Environment details"
@@ -3496,6 +3586,18 @@
                   "x32",
                   "x64"
                 ]
+              },
+              "docDetectiveVersion": {
+                "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+                "type": "string"
+              },
+              "nodeVersion": {
+                "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+                "type": "string"
+              },
+              "osRelease": {
+                "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+                "type": "string"
               }
             },
             "title": "Environment details"
@@ -5715,6 +5817,11 @@
                                   "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                                   "readOnly": true
                                 },
+                                "version": {
+                                  "type": "string",
+                                  "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                                  "readOnly": true
+                                },
                                 "headless": {
                                   "type": "boolean",
                                   "description": "If `true`, runs the browser in headless mode.",
@@ -5792,6 +5899,11 @@
                                       "explicit": {
                                         "type": "boolean",
                                         "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                        "readOnly": true
+                                      },
+                                      "version": {
+                                        "type": "string",
+                                        "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                         "readOnly": true
                                       },
                                       "headless": {
@@ -6086,6 +6198,11 @@
                               "explicit": {
                                 "type": "boolean",
                                 "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                "readOnly": true
+                              },
+                              "version": {
+                                "type": "string",
+                                "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                 "readOnly": true
                               },
                               "headless": {
@@ -7723,6 +7840,11 @@
                                             "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                                             "readOnly": true
                                           },
+                                          "version": {
+                                            "type": "string",
+                                            "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                                            "readOnly": true
+                                          },
                                           "headless": {
                                             "type": "boolean",
                                             "description": "If `true`, runs the browser in headless mode.",
@@ -7800,6 +7922,11 @@
                                                 "explicit": {
                                                   "type": "boolean",
                                                   "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                                  "readOnly": true
+                                                },
+                                                "version": {
+                                                  "type": "string",
+                                                  "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                                   "readOnly": true
                                                 },
                                                 "headless": {
@@ -8094,6 +8221,11 @@
                                         "explicit": {
                                           "type": "boolean",
                                           "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                          "readOnly": true
+                                        },
+                                        "version": {
+                                          "type": "string",
+                                          "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                           "readOnly": true
                                         },
                                         "headless": {
@@ -10127,6 +10259,12 @@
                                       "minimum": 0,
                                       "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                       "readOnly": true
+                                    },
+                                    "startedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                      "readOnly": true
                                     }
                                   },
                                   "title": "Common"
@@ -11102,6 +11240,7 @@
                               "attempts": {},
                               "visit": {},
                               "durationMs": {},
+                              "startedAt": {},
                               "checkLink": {},
                               "click": {},
                               "find": {},
@@ -12081,6 +12220,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -12161,6 +12306,12 @@
                                                   307,
                                                   308
                                                 ]
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                "minimum": 1,
+                                                "default": 10000
                                               },
                                               "headers": {
                                                 "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
@@ -12252,6 +12403,12 @@
                                                     308
                                                   ]
                                                 },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                  "minimum": 1,
+                                                  "default": 10000
+                                                },
                                                 "headers": {
                                                   "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                   "default": {},
@@ -12284,7 +12441,8 @@
                                           },
                                           {
                                             "url": "https://www.google.com",
-                                            "statusCodes": 200
+                                            "statusCodes": 200,
+                                            "timeout": 5000
                                           },
                                           {
                                             "url": "/search",
@@ -13261,6 +13419,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -14951,6 +15115,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -22841,6 +23011,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -24974,6 +25150,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -27005,6 +27187,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -27159,9 +27347,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -27310,9 +27523,34 @@
                                                       }
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     }
                                                   }
                                                 }
@@ -27400,6 +27638,19 @@
                                               }
                                             },
                                             "timeout": 60000
+                                          },
+                                          {
+                                            "command": "my-tui",
+                                            "background": {
+                                              "name": "tui",
+                                              "tty": {
+                                                "cols": 80,
+                                                "rows": 24
+                                              },
+                                              "waitUntil": {
+                                                "stdio": "/Ready/"
+                                              }
+                                            }
                                           }
                                         ]
                                       }
@@ -28363,6 +28614,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -28511,9 +28768,34 @@
                                                     }
                                                   },
                                                   "tty": {
-                                                    "type": "boolean",
                                                     "default": false,
-                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "boolean"
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "properties": {
+                                                          "cols": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 120,
+                                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                          },
+                                                          "rows": {
+                                                            "type": "integer",
+                                                            "minimum": 1,
+                                                            "maximum": 1000,
+                                                            "default": 30,
+                                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               }
@@ -28657,9 +28939,34 @@
                                                       }
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     }
                                                   }
                                                 }
@@ -29678,6 +29985,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -31123,6 +31436,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -35076,6 +35395,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -43891,6 +44216,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -45113,6 +45444,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -46995,6 +47332,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -48015,6 +48358,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -50269,6 +50618,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -50628,9 +50983,34 @@
                                                 "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                               },
                                               "tty": {
-                                                "type": "boolean",
                                                 "default": false,
-                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                "anyOf": [
+                                                  {
+                                                    "type": "boolean"
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "cols": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 120,
+                                                        "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                      },
+                                                      "rows": {
+                                                        "type": "integer",
+                                                        "minimum": 1,
+                                                        "maximum": 1000,
+                                                        "default": 30,
+                                                        "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                      }
+                                                    }
+                                                  }
+                                                ]
                                               },
                                               "waitUntil": {
                                                 "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -51019,9 +51399,34 @@
                                                       "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     },
                                                     "waitUntil": {
                                                       "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -51176,9 +51581,34 @@
                                                   "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                 },
                                                 "tty": {
-                                                  "type": "boolean",
                                                   "default": false,
-                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                  "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                  "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "boolean"
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "properties": {
+                                                        "cols": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 120,
+                                                          "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                        },
+                                                        "rows": {
+                                                          "type": "integer",
+                                                          "minimum": 1,
+                                                          "maximum": 1000,
+                                                          "default": 30,
+                                                          "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
                                                 },
                                                 "waitUntil": {
                                                   "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -52561,6 +52991,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -53539,6 +53975,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -55143,6 +55585,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -56348,6 +56796,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -58681,6 +59135,12 @@
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                         "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                        "readOnly": true
                                       }
                                     },
                                     "title": "Common"
@@ -59692,6 +60152,12 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                        "readOnly": true
+                                      },
+                                      "startedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                         "readOnly": true
                                       }
                                     },
@@ -64480,6 +64946,32 @@
                                 "description": "Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.",
                                 "readOnly": true
                               },
+                              "startedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the start of the FINAL attempt — the attempt the reported `result` describes — matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.",
+                                "readOnly": true
+                              },
+                              "driver": {
+                                "type": "object",
+                                "description": "The WebDriver that drove this context's browser, as the browser session reported it. Absent when no browser ran. Present only in test results. System-populated.",
+                                "readOnly": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "description": "Name of the driver, for example `chromedriver`, `geckodriver`, or `safaridriver`."
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "description": "Version of the driver, for example `131.0.6778.85`. Absent when the session doesn't report one, as with Safari."
+                                  }
+                                },
+                                "title": "Driver"
+                              },
                               "platform": {
                                 "type": "string",
                                 "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
@@ -64506,6 +64998,11 @@
                                   "explicit": {
                                     "type": "boolean",
                                     "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                                    "readOnly": true
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                                     "readOnly": true
                                   },
                                   "headless": {
@@ -65708,6 +66205,12 @@
                                             "minimum": 0,
                                             "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                             "readOnly": true
+                                          },
+                                          "startedAt": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                            "readOnly": true
                                           }
                                         },
                                         "title": "Common"
@@ -66683,6 +67186,7 @@
                                     "attempts": {},
                                     "visit": {},
                                     "durationMs": {},
+                                    "startedAt": {},
                                     "checkLink": {},
                                     "click": {},
                                     "find": {},
@@ -67662,6 +68166,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -67742,6 +68252,12 @@
                                                         307,
                                                         308
                                                       ]
+                                                    },
+                                                    "timeout": {
+                                                      "type": "integer",
+                                                      "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                      "minimum": 1,
+                                                      "default": 10000
                                                     },
                                                     "headers": {
                                                       "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
@@ -67833,6 +68349,12 @@
                                                           308
                                                         ]
                                                       },
+                                                      "timeout": {
+                                                        "type": "integer",
+                                                        "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+                                                        "minimum": 1,
+                                                        "default": 10000
+                                                      },
                                                       "headers": {
                                                         "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
                                                         "default": {},
@@ -67865,7 +68387,8 @@
                                                 },
                                                 {
                                                   "url": "https://www.google.com",
-                                                  "statusCodes": 200
+                                                  "statusCodes": 200,
+                                                  "timeout": 5000
                                                 },
                                                 {
                                                   "url": "/search",
@@ -68842,6 +69365,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -70532,6 +71061,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -78422,6 +78957,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -80555,6 +81096,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -82586,6 +83133,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -82740,9 +83293,34 @@
                                                           }
                                                         },
                                                         "tty": {
-                                                          "type": "boolean",
                                                           "default": false,
-                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "boolean"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "additionalProperties": false,
+                                                              "properties": {
+                                                                "cols": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 120,
+                                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                },
+                                                                "rows": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 30,
+                                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
                                                         }
                                                       }
                                                     }
@@ -82891,9 +83469,34 @@
                                                             }
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           }
                                                         }
                                                       }
@@ -82981,6 +83584,19 @@
                                                     }
                                                   },
                                                   "timeout": 60000
+                                                },
+                                                {
+                                                  "command": "my-tui",
+                                                  "background": {
+                                                    "name": "tui",
+                                                    "tty": {
+                                                      "cols": 80,
+                                                      "rows": 24
+                                                    },
+                                                    "waitUntil": {
+                                                      "stdio": "/Ready/"
+                                                    }
+                                                  }
                                                 }
                                               ]
                                             }
@@ -83944,6 +84560,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -84092,9 +84714,34 @@
                                                           }
                                                         },
                                                         "tty": {
-                                                          "type": "boolean",
                                                           "default": false,
-                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                          "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                          "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "boolean"
+                                                            },
+                                                            {
+                                                              "type": "object",
+                                                              "additionalProperties": false,
+                                                              "properties": {
+                                                                "cols": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 120,
+                                                                  "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                },
+                                                                "rows": {
+                                                                  "type": "integer",
+                                                                  "minimum": 1,
+                                                                  "maximum": 1000,
+                                                                  "default": 30,
+                                                                  "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
                                                         }
                                                       }
                                                     }
@@ -84238,9 +84885,34 @@
                                                             }
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           }
                                                         }
                                                       }
@@ -85259,6 +85931,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -86704,6 +87382,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -90657,6 +91341,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -99472,6 +100162,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -100694,6 +101390,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -102576,6 +103278,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -103596,6 +104304,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -105850,6 +106564,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -106209,9 +106929,34 @@
                                                       "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                     },
                                                     "tty": {
-                                                      "type": "boolean",
                                                       "default": false,
-                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                      "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "boolean"
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "properties": {
+                                                            "cols": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 120,
+                                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                            },
+                                                            "rows": {
+                                                              "type": "integer",
+                                                              "minimum": 1,
+                                                              "maximum": 1000,
+                                                              "default": 30,
+                                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
                                                     },
                                                     "waitUntil": {
                                                       "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -106600,9 +107345,34 @@
                                                             "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                           },
                                                           "tty": {
-                                                            "type": "boolean",
                                                             "default": false,
-                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                            "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                            "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "boolean"
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                  "cols": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 120,
+                                                                    "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                                  },
+                                                                  "rows": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1,
+                                                                    "maximum": 1000,
+                                                                    "default": 30,
+                                                                    "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                                  }
+                                                                }
+                                                              }
+                                                            ]
                                                           },
                                                           "waitUntil": {
                                                             "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -106757,9 +107527,34 @@
                                                         "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                                       },
                                                       "tty": {
-                                                        "type": "boolean",
                                                         "default": false,
-                                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                                        "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                                        "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "boolean"
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                              "cols": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 1000,
+                                                                "default": 120,
+                                                                "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                                              },
+                                                              "rows": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 1000,
+                                                                "default": 30,
+                                                                "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                                              }
+                                                            }
+                                                          }
+                                                        ]
                                                       },
                                                       "waitUntil": {
                                                         "$comment": "Intentionally identical to runShell_v3's background.waitUntil — both are executed by the shared waitForReady. NOT a $ref to waitUntil_v3's process shape: that shape (stdio/delayMs only) is consumed by `type`, and extending it would leak conditions `type` can't execute.",
@@ -108142,6 +108937,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -109120,6 +109921,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -110724,6 +111531,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -111929,6 +112742,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },
@@ -114262,6 +115081,12 @@
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
                                               "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+                                              "readOnly": true
                                             }
                                           },
                                           "title": "Common"
@@ -115273,6 +116098,12 @@
                                               "type": "integer",
                                               "minimum": 0,
                                               "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+                                              "readOnly": true
+                                            },
+                                            "startedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
                                               "readOnly": true
                                             }
                                           },

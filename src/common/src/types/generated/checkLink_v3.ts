@@ -38,6 +38,10 @@ export interface CheckLinkDetailed {
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
   statusCodes?: number | number[];
+  /**
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
+   */
+  timeout?: number;
   headers?: RequestHeaders;
 }
 export interface RequestHeadersObject {

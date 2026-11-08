@@ -32,6 +32,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { RECORDER_SETTLE_MS } from "./timing.js";
 
 export { startRecording };
 
@@ -675,7 +676,7 @@ async function startRecording({
 
   // Give ffmpeg a moment to initialize, then make sure it didn't immediately
   // fail (e.g. missing display, permission denied).
-  await new Promise((r) => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, RECORDER_SETTLE_MS));
   if (spawnError || proc.exitCode !== null) {
     result.status = "FAIL";
     result.description = `Couldn't start ffmpeg recording.${

@@ -12,6 +12,8 @@ This is a dependency package, not a standalone application. Changes here affect 
 
 > Schema changes are user-facing, because they alter the test and config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
 
+> Schema keys and descriptions follow ["Plans and interfaces"](../../CLAUDE.md#plans-and-interfaces-required) in the root guide. That means shared values, present-tense descriptions, a deprecated alias for every rename, and units kept in names.
+
 ## Architecture
 
 ### Schema System (Core Component)
