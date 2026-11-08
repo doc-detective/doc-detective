@@ -1685,6 +1685,8 @@ async function getGuarded(
       return { data: response.data, url: current, reachedPublic };
     }
     const location = response.headers?.location;
+    // `hops` counts redirects followed, so at 5 a sixth redirect arrived and
+    // "more than 5" is accurate.
     if (!location || hops >= 5) {
       // Names the original URL on purpose: it's the one the spec named. When
       // the limit and a missing Location both apply, the limit wins on purpose.
