@@ -3,7 +3,13 @@ import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
 import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests, deepMerge, replaceEnvs } from "./utils.js";
 import { beginRunMasking, looksSecret, maskDeep, maskedVariableNames, registerEnvValue, setPublicVariables } from "./masking.js";
-import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
+import {
+  runSpecs,
+  runViaApi,
+  getRunner,
+  runNeedsAvailableApps,
+  installAutoScreenshotPackages,
+} from "./tests.js";
 import {
   telemetryAllowed,
   telemetryNotice,
@@ -222,10 +228,17 @@ async function runTestsAndReport(config: any, options: any) {
       "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
     );
   } else try {
-    const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
+    const { inferRuntimeNeeds, SCREENSHOT_PACKAGES } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+    // The config runSpecs reads, always set by now (the dryRun check above
+    // reads it). setConfig deep-clones the caller's config, so auto-capture
+    // settings come from here, and the auto-screenshot flag below lands here,
+    // never on the caller's object (ADR 01177).
+    const runConfig = resolvedTests.config;
     const needs = inferRuntimeNeeds(resolvedTests, {
       configShell: config.shell,
+      autoScreenshot: runConfig.autoScreenshot,
+      autoRecord: runConfig.autoRecord,
     });
     const ctx = { cacheDir: config.cacheDir };
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
@@ -258,12 +271,25 @@ async function runTestsAndReport(config: any, options: any) {
     // contract.
     /* c8 ignore start */
     const preflightLogger = (msg: string, level: string = "info") => log(config, level, msg);
-    if (needs.npmPackages.size > 0) {
-      await ensureRuntimeInstalled([...needs.npmPackages], {
-        ctx,
-        deps: { logger: preflightLogger },
-      });
-    }
+    /* c8 ignore stop */
+    // `options.installRuntime` is a test seam for the npm install.
+    const install: (packages: string[]) => Promise<unknown> =
+      options.installRuntime ??
+      ((packages: string[]) =>
+        ensureRuntimeInstalled(packages, { ctx, deps: { logger: preflightLogger } }));
+    // Packages needed only by automatic screenshots install on their own, so
+    // a failure turns those off for the run instead of failing it (ADR 01177).
+    const autoShotPackages = needs.autoScreenshotOnly ? [...SCREENSHOT_PACKAGES] : [];
+    const corePackages = [...needs.npmPackages].filter(
+      (name) => !autoShotPackages.includes(name)
+    );
+    if (corePackages.length > 0) await install(corePackages);
+    await installAutoScreenshotPackages({
+      config: runConfig,
+      packages: autoShotPackages,
+      install,
+    });
+    /* c8 ignore start */
     if (needs.browsers.size > 0) {
       try {
         const { getAvailableApps, patchAppCache } = await import("./config.js");

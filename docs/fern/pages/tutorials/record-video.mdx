@@ -33,7 +33,7 @@ To run the test:
      </Tab>
    </Tabs>
 
-To record, you must run the test with _headless_ mode turned off. The display window of the browser constrains the view area of the screenshot and video functions.
+Chrome records headless too, but this tutorial runs with _headless_ mode turned off so you can watch the test. The browser's viewport sets the view area of the screenshot and video functions.
 
 ## Code walkthrough
 
@@ -42,7 +42,7 @@ To record, you must run the test with _headless_ mode turned off. The display wi
 
 These are the notable additions to the spec used in the [Capture screenshot](/docs/test-docs/capture-screenshots) tutorial.
 
-For this example, the _headless_ setting must be false, so that the test actions are visible in the browser.
+For this example, the _headless_ setting is false, so that the test actions are visible in the browser.
 
 ```md
 {/* test {"testId":"form-filler3","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false,"viewport":{"width":1180,"height":1480}}}]} */}

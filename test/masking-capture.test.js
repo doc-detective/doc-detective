@@ -116,7 +116,9 @@ describe("hiding secrets in captures", function () {
         })
       );
       try {
-        const results = await runTests({ input: file, logLevel: "silent", telemetry: { send: false } });
+        // No automatic recording, so the steps are the ones this test wrote.
+        // Automatic screenshots stay on: they're captured through the blur.
+        const results = await runTests({ input: file, logLevel: "silent", telemetry: { send: false }, autoRecord: false });
         return results.specs[0].tests[0].contexts[0].steps;
       } finally {
         fs.rmSync(file, { force: true });

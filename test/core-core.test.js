@@ -8,6 +8,9 @@ import os from "node:os";
 
 const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
+// Screenshots and recordings are on by default (ADR 01177); tests that read
+// steps by position turn them off, so no automatic recording step leads.
+const NO_AUTO_CAPTURE = { autoScreenshot: false, autoRecord: false };
 
 describe("Run tests successfully", function () {
   // 30 minutes for the combined core test suite (runs all specs in one Appium session)
@@ -666,7 +669,7 @@ describe("Run tests successfully", function () {
     const tempFilePath = path.join(tempDir, "find-shorthand.spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
     try {
-      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const result = await runTests({ input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE });
       const context = result.specs[0].tests[0].contexts.find(
         (c) => c.steps && c.steps.length
       );
@@ -1321,7 +1324,7 @@ describe("Run tests successfully", function () {
       "./test/temp-initial-screenshot-test.json"
     );
     fs.writeFileSync(tempInitialFilePath, JSON.stringify(initialTest, null, 2));
-    const initialConfig = { input: tempInitialFilePath, logLevel: "silent" };
+    const initialConfig = { input: tempInitialFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE };
 
     try {
       // Run initial test to create the baseline screenshot
@@ -1351,7 +1354,7 @@ describe("Run tests successfully", function () {
         "./test/temp-screenshot-regression-test.json"
       );
       fs.writeFileSync(tempFilePath, JSON.stringify(regressionTest, null, 2));
-      const config = { input: tempFilePath, logLevel: "silent" };
+      const config = { input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE };
 
       const result = await runTests(config);
 
@@ -1411,7 +1414,7 @@ describe("Run tests successfully", function () {
     };
     const tempFilePath = path.resolve("./test/temp-runbrowserscript-edge.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
-    const config = { input: tempFilePath, logLevel: "silent", allowUnsafeSteps: true };
+    const config = { input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE, allowUnsafeSteps: true };
     try {
       const result = await runTests(config);
       const tests = result.specs[0].tests;
@@ -1495,7 +1498,7 @@ describe("Run tests successfully", function () {
     };
     const tempFilePath = path.resolve("./test/temp-rbs-snapshot-test.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
-    const config = { input: tempFilePath, logLevel: "silent" };
+    const config = { input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE };
     try {
       const result = await runTests(config);
       assert.equal(result.summary.steps.warning, 1);
@@ -2998,7 +3001,7 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-type-missing-process.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     let result;
     try {
       result = await runTests(config);
@@ -3043,7 +3046,7 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-type-stdio-timeout.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     let result;
     try {
       result = await runTests(config);
@@ -3102,7 +3105,7 @@ describe("getRunner() function", function () {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
     const tempFilePath = path.join(tempDir, "spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     try {
       const result = await runTests(config);
       const ran = result.specs[0].tests[0].contexts.find(
@@ -3219,7 +3222,7 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-type-chrome-surface.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     let result;
     try {
       result = await runTests(config);
@@ -3265,7 +3268,7 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-find-missing-tab.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     let result;
     try {
       result = await runTests(config);
@@ -3303,7 +3306,7 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-type-named-surface.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
+    const config = { input: tempFilePath, logLevel: "debug", ...NO_AUTO_CAPTURE };
     let result;
     try {
       result = await runTests(config);
@@ -3354,7 +3357,14 @@ describe("Screenshots hide secret values", function () {
         ],
       })
     );
-    const result = await runTests({ input: specPath, logLevel: "silent", telemetry: { send: false }, ...config });
+    // No automatic recording, so the steps are the ones this test wrote.
+    const result = await runTests({
+      input: specPath,
+      logLevel: "silent",
+      telemetry: { send: false },
+      autoRecord: false,
+      ...config,
+    });
     const steps = result.specs[0].tests[0].contexts[0].steps;
     assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"], JSON.stringify(steps));
     return shot;

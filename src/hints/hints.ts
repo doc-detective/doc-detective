@@ -92,52 +92,6 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // enableAutoRecord (feature discovery)
-  // ------------------------------------------------------------------
-  {
-    id: "enableAutoRecord",
-    priority: 40,
-    markdown: [
-      "Want a video of every run? Enable `--auto-record` to record each driver-based context end-to-end — browser and desktop app contexts capture the screen with the ffmpeg engine; Android/iOS contexts record the device screen.",
-      "",
-      "Videos are archived per run under `.doc-detective/runs/<runId>/` alongside test results, so you can replay exactly what happened.",
-      "",
-      "```bash",
-      "doc-detective --auto-record",
-      "```",
-    ].join("\n"),
-    // Browser contexts or app surfaces (startSurface) — autoRecord covers
-    // desktop app and mobile device contexts too (phase A7).
-    when: (ctx) =>
-      (ctx.usedBrowserContexts.size > 0 ||
-        ctx.usedStepTypes.has("startSurface")) &&
-      !ctx.producedRecordings &&
-      !ctx.config?.autoRecord,
-  },
-
-  // ------------------------------------------------------------------
-  // enableAutoScreenshot (feature discovery)
-  // ------------------------------------------------------------------
-  {
-    id: "enableAutoScreenshot",
-    priority: 40,
-    markdown: [
-      "Want a visual record of every run? Enable `--auto-screenshot` to capture an image after each browser step.",
-      "",
-      "Screenshots are archived per run under `.doc-detective/runs/<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
-      "",
-      "```bash",
-      "doc-detective --auto-screenshot",
-      "```",
-    ].join("\n"),
-    when: (ctx) =>
-      ctx.usedBrowserContexts.size > 0 &&
-      !ctx.producedScreenshots &&
-      !ctx.producedAutoScreenshots &&
-      !ctx.config?.autoScreenshot,
-  },
-
-  // ------------------------------------------------------------------
   // enableDebugLog (current-run problem) — shipped in v1
   // ------------------------------------------------------------------
   {
@@ -216,22 +170,17 @@ export const HINTS: Hint[] = [
   {
     id: "gitignoreOutputDir",
     priority: 20,
+    // Screenshots and recordings land in a run folder by default (ADR
+    // 01177), so with the default `outputDir` of `.` that's `.doc-detective/`.
     markdown: [
-      "Add your Doc Detective output directory to `.gitignore` so artifacts stay out of commits. Append your configured `output` (for example: `doc-detective-output/`) on its own line:",
+      "Keep Doc Detective's screenshots, recordings, and results out of commits. Add the `outputDir` you set to `.gitignore`. With the default `outputDir` (`.`), add `.doc-detective/`:",
       "",
       "```bash",
-      "echo \"doc-detective-output/\" >> .gitignore",
+      "echo \".doc-detective/\" >> .gitignore",
       "```",
     ].join("\n"),
-    when: (ctx) => {
-      const output = ctx.config?.outputDir;
-      return (
-        !ctx.outputDirGitignored &&
-        typeof output === "string" &&
-        output !== "." &&
-        output !== "./"
-      );
-    },
+    when: (ctx) =>
+      !ctx.outputDirGitignored && typeof ctx.config?.outputDir === "string",
   },
 
   // ------------------------------------------------------------------

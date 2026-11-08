@@ -7839,15 +7839,13 @@
           "default": false
         },
         "autoScreenshot": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "annotationDefaults": {
           "$ref": "annotationDefaults_v3.schema.json#"
         },
         "autoRecord": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "autoUpdate": {
           "type": "boolean",
