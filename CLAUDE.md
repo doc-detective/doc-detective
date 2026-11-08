@@ -310,6 +310,46 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 - `refactor(agents)!: rename agent ids to bare names`
 - `ci: start local test server for Test GitHub Action job`
 
+## Pull requests (required)
+
+Open your PRs and carry them through approval and merge.
+
+- **Earn the Claude review's approval.** Approval means an `APPROVED` review from the Claude review bot
+  (`claude[bot]`) on the PR's current head commit, or the maintainer's own approval.
+- **Get there by fixing.** Fix its findings and push. The bot reviews again after each push.
+- **Other bots don't count,** including CodeRabbit. Still fix CodeRabbit's valid findings, though. They're
+  often real bugs, even when its verdict doesn't gate the merge.
+
+For how to merge past the `main` ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
+
+### Stacked pull requests
+
+Develop and merge any change that spans more than one pull request as a GitHub stacked pull request, through
+the `gh stack` extension. Don't open independent PRs for dependent work, and don't hand-rebase a chain of
+branches.
+
+- Install the extension once: `gh extension install github/gh-stack`. Stacked PRs need no repository or
+  organization setting.
+- Start on the stack's trunk, which is `main` or a release branch such as `feat/v5-rc`:
+  `gh stack init --base <trunk> <first-branch>`. Add each layer with `gh stack add <branch>`. Keep each layer
+  one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
+- Open or update every PR in the stack with `gh stack submit --auto --open --remote origin`. Each PR targets
+  the branch below it.
+  - Agents always pass `--auto`. Without it, a terminal session opens an interactive editor and the command
+    blocks.
+  - `--remote origin` is needed because this checkout has several remotes.
+- When the trunk or a lower layer moves, run `gh stack sync --remote origin` or
+  `gh stack rebase --remote origin`, not a manual rebase. Both fetch, so they need the remote too.
+  `gh stack rebase` only updates local branches, so follow it with `gh stack push --remote origin` to publish
+  them.
+- Merge bottom-up with `gh stack merge <pr> --merge --yes`. It merges every PR up to and including `<pr>`, all
+  or nothing, so every one of those PRs needs its own approval first.
+  - Agents pass `--yes`, so the command doesn't wait for a prompt.
+  - Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
+- A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See
+  [release-operations.md](docs/maintenance/release-operations.md).
+- Put independent work in separate stacks.
+
 ## How version selection works
 
 Versions and releases are fully automated by **semantic-release** based on commit types:
