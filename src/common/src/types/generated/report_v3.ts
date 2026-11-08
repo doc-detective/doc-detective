@@ -12,14 +12,9 @@ export type DeviceByName = string;
 /**
  * OpenAPI description and configuration.
  */
-export type OpenApi = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type OpenApi = {
+  [k: string]: unknown;
+} & {
   /**
    * Name of the OpenAPI description, as defined in your configuration.
    */
@@ -153,6 +148,14 @@ export type Test = (
    * @minItems 1
    */
   steps?: [Step, ...Step[]];
+  /**
+   * Outcome of this test. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this test had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   /**
    * Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.
    */
@@ -389,7 +392,7 @@ export type Condition5 = string | [string, ...string[]];
 /**
  * A step in a test.
  */
-export type Step =
+export type Step = (
   | (Common & CheckLink)
   | (Common1 & Click)
   | (Common2 & Find)
@@ -410,7 +413,114 @@ export type Step =
   | (Common17 & LoadCookie)
   | (Common18 & Swipe)
   | (Common19 & Wait)
-  | (Common20 & Annotate);
+  | (Common20 & Annotate)
+) & {
+  $schema?: unknown;
+  result?: unknown;
+  resultDescription?: unknown;
+  stepId?: unknown;
+  description?: unknown;
+  unsafe?: unknown;
+  outputs?: unknown;
+  variables?: unknown;
+  breakpoint?: unknown;
+  if?: unknown;
+  assertions?: unknown;
+  onPass?: unknown;
+  onFail?: unknown;
+  onWarning?: unknown;
+  onSkip?: unknown;
+  location?: unknown;
+  autoScreenshot?: unknown;
+  attempts?: unknown;
+  visit?: unknown;
+  durationMs?: unknown;
+  checkLink?: unknown;
+  click?: unknown;
+  find?: unknown;
+  goTo?: unknown;
+  httpRequest?: unknown;
+  runShell?: unknown;
+  runCode?: unknown;
+  runBrowserScript?: unknown;
+  type?: unknown;
+  screenshot?: unknown;
+  saveCookie?: unknown;
+  record?: unknown;
+  stopRecord?: unknown;
+  closeSurface?: unknown;
+  startSurface?: unknown;
+  loadVariables?: unknown;
+  dragAndDrop?: unknown;
+  loadCookie?: unknown;
+  swipe?: unknown;
+  wait?: unknown;
+  annotate?: unknown;
+} & (
+    | (Common & CheckLink)
+    | (Common1 & Click)
+    | (Common2 & Find)
+    | (Common3 & GoTo)
+    | (Common4 & HttpRequest)
+    | (Common5 & RunShell)
+    | (Common6 & RunCode)
+    | (Common7 & RunBrowserScript)
+    | (Common8 & Type)
+    | (Common9 & Screenshot)
+    | (Common10 & SaveCookie)
+    | (Common11 & Record)
+    | (Common12 & StopRecord)
+    | (Common13 & CloseSurface)
+    | (Common14 & StartSurface)
+    | (Common15 & LoadVariables)
+    | (Common16 & DragAndDrop)
+    | (Common17 & LoadCookie)
+    | (Common18 & Swipe)
+    | (Common19 & Wait)
+    | (Common20 & Annotate)
+  ) & {
+    $schema?: unknown;
+    result?: unknown;
+    resultDescription?: unknown;
+    stepId?: unknown;
+    description?: unknown;
+    unsafe?: unknown;
+    outputs?: unknown;
+    variables?: unknown;
+    breakpoint?: unknown;
+    if?: unknown;
+    assertions?: unknown;
+    onPass?: unknown;
+    onFail?: unknown;
+    onWarning?: unknown;
+    onSkip?: unknown;
+    location?: unknown;
+    autoScreenshot?: unknown;
+    attempts?: unknown;
+    visit?: unknown;
+    durationMs?: unknown;
+    checkLink?: unknown;
+    click?: unknown;
+    find?: unknown;
+    goTo?: unknown;
+    httpRequest?: unknown;
+    runShell?: unknown;
+    runCode?: unknown;
+    runBrowserScript?: unknown;
+    type?: unknown;
+    screenshot?: unknown;
+    saveCookie?: unknown;
+    record?: unknown;
+    stopRecord?: unknown;
+    closeSurface?: unknown;
+    startSurface?: unknown;
+    loadVariables?: unknown;
+    dragAndDrop?: unknown;
+    loadCookie?: unknown;
+    swipe?: unknown;
+    wait?: unknown;
+    annotate?: unknown;
+  };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -813,6 +923,10 @@ export type ClickElementDetailed = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -854,7 +968,6 @@ export type ClickElementDetailed = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -1230,6 +1343,10 @@ export type ClickElementDetailed1 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -1271,7 +1388,6 @@ export type ClickElementDetailed1 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -2099,7 +2215,7 @@ export type HTTPRequestDetailed = (
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -5395,7 +5511,6 @@ export type ElementDetailed = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
@@ -5458,7 +5573,6 @@ export type ElementDetailed1 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -6908,7 +7022,7 @@ export type OpenApi3 = (
 /**
  * A step in a test.
  */
-export type Step1 =
+export type Step1 = (
   | (Common21 & CheckLink2)
   | (Common22 & Click3)
   | (Common23 & Find2)
@@ -6929,7 +7043,114 @@ export type Step1 =
   | (Common38 & LoadCookie2)
   | (Common39 & Swipe2)
   | (Common40 & Wait2)
-  | (Common41 & Annotate2);
+  | (Common41 & Annotate2)
+) & {
+  $schema?: unknown;
+  result?: unknown;
+  resultDescription?: unknown;
+  stepId?: unknown;
+  description?: unknown;
+  unsafe?: unknown;
+  outputs?: unknown;
+  variables?: unknown;
+  breakpoint?: unknown;
+  if?: unknown;
+  assertions?: unknown;
+  onPass?: unknown;
+  onFail?: unknown;
+  onWarning?: unknown;
+  onSkip?: unknown;
+  location?: unknown;
+  autoScreenshot?: unknown;
+  attempts?: unknown;
+  visit?: unknown;
+  durationMs?: unknown;
+  checkLink?: unknown;
+  click?: unknown;
+  find?: unknown;
+  goTo?: unknown;
+  httpRequest?: unknown;
+  runShell?: unknown;
+  runCode?: unknown;
+  runBrowserScript?: unknown;
+  type?: unknown;
+  screenshot?: unknown;
+  saveCookie?: unknown;
+  record?: unknown;
+  stopRecord?: unknown;
+  closeSurface?: unknown;
+  startSurface?: unknown;
+  loadVariables?: unknown;
+  dragAndDrop?: unknown;
+  loadCookie?: unknown;
+  swipe?: unknown;
+  wait?: unknown;
+  annotate?: unknown;
+} & (
+    | (Common21 & CheckLink2)
+    | (Common22 & Click3)
+    | (Common23 & Find2)
+    | (Common24 & GoTo2)
+    | (Common25 & HttpRequest2)
+    | (Common26 & RunShell2)
+    | (Common27 & RunCode2)
+    | (Common28 & RunBrowserScript2)
+    | (Common29 & Type1)
+    | (Common30 & Screenshot2)
+    | (Common31 & SaveCookie2)
+    | (Common32 & Record2)
+    | (Common33 & StopRecord2)
+    | (Common34 & CloseSurface2)
+    | (Common35 & StartSurface2)
+    | (Common36 & LoadVariables2)
+    | (Common37 & DragAndDrop2)
+    | (Common38 & LoadCookie2)
+    | (Common39 & Swipe2)
+    | (Common40 & Wait2)
+    | (Common41 & Annotate2)
+  ) & {
+    $schema?: unknown;
+    result?: unknown;
+    resultDescription?: unknown;
+    stepId?: unknown;
+    description?: unknown;
+    unsafe?: unknown;
+    outputs?: unknown;
+    variables?: unknown;
+    breakpoint?: unknown;
+    if?: unknown;
+    assertions?: unknown;
+    onPass?: unknown;
+    onFail?: unknown;
+    onWarning?: unknown;
+    onSkip?: unknown;
+    location?: unknown;
+    autoScreenshot?: unknown;
+    attempts?: unknown;
+    visit?: unknown;
+    durationMs?: unknown;
+    checkLink?: unknown;
+    click?: unknown;
+    find?: unknown;
+    goTo?: unknown;
+    httpRequest?: unknown;
+    runShell?: unknown;
+    runCode?: unknown;
+    runBrowserScript?: unknown;
+    type?: unknown;
+    screenshot?: unknown;
+    saveCookie?: unknown;
+    record?: unknown;
+    stopRecord?: unknown;
+    closeSurface?: unknown;
+    startSurface?: unknown;
+    loadVariables?: unknown;
+    dragAndDrop?: unknown;
+    loadCookie?: unknown;
+    swipe?: unknown;
+    wait?: unknown;
+    annotate?: unknown;
+  };
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -7332,6 +7553,10 @@ export type ClickElementDetailed2 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -7373,7 +7598,6 @@ export type ClickElementDetailed2 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -7749,6 +7973,10 @@ export type ClickElementDetailed3 = (
     }
 ) & {
   /**
+   * Max duration in milliseconds to wait for the element to exist.
+   */
+  timeout?: number;
+  /**
    * Kind of click to perform.
    */
   button?: "left" | "right" | "middle";
@@ -7790,7 +8018,6 @@ export type ClickElementDetailed3 = (
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
   elementAria?: string;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -8618,7 +8845,7 @@ export type HTTPRequestDetailed1 = (
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -11914,7 +12141,6 @@ export type ElementDetailed2 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
@@ -11977,7 +12203,6 @@ export type ElementDetailed3 = (
    * Max duration in milliseconds to wait for the element to exist.
    */
   timeout?: number;
-  [k: string]: unknown;
 };
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
@@ -13381,7 +13606,7 @@ export type ResolvedContexts = ResolvedContext[];
 
 export interface Report {
   /**
-   * Unique identifier for the test specification.
+   * Unique identifier for this report.
    */
   reportId?: string;
   /**
@@ -13397,11 +13622,18 @@ export interface Report {
    */
   durationMs?: number;
   /**
-   * Test specifications that were performed.
-   *
-   * @minItems 1
+   * Counts of results at each level of the run. Doc Detective populates it. You never set it yourself.
    */
-  specs: [Specification, ...Specification[]];
+  summary: {
+    specs: ResultCounts;
+    tests: ResultCounts1;
+    contexts: ResultCounts2;
+    steps: ResultCounts3;
+  };
+  /**
+   * Test specifications that were performed. Empty when a filter matched nothing.
+   */
+  specs: Specification[];
   /**
    * Results of the run's inline warm phase — the always-on, best-effort provisioning pass (dependency installs, device boots, session probes) performed between test resolution and test execution. A failed task never gates the run; the per-context paths retry or skip with their normal semantics. Absent when the run ended before the phase (for example, when no specs matched). System-populated.
    */
@@ -13438,6 +13670,30 @@ export interface Report {
     }[];
   };
   [k: string]: unknown;
+}
+export interface ResultCounts {
+  pass: number;
+  fail: number;
+  warning: number;
+  skipped: number;
+}
+export interface ResultCounts1 {
+  pass: number;
+  fail: number;
+  warning: number;
+  skipped: number;
+}
+export interface ResultCounts2 {
+  pass: number;
+  fail: number;
+  warning: number;
+  skipped: number;
+}
+export interface ResultCounts3 {
+  pass: number;
+  fail: number;
+  warning: number;
+  skipped: number;
 }
 export interface Specification {
   /**
@@ -13476,6 +13732,14 @@ export interface Specification {
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
+   * Outcome of this spec. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this spec had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
+  /**
    * Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.
    */
   durationMs?: number;
@@ -13485,7 +13749,6 @@ export interface Specification {
    * @minItems 1
    */
   tests: [Test, ...Test[]];
-  [k: string]: unknown;
 }
 /**
  * A context in which to perform tests. If no contexts are specified but a context is required by one or more tests, Doc Detective attempts to identify a supported context in the current environment and run tests against it. For example, if a browser isn't specified but is required by steps in the test, Doc Detective will search for and use a supported browser available in the current environment.
@@ -14653,6 +14916,14 @@ export interface Common {
    */
   unsafe?: boolean;
   outputs?: OutputsStep;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -14703,12 +14974,14 @@ export interface Common {
  */
 export interface OutputsStep {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -14909,6 +15182,14 @@ export interface Common1 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep1;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep1;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -14959,12 +15240,14 @@ export interface Common1 {
  */
 export interface OutputsStep1 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep1`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -15201,6 +15484,14 @@ export interface Common2 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep2;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep2;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -15251,12 +15542,14 @@ export interface Common2 {
  */
 export interface OutputsStep2 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep2`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -15553,7 +15846,6 @@ export interface FindElementAndClick {
    * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
   duration?: number;
-  [k: string]: unknown;
 }
 export interface ProcessSurface {
   /**
@@ -15694,6 +15986,14 @@ export interface Common3 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep3;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep3;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -15744,12 +16044,14 @@ export interface Common3 {
  */
 export interface OutputsStep3 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep3`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -15974,6 +16276,14 @@ export interface Common4 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep4;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep4;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16024,12 +16334,14 @@ export interface Common4 {
  */
 export interface OutputsStep4 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep4`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -16270,6 +16582,14 @@ export interface Common5 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep5;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep5;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16320,12 +16640,14 @@ export interface Common5 {
  */
 export interface OutputsStep5 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep5`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -16509,7 +16831,7 @@ export interface RunShellCommandDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -16574,6 +16896,14 @@ export interface Common6 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep6;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep6;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16624,12 +16954,14 @@ export interface Common6 {
  */
 export interface OutputsStep6 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep6`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -16781,9 +17113,9 @@ export interface RunCode {
 }
 export interface RunCodeDetailed {
   /**
-   * Language of the code to run.
+   * Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.
    */
-  language: "python" | "bash" | "javascript";
+  language: "python" | "py" | "bash" | "javascript" | "js";
   /**
    * Code to run.
    */
@@ -16813,7 +17145,7 @@ export interface RunCodeDetailed {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -16859,7 +17191,6 @@ export interface RunCodeDetailed {
      */
     tty?: boolean;
   };
-  [k: string]: unknown;
 }
 export interface Common7 {
   /**
@@ -16879,6 +17210,14 @@ export interface Common7 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep7;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep7;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16929,12 +17268,14 @@ export interface Common7 {
  */
 export interface OutputsStep7 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep7`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -17189,6 +17530,14 @@ export interface Common8 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep8;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep8;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17239,12 +17588,14 @@ export interface Common8 {
  */
 export interface OutputsStep8 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep8`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -17533,6 +17884,14 @@ export interface Common9 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep9;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep9;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17583,12 +17942,14 @@ export interface Common9 {
  */
 export interface OutputsStep9 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep9`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -17749,7 +18110,7 @@ export interface CaptureScreenshotFields {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -18363,6 +18724,14 @@ export interface Common10 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep10;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep10;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18413,12 +18782,14 @@ export interface Common10 {
  */
 export interface OutputsStep10 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep10`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -18586,6 +18957,14 @@ export interface Common11 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep11;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep11;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18636,12 +19015,14 @@ export interface Common11 {
  */
 export interface OutputsStep11 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep11`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -18815,7 +19196,6 @@ export interface RecordDetailed {
   engine?: RecordingEngine;
   verify?: RecordingVerifyGuards;
   checkpoints?: RecordingCheckpoints;
-  [k: string]: unknown;
 }
 export interface BrowserSurface8 {
   /**
@@ -18953,6 +19333,14 @@ export interface Common12 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep12;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep12;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19003,12 +19391,14 @@ export interface Common12 {
  */
 export interface OutputsStep12 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep12`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -19182,6 +19572,14 @@ export interface Common13 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep13;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep13;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19232,12 +19630,14 @@ export interface Common13 {
  */
 export interface OutputsStep13 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep13`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -19555,6 +19955,14 @@ export interface Common14 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep14;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep14;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19605,12 +20013,14 @@ export interface Common14 {
  */
 export interface OutputsStep14 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep14`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -20162,6 +20572,14 @@ export interface Common15 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep15;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep15;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20212,12 +20630,14 @@ export interface Common15 {
  */
 export interface OutputsStep15 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep15`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -20385,6 +20805,14 @@ export interface Common16 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep16;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep16;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20435,12 +20863,14 @@ export interface Common16 {
  */
 export interface OutputsStep16 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -20610,7 +21040,6 @@ export interface DragAndDrop1 {
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
   surface?: SurfaceByBrowserEngine7 | BrowserSurface11;
-  [k: string]: unknown;
 }
 export interface BrowserSurface11 {
   /**
@@ -20678,6 +21107,14 @@ export interface Common17 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep17;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep17;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20728,12 +21165,14 @@ export interface Common17 {
  */
 export interface OutputsStep17 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep17`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -20901,6 +21340,14 @@ export interface Common18 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep18;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep18;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20951,12 +21398,14 @@ export interface Common18 {
  */
 export interface OutputsStep18 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep18`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -21315,6 +21764,14 @@ export interface Common19 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep19;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep19;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21365,12 +21822,14 @@ export interface Common19 {
  */
 export interface OutputsStep19 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep19`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -21538,6 +21997,14 @@ export interface Common20 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep20;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep20;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21588,12 +22055,14 @@ export interface Common20 {
  */
 export interface OutputsStep20 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -22712,6 +23181,14 @@ export interface IdIsRequiredForUpdates {
 }
 export interface ResolvedContext {
   /**
+   * Outcome of this context. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this context had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
+  /**
    * Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.
    */
   durationMs?: number;
@@ -22807,6 +23284,14 @@ export interface Common21 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep21;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep21;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -22857,12 +23342,14 @@ export interface Common21 {
  */
 export interface OutputsStep21 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep21`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -23063,6 +23550,14 @@ export interface Common22 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep22;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep22;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23113,12 +23608,14 @@ export interface Common22 {
  */
 export interface OutputsStep22 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep22`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -23355,6 +23852,14 @@ export interface Common23 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep23;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep23;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23405,12 +23910,14 @@ export interface Common23 {
  */
 export interface OutputsStep23 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep23`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -23707,7 +24214,6 @@ export interface FindElementAndClick1 {
    * How long to hold the press, in milliseconds. A long-press (touch-and-hold) on mobile app surfaces; press-and-hold of the button on desktop apps and browsers. Omit for a normal click.
    */
   duration?: number;
-  [k: string]: unknown;
 }
 export interface ProcessSurface4 {
   /**
@@ -23848,6 +24354,14 @@ export interface Common24 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep24;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep24;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -23898,12 +24412,14 @@ export interface Common24 {
  */
 export interface OutputsStep24 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep24`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -24128,6 +24644,14 @@ export interface Common25 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep25;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep25;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24178,12 +24702,14 @@ export interface Common25 {
  */
 export interface OutputsStep25 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep25`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -24424,6 +24950,14 @@ export interface Common26 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep26;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep26;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24474,12 +25008,14 @@ export interface Common26 {
  */
 export interface OutputsStep26 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep26`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -24663,7 +25199,7 @@ export interface RunShellCommandDetailed1 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -24728,6 +25264,14 @@ export interface Common27 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep27;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep27;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24778,12 +25322,14 @@ export interface Common27 {
  */
 export interface OutputsStep27 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep27`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -24935,9 +25481,9 @@ export interface RunCode2 {
 }
 export interface RunCodeDetailed1 {
   /**
-   * Language of the code to run.
+   * Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.
    */
-  language: "python" | "bash" | "javascript";
+  language: "python" | "py" | "bash" | "javascript" | "js";
   /**
    * Code to run.
    */
@@ -24967,7 +25513,7 @@ export interface RunCodeDetailed1 {
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -25013,7 +25559,6 @@ export interface RunCodeDetailed1 {
      */
     tty?: boolean;
   };
-  [k: string]: unknown;
 }
 export interface Common28 {
   /**
@@ -25033,6 +25578,14 @@ export interface Common28 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep28;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep28;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25083,12 +25636,14 @@ export interface Common28 {
  */
 export interface OutputsStep28 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep28`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -25343,6 +25898,14 @@ export interface Common29 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep29;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep29;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25393,12 +25956,14 @@ export interface Common29 {
  */
 export interface OutputsStep29 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep29`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -25687,6 +26252,14 @@ export interface Common30 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep30;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep30;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25737,12 +26310,14 @@ export interface Common30 {
  */
 export interface OutputsStep30 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep30`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -25903,7 +26478,7 @@ export interface CaptureScreenshotFields1 {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -26517,6 +27092,14 @@ export interface Common31 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep31;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep31;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26567,12 +27150,14 @@ export interface Common31 {
  */
 export interface OutputsStep31 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep31`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -26740,6 +27325,14 @@ export interface Common32 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep32;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep32;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26790,12 +27383,14 @@ export interface Common32 {
  */
 export interface OutputsStep32 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep32`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -26969,7 +27564,6 @@ export interface RecordDetailed1 {
   engine?: RecordingEngine1;
   verify?: RecordingVerifyGuards1;
   checkpoints?: RecordingCheckpoints1;
-  [k: string]: unknown;
 }
 export interface BrowserSurface22 {
   /**
@@ -27107,6 +27701,14 @@ export interface Common33 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep33;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep33;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27157,12 +27759,14 @@ export interface Common33 {
  */
 export interface OutputsStep33 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep33`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -27336,6 +27940,14 @@ export interface Common34 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep34;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep34;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27386,12 +27998,14 @@ export interface Common34 {
  */
 export interface OutputsStep34 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep34`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -27709,6 +28323,14 @@ export interface Common35 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep35;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep35;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27759,12 +28381,14 @@ export interface Common35 {
  */
 export interface OutputsStep35 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep35`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -28316,6 +28940,14 @@ export interface Common36 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep36;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep36;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28366,12 +28998,14 @@ export interface Common36 {
  */
 export interface OutputsStep36 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep36`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -28539,6 +29173,14 @@ export interface Common37 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep37;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep37;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28589,12 +29231,14 @@ export interface Common37 {
  */
 export interface OutputsStep37 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep37`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -28764,7 +29408,6 @@ export interface DragAndDrop3 {
    * The browser window/tab the source and target elements live in. Omit to act on the active tab. The targeted tab stays focused afterward.
    */
   surface?: SurfaceByBrowserEngine17 | BrowserSurface25;
-  [k: string]: unknown;
 }
 export interface BrowserSurface25 {
   /**
@@ -28832,6 +29475,14 @@ export interface Common38 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep38;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep38;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28882,12 +29533,14 @@ export interface Common38 {
  */
 export interface OutputsStep38 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep38`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -29055,6 +29708,14 @@ export interface Common39 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep39;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep39;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29105,12 +29766,14 @@ export interface Common39 {
  */
 export interface OutputsStep39 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep39`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -29469,6 +30132,14 @@ export interface Common40 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep40;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep40;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29519,12 +30190,14 @@ export interface Common40 {
  */
 export interface OutputsStep40 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep40`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.
@@ -29692,6 +30365,14 @@ export interface Common41 {
    */
   unsafe?: boolean;
   outputs?: OutputsStep41;
+  /**
+   * Outcome of this step. Doc Detective populates it. You never set it yourself.
+   */
+  result?: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
+   */
+  resultDescription?: string;
   variables?: VariablesStep41;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29742,12 +30423,14 @@ export interface Common41 {
  */
 export interface OutputsStep41 {
   /**
-   * Runtime expression for a user-defined output value.
+   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep41`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
    */
-  [k: string]: string;
+  [k: string]: {
+    [k: string]: unknown;
+  };
 }
 /**
  * Environment variables to set from user-defined expressions.

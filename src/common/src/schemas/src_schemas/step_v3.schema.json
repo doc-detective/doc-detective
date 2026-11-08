@@ -26,6 +26,12 @@
           "outputs": {
             "$ref": "#/components/schemas/outputs"
           },
+          "result": {
+            "$ref": "#/components/schemas/result"
+          },
+          "resultDescription": {
+            "$ref": "#/components/schemas/resultDescription"
+          },
           "variables": {
             "$ref": "#/components/schemas/variables"
           },
@@ -148,8 +154,7 @@
         "default": {},
         "patternProperties": {
           "^[A-Za-z0-9_]+$": {
-            "type": "string",
-            "description": "Runtime expression for a user-defined output value."
+            "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
           }
         },
         "title": "Outputs (step)"
@@ -190,6 +195,17 @@
         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
         "readOnly": true
       },
+      "result": {
+        "type": "string",
+        "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+        "readOnly": true
+      },
+      "resultDescription": {
+        "type": "string",
+        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+        "readOnly": true
+      },
       "durationMs": {
         "type": "integer",
         "minimum": 0,
@@ -227,7 +243,51 @@
       }
     }
   },
-  "anyOf": [
+  "properties": {
+    "$schema": {},
+    "result": {},
+    "resultDescription": {},
+    "stepId": {},
+    "description": {},
+    "unsafe": {},
+    "outputs": {},
+    "variables": {},
+    "breakpoint": {},
+    "if": {},
+    "assertions": {},
+    "onPass": {},
+    "onFail": {},
+    "onWarning": {},
+    "onSkip": {},
+    "location": {},
+    "autoScreenshot": {},
+    "attempts": {},
+    "visit": {},
+    "durationMs": {},
+    "checkLink": {},
+    "click": {},
+    "find": {},
+    "goTo": {},
+    "httpRequest": {},
+    "runShell": {},
+    "runCode": {},
+    "runBrowserScript": {},
+    "type": {},
+    "screenshot": {},
+    "saveCookie": {},
+    "record": {},
+    "stopRecord": {},
+    "closeSurface": {},
+    "startSurface": {},
+    "loadVariables": {},
+    "dragAndDrop": {},
+    "loadCookie": {},
+    "swipe": {},
+    "wait": {},
+    "annotate": {}
+  },
+  "additionalProperties": false,
+  "oneOf": [
     {
       "allOf": [
         {

@@ -1,0 +1,109 @@
+// Every fenced json/yaml example in the docs validates against doc-detective-common.
+// Blocks are classified by shape; anything unrecognized (workflow YAML, fragments,
+// output samples, markup templates) is skipped. A fence whose info string carries
+// `invalid` (```json invalid) is a deliberate counter-example and is skipped too.
+// Kept small on purpose: sibling repos copy the core of this file.
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import YAML from "yaml";
+import { validate, schemas, stepActions } from "../dist/common/src/index.js";
+
+// fs.globSync needs Node 22+ (CI runs 24+). Say so instead of failing with a TypeError.
+if (typeof fs.globSync !== "function") {
+  throw new Error(`doc-examples.test.js needs Node 22 or later for fs.globSync (running ${process.version}).`);
+}
+const FILES = [...fs.globSync("docs/fern/pages/**/*.mdx"), "README.md", "src/common/README.md"];
+const configKeys = new Set(Object.keys(schemas.config_v3.properties));
+const stepKeys = new Set(Object.keys(schemas.step_v3.properties)); // actions + step-level keys
+const actionKeys = new Set(stepActions);
+const isAction = (key) => actionKeys.has(key);
+const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+function classify(object) {
+  if (!isObject(object)) return null;
+  const keys = Object.keys(object);
+  if (keys.includes("tests")) return "spec_v3";
+  if (Array.isArray(object.steps) && object.steps.some((s) => isObject(s) && Object.keys(s).some(isAction))) return "test_v3";
+  // Only step-level keys, including an action. Sub-objects that happen to carry an action-named
+  // key (a find object's `click`, a file type's `runShell`) aren't steps. Two actions still
+  // classify as a step, so validation rejects them.
+  if (keys.some(isAction) && keys.every((k) => stepKeys.has(k))) return "step_v3";
+  if (keys.length > 0 && keys.every((k) => configKeys.has(k))) return "config_v3";
+  return null;
+}
+
+function* fencedBlocks(file, source = fs.readFileSync(file, "utf8")) {
+  // A ```` (or longer) fence is a sample whose inner fences render as literal text: blank it,
+  // keeping its newlines so line numbers still match.
+  const text = source
+    .replace(/\r\n/g, "\n")
+    .replace(/^([ \t]*)(`{4,})[^\n]*\n[\s\S]*?^\1\2`*[ \t]*$/gm, (sample) => sample.replace(/[^\n]/g, ""));
+  // `\1` makes the closing fence match the opening fence's indentation.
+  for (const m of text.matchAll(/^([ \t]*)```(json|ya?ml)([^\n]*)\n([\s\S]*?)^\1```/gm)) {
+    const [, indent, lang, info, body] = m;
+    const line = text.slice(0, m.index).split("\n").length;
+    yield { where: `${file}:${line}`, lang, info, body: body.replace(new RegExp(`^${indent}`, "gm"), "") };
+  }
+}
+
+function checkDocExamples() {
+  const counts = { checked: 0, skipped: 0 };
+  const failures = [];
+  for (const file of FILES) {
+    for (const { where, lang, info, body } of fencedBlocks(file)) {
+      let object;
+      try {
+        object = lang === "json" ? JSON.parse(body) : YAML.parse(body);
+      } catch {
+        object = undefined; // A fragment, not a whole document.
+      }
+      let schemaKey = /\binvalid\b/.test(info) ? null : classify(object);
+      // A step with `"$1"` values is a markup action template, not a step. Scoped to step_v3 on
+      // purpose: every known template is a step. Widen it if a config template appears.
+      if (schemaKey === "step_v3" && /"\$\d+"/.test(body)) schemaKey = null;
+      if (!schemaKey) {
+        counts.skipped++;
+        continue;
+      }
+      counts.checked++;
+      const result = validate({ schemaKey, object });
+      // validate() formats `errors` as a string, so this interpolates readable text.
+      if (!result.valid) failures.push(`${where} (${schemaKey}): ${result.errors}`);
+    }
+  }
+  return { ...counts, failures };
+}
+
+describe("doc examples", function () {
+  it("classifies a two-action step as a step, so validation rejects it", function () {
+    assert.equal(classify({ goTo: "https://example.com", find: "Welcome" }), "step_v3");
+    // null: `elementText` isn't a step-level key, so the every-key-is-a-step-key guard fails.
+    assert.equal(classify({ elementText: "Welcome", click: true }), null);
+  });
+
+  it("skips fences nested in a longer outer fence, which render as literal text", function () {
+    const sample = ['````markdown', '```json title="x.json"', '{ "tests": [] }', '```', '````', '```json', '{ "goTo": "/" }', '```'].join("\n");
+    const blocks = [...fencedBlocks("sample.mdx", sample)];
+    assert.deepEqual(blocks.map((b) => b.where), ["sample.mdx:6"]);
+  });
+
+  it("every json/yaml example validates against doc-detective-common", function () {
+    const { checked, skipped, failures } = checkDocExamples();
+    console.log(`      ${checked} checked, ${skipped} skipped, ${failures.length} invalid`);
+    assert.ok(checked > 0, "no examples were checked; is the glob right?");
+    assert.deepEqual(failures, []);
+  });
+
+  // Core only (not part of the copy): the concepts page lists every action, linking its page.
+  // docs.yml mounts pages/docs/actions as a folder, so Fern slugs each page from its lowercased
+  // file name: actions/dragAndDrop.mdx is /docs/actions/draganddrop.
+  it("concepts.mdx has a row for every step action, linking an existing page", function () {
+    const concepts = fs.readFileSync("docs/fern/pages/docs/get-started/concepts.mdx", "utf8");
+    const missing = stepActions.filter(
+      (a) =>
+        !concepts.includes(`| [${a}](/docs/actions/${a.toLowerCase()})`) ||
+        !fs.existsSync(`docs/fern/pages/docs/actions/${a}.mdx`)
+    );
+    assert.deepEqual(missing, []);
+  });
+});

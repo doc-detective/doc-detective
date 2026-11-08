@@ -25,6 +25,7 @@ import {
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
 } from "../dist/core/config.js";
+import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -586,6 +587,68 @@ describe("config.ts — setConfig", function () {
     assert.equal(config.fileTypes[0].name, "markdown");
   });
 
+  it("expands fileType keywords from common's default table", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: ["markdown", "asciidoc", "html", "dita"],
+      },
+    });
+    assert.deepEqual(config.fileTypes, [
+      defaultFileTypes.markdown,
+      defaultFileTypes.asciidoc,
+      defaultFileTypes.html,
+      defaultFileTypes.dita,
+    ]);
+  });
+
+  it("detects capitalized typing instructions in Markdown", async function () {
+    const config = await setConfig({
+      config: { logLevel: "silent", dryRun: true, input: ["./README.md"], fileTypes: ["markdown"] },
+    });
+    const typeText = config.fileTypes[0].markup.find((markup) => markup.name === "typeText");
+    const pattern = new RegExp(typeText.regex[0]);
+    assert.equal(pattern.exec('Type "hello" in the box.')?.[1], "hello");
+    assert.equal(pattern.exec('Press "Enter" to search.')?.[1], "Enter");
+    assert.equal(pattern.exec('then type "kittens" here.')?.[1], "kittens");
+  });
+
+  it("gives each run its own copy of a default fileType", async function () {
+    const options = () => ({
+      config: { logLevel: "silent", dryRun: true, input: ["./README.md"], fileTypes: ["markdown"] },
+    });
+    const before = JSON.stringify(defaultFileTypes.markdown);
+    const first = await setConfig(options());
+    first.fileTypes[0].markup.length = 0;
+    const second = await setConfig(options());
+    assert.ok(second.fileTypes[0].markup.length > 0, "a later run still gets the default markup");
+    assert.equal(JSON.stringify(defaultFileTypes.markdown), before);
+  });
+
+  it("leaves the caller's config and fileType objects unchanged", async function () {
+    const fileType = {
+      extends: "markdown",
+      extensions: ["mdextra"],
+      inlineStatements: { in: ["comment"], step: "CUSTOMSTEP" },
+      markup: [{ name: "brandNew", regex: "X", actions: ["find"] }],
+    };
+    const varName = "DD_COV_UNMUTATED_" + Date.now();
+    process.env[varName] = "./README.md";
+    const input = { logLevel: "silent", dryRun: true, input: [`$${varName}`], beforeAny: "", fileTypes: [fileType] };
+    const snapshot = structuredClone(input);
+    try {
+      const first = await setConfig({ config: input });
+      assert.deepEqual(first.input, ["./README.md"]);
+      assert.deepEqual(input, snapshot);
+      const second = await setConfig({ config: input });
+      assert.deepEqual(second.fileTypes, first.fileTypes);
+    } finally {
+      delete process.env[varName];
+    }
+  });
+
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
     // AJV's config_v3 enum guard fires before setConfig's own
     // defaultFileTypes[fileType] undefined check, so an unknown fileType
@@ -694,6 +757,38 @@ describe("config.ts — setConfig", function () {
     assert.ok(names.includes("findOnscreenText"));
   });
 
+  it("keeps statement containers and selector definitions through extends", async function () {
+    const container = { element: { tag: ["meta"] }, value: "attributes.content" };
+    const selector = { name: "runBash", codeBlock: "bash", actions: [{ runShell: "$1" }] };
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [{ extends: "markdown", inlineStatements: { in: ["comment", container] }, markup: [selector] }],
+      },
+    });
+    const ft = config.fileTypes[0];
+    // The built-in's "comment" container and this one, once each.
+    assert.deepEqual(ft.inlineStatements.in, ["comment", container]);
+    assert.deepEqual(ft.markup[0], selector);
+  });
+
+  it("inherits the built-in's statement containers through extends", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [{ extends: "dita", inlineStatements: { step: ["STEP (.*)"] } }],
+      },
+    });
+    const ft = config.fileTypes[0];
+    assert.equal(ft.inlineStatements.in[0], "comment");
+    assert.equal(ft.inlineStatements.in[1].element.tag[0], "data");
+    assert.deepEqual(ft.inlineStatements.step, ["STEP (.*)"]);
+  });
+
   it("extends a default definition when the extending fileType omits inlineStatements and markup", async function () {
     // Exercises the `fileType.inlineStatements === undefined` init branch and
     // the `fileType.markup = fileType.markup || []` init branch during merge.
@@ -708,15 +803,14 @@ describe("config.ts — setConfig", function () {
     const ft = config.fileTypes[0];
     assert.equal(ft.name, "markdown");
     // inlineStatements were initialized and populated from the parent.
-    assert.ok(Array.isArray(ft.inlineStatements.testStart));
-    assert.ok(ft.inlineStatements.testStart.length > 0);
+    assert.deepEqual(ft.inlineStatements.in, ["comment"]);
     // markup array initialized and populated from the parent.
     assert.ok(Array.isArray(ft.markup));
     assert.ok(ft.markup.some((m) => m.name === "findOnscreenText"));
     assert.ok(ft.extensions.includes("mdbare"));
   });
 
-  it("throws when a fileType extends an unknown definition", async function () {
+  it("rejects a fileType that extends an unknown definition", async function () {
     await assert.rejects(
       () =>
         setConfig({
@@ -727,7 +821,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /references unknown fileType definition/
+      /\/fileTypes\/0\/extends must be equal to one of the allowed values/
     );
   });
 

@@ -21,34 +21,7 @@ import { listAdapters } from "../agents/registry.js";
 import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 import { requireYaml } from "../core/lazyYaml.js";
-
-// Action keys recognized by the v3 `step` schema. Kept in sync with
-// `step_v3.schema.json`'s anyOf branches — extra entries here would
-// silently never match real results, so this list must mirror the
-// schema. Order doesn't matter; the consumer is `Set.has()`.
-const STEP_ACTION_KEYS = [
-  "annotate",
-  "checkLink",
-  "click",
-  "closeSurface",
-  "dragAndDrop",
-  "find",
-  "goTo",
-  "httpRequest",
-  "loadCookie",
-  "loadVariables",
-  "record",
-  "runBrowserScript",
-  "runCode",
-  "runShell",
-  "saveCookie",
-  "screenshot",
-  "startSurface",
-  "stopRecord",
-  "swipe",
-  "type",
-  "wait",
-] as const;
+import { stepActions } from "../common/src/stepActions.js";
 
 const STABLE_FIND_KEYS = [
   "elementText",
@@ -621,7 +594,7 @@ export function walkResults(results: any): WalkData {
 
 function inspectStep(step: any, data: WalkData): void {
   if (!step || typeof step !== "object") return;
-  for (const key of STEP_ACTION_KEYS) {
+  for (const key of stepActions) {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
   }
 

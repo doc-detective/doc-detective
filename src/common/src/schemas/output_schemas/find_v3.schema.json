@@ -347,6 +347,7 @@
                 },
                 {
                   "title": "Click element (detailed)",
+                  "additionalProperties": false,
                   "type": "object",
                   "anyOf": [
                     {
@@ -386,6 +387,11 @@
                     }
                   ],
                   "properties": {
+                    "timeout": {
+                      "type": "integer",
+                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                      "default": 5000
+                    },
                     "button": {
                       "description": "Kind of click to perform.",
                       "type": "string",
@@ -700,6 +706,7 @@
                   },
                   "object": {
                     "title": "Click element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -739,6 +746,11 @@
                       }
                     ],
                     "properties": {
+                      "timeout": {
+                        "type": "integer",
+                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                        "default": 5000
+                      },
                       "button": {
                         "description": "Kind of click to perform.",
                         "type": "string",
@@ -1060,6 +1072,7 @@
                   "minimum": 1
                 }
               },
+              "additionalProperties": false,
               "title": "Find element and click"
             }
           ]
@@ -4494,6 +4507,7 @@
                   },
                   {
                     "title": "Click element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -4533,6 +4547,11 @@
                       }
                     ],
                     "properties": {
+                      "timeout": {
+                        "type": "integer",
+                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                        "default": 5000
+                      },
                       "button": {
                         "description": "Kind of click to perform.",
                         "type": "string",
@@ -4847,6 +4866,7 @@
                     },
                     "object": {
                       "title": "Click element (detailed)",
+                      "additionalProperties": false,
                       "type": "object",
                       "anyOf": [
                         {
@@ -4886,6 +4906,11 @@
                         }
                       ],
                       "properties": {
+                        "timeout": {
+                          "type": "integer",
+                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                          "default": 5000
+                        },
                         "button": {
                           "description": "Kind of click to perform.",
                           "type": "string",
@@ -5207,6 +5232,7 @@
                     "minimum": 1
                   }
                 },
+                "additionalProperties": false,
                 "title": "Find element and click"
               }
             ]

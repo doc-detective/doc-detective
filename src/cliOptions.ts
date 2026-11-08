@@ -126,7 +126,7 @@ export function addRunOptions(command: Command): Command {
     "Print the resolved test plan as JSON and stop",
     "--no-dry-run"
   );
-  command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test"));
+  command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test context"));
   command.addOption(grouped(RUN_GROUP, "--no-exit-on-fail", "Exit 0 even when tests fail"));
 
   addBooleanPair(

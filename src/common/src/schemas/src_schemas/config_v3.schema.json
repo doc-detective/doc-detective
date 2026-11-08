@@ -43,7 +43,7 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
       "type": "array",
       "items": {
         "type": "string",
@@ -200,6 +200,7 @@
                 "$comment": "Custom mode: Extend predefined templates or write whole new ones.",
                 "title": "File type (custom)",
                 "type": "object",
+                "additionalProperties": false,
                 "anyOf": [
                   {
                     "required": [
@@ -218,12 +219,13 @@
                     "type": "string"
                   },
                   "extends": {
-                    "description": "Base template to extend.",
+                    "description": "Base template to extend. A file whose extension no parser handles is parsed as this format.",
                     "type": "string",
                     "enum": [
                       "markdown",
                       "asciidoc",
-                      "html"
+                      "html",
+                      "dita"
                     ]
                   },
                   "extensions": {
@@ -240,7 +242,6 @@
                   "markup": {
                     "description": "Markup definitions for the file type.",
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                       "$ref": "#/components/schemas/markupDefinition"
                     }
@@ -251,10 +252,15 @@
                 "title": "File type (executable)",
                 "$comment": "Executable mode: Convert executable inputs directly into tests.",
                 "type": "object",
+                "additionalProperties": false,
                 "required": [
                   "extensions"
                 ],
                 "properties": {
+                  "name": {
+                    "description": "Name of the file type.",
+                    "type": "string"
+                  },
                   "extensions": {
                     "description": "File extensions to use with type.",
                     "anyOf": [
@@ -607,18 +613,92 @@
       },
       "markupDefinition": {
         "type": "object",
+        "description": "Detects steps from a file. Use `regex` to match the file's raw text, one selector kind to match parsed nodes, or a kind with `regex` to match inside the selected nodes.",
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "regex"
+            ],
+            "properties": {
+              "comment": false,
+              "codeBlock": false,
+              "link": false,
+              "image": false,
+              "strong": false,
+              "emphasis": false,
+              "text": false,
+              "element": false,
+              "captures": false
+            }
+          },
+          {
+            "$ref": "#/components/schemas/oneSelectorKind"
+          }
+        ],
+        "if": {
+          "required": [
+            "captures"
+          ],
+          "properties": {
+            "captures": {
+              "type": "array",
+              "contains": {
+                "type": "string",
+                "pattern": "^match\\."
+              }
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "regex"
+          ]
+        },
         "properties": {
           "name": {
             "description": "Name of the markup definition",
             "type": "string"
           },
           "regex": {
-            "description": "Regular expressions to match the markup type.",
+            "description": "Regular expressions to match. Alone, they run on the file's raw text. With a selector kind, they run on each selected node's main text, and each occurrence is a match. A node's main text is its `content`, else its `text`, else its `alt`.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/stringOrArray"
               }
             ]
+          },
+          "comment": {
+            "$ref": "#/components/schemas/selectorComment"
+          },
+          "codeBlock": {
+            "$ref": "#/components/schemas/selectorCodeBlock"
+          },
+          "link": {
+            "$ref": "#/components/schemas/selectorLink"
+          },
+          "image": {
+            "$ref": "#/components/schemas/selectorImage"
+          },
+          "strong": {
+            "$ref": "#/components/schemas/selectorStrong"
+          },
+          "emphasis": {
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "text": {
+            "$ref": "#/components/schemas/selectorText"
+          },
+          "element": {
+            "$ref": "#/components/schemas/selectorElement"
+          },
+          "captures": {
+            "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/captureField"
+            }
           },
           "batchMatches": {
             "description": "If `true`, all matches are combined into a single string.",
@@ -626,7 +706,7 @@
             "default": false
           },
           "actions": {
-            "description": "Actions to perform when the markup type is detected.",
+            "description": "Actions to perform when the markup type is detected. An action name uses `$1` as its value. An object is a step template: `$1`, `$2`, and so on are replaced, and the result is checked as a step when it's detected. A step that isn't valid is skipped with a warning.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/markupActionString"
@@ -639,7 +719,7 @@
                       "$ref": "#/components/schemas/markupActionString"
                     },
                     {
-                      "$ref": "step_v3.schema.json#"
+                      "type": "object"
                     }
                   ]
                 }
@@ -647,7 +727,53 @@
             ]
           }
         },
-        "title": "Markup definition"
+        "title": "Markup definition",
+        "examples": [
+          {
+            "name": "runBash",
+            "codeBlock": "bash",
+            "actions": [
+              {
+                "runShell": "$1"
+              }
+            ]
+          },
+          {
+            "name": "goToLink",
+            "link": {
+              "url": "^https?://",
+              "precededBy": "\\b[Gg]o to\\s+$"
+            },
+            "captures": [
+              "url"
+            ],
+            "actions": [
+              "goTo"
+            ]
+          },
+          {
+            "name": "version",
+            "text": {},
+            "regex": "\\bv(\\d+\\.\\d+)\\b",
+            "actions": [
+              "find"
+            ]
+          },
+          {
+            "name": "apiCall",
+            "regex": [
+              "API:\\s*(GET|POST)\\s+`([^`]+)`"
+            ],
+            "actions": [
+              {
+                "httpRequest": {
+                  "method": "$1",
+                  "url": "$2"
+                }
+              }
+            ]
+          }
+        ]
       },
       "markupActionString": {
         "type": "string",
@@ -673,7 +799,26 @@
       "inlineStatements": {
         "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
         "type": "object",
+        "additionalProperties": false,
         "properties": {
+          "in": {
+            "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. `\"comment\"` reads every comment.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "comment"
+                  ]
+                },
+                {
+                  "$ref": "#/components/schemas/statementContainer"
+                }
+              ]
+            }
+          },
           "testStart": {
             "description": "Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement.",
             "anyOf": [
@@ -716,6 +861,296 @@
           }
         },
         "title": "Inline statement definition"
+      },
+      "statementContainer": {
+        "description": "Nodes of one selector kind to read as statements.",
+        "type": "object",
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/oneSelectorKind"
+          }
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/selectorComment"
+          },
+          "codeBlock": {
+            "$ref": "#/components/schemas/selectorCodeBlock"
+          },
+          "link": {
+            "$ref": "#/components/schemas/selectorLink"
+          },
+          "image": {
+            "$ref": "#/components/schemas/selectorImage"
+          },
+          "strong": {
+            "$ref": "#/components/schemas/selectorStrong"
+          },
+          "emphasis": {
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "text": {
+            "$ref": "#/components/schemas/selectorText"
+          },
+          "element": {
+            "$ref": "#/components/schemas/selectorElement"
+          },
+          "value": {
+            "description": "Field that holds the statement text. Defaults to the node's main text.",
+            "$ref": "#/components/schemas/captureField"
+          },
+          "regex": {
+            "description": "Regular expressions to run on the statement text. The first group of the first match becomes the statement, else the whole match. A node that doesn't match isn't a statement.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/selectorPattern"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/selectorPattern"
+                }
+              }
+            ]
+          }
+        },
+        "title": "Statement container",
+        "examples": [
+          {
+            "comment": {
+              "excludes": "draft"
+            },
+            "regex": "^dd:\\s*(.*)$"
+          },
+          {
+            "element": {
+              "tag": [
+                "meta"
+              ],
+              "attributes": {
+                "name": "^doc-detective$"
+              }
+            },
+            "value": "attributes.content"
+          }
+        ]
+      },
+      "oneSelectorKind": {
+        "oneOf": [
+          {
+            "required": ["comment"],
+            "properties": { "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["codeBlock"],
+            "properties": { "comment": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["link"],
+            "properties": { "comment": false, "codeBlock": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["image"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["strong"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["emphasis"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "text": false, "element": false }
+          },
+          {
+            "required": ["text"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "element": false }
+          },
+          {
+            "required": ["element"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false }
+          }
+        ]
+      },
+      "selectorPattern": {
+        "description": "A regular expression, run without flags.",
+        "type": "string",
+        "format": "regex",
+        "maxLength": 1500
+      },
+      "captureField": {
+        "description": "A field of a match: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` for a group of the definition's `regex`, or `precededBy.<n>` for a group of `precededBy`. A field the node doesn't have is an empty string. A `regex` group that didn't take part leaves out the action field that uses it.",
+        "type": "string",
+        "pattern": "^(content|text|language|meta|url|title|src|alt|tag|attributes\\.\\S+|match\\.\\d+|precededBy\\.\\d+)$"
+      },
+      "selectorExcludes": {
+        "description": "The node's main text must not match this pattern.",
+        "$ref": "#/components/schemas/selectorPattern"
+      },
+      "selectorPrecededBy": {
+        "description": "The source between the start of the enclosing block and the node must match this pattern. Anchor it with `$` to match the text right before the node. Its groups are available as `precededBy.<n>` captures.",
+        "$ref": "#/components/schemas/selectorPattern"
+      },
+      "selectorAttributes": {
+        "description": "Attributes the node must have, by name. A pattern must match the attribute's value, and `true` only requires the attribute.",
+        "type": "object",
+        "additionalProperties": {
+          "$comment": "`true` comes first and has no `type`, so validating with type coercion can't turn it into the pattern \"true\".",
+          "anyOf": [
+            {
+              "const": true
+            },
+            {
+              "$ref": "#/components/schemas/selectorPattern"
+            }
+          ]
+        }
+      },
+      "selectorList": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string"
+        }
+      },
+      "selectorComment": {
+        "description": "Selects comments.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorText": {
+        "description": "Selects runs of prose, outside code, links, and formatting.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorCodeBlock": {
+        "description": "Selects code blocks. A string selects one language.",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "language": {
+                "description": "Languages to select, matched exactly. `\"\"` selects code blocks with no language.",
+                "$ref": "#/components/schemas/selectorList"
+              },
+              "metaExcludes": {
+                "description": "The text after the language must not match this pattern.",
+                "$ref": "#/components/schemas/selectorPattern"
+              },
+              "excludes": {
+                "$ref": "#/components/schemas/selectorExcludes"
+              }
+            }
+          }
+        ]
+      },
+      "selectorLink": {
+        "description": "Selects links.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "The link's destination must match this pattern.",
+            "$ref": "#/components/schemas/selectorPattern"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorImage": {
+        "description": "Selects images.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "src": {
+            "description": "The image's source must match this pattern.",
+            "$ref": "#/components/schemas/selectorPattern"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorStrong": {
+        "description": "Selects bold text.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorEmphasis": {
+        "description": "Selects italic text.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorElement": {
+        "description": "Selects elements, such as HTML tags, XML elements, and JSX components. A string selects one tag.",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "description": "Tag names to select, matched exactly.",
+                "$ref": "#/components/schemas/selectorList"
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "excludes": {
+                "$ref": "#/components/schemas/selectorExcludes"
+              }
+            }
+          }
+        ]
       },
       "stringOrArray": {
         "anyOf": [

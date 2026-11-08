@@ -3,7 +3,7 @@ title: Detected tests
 description: Automatically generate tests based on your documentation source files.
 ---
 
-Doc Detective can automatically generate tests based on your documentation source files and your `fileTypes` configuration. Detected tests are useful for large, complex test suites that you want to keep in sync with your documentation. To enable test detection, set `detectSteps` to `true` and define markup patterns and associated actions in the `fileTypes.markup` array of your [config](/reference/schemas/config). Doc Detective uses those to extract steps from your doc source files. You can define multiple test patterns in your config to extract different types of tests from your documentation.
+Doc Detective can automatically generate tests based on your documentation source files and your `fileTypes` configuration. Detected tests are useful for large, complex test suites that you want to keep in sync with your documentation. Step detection is on by default. With no extra configuration, the built-in file types detect steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. They skip code samples. To detect other content, define markup patterns and their actions in the `fileTypes.markup` array of your [config](/reference/schemas/config), as described in [Detect tests with selectors](/docs/test-docs/input-formats/selectors). To turn detection off, set `detectSteps` to `false`.
 
 Detected tests are useful for keeping your tests in sync with your documentation. When you update your documentation, Doc Detective automatically updates the tests based on the new content. Detected tests are generated automatically. You can't edit detected tests directly, but you can update your config or documentation source files to change the tests.
 
@@ -22,42 +22,22 @@ Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehen
 
 ## Default markup patterns
 
-Doc Detective includes default markup patterns for Markdown and DITA files. For comprehensive information about each input format and their patterns, see [Input formats](/docs/test-docs/input-formats/overview).
+Every built-in format (Markdown, HTML, AsciiDoc, and DITA) detects the same steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected) lists them. Doc Detective parses each file first, so text inside code blocks and inline code never becomes a step.
 
-### Markdown patterns
+In Markdown, for example:
 
-Doc Detective recognizes common Markdown patterns and converts them into test actions:
+- **goToUrl**: `Go to [Page Name](https://example.com)` generates a `goTo` step.
+- **checkHyperlink**: Every link to an `http` or `https` URL generates a `checkLink` step.
+- **clickOnscreenText**: Bold text after a click verb, such as `Click **Button Name**`, generates a `click` step.
+- **findOnscreenText**: All bold text generates a `find` step.
+- **screenshotImage**: An image with the `.screenshot` class, such as `![Alt text](image.png){.screenshot}`, generates a `screenshot` step.
+- **typeText**: A typing instruction in prose, such as `Type "Hello World"`, generates a `type` step.
+- **httpRequestFormat**: A code block tagged `http` that holds a request generates an `httpRequest` step.
+- **runCode**: A code block tagged `bash`, `python`, `py`, `javascript`, or `js` generates a `runCode` step.
 
-- **checkHyperlink**: Standard Markdown links like `[link text](https://example.com)` generate `checkLink` actions
-- **clickOnscreenText**: Action verbs followed by bold text like `Click **Button Name**` generate `click` actions
-- **findOnscreenText**: Bold text like `**Any Bold Text**` generates `find` actions
-- **goToUrl**: Navigation instructions with links like `Go to [Page Name](https://example.com)` generate `goTo` actions
-- **screenshotImage**: Images with a `.screenshot` class like `![Alt text](image.png){.screenshot}` generate `screenshot` actions
-- **typeText**: Typing instructions like `Type "Hello World"` generate `type` actions
-- **httpRequestFormat**: HTTP request code blocks generate `httpRequest` actions
-- **runCode**: Code blocks with language tags generate `runCode` actions
+DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step into that field.
 
-For the complete Markdown pattern configuration and detailed examples, see [Markdown input format](/docs/test-docs/input-formats/markdown).
-
-### DITA patterns
-
-<Info>
-
-**Beta**: DITA markup patterns are available in beta and subject to change.
-
-</Info>
-
-Doc Detective extracts tests from DITA task topics using semantic markup. It recognizes DITA elements like `<uicontrol>`, `<userinput>`, `<systemoutput>`, `<shortcut>`, and `<cmdname>` within `<cmd>` elements and automatically generates tests from properly structured DITA content.
-
-Key DITA patterns include:
-
-- **clickUiControl**: `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` actions
-- **typeIntoUiControl**: `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates `type` actions
-- **navigateToXref**: `<cmd>Navigate to <xref href="https://example.com">Site</xref></cmd>` generates `goTo` actions
-- **verifySystemOutput**: `<cmd>Verify <systemoutput>Success</systemoutput></cmd>` generates `find` actions
-- **checkExternalXref**: External links with `scope="external"` generate `checkLink` actions
-
-For the complete DITA pattern configuration and semantic element reference, see [DITA input format](/docs/test-docs/input-formats/dita).
+For each format's syntax, see [Markdown](/docs/test-docs/input-formats/markdown), [HTML](/docs/test-docs/input-formats/html), [AsciiDoc](/docs/test-docs/input-formats/asciidoc), and [DITA](/docs/test-docs/input-formats/dita).
 
 ## Example with detected tests
 
@@ -84,21 +64,13 @@ Check out our [documentation](https://docs.example.com) for more information.
   "tests": [
     {
       "steps": [
-        {
-          "goTo": "https://console.acme.com"
-        },
-        {
-          "click": "Search"
-        },
-        {
-          "type": "American Shorthair kittens"
-        },
-        {
-          "checkLink": "https://docs.example.com"
-        },
-        {
-          "screenshot": "search-results.png"
-        }
+        { "goTo": "https://console.acme.com" },
+        { "checkLink": "https://console.acme.com" },
+        { "click": "Search" },
+        { "find": "Search" },
+        { "type": "American Shorthair kittens" },
+        { "checkLink": "https://docs.example.com" },
+        { "screenshot": "search-results.png" }
       ]
     }
   ]
@@ -133,6 +105,8 @@ You can extend or override the default patterns by defining custom markup patter
   ]
 }
 ```
+
+A `regex` pattern matches the file's raw text, code samples included. To match structure instead, such as bold text outside code, use a [selector](/docs/test-docs/input-formats/selectors).
 
 ### Default actions
 

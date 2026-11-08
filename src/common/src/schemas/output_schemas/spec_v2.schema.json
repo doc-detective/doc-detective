@@ -1,7 +1,20 @@
 {
   "title": "specification",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema for this object."
+    },
+    "specId": {
+      "type": "string",
+      "description": "Identifier the runner assigns before upgrading this specification."
+    },
+    "contentPath": {
+      "type": "string",
+      "description": "Path the runner assigns before upgrading this specification."
+    },
     "id": {
       "type": "string",
       "description": "Unique identifier for the test specification."

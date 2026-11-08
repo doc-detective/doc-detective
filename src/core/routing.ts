@@ -217,7 +217,7 @@ async function evaluateCustomAssertions(args: {
   if (!step || !actionResult) return actionResult;
 
   // Normalize the author condition form. Only string | string[] is user input;
-  // an array-of-objects is the report shape and is ignored.
+  // an array-of-objects is the report shape, which fails below.
   const raw = step.assertions;
   let statements: string[] | null = null;
   if (typeof raw === "string") {
@@ -228,6 +228,16 @@ async function evaluateCustomAssertions(args: {
     raw.every((s) => typeof s === "string")
   ) {
     statements = raw as string[];
+  }
+  // The report's own shape validates, but it holds results, not checks. Passing
+  // it through would silently run nothing.
+  if (Array.isArray(raw) && raw.length > 0 && !statements) {
+    if (actionResult.status !== "FAIL") {
+      actionResult.status = "FAIL";
+      actionResult.description =
+        "Step assertions must be strings. This step's assertions are objects, so they can't run.";
+    }
+    return actionResult;
   }
   if (!statements || statements.length === 0) return actionResult;
 

@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "5.0.0-v5-rc.1",
+  "version": "5.0.0-v5-rc.9",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -29,8 +29,7 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
-    },
-    "./cli": "./bin/doc-detective.js"
+    }
   },
   "scripts": {
     "postinstall": "node --disable-warning=DEP0190 scripts/postinstall.js",
@@ -90,9 +89,13 @@
     "commander": "^15.0.0",
     "dotenv": "^18.0.9",
     "fast-xml-parser": "^5.11.2",
+    "htmlparser2": "^12.0.0",
     "jq-web": "^0.6.2",
     "json-schema-faker": "^0.6.3",
     "jsonc-parser": "^3.3.1",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-mdx": "^3.0.0",
+    "micromark-extension-mdxjs": "^3.0.0",
     "ora": "^9.4.1",
     "posthog-node": "^5.57.0",
     "tree-kill": "^1.2.2",

@@ -219,7 +219,7 @@ split, and keeps this repo CI-agnostic.
 ## 6. The AI-integration handoff on GitLab (explicit requirement)
 
 This is the subtle part. The Action's integrations are **GitHub-app bots** that react to the **created
-issue** by one of three mechanisms (`docs/get-started/integrations.mdx`):
+issue** by one of three mechanisms (`docs/ci/issue-mentions.mdx`):
 
 | Integration | GitHub mechanism | GitLab reality |
 |---|---|---|
@@ -281,7 +281,7 @@ Per `CLAUDE.md` this feature has clear user-facing impact, so docs travel with i
 - **Update:** `docs/ci/reporters-and-artifacts.mdx`. Add `junit` to the reporter table. Add
   **`--exit-on-fail`** as a third and simplest way to "fail CI when tests fail", alongside the Action
   and the JSON-parse recipe.
-- **Update:** `docs/get-started/integrations.mdx`. It's currently GitHub-issue-specific. Generalize it
+- **Update:** `docs/ci/issue-mentions.mdx`. It's currently GitHub-issue-specific. Generalize it
   to a per-platform support matrix, document the GitLab handoff strategies, and call out `copilot` as
   GitHub-only and `duo` as GitLab-native.
 - **Update the source-of-truth row:** `information-architecture.md`'s "Reporters and artifacts →

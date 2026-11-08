@@ -2,7 +2,7 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir, loadAxios } from "./core/utils.js";
+import { getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -633,7 +633,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       for (const test of spec.tests ?? []) {
         const contexts = (test.contexts ?? []).filter(Boolean);
         for (const context of contexts.length > 0 ? contexts : [{}]) {
-          const where = [context.platform, context.browser].filter(Boolean).join("/");
+          const where = [context.platform, context.browser?.name].filter(Boolean).join("/");
           console.log(
             [context.result ?? test.result, spec.specId, test.testId, where].join("\t")
           );
@@ -679,7 +679,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       }
     } else {
       outputDir = outputPath;
-      outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.json`);
+      outputFile = path.resolve(outputDir, `${reportType}-${results?.runId ?? timestamp()}.json`);
     }
 
     try {

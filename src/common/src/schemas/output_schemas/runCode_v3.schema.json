@@ -12,11 +12,13 @@
       "properties": {
         "language": {
           "type": "string",
-          "description": "Language of the code to run.",
+          "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
           "enum": [
             "python",
+            "py",
             "bash",
-            "javascript"
+            "javascript",
+            "js"
           ]
         },
         "code": {
@@ -68,7 +70,7 @@
         },
         "maxVariation": {
           "type": "number",
-          "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+          "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
           "default": 0,
           "minimum": 0,
           "maximum": 1
@@ -141,6 +143,7 @@
           }
         }
       },
+      "additionalProperties": false,
       "title": "Run code (detailed)"
     }
   ],
@@ -155,11 +158,13 @@
         "properties": {
           "language": {
             "type": "string",
-            "description": "Language of the code to run.",
+            "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
             "enum": [
               "python",
+              "py",
               "bash",
-              "javascript"
+              "javascript",
+              "js"
             ]
           },
           "code": {
@@ -211,7 +216,7 @@
           },
           "maxVariation": {
             "type": "number",
-            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
             "default": 0,
             "minimum": 0,
             "maximum": 1
@@ -284,6 +289,7 @@
             }
           }
         },
+        "additionalProperties": false,
         "title": "Run code (detailed)"
       }
     }
@@ -292,6 +298,10 @@
     {
       "language": "javascript",
       "code": "console.log('Hello, ${process.env.USER}!');"
+    },
+    {
+      "language": "py",
+      "code": "print('Hello from Python')"
     },
     {
       "language": "bash",

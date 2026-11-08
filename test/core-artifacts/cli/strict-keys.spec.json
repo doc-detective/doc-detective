@@ -1,0 +1,84 @@
+{
+  "specId": "cli-strict-keys",
+  "description": "Unknown keys make a spec invalid (ADR 01150), through the real CLI: exit 2, and --no-exit-on-fail skips the spec.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "unknown-keys-exit-2",
+      "description": "An unknown key on a spec, on a step, or in an action exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-step-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-spec-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-action-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "no-exit-on-fail-skips",
+      "description": "--no-exit-on-fail warns and skips the invalid spec.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-step-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-spec-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-action-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

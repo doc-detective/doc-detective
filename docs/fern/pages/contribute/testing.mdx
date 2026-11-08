@@ -70,7 +70,7 @@ Tests are defined in `.spec.json` files, typically placed alongside the document
         {
           "find": {
             "selector": "h1",
-            "matchText": "Your Feature"
+            "elementText": "Your Feature"
           }
         }
       ]
@@ -183,21 +183,38 @@ Test results are saved to `.doc-detective/runs/<runId>/testResults.json`, or to 
 
 ```json
 {
-  "status": "pass",
-  "tests": [
+  "summary": {
+    "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+  },
+  "specs": [
     {
-      "testId": "test-your-feature",
-      "status": "pass",
-      "steps": [
+      "result": "PASS",
+      "tests": [
         {
-          "status": "pass",
-          "goTo": "https://doc-detective.com"
+          "testId": "test-your-feature",
+          "result": "PASS",
+          "contexts": [
+            {
+              "result": "PASS",
+              "steps": [
+                {
+                  "result": "PASS",
+                  "goTo": "https://doc-detective.com"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
   ]
 }
 ```
+
+`summary` counts results at each level. Each spec, test, context, and step has a `result` of `PASS`, `FAIL`, `WARNING`, or `SKIPPED`. A real file holds more fields than this trimmed example. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). To check a run from a script, use the [exit code](/reference/reference/cli#exit-codes).
 
 ## Common test patterns
 
@@ -212,13 +229,13 @@ Test that documented content exists:
 {
   "find": {
     "selector": "h1",
-    "matchText": "Expected Heading"
+    "elementText": "Expected Heading"
   }
 },
 {
   "find": {
     "selector": "code",
-    "matchText": "npm install"
+    "elementText": "npm install"
   }
 }
 ```
@@ -247,7 +264,7 @@ Verify user can navigate as documented:
 {
   "find": {
     "selector": "h1",
-    "matchText": "Introduction"
+    "elementText": "Introduction"
   }
 }
 ```
@@ -292,7 +309,7 @@ Define test contexts for different environments:
   "tests": [
     {
       "testId": "test-with-context",
-      "steps": []
+      "steps": [{ "goTo": "https://www.example.com" }]
     }
   ]
 }

@@ -53,7 +53,9 @@ async function stopRecording({
   // Validate step payload. (The stopRecord step carries no fields we read
   // here — the recording state lives on driver.state — so we only assert
   // validity and don't keep the coerced object.)
-  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  // `__stopAny` is the runner's own marker, and step_v3 rejects unknown keys.
+  const { __stopAny: _stopAny, ...authoredStep } = step;
+  const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
     result.description = `Invalid step definition: ${isValidStep.errors}`;

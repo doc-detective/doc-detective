@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { timestamp } from "../core/utils.js";
+import { stepActions } from "../common/src/stepActions.js";
 
 export async function htmlReporter(
   config: any = {},
@@ -34,7 +36,7 @@ export async function htmlReporter(
     }
   } else {
     outputDir = outputPath;
-    outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.html`);
+    outputFile = path.resolve(outputDir, `${reportType}-${results?.runId ?? timestamp()}.html`);
   }
 
   try {
@@ -929,10 +931,7 @@ function hlJson(json) {
   );
 }
 
-var ACTIONS = ["goTo","find","click","screenshot","checkLink","httpRequest",
-  "runShell","runCode","runBrowserScript","type","typeKeys","wait","record",
-  "stopRecord","loadVariables","loadCookie","saveCookie","dragAndDrop",
-  "swipe","startSurface","closeSurface","moveTo","scroll"];
+var ACTIONS = ${JSON.stringify(stepActions)};
 function actionKey(step) {
   for (var i = 0; i < ACTIONS.length; i++) if (ACTIONS[i] in step) return ACTIONS[i];
   return "step";

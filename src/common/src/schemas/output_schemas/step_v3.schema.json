@@ -37,11 +37,26 @@
             "default": {},
             "patternProperties": {
               "^[A-Za-z0-9_]+$": {
-                "type": "string",
-                "description": "Runtime expression for a user-defined output value."
+                "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
               }
             },
             "title": "Outputs (step)"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "WARNING",
+              "SKIPPED"
+            ],
+            "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
+          },
+          "resultDescription": {
+            "type": "string",
+            "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
           },
           "variables": {
             "type": "object",
@@ -1803,8 +1818,7 @@
         "default": {},
         "patternProperties": {
           "^[A-Za-z0-9_]+$": {
-            "type": "string",
-            "description": "Runtime expression for a user-defined output value."
+            "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
           }
         },
         "title": "Outputs (step)"
@@ -1845,6 +1859,22 @@
         "description": "Which visit of this step produced this report, when a routing goToStep re-ran it (the first visit omits this field). Present only in test results; system-populated.",
         "readOnly": true
       },
+      "result": {
+        "type": "string",
+        "enum": [
+          "PASS",
+          "FAIL",
+          "WARNING",
+          "SKIPPED"
+        ],
+        "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+        "readOnly": true
+      },
+      "resultDescription": {
+        "type": "string",
+        "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+        "readOnly": true
+      },
       "durationMs": {
         "type": "integer",
         "minimum": 0,
@@ -1882,7 +1912,51 @@
       }
     }
   },
-  "anyOf": [
+  "properties": {
+    "$schema": {},
+    "result": {},
+    "resultDescription": {},
+    "stepId": {},
+    "description": {},
+    "unsafe": {},
+    "outputs": {},
+    "variables": {},
+    "breakpoint": {},
+    "if": {},
+    "assertions": {},
+    "onPass": {},
+    "onFail": {},
+    "onWarning": {},
+    "onSkip": {},
+    "location": {},
+    "autoScreenshot": {},
+    "attempts": {},
+    "visit": {},
+    "durationMs": {},
+    "checkLink": {},
+    "click": {},
+    "find": {},
+    "goTo": {},
+    "httpRequest": {},
+    "runShell": {},
+    "runCode": {},
+    "runBrowserScript": {},
+    "type": {},
+    "screenshot": {},
+    "saveCookie": {},
+    "record": {},
+    "stopRecord": {},
+    "closeSurface": {},
+    "startSurface": {},
+    "loadVariables": {},
+    "dragAndDrop": {},
+    "loadCookie": {},
+    "swipe": {},
+    "wait": {},
+    "annotate": {}
+  },
+  "additionalProperties": false,
+  "oneOf": [
     {
       "allOf": [
         {
@@ -1917,11 +1991,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -3080,11 +3169,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -4008,6 +4112,7 @@
                 },
                 {
                   "title": "Click element (detailed)",
+                  "additionalProperties": false,
                   "type": "object",
                   "anyOf": [
                     {
@@ -4047,6 +4152,11 @@
                     }
                   ],
                   "properties": {
+                    "timeout": {
+                      "type": "integer",
+                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                      "default": 5000
+                    },
                     "button": {
                       "description": "Kind of click to perform.",
                       "type": "string",
@@ -4361,6 +4471,7 @@
                   },
                   "object": {
                     "title": "Click element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -4400,6 +4511,11 @@
                       }
                     ],
                     "properties": {
+                      "timeout": {
+                        "type": "integer",
+                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                        "default": 5000
+                      },
                       "button": {
                         "description": "Kind of click to perform.",
                         "type": "string",
@@ -4742,11 +4858,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -6007,6 +6138,7 @@
                             },
                             {
                               "title": "Click element (detailed)",
+                              "additionalProperties": false,
                               "type": "object",
                               "anyOf": [
                                 {
@@ -6046,6 +6178,11 @@
                                 }
                               ],
                               "properties": {
+                                "timeout": {
+                                  "type": "integer",
+                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "default": 5000
+                                },
                                 "button": {
                                   "description": "Kind of click to perform.",
                                   "type": "string",
@@ -6360,6 +6497,7 @@
                               },
                               "object": {
                                 "title": "Click element (detailed)",
+                                "additionalProperties": false,
                                 "type": "object",
                                 "anyOf": [
                                   {
@@ -6399,6 +6537,11 @@
                                   }
                                 ],
                                 "properties": {
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "default": 5000
+                                  },
                                   "button": {
                                     "description": "Kind of click to perform.",
                                     "type": "string",
@@ -6720,6 +6863,7 @@
                               "minimum": 1
                             }
                           },
+                          "additionalProperties": false,
                           "title": "Find element and click"
                         }
                       ]
@@ -10154,6 +10298,7 @@
                               },
                               {
                                 "title": "Click element (detailed)",
+                                "additionalProperties": false,
                                 "type": "object",
                                 "anyOf": [
                                   {
@@ -10193,6 +10338,11 @@
                                   }
                                 ],
                                 "properties": {
+                                  "timeout": {
+                                    "type": "integer",
+                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "default": 5000
+                                  },
                                   "button": {
                                     "description": "Kind of click to perform.",
                                     "type": "string",
@@ -10507,6 +10657,7 @@
                                 },
                                 "object": {
                                   "title": "Click element (detailed)",
+                                  "additionalProperties": false,
                                   "type": "object",
                                   "anyOf": [
                                     {
@@ -10546,6 +10697,11 @@
                                     }
                                   ],
                                   "properties": {
+                                    "timeout": {
+                                      "type": "integer",
+                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "default": 5000
+                                    },
                                     "button": {
                                       "description": "Kind of click to perform.",
                                       "type": "string",
@@ -10867,6 +11023,7 @@
                                 "minimum": 1
                               }
                             },
+                            "additionalProperties": false,
                             "title": "Find element and click"
                           }
                         ]
@@ -14042,11 +14199,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -16165,11 +16337,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -17465,7 +17652,7 @@
                     },
                     "maxVariation": {
                       "type": "number",
-                      "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                       "default": 0,
                       "minimum": 0,
                       "maximum": 1
@@ -17864,7 +18051,7 @@
                       },
                       "maxVariation": {
                         "type": "number",
-                        "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                         "default": 0,
                         "minimum": 0,
                         "maximum": 1
@@ -18114,11 +18301,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -19108,7 +19310,7 @@
                     },
                     "maxVariation": {
                       "type": "number",
-                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                       "default": 0,
                       "minimum": 0,
                       "maximum": 1
@@ -19259,7 +19461,7 @@
                       },
                       "maxVariation": {
                         "type": "number",
-                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                         "default": 0,
                         "minimum": 0,
                         "maximum": 1
@@ -19457,11 +19659,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -20387,11 +20604,13 @@
                   "properties": {
                     "language": {
                       "type": "string",
-                      "description": "Language of the code to run.",
+                      "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                       "enum": [
                         "python",
+                        "py",
                         "bash",
-                        "javascript"
+                        "javascript",
+                        "js"
                       ]
                     },
                     "code": {
@@ -20443,7 +20662,7 @@
                     },
                     "maxVariation": {
                       "type": "number",
-                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                      "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                       "default": 0,
                       "minimum": 0,
                       "maximum": 1
@@ -20516,6 +20735,7 @@
                       }
                     }
                   },
+                  "additionalProperties": false,
                   "title": "Run code (detailed)"
                 }
               ],
@@ -20530,11 +20750,13 @@
                     "properties": {
                       "language": {
                         "type": "string",
-                        "description": "Language of the code to run.",
+                        "description": "Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.",
                         "enum": [
                           "python",
+                          "py",
                           "bash",
-                          "javascript"
+                          "javascript",
+                          "js"
                         ]
                       },
                       "code": {
@@ -20586,7 +20808,7 @@
                       },
                       "maxVariation": {
                         "type": "number",
-                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+                        "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
                         "default": 0,
                         "minimum": 0,
                         "maximum": 1
@@ -20659,6 +20881,7 @@
                         }
                       }
                     },
+                    "additionalProperties": false,
                     "title": "Run code (detailed)"
                   }
                 }
@@ -20667,6 +20890,10 @@
                 {
                   "language": "javascript",
                   "code": "console.log('Hello, ${process.env.USER}!');"
+                },
+                {
+                  "language": "py",
+                  "code": "print('Hello from Python')"
                 },
                 {
                   "language": "bash",
@@ -20749,11 +20976,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -22183,11 +22425,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -26199,11 +26456,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -27376,7 +27648,7 @@
                         },
                         "maxVariation": {
                           "type": "number",
-                          "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                          "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                           "default": 0.05,
                           "minimum": 0,
                           "maximum": 1
@@ -29988,7 +30260,7 @@
                           },
                           "maxVariation": {
                             "type": "number",
-                            "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                            "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                             "default": 0.05,
                             "minimum": 0,
                             "maximum": 1
@@ -32579,7 +32851,7 @@
                       },
                       "maxVariation": {
                         "type": "number",
-                        "description": "Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.",
+                        "description": "Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
                         "default": 0.05,
                         "minimum": 0,
                         "maximum": 1
@@ -35161,11 +35433,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -36361,11 +36648,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -37292,6 +37594,7 @@
                   ]
                 },
                 {
+                  "additionalProperties": false,
                   "type": "object",
                   "properties": {
                     "surface": {
@@ -37697,6 +38000,7 @@
                     ]
                   },
                   "object": {
+                    "additionalProperties": false,
                     "type": "object",
                     "properties": {
                       "surface": {
@@ -38222,11 +38526,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -39228,11 +39547,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -41472,11 +41806,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -43844,11 +44193,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -44808,11 +45172,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -45730,6 +46109,7 @@
               "title": "dragAndDrop",
               "description": "Drag and drop an element from source to target.",
               "type": "object",
+              "additionalProperties": false,
               "required": [
                 "source",
                 "target"
@@ -45745,6 +46125,7 @@
                     },
                     {
                       "title": "Element (detailed)",
+                      "additionalProperties": false,
                       "type": "object",
                       "anyOf": [
                         {
@@ -45854,6 +46235,7 @@
                     },
                     {
                       "title": "Element (detailed)",
+                      "additionalProperties": false,
                       "type": "object",
                       "anyOf": [
                         {
@@ -46125,6 +46507,7 @@
                       },
                       {
                         "title": "Element (detailed)",
+                        "additionalProperties": false,
                         "type": "object",
                         "anyOf": [
                           {
@@ -46231,6 +46614,7 @@
                   },
                   "object": {
                     "title": "Element (detailed)",
+                    "additionalProperties": false,
                     "type": "object",
                     "anyOf": [
                       {
@@ -46413,11 +46797,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -47596,11 +47995,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -49923,11 +50337,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",
@@ -50919,11 +51348,26 @@
               "default": {},
               "patternProperties": {
                 "^[A-Za-z0-9_]+$": {
-                  "type": "string",
-                  "description": "Runtime expression for a user-defined output value."
+                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
                 }
               },
               "title": "Outputs (step)"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "WARNING",
+                "SKIPPED"
+              ],
+              "description": "Outcome of this step. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultDescription": {
+              "type": "string",
+              "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
             },
             "variables": {
               "type": "object",

@@ -258,7 +258,8 @@ describe("npm-test gate reports on every pull request", function () {
               (matrix.shard ?? []).map((shard) => ({ os, node, shard }))
             )
           );
-          for (const cell of [...base, ...include]) {
+          // `include` entries with no node only extend a base cell, so they name nothing.
+          for (const cell of [...base, ...include.filter((entry) => entry.node ?? entry.scope)]) {
             names.push(
               job.name
                 .replace("${{ matrix.os }}", cell.os)

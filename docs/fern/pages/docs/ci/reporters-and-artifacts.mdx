@@ -19,7 +19,7 @@ Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `jun
 | Reporter | Output |
 |---|---|
 | `terminal` | A colored pass/fail/warning/skipped summary printed to stdout. Writes no files. |
-| `json` | A timestamped JSON results file with the full step-by-step outcome. |
+| `json` | A JSON results file, `testResults-<runId>.json`, with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser. |
 | `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views. |
@@ -72,7 +72,7 @@ Logs, warnings, and progress go to stderr, so you can pipe stdout without filter
 | `-l silent` | Print nothing, including the summary. |
 | `-d`, `--debug` | Show debugging output, with level labels and timestamps. |
 | `--json` | Print the results as one JSON document on stdout. |
-| `--plain` | Print one tab-separated line per test on stdout. |
+| `--plain` | Print one tab-separated line per test context on stdout: result, spec ID, test ID, and platform and browser. |
 
 ## Step 3: Find the JSON results
 
@@ -83,9 +83,21 @@ doc-detective --input ./docs --output results.json
 ```
 
 - `--output` (or the `output` config key) names the results file, and Doc Detective overwrites it on each run. `-` writes the results to stdout instead. A folder exits `2`, so use `--output-dir` for folders.
-- The `json` reporter writes `testResults-<timestamp>.json` in `outputDir`. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
+- The `json` reporter writes `testResults-<runId>.json` in `outputDir`, named after the run's folder. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
 
 The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
+
+### Rely on these fields
+
+These parts of the results are a stable contract for scripts. A change to any of them needs a new major version:
+
+- `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts.
+- `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `durationMs` on the run and on every spec, test, context, and step.
+- `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
+- The four `--plain` columns, in order. New columns only go at the end.
+
+Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape.
 
 ### Find slow specs with `durationMs`
 
@@ -149,7 +161,7 @@ Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to 
 
 ## Step 4: Find the HTML report
 
-The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<timestamp>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
+The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<runId>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
 
 The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
 
@@ -176,16 +188,16 @@ The exit code from the CLI gates your build, so most pipelines need nothing extr
 
 | Code | Meaning |
 |---|---|
-| `0` | All tests passed, warned, or were skipped. |
+| `0` | No test failed, and at least one passed or warned. |
 | `1` | At least one test failed. |
-| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
-`WARNING` and `SKIPPED` results never fail a run.
+A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, because then nothing was tested. If a suite only applies to one platform, run that job only on that platform.
 
 If you want different behavior, you have two options:
 
-- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed and empty runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
+- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed, empty, and all-skipped runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
 - **Apply your own logic.** Read the `summary` object from the results file and decide for yourself. This example tolerates up to two failing specs:
 
 ```bash

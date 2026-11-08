@@ -1173,15 +1173,41 @@ function shouldFailRun(results: any): boolean {
   return typeof failCount === "number" && failCount > 0;
 }
 
+// Loaded only here, on the way to an error: the file is tens of megabytes.
+let loadedSpecSchemas: any;
+function specSchemas() {
+  return (loadedSpecSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+}
+
+// The keys valid at a spec, test, or step. Anything deeper gets no suggestion.
+function knownKeysAt(parts: string[], rootSchemaKey: string): string[] {
+  const parent = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]) ? parts[parts.length - 2] : undefined;
+  const schemaKey = parts.length === 0 ? rootSchemaKey : parent === "tests" ? "test_v3" : parent === "steps" ? "step_v3" : undefined;
+  return schemaKey ? Object.keys(specSchemas()[schemaKey].properties ?? {}) : [];
+}
+
+const ONE_ACTION_MESSAGE = "a step can only have one action.";
+
 // Turn AJV's error string into something a person can act on: one line per
-// problem, with `anyOf` branches collapsed, and the nearest action named when a
-// step has an unknown key. Raw errors stay available at debug level.
-function summarizeSpecErrors(errors: string, object: any): string {
+// problem, with `anyOf` branches collapsed, and the nearest real key named when
+// something is unknown. Raw errors stay available at debug level.
+function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, string[]>();
-  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(?:\([^)]*\))?(?:, |$)/g)) {
-    const [, instancePath = "", message] = match;
+  const unknownByPath = new Map<string, string[]>();
+  for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
+    const [, instancePath = "", message, params = ""] = match;
+    if (/"passingSchemas":\[/.test(params)) {
+      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), ONE_ACTION_MESSAGE]);
+      continue;
+    }
     if (/must match (a schema in anyOf|exactly one)/.test(message)) continue;
-    byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), message]);
+    byPath.set(instancePath, byPath.get(instancePath) ?? []);
+    const unknownKey = /"additionalProperty":"([^"]+)"/.exec(params)?.[1];
+    if (unknownKey) {
+      unknownByPath.set(instancePath, [...(unknownByPath.get(instancePath) ?? []), unknownKey]);
+    } else {
+      byPath.get(instancePath)!.push(message);
+    }
   }
   const lines: string[] = [];
   for (const [instancePath, messages] of byPath) {
@@ -1191,10 +1217,24 @@ function summarizeSpecErrors(errors: string, object: any): string {
     const actions = messages
       .map((message) => /required property '([^']+)'/.exec(message)?.[1])
       .filter(Boolean) as string[];
-    if (/steps\/\d+$/.test(instancePath) && actions.length === messages.length) {
+    const unknownKeys = [...new Set(unknownByPath.get(instancePath) ?? [])];
+    // The other branches' "required" errors are only noise once two matched.
+    if (messages.includes(ONE_ACTION_MESSAGE)) {
+      lines.push(`${prefix}${ONE_ACTION_MESSAGE}`);
+      continue;
+    }
+    const isStep = /steps\/\d+$/.test(instancePath) || (rootSchemaKey === "step_v3" && !instancePath);
+    if (isStep && actions.length > 0 && actions.length === messages.length) {
       const value = parts.reduce((current: any, part) => current?.[part], object) ?? {};
-      const metadata = new Set(["stepId", "description", "unsafe", "outputs", "variables", "breakpoint", "location", "contentPath", "if", "on"]);
-      const unknown = Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
+      const metadata = new Set(Object.keys(specSchemas().step_v3.components.schemas.common.properties));
+      const stepKeys = new Set(Object.keys(specSchemas().step_v3.properties));
+      // A real action whose value is wrong has its own, more useful errors.
+      if (!unknownKeys.length && Object.keys(value).some((key) => stepKeys.has(key) && !metadata.has(key))) {
+        continue;
+      }
+      const unknown = unknownKeys.length
+        ? unknownKeys
+        : Object.keys(value).filter((key) => !metadata.has(key) && !actions.includes(key));
       if (unknown.length === 0) {
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
@@ -1202,6 +1242,11 @@ function summarizeSpecErrors(errors: string, object: any): string {
         lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
       }
       continue;
+    }
+    const known = knownKeysAt(parts, rootSchemaKey);
+    for (const key of unknownKeys) {
+      const near = nearestCommand(key, known);
+      lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
     }
     for (const message of new Set(messages)) lines.push(`${prefix}${message}`);
   }
@@ -1211,14 +1256,13 @@ function summarizeSpecErrors(errors: string, object: any): string {
 }
 
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
-// failed, `2` nothing was tested. exitOnFail: false relaxes the last two.
+// failed, `2` nothing was tested, which includes every spec skipping.
+// exitOnFail: false relaxes the last two.
 function runExitCode(results: any, config: any = {}): number {
   if (config.exitOnFail === false) return 0;
   const specs = results?.summary?.specs;
-  const total = specs
-    ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) + (specs.skipped || 0)
-    : 0;
-  if (total === 0) return 2;
+  const tested = specs ? (specs.pass || 0) + (specs.fail || 0) + (specs.warning || 0) : 0;
+  if (tested === 0) return 2;
   return shouldFailRun(results) ? 1 : 0;
 }
 
@@ -2867,7 +2911,11 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // contract. CodeQL "unsafe shell command" here is acknowledged and dismissed
   // as won't-fix / by design.
   const runCommand = spawn(cmd, args, spawnOptions);
-  runCommand.on("error", (error) => {});
+  // A process that never started still closes, with a negative errno as its code.
+  let spawnError: Error | undefined;
+  runCommand.on("error", (error) => {
+    spawnError = error;
+  });
 
   // Set up exit code promise BEFORE consuming streams to avoid race condition
   const exitCodePromise = new Promise((resolve) => {
@@ -2897,7 +2945,7 @@ async function spawnCommand(cmd: string, args: string[] = [], options: any = {})
   // Capture exit code
   const exitCode = await exitCodePromise;
 
-  return { stdout, stderr, exitCode };
+  return { stdout, stderr, exitCode, spawnError };
 }
 
 async function inContainer() {

@@ -71,6 +71,10 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
 
+- **`--dry-run` prints no warnings.** A dry run forces the log level to `silent`, so stdout holds only
+  the test plan. A fixture that checks a warning has to run its steps instead. The detection fixtures
+  in [core-artifacts/detection/](core-artifacts/detection) use `runShell` steps, which need no browser.
+
 ## Fixture concurrency & the resource-aware scheduler
 
 The combined core fixture suite ([core-core.test.js](core-core.test.js), driven by
@@ -91,8 +95,8 @@ in `src/core/utils.ts`) keeps it safe:
 
 ## Coverage ratchets
 
-- **Root coverage gates on the cross-platform union** of the full matrix (3 OS on node 24, plus ubuntu on node 26), not
-  a single OS. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
+- **Root coverage gates on the cross-platform union** of the full matrix, not a single OS. That matrix
+  is 3 OS on node 24, plus ubuntu on node 26. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
   reports (see `.github/workflows/test.yml`, `scripts/prune-coverage.cjs`,
   `scripts/merge-coverage.cjs`, `scripts/check-coverage-ratchet.cjs`).
   - `tsconfig.json` pins `newLine: "lf"`. Raw V8 coverage encodes character offsets into the

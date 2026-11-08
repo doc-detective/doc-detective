@@ -10,8 +10,10 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 - **5.0.0 is one major carrying every breaking CLI change.** A failed test fails the run, and the CLI
   conforms to clig.dev. [ADR 01146](../../adrs/01146-cli-v5-contract.md) is the contract. Users migrate
   once. Work outside the contract ships on 4.x before it or 5.x after it. The exception is a change that
-  would need another major later. The Node floor, unknown-key rejection, false-pass fixes, and the JS
-  exports land in 5.0 for that reason, each under its own ADR.
+  would need another major later. Five changes land in 5.0 for that reason, each under its own ADR.
+  They're the Node floor, unknown-key rejection, false-pass fixes, the JS exports, and structure-aware
+  test detection.
+  Detection starts with one default `fileTypes` table ([ADR 01153](../../adrs/01153-one-default-filetypes-table.md)).
 - **Nothing is retained for assets we control.** The Action, agent-tools, the VS Code extension, Online,
   and Docker images get updated to the new CLI, with no shims. v4-era assets refuse v5 instead.
 - **The GitHub Action gets a matching major.** Action v2 uses CLI 5, and Action v1 stays on CLI 4.
@@ -55,7 +57,7 @@ groundwork), Linux native apps, real devices, and cloud device farms.
    runs that repository's tests, like `npm test`. The trust boundary is who can trigger a run with
    secrets, and that belongs to the CI configuration.
 2. **Fenced code stays gated.** Default markup marks detected code fences `unsafe: true`
-   (`src/core/config.ts:368`) because nobody authored them as tests. That's unchanged by decision 1.
+   (the `runCode` definition in `src/common/src/fileTypes.ts`) because nobody authored them as tests. That's unchanged by decision 1.
 3. **An Action major pins a CLI major.** v1 uses `4`, v2 uses `5`. Users can still set `version`.
 4. **Schema names stay `_v3`.** Bumping the names would force a migration with no user benefit. Specs and
    steps now reject unknown keys, and reports declare `summary` and result fields. `output` rejects a

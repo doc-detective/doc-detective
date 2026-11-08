@@ -221,7 +221,7 @@ describe("routing: evaluateCustomAssertions", function () {
     assert.equal(custom[0].result, "FAIL");
   });
 
-  it("array-of-objects assertions form is IGNORED (report shape, not user input)", async function () {
+  it("array-of-objects assertions form FAILS, because it can't run (ADR 01151)", async function () {
     const actionResult = {
       status: "PASS",
       outputs: { exitCode: 0 },
@@ -231,12 +231,22 @@ describe("routing: evaluateCustomAssertions", function () {
       step: { assertions: [{ statement: "$$outputs.exitCode == 1" }] },
       actionResult,
     });
-    // unchanged: no custom records added, status still PASS
-    assert.equal(actionResult.status, "PASS");
+    assert.equal(actionResult.status, "FAIL");
+    assert.match(actionResult.description, /assertions must be strings/);
     assert.equal(
       actionResult.assertions.filter((a) => a.source === "custom").length,
       0
     );
+  });
+
+  it("keeps an earlier failure's message for array-of-objects assertions", async function () {
+    const actionResult = { status: "FAIL", description: "Returned exit code 3.", outputs: {} };
+    await evaluateCustomAssertions({
+      step: { assertions: [{ statement: "$$outputs.exitCode == 1" }] },
+      actionResult,
+    });
+    assert.equal(actionResult.status, "FAIL");
+    assert.equal(actionResult.description, "Returned exit code 3.");
   });
 
   it("no assertions field -> byte-identical (no-op)", async function () {

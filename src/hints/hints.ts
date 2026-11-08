@@ -527,6 +527,7 @@ export const HINTS: Hint[] = [
       "",
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
+    // Major version only, so 24.0 to 24.14 rely on npm's EBADENGINE warning.
     when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 24,
   },
 

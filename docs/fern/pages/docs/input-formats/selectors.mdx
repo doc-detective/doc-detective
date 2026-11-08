@@ -1,0 +1,196 @@
+---
+title: Detect tests with selectors
+sidebar-title: Selectors
+description: Match links, bold text, code blocks, and comments by their structure, so detection skips code samples and other look-alike text.
+---
+
+A regex definition matches your file's raw text. That includes code samples, so a pattern for `**bold**` also matches bold syntax inside a fenced example. A selector matches what the file means instead: a link, a bold phrase, a code block, or a comment. Doc Detective parses the file, and the selector picks the nodes you name.
+
+Selectors work in custom `fileTypes` for Markdown, MDX, HTML, DITA, and AsciiDoc files. Regex definitions keep working, and one file type can use both.
+
+## Write your first selector
+
+This config adds a definition to the Markdown file type. It turns every `bash` code block into a `runShell` step:
+
+```json
+{
+  "fileTypes": [
+    {
+      "extends": "markdown",
+      "markup": [
+        {
+          "name": "runBash",
+          "codeBlock": "bash",
+          "actions": [{ "runShell": "$1" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+The key, `codeBlock`, is the kind of node to select. Its value narrows the selection, and `"bash"` is short for `{ "language": ["bash"] }`. `$1` is the code block's content.
+
+To check what gets detected without running anything, pass `--dry-run`:
+
+```bash
+npx doc-detective run guide.md --config config.json --dry-run
+```
+
+## Choose a definition form
+
+A markup definition needs `regex`, one selector kind, or both:
+
+| Form | What it matches | `$1`, `$2`, and so on |
+|---|---|---|
+| `regex` alone | The file's raw text, code samples included | The regex groups |
+| A kind alone | Every node the selector picks | `captures`, else the node's main text |
+| A kind and `regex` | Each match of the regex inside a picked node's main text | `captures`, else the regex groups |
+
+A node's main text is its `content`, else its `text`, else its `alt`.
+
+In HTML and DITA, a `text` node holds prose as written, so a pattern sees entities such as `&quot;` and `&amp;` rather than the characters they stand for. Bold, italic, and link text is decoded, as it renders.
+
+A kind with `regex` limits an existing pattern to the right place. This definition finds version numbers in prose, but not in code blocks, inline code, or links:
+
+```json
+{
+  "name": "version",
+  "text": {},
+  "regex": "\\bv(\\d+\\.\\d+)\\b",
+  "actions": ["find"]
+}
+```
+
+## Kinds
+
+| Kind | Options |
+|---|---|
+| `comment` | `excludes` |
+| `codeBlock` | `language`, `metaExcludes`, `excludes` |
+| `link` | `url`, `attributes`, `precededBy`, `excludes` |
+| `image` | `src`, `attributes`, `precededBy`, `excludes` |
+| `strong` | `precededBy`, `excludes` |
+| `emphasis` | `precededBy`, `excludes` |
+| `text` | `excludes` |
+| `element` | `tag`, `attributes`, `precededBy`, `excludes` |
+
+`{}` selects every node of a kind. `codeBlock` also takes a string that names one language, and `element` takes a string that names one tag. A kind a format doesn't produce matches nothing.
+
+| Kind | Markdown and MDX | HTML | DITA | AsciiDoc |
+|---|---|---|---|---|
+| `comment` | `<!-- -->` in Markdown, `[comment]: #`, and `{/* */}` | `<!-- -->` | `<!-- -->` and `<?doc-detective ?>` | `//` lines and `////` blocks |
+| `codeBlock` | Fenced code blocks | `<pre>` | `<codeblock>` | `----` and `....` blocks |
+| `link` | `[text](url)` | `<a href>` | Not produced. Select `<xref>` as an `element` | `https://...[text]` and `link:...[text]` |
+| `image` | `![alt](src)` | `<img>` | `<image>` | `image::src[alt]` and `image:src[alt]` |
+| `strong` | `**text**` and `__text__` | `<strong>` and `<b>` | `<b>` | `*text*` and `**text**` |
+| `emphasis` | `*text*` and `_text_` | `<em>` and `<i>` | `<i>` | `_text_` and `__text__` |
+| `text` | Prose outside code, links, and formatting | The same | The same | The same |
+| `element` | JSX components in MDX, and HTML tags | Other tags | Other tags | Not produced |
+
+HTML inside Markdown, and lowercase JSX tags in MDX such as `<a>` and `<img>`, produce the same kinds as HTML. Text between inline HTML tags stays Markdown prose.
+
+A code block's language comes from the fence in Markdown, a `language-x` class in HTML, a `language-x` output class in DITA, and a `[source,x]` line in AsciiDoc. In AsciiDoc, the options after the language, such as `testIgnore` in `[source,bash,testIgnore]`, are its meta.
+
+Code holds no nodes. That covers Markdown's indented code blocks and inline code, and HTML's `<pre>`, `<code>`, `<script>`, and `<style>`. It also covers DITA's `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>`, and AsciiDoc's listings, literal blocks, `++++` blocks, and indented paragraphs.
+
+In Markdown, URLs in angle brackets such as `<https://example.com>`, and reference-style links such as `[text][ref]`, aren't links. Their text stays part of the surrounding prose.
+
+## Options
+
+All options are optional. Patterns are regular expressions, run without flags.
+
+| Option | Value | What it does |
+|---|---|---|
+| `excludes` | Pattern | Skips nodes whose main text matches |
+| `language` | Array of strings | Picks code blocks with one of these languages. `""` picks code blocks with no language |
+| `metaExcludes` | Pattern | Skips code blocks whose text after the language matches, such as `testIgnore` in ```` ```bash testIgnore ```` |
+| `tag` | Array of strings | Picks elements with one of these tag names |
+| `url` | Pattern | Picks links whose destination matches |
+| `src` | Pattern | Picks images whose source matches |
+| `attributes` | Object of names to patterns or `true` | Picks nodes whose attribute matches. `true` only requires the attribute |
+| `precededBy` | Pattern | Picks nodes when the source from the start of their block, such as a paragraph, matches. End it with `$` to match the words right before the node. In HTML and DITA, the source includes inline tags |
+
+Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. A prop set with an expression, such as `count={1 + 1}`, reads as its source text, `1 + 1`, because detection doesn't run code. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image.
+
+## Use node fields in actions
+
+`captures` lists the fields to use as `$1`, `$2`, and so on, in order. This definition opens a link when the sentence says "Go to" before it:
+
+```json
+{
+  "name": "goToLink",
+  "link": { "url": "^https?://", "precededBy": "\\b[Gg]o to\\s+$" },
+  "captures": ["url"],
+  "actions": ["goTo"]
+}
+```
+
+| Field | Value |
+|---|---|
+| `content` | A code block's or component's content, or a comment's text |
+| `text` | The rendered text of a link, bold text, italic text, or prose |
+| `language`, `meta` | A code block's language, and the text after it |
+| `url`, `title` | A link's destination and title |
+| `src`, `alt` | An image's source and alt text |
+| `tag` | An element's tag name |
+| `attributes.<name>` | An attribute's value |
+| `match.<n>` | A group of the definition's `regex`. The definition must have `regex` |
+| `precededBy.<n>` | A group of `precededBy` |
+
+A field a node doesn't have is an empty string. A regex group that didn't take part leaves out the action field that uses it, as in regex definitions.
+
+## Read inline statements from nodes
+
+`inlineStatements.in` lists the nodes that hold [inline test statements](/docs/test-docs/inline). Doc Detective reads a node as a statement when its text starts with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. A comment inside a code block isn't a node, so a statement in a code sample stays text.
+
+```json
+{
+  "name": "docs",
+  "extensions": ["md"],
+  "inlineStatements": { "in": ["comment"] }
+}
+```
+
+An entry can also select nodes like a markup definition, with two more keys:
+
+- `value` names the field that holds the statement, such as `attributes.content`.
+- `regex` finds the statement in the text. The first group becomes the statement, else the whole match.
+
+This entry reads statements from comments that start with `dd:`, and skips drafts:
+
+```json
+{
+  "inlineStatements": {
+    "in": [{ "comment": { "excludes": "draft" }, "regex": "^dd:\\s*(.*)$" }]
+  }
+}
+```
+
+`in` works beside the regex statement keys, such as `testStart` and `step`. A statement that both find counts once.
+
+## Which files get parsed
+
+The file's extension picks the parser:
+
+| Extensions | Parser |
+|---|---|
+| `.md`, `.markdown` | Markdown |
+| `.mdx` | MDX |
+| `.html`, `.htm` | HTML |
+| `.dita`, `.ditamap`, `.xml` | DITA |
+| `.adoc`, `.asciidoc`, `.asc` | AsciiDoc |
+
+For any other extension, Doc Detective uses the format in `extends`, so a file type that extends `markdown` parses its `.txt` files as Markdown. The HTML and DITA parsers accept broken markup, so they never stop detection.
+
+Doc Detective warns, and keeps detecting, in two cases:
+
+- **An `.mdx` file isn't valid MDX.** It parses as Markdown instead, so content inside JSX components isn't detected. Run your site's build to find the error.
+- **No parser handles the file.** Selectors match nothing, and regex definitions still run. Set `extends` to a built-in format, or use regex definitions.
+
+Dry runs don't print warnings, so run without `--dry-run` to see them.
+
+## Next steps
+
+- [Custom input formats](custom) covers regex definitions and file type settings.
+- The [config reference](/reference/schemas/config) lists every `fileTypes` key.

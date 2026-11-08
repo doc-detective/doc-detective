@@ -47,18 +47,105 @@ npx doc-detective@4
 
 | Code | Meaning |
 |---|---|
-| `0` | All tests passed, warned, or were skipped. |
+| `0` | No test failed, and at least one passed or warned. |
 | `1` | At least one test failed. |
-| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, an invalid spec, a declined install, or a crash. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
-**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed and empty runs into `0`. Usage and config errors still exit `2`.
+A run where every test skipped exits `2`, because nothing was tested. A repository with only fenced code blocks is an example, because those steps skip unless you pass `--allow-unsafe`.
+
+**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed, empty, and all-skipped runs into `0`. Usage and config errors still exit `2`.
+
+If a suite only applies to one platform, limit the job to that platform rather than relaxing it:
+
+```yaml
+if: runner.os == 'macOS'
+```
 
 ## Invalid specs
 
 **What changed:** An invalid spec exits `2` before any test runs. Version 4 warned, skipped that spec, and ran the rest.
 
 **What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail`.
+
+## Unknown keys in specs and steps
+
+**What changed:** A key Doc Detective doesn't recognize on a spec or step, or in a `click`, `runCode`, `record`, or `dragAndDrop` object, makes the spec invalid. Version 4 ignored those keys, so a typo such as `asertions` silently turned off a check. An invalid inline step, or an invalid step in a `before` or `after` file, also makes its spec invalid. Version 4 dropped the step and kept going.
+
+**What to do:** Run your suite, then fix or remove each key the error names. The error suggests the closest valid key:
+
+```text
+tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
+```
+
+Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
+
+## Unknown keys in custom file types
+
+**What changed:** A custom file type can't have keys Doc Detective doesn't recognize, and neither can its `inlineStatements` or `markup` definitions. One makes the config invalid, and the run exits `2`. Version 4 ignored those keys, so a typo, or a key from an older config format such as `testStartStatementOpen`, silently did nothing. Each `markup` definition also needs `regex` or a [selector](/docs/test-docs/input-formats/selectors) kind, and an action name must be one Doc Detective knows. A file type with `runShell` can't also have `markup` or `inlineStatements`.
+
+**What to do:** Fix or remove each key the error names. Move statement patterns into `inlineStatements`, as `testStart`, `testEnd`, `ignoreStart`, `ignoreEnd`, and `step`. See [Custom input formats](/docs/test-docs/input-formats/custom).
+
+## Checks that used to pass
+
+**What changed:** Some checks passed in version 4 without testing anything. These now fail or stop the run:
+
+| Version 4 | Version 5 |
+|---|---|
+| A condition with a broken `jq()` query, or one that finds nothing, was true. | It's false. |
+| A `jq()` comparison like `jq($$body, ".x") == 1` compared the wrong value. | It compares the query's result. |
+| A condition that's only text, such as an unset `$VARIABLE`, was true. | It's false, so an assertion fails and an `if` skips. |
+| A broken `jq()` query in step `variables` set the variable to the query's text. | The step fails. |
+| `assertions` written as objects, like the ones in a report, never ran. | The step fails. Write assertions as strings. |
+| A step with two actions ran only one of them. | The spec is invalid. Split it into two steps. |
+| Two tests with the same `testId` merged, or ran under one ID. | The spec is invalid. Give each test its own ID. |
+| A test whose `before` or `after` file was missing dropped the whole spec. | The spec is invalid. |
+
+**What to do:** Run your suite and fix what it reports. A newly red step was usually a check that wasn't working.
+
+A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
+
+## Test detection reads document structure
+
+**What changed:** Doc Detective parses each file before it detects tests, so it reads structure instead of matching raw text. With step detection on, a default config detects different steps:
+
+- **Newly detected:**
+  - AsciiDoc and HTML files detect the same steps as Markdown. Before, they detected only inline statements, so pages in these formats can now produce tests that fail the run.
+  - DITA detects `screenshot` steps from `<image outputclass="screenshot">`, and `httpRequest` and `runCode` steps from `<codeblock>` elements. It also reads an `<xref>`'s attributes in any order, so `goTo` and `checkLink` steps come from an `<xref>` whose `href` isn't its first attribute, as in `<xref format="html" href="https://example.com">`.
+  - Markdown detects links, images, and bold text written as HTML, such as `<a href>` and `<strong>`, and lowercase JSX tags in `.mdx`. It also detects bold text written as `__text__`, and requests in code blocks inside list items.
+  - A request header whose value has spaces, such as `Content-Type: application/json; charset=utf-8`, in an HTTP request code block. Before, a value with a space ended the headers, so that header and the lines after it became part of the body.
+  - "Browse to" before a link becomes a `goTo` step in Markdown, AsciiDoc, and HTML, as it already did in DITA.
+  - A `test start` statement in a comment, as in `<!-- test start {"testId": "a"} -->`, opens a test.
+- **No longer detected:**
+  - Statements and steps inside code blocks, inline code, `<pre>`, `<script>`, `<codeblock>`, and AsciiDoc listings. A page that shows a sample test no longer runs it.
+  - A `runCode` step from a ` ```json ` code block. The pattern for `js` blocks also matched `json`, so every JSON sample became an unsafe JavaScript step.
+  - An AsciiDoc `// (step ...)` comment that doesn't start its line.
+  - A comment that only starts with "test", such as `<!-- testing notes: x -->`, which used to open a test.
+  - The DITA `<data name="step">{...}</data>` form. Use `<data name="doc-detective" value="step {...}"/>` instead.
+  - Duplicate DITA steps. An external `<xref>` after "Navigate to" produced two `goTo` steps and two `checkLink` steps, and now produces one of each.
+- **Captured differently:** a `find` or `click` step gets bold text as it renders, so `` **`Save`** `` finds `Save`.
+- **Invalid MDX:** an `.mdx` file that isn't valid MDX parses as Markdown, with a warning. Content inside its JSX components isn't detected.
+
+A test without its own `testId` gets a new generated ID when its steps change.
+
+**What to do:**
+
+1. Run your suite with `--dry-run` on version 4 and version 5, and compare the tests each detects.
+2. Point `--input` at source files, not generated HTML, where every link and bold phrase becomes a step.
+3. To turn off step detection, set `detectSteps: false`. Inline statements still work.
+4. If a custom file type extends a built-in with `regex` definitions, they still match raw text, code samples included. To limit one to prose, add `"text": {}` to it. See [Selectors](/docs/test-docs/input-formats/selectors).
+
+## Capitalized typing instructions
+
+**What changed:** With step detection on, a Markdown instruction such as `Type "kittens"` or `Enter "admin"` becomes a `type` step whether or not its verb starts with a capital letter. Version 4 detected only lowercase verbs in Markdown, though the docs described both. A test without its own `testId` gets a new generated ID when it gains a step.
+
+**What to do:** Compare `--dry-run` output from version 4 and version 5 to find the new steps. To keep a sentence from becoming a step, put it between `<!-- test ignore start -->` and `<!-- test ignore end -->`, or set `detectSteps: false`.
+
+## `py` and `js` code fences
+
+**What changed:** `runCode` accepts `py` and `js` as languages, which run as `python` and `javascript`. With step detection on, a Markdown fence tagged ` ```py ` or ` ```js ` now becomes a `runCode` step. Version 4 dropped those steps, and a test whose only step was one of them disappeared. The steps are still unsafe, so they run only with `allowUnsafeSteps`. A test without its own `testId` gets a new generated ID when it gains a step.
+
+**What to do:** If you set `allowUnsafeSteps`, compare `--dry-run` output from version 4 and version 5 to find the new steps. To keep a fence from running, add `testIgnore` after its language, as in ` ```py testIgnore `.
 
 ## Logs moved to stderr
 
@@ -67,7 +154,7 @@ npx doc-detective@4
 **What to do:**
 
 - Update anything that reads logs from stdout, or that matches labels like `(ERROR)`. To collect everything in one stream, redirect with `2>&1`.
-- Use `--json` for one JSON document on stdout, or `--plain` for one tab-separated line per test.
+- Use `--json` for one JSON document on stdout, or `--plain` for one tab-separated line per test context.
 - Use `-d` to bring labels back and add timestamps.
 - Expect `-l silent` to silence the summary too. Use `-q` to keep errors and the one-line verdict.
 
@@ -75,7 +162,7 @@ npx doc-detective@4
 
 **What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
 
 ## `--output` is a results file
 
@@ -101,7 +188,7 @@ doc-detective --input ./docs --output-dir ./reports
 doc-detective --input ./docs --output results.json
 ```
 
-The `json` reporter still exists, and it still writes a timestamped file in `outputDir`. Skip it when you pass `--output`, or you get both files.
+The `json` reporter still exists, and it still writes a timestamped file in `outputDir`. The `json` and `html` reporters now name files after the run ID, as in `testResults-2026-11-05T01-02-03-004Z.json`, not epoch milliseconds. The `testResults-*` prefix is unchanged. Skip it when you pass `--output`, or you get both files.
 
 ## `--concurrent-runners` needs a value
 
@@ -177,6 +264,12 @@ doc-detective install agents --agent claude --scope project --yes
 
 **What to do:** Remove anything that matches the old notice text. The opt-outs are `--no-telemetry`, `DO_NOT_TRACK`, and `telemetry.send: false`.
 
+## JavaScript API
+
+**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone. In `doc-detective-common`, the built-in `defaultFileTypes` hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none.
+
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it.
+
 ## Deprecated arguments
 
 These still work, and each prints a warning on stderr. Replace them when you can.
@@ -193,6 +286,8 @@ These still work, and each prints a warning on stderr. Replace them when you can
 
 Action `@v2` also writes the results file, the run folder, and reporter files to the runner's temporary directory, overriding any `outputDir` in your config. It drops the undocumented `issueUrl` output, so read `issue_url` instead.
 
+Two inputs have new names: `integrations` is now `issue_mentions`, and `prompt` is now `issue_prompt`. The old names still work in `@v2`, with a deprecation warning.
+
 Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
 
 **What to do:**
@@ -204,8 +299,9 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
    ```
 
 2. For your first run, set `exit_on_fail: false` while you triage existing failures. Remove it to turn the gate on.
-3. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
-4. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
+3. If you set `integrations` or `prompt`, rename them to `issue_mentions` and `issue_prompt`. Remove the old names rather than keeping them beside the new ones, because setting both fails the job before the run.
+4. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
+5. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 
