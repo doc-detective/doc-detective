@@ -192,7 +192,8 @@ async function getConfigFromEnv() {
       );
     }
 
-    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
+    // Log the validated shape, with beforeAny renamed.
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(renamed, null, 2)}`, "debug", renamed);
   } catch (error: any) {
     if (error instanceof SyntaxError) {
       throw new Error(
