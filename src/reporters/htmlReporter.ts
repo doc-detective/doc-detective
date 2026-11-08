@@ -44,7 +44,7 @@ export async function htmlReporter(
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const html = buildHtml(results);
+    const html = buildHtml(results, { htmlDir: path.dirname(outputFile) });
     fs.writeFileSync(outputFile, html);
     console.log(`See HTML report at ${outputFile}\n`);
     return outputFile;
@@ -54,12 +54,22 @@ export async function htmlReporter(
   }
 }
 
-export function buildHtml(results: any): string {
-  const reportJson = JSON.stringify(results, null, 2)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
+// `htmlDir` is the folder the page is written to. Automatic screenshots and
+// recordings live in the run folder (`results.runDir`), so the page gets the
+// path from itself to there (ADR 01177): "" for the run folder's own copy,
+// `.doc-detective/runs/<runId>` for the `html` reporter's copy in outputDir.
+export function buildHtml(results: any, { htmlDir }: { htmlDir?: string } = {}): string {
+  const safeJson = (value: any, space?: number) =>
+    JSON.stringify(value, null, space)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
+  const reportJson = safeJson(results, 2);
+  const mediaBase =
+    htmlDir && typeof results?.runDir === "string"
+      ? path.relative(htmlDir, results.runDir).split(path.sep).join("/")
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -76,6 +86,7 @@ ${CSS_CONTENT}
 <script id="dd-report-data" type="application/json">${reportJson}</script>
 <script>
 window.REPORT_DATA = JSON.parse(document.getElementById("dd-report-data").textContent);
+window.REPORT_MEDIA_BASE = ${safeJson(mediaBase)};
 </script>
 <script>
 ${JS_CONTENT}
@@ -748,6 +759,18 @@ main {
   background: var(--dd-green-bright); color: #07150C;
   letter-spacing: 0.05em;
 }
+.media-thumb .auto-flag {
+  position: absolute; bottom: 34px; left: 6px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+  background: rgba(13,14,17,0.78); color: #E6E8EC;
+  letter-spacing: 0.05em;
+}
+.auto-recording { margin: 8px 16px 10px; }
+.auto-recording video {
+  display: block; width: 100%; max-width: 720px; max-height: 420px;
+  background: #000; border-radius: 6px;
+}
 
 /* Lightbox */
 .lightbox {
@@ -1037,6 +1060,44 @@ function countTree(spec) {
   return { tests: tests, contexts: contexts, steps: steps, stepCounts: sc };
 }
 
+// The path from this page to the run folder (buildHtml), where automatic
+// screenshots and recordings live.
+var MEDIA_BASE = typeof window.REPORT_MEDIA_BASE === "string" ? window.REPORT_MEDIA_BASE : "";
+
+// A run-folder file's src from this page: a path relative to the report's
+// runDir, or an absolute path inside it, gets MEDIA_BASE in front. Any other
+// absolute path stays as it is.
+function runFolderSrc(p) {
+  var s = String(p == null ? "" : p).split("\\\\").join("/");
+  var root = String(report.runDir || "").split("\\\\").join("/").replace(/\\/+$/, "");
+  if (root && s.indexOf(root + "/") === 0) s = s.slice(root.length + 1);
+  else if (/^(\\/|[A-Za-z]:\\/)/.test(s)) return p;
+  return MEDIA_BASE ? MEDIA_BASE + "/" + s : s;
+}
+
+// A context's automatic recording (its ~autorecord step), as a src for the
+// player at the top of the context, and its steps without the synthetic start
+// and stop. A recording that didn't save keeps its steps in the list, so the
+// reason shows.
+function autoRecording(ctx) {
+  var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
+  var start = all.find(function(item) {
+    return /~autorecord$/.test(String(item.step.stepId || "")) && item.step.record && item.step.record.path;
+  });
+  if (!start || start.step.result !== "PASS") return { video: null, steps: all };
+  var target = String(start.step.record.path).split("\\\\").join("/");
+  var stop = all.find(function(item) {
+    var s = item.step;
+    return typeof s.stopRecord !== "undefined" && s.outputs &&
+      String(s.outputs.recordingPath || "").split("\\\\").join("/") === target;
+  });
+  if (stop && stop.step.result !== "PASS") return { video: null, steps: all };
+  return {
+    video: runFolderSrc(start.step.record.path),
+    steps: all.filter(function(item) { return item !== start && item !== stop; })
+  };
+}
+
 function collectMedia(step) {
   var media = [];
   var outs = step.outputs || {};
@@ -1053,6 +1114,12 @@ function collectMedia(step) {
   // is a valid untargeted stop that still saves a video.
   if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
     media.push({ kind: "video", path: outs.recordingPath });
+  }
+  // The automatic screenshot, relative to runDir; reads the field's future
+  // name (autoScreenshotPath) too.
+  var auto = step.autoScreenshot || step.autoScreenshotPath;
+  if (typeof auto === "string" && auto) {
+    media.push({ kind: "image", path: runFolderSrc(auto), label: "Automatic" });
   }
   return media;
 }
@@ -1218,6 +1285,7 @@ function buildStepDetail(step) {
       mp += '<div class="media-thumb" data-media-path="' + escAttr(m.path || '') + '" data-media-kind="' + escAttr(m.kind) + '">' +
         '<span class="kind">' + (m.kind === "video" ? "MP4" : "PNG") + '</span>' +
         (m.changed ? '<span class="changed-flag">UPDATED</span>' : '') +
+        (m.label ? '<span class="auto-flag">' + esc(m.label) + '</span>' : '') +
         (m.kind === "video"
           ? '<video src="' + escAttr(m.path || '') + '" muted playsinline preload="metadata"></video>'
           : '<img src="' + escAttr(m.path || '') + '" alt="' + escAttr(m.path || '') + '" onerror="this.style.display=\\'none\\'"/>') +
@@ -1303,8 +1371,17 @@ function buildContext(ctx) {
     badge(ctx.result);
   block.appendChild(head);
 
-  var visibleSteps = (ctx.steps || [])
-    .map(function(s, i) { return { step: s, origIdx: i }; })
+  // The context's automatic recording plays above its steps, and its
+  // synthetic start and stop steps stay out of the list.
+  var auto = autoRecording(ctx);
+  if (auto.video) {
+    var rec = el("div", "auto-recording");
+    rec.innerHTML = '<div class="dp-head"><span>Automatic recording</span></div>' +
+      '<video src="' + escAttr(auto.video) + '" controls muted playsinline preload="metadata"></video>';
+    block.appendChild(rec);
+  }
+
+  var visibleSteps = auto.steps
     .filter(function(item) {
       var s = item.step;
       if (state.statusFilters.size && !state.statusFilters.has(s.result)) return false;
