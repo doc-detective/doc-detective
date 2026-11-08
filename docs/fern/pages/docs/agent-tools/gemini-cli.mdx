@@ -18,7 +18,7 @@ From any project directory, run:
 npx doc-detective install agents --agent gemini
 ```
 
-This invokes `gemini extensions install ... --ref v2 --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. The extension comes from the agent-tools `v2` tag, the 2.x release line that matches Doc Detective 5. Re-run to update to the latest 2.x release. The command is idempotent and prints "already up to date" when nothing has changed.
+This invokes `gemini extensions install ... --ref feat/v5-rc --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. During the Doc Detective 5 release candidate, the extension comes from the agent-tools `feat/v5-rc` branch, which holds the agent-tools changes for Doc Detective 5. That branch can change between installs until Doc Detective 5 reaches general availability. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
@@ -33,11 +33,11 @@ Gemini CLI installs extensions user-globally, so the `--scope` flag has no effec
 If `npx doc-detective install agents` isn't an option, install the extension directly with `gemini extensions install`:
 
 ```bash
-gemini extensions install https://github.com/doc-detective/agent-tools.git --ref v2 --auto-update
+gemini extensions install https://github.com/doc-detective/agent-tools.git --ref feat/v5-rc --auto-update
 gemini
 ```
 
-The `--ref v2` flag installs the agent-tools release line that matches Doc Detective 5, and the `--auto-update` flag keeps the extension current with new releases.
+The `--ref feat/v5-rc` flag installs the agent-tools branch that matches the Doc Detective 5 release candidate. The `--auto-update` flag keeps the extension current with changes to that branch.
 
 ## Bootstrap a project
 

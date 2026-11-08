@@ -18,7 +18,7 @@ From any project directory, run:
 npx doc-detective install agents --agent claude
 ```
 
-The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Claude Code installs from the agent-tools default branch, not the `v2` tag that other agents use, because plugin marketplaces can't pin a tag. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Claude Code installs from the agent-tools default branch, not the `feat/v5-rc` branch that the other agents pin during the Doc Detective 5 release candidate. Plugin marketplaces can't pin a branch or tag. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
