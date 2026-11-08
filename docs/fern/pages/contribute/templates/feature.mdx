@@ -199,7 +199,7 @@ Examples should be copy-pasteable and work as-is:
         {
           "screenshot": {
             "path": "screenshot.png",
-            "fullPage": true
+            "maxVariation": 0.05
           }
         }
       ]
@@ -213,7 +213,7 @@ Examples should be copy-pasteable and work as-is:
 ```json
 {
   "screenshot": {
-    "fullPage": true
+    "maxVariation": 0.05
   }
 }
 ```
@@ -259,7 +259,7 @@ Crop screenshots to specific elements on the page, making it easier to highlight
 ## What's new
 
 - `screenshot` action now supports element-based cropping
-- New `cropTo` option to specify target element
+- New `crop` option to specify target element
 - Automatic padding around cropped elements
 - Works with both CSS selectors and XPath
 
@@ -279,7 +279,7 @@ When documenting specific features, you often want screenshots that focus on a p
 Capture just a specific button:
 
 ```json title="screenshot-button.spec.json"
-{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "get-started-button.png", "cropTo": { "selector": "a[href='/docs/get-started']" } } } ] } ] }
+{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "get-started-button.png", "crop": { "selector": "a[href='/docs/get-started']" } } } ] } ] }
 ```
 
 This captures only the "Get Started" link, not the entire page.
@@ -289,7 +289,7 @@ This captures only the "Get Started" link, not the entire page.
 Crop to an element with padding:
 
 ```json title="screenshot-with-padding.spec.json"
-{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "navigation-menu.png", "cropTo": { "selector": "nav.navbar", "padding": 20 } } } ] } ] }
+{ "tests": [ { "steps": [ { "goTo": "https://doc-detective.com" }, { "screenshot": { "path": "navigation-menu.png", "crop": { "selector": "nav.navbar", "padding": 20 } } } ] } ] }
 ```
 
 Adds 20 pixels of padding around the navigation element for context.
@@ -299,17 +299,16 @@ Adds 20 pixels of padding around the navigation element for context.
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | path | string | Yes | - | Where to save the screenshot |
-| cropTo | object | No | - | Element to crop to (see below) |
-| cropTo.selector | string | Yes\* | - | CSS selector or XPath of element |
-| cropTo.padding | number | No | 0 | Pixels of padding around element |
-| fullPage | boolean | No | false | Ignored if cropTo is specified |
+| crop | object | No | - | Element to crop to (see below) |
+| crop.selector | string | Yes\* | - | CSS selector or XPath of element |
+| crop.padding | number | No | 0 | Pixels of padding around element |
 
-\*Required if `cropTo` is used
+\*Required if `crop` is used
 
 ### Example configuration
 
 ```json title=".doc-detective.json"
-{ "tests": [ { "steps": [ { "screenshot": { "path": "feature.png", "cropTo": { "selector": "#feature-section", "padding": 15 } } } ] } ] }
+{ "tests": [ { "steps": [ { "screenshot": { "path": "feature.png", "crop": { "selector": "#feature-section", "padding": 15 } } } ] } ] }
 ```
 
 ## Migration guide
@@ -319,13 +318,13 @@ If you were using full-page screenshots and want to crop:
 ### From full-page screenshots
 
 ```json
-{ "screenshot": { "path": "page.png", "fullPage": true } }
+{ "screenshot": "page.png" }
 ```
 
 ### To element-based cropping
 
 ```json
-{ "screenshot": { "path": "element.png", "cropTo": { "selector": "#target-element" } } }
+{ "screenshot": { "path": "element.png", "crop": { "selector": "#target-element" } } }
 ```
 
 ### Breaking changes

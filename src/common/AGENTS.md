@@ -27,7 +27,11 @@ This is a dependency package, not a standalone application. Changes here affect 
 - Dereferences all references using `@apidevtools/json-schema-ref-parser`
 - Removes `$id` properties
 - Generates `schemas.json` (all schemas as single object)
-- Publishes v3 schemas to `dist/schemas/` for external consumption
+
+`generate:types` then writes `src/types/generated/` and `src/stepActions.ts` (the exported
+`stepActions` list, derived from `step_v3`). Both are committed. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which publishes every v3 schema as
+`dist/schemas/<name>_v3.schema.json` (the `$schema` URLs on unpkg).
 
 **Schema versioning:**
 - v2 schemas: Legacy, supported via `compatibleSchemas` transformation map
@@ -163,7 +167,7 @@ Two hazards come with generation:
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
 4. Run `npm run build`, which sequences `dereferenceSchemas`, `generate:types`, and `compile`. It does NOT run tests. Run `npm run test:coverage` separately, per ADR 01057.
-5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
+5. A new v3 schema is published to `dist/schemas/` automatically. A new step action lands in `stepActions` automatically; commit the regenerated `src/stepActions.ts`.
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
 

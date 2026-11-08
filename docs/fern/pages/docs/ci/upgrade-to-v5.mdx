@@ -54,7 +54,7 @@ npx doc-detective@4
 
 A run where every test skipped exits `2`, because nothing was tested. A repository with only fenced code blocks is an example, because those steps skip unless you pass `--allow-unsafe`.
 
-**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed and empty runs into `0`. Usage and config errors still exit `2`.
+**What to do:** Remove anything that greps the output or parses results only to decide pass or fail, and let the exit code decide. To keep a job green regardless of failures, pass `--no-exit-on-fail` or set `exitOnFail: false`. That setting turns failed, empty, and all-skipped runs into `0`. Usage and config errors still exit `2`.
 
 If a suite only applies to one platform, limit the job to that platform rather than relaxing it:
 
@@ -416,6 +416,8 @@ These still work, and each prints a warning on stderr. Replace them when you can
 
 Action `@v2` also writes the results file, the run folder, and reporter files to the runner's temporary directory, overriding any `outputDir` in your config. It drops the undocumented `issueUrl` output, so read `issue_url` instead.
 
+Two inputs have new names: `integrations` is now `issue_mentions`, and `prompt` is now `issue_prompt`. The old names still work in `@v2`, with a deprecation warning.
+
 Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
 
 **What to do:**
@@ -427,8 +429,9 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
    ```
 
 2. For your first run, set `exit_on_fail: false` while you triage existing failures. Remove it to turn the gate on.
-3. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
-4. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
+3. If you set `integrations` or `prompt`, rename them to `issue_mentions` and `issue_prompt`. Remove the old names rather than keeping them beside the new ones, because setting both fails the job before the run.
+4. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
+5. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 

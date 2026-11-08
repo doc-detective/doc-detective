@@ -17,7 +17,7 @@ You can specify the command directly as a string or use an object for more optio
   - `command`: (Required) The command or script to execute.
   - `shell`: (Optional) The shell to run the command in: `bash` (default), `cmd`, or `powershell`. `cmd` and `powershell` only work on Windows. If unset, uses the config-level `shell` setting, which defaults to `bash`.
   - `args`: (Optional) An array of arguments to pass to the command.
-  - `workingDirectory`: (Optional) The folder to run the command in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead.
+  - `workingDirectory`: (Optional) The folder to run the command in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead. If the folder doesn't exist, the command can't start, and the step fails with a `Couldn't start the command` message.
   - `timeout`: (Optional) Maximum duration in milliseconds, `1` or more, to wait for the command to complete (default: `60000`).
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the command's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the command's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
