@@ -25,7 +25,7 @@ You can specify the command directly as a string or use an object for more optio
     - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
     - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 80, "rows": 24}` sets the size. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
-  - *Output Saving:* You can also save the command's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runShell`](/reference/schemas/runshell) reference for details.
+  - *Output Saving:* You can also save the command's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. The saved file shows environment variable values as `***NAME***`. See [Saved files](/docs/ci/secrets#saved-files) and the [`runShell`](/reference/schemas/runshell) reference.
 
 **Output Regression Testing:** You can save command output to a file and perform regression testing on subsequent runs. If `path` is specified, `maxVariation` is set, and a reference file exists at the target `path`, the action compares the new output to the reference file. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting:
 

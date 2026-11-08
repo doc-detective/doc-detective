@@ -227,6 +227,12 @@ See https://docs.doc-detective.com/reference/schemas/config
   - `publicVariables` exact, `DD_*`, and `*` on the config, a spec, and a test;
   - a 3-character value, and URL-encoded and base64 forms;
   - a `Basic` header the 8092 server echoes.
+- Saved files, in `test/masking-runner.test.js`:
+  - runShell, runCode, httpRequest, and runBrowserScript `path` files hold `***NAME***`;
+  - a second run with `maxVariation: 0` passes with a variation of `0`;
+  - a `saveCookie` file keeps the real value.
+
+  The fixture case `path-save-and-compare` runs the CLI twice against one saved file.
 
 ## Pros and Cons of the Options
 
