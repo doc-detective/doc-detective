@@ -27,11 +27,12 @@ const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
 /**
- * agent-tools ref that matches this CLI's major (ADR 01164). A floating tag
- * that agent-tools' release moves forward, so CLI 5 gets every agent-tools 2.x
- * release and never the default branch.
+ * agent-tools ref that matches this CLI's major (ADR 01164). While CLI 5 is a
+ * release candidate this is agent-tools' `feat/v5-rc` branch. At CLI 5 GA it
+ * becomes the floating `v2` tag, which agent-tools' release moves forward.
+ * Raw and codeload URLs both take a slash-containing branch name as-is.
  */
-export const AGENT_TOOLS_REF = "v2";
+export const AGENT_TOOLS_REF = "feat/v5-rc";
 
 /** Raw file URL in agent-tools at the pinned ref. */
 export function agentToolsRawUrl(file: string): string {

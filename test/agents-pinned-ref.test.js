@@ -9,8 +9,10 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
     ({ AGENT_TOOLS_REF, fetchAgentToolsZip } = await import("../dist/agents/fetcher.js"));
   });
 
-  it("is the floating v2 tag", function () {
-    assert.equal(AGENT_TOOLS_REF, "v2");
+  // During the CLI 5 release candidate the pin is agent-tools' feat/v5-rc
+  // branch; at CLI 5 GA it becomes the floating v2 tag.
+  it("is agent-tools' feat/v5-rc branch until CLI 5 GA", function () {
+    assert.equal(AGENT_TOOLS_REF, "feat/v5-rc");
   });
 
   it("fetchAgentToolsZip defaults to the pinned ref", async function () {
@@ -20,7 +22,7 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
         get: async (u) => { url = u; throw new Error("stop"); },
       })
     );
-    assert.match(url, /\/agent-tools\/zip\/v2$/);
+    assert.equal(url, "https://codeload.github.com/doc-detective/agent-tools/zip/feat/v5-rc");
   });
 
   describe("every adapter's latest-version check reads the pinned ref", function () {
@@ -51,7 +53,7 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
         const mod = await import(`../dist/agents/adapters/${file}.js`);
         await mod[factory]().fetchLatestVersion().catch(() => {});
         assert.equal(urls.length, 1);
-        assert.match(urls[0], /^https:\/\/raw\.githubusercontent\.com\/doc-detective\/agent-tools\/v2\//);
+        assert.match(urls[0], /^https:\/\/raw\.githubusercontent\.com\/doc-detective\/agent-tools\/feat\/v5-rc\//);
       });
     }
   });
@@ -73,7 +75,7 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
       await assert.rejects(
         adapter.install({ scope: "global", force: true, dryRun: false, cwd: process.cwd(), logger: () => {} })
       );
-      assert.equal(ref, "v2");
+      assert.equal(ref, "feat/v5-rc");
     });
   }
 });

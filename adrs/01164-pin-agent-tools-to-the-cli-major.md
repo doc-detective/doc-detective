@@ -21,6 +21,9 @@ The skills teach CLI flags and exit codes. agent-tools 2.x teaches CLI 5 (`--out
 tested), and 1.x teaches CLI 4. While both CLI majors are in use, one default branch is wrong for one of them.
 Before the 2.x merge, a CLI 5 user gets CLI 4 skills. After it, a CLI 4 user gets flags that 4.x doesn't have.
 
+agent-tools releases only from `main`. Its CLI 5 work lives on its `feat/v5-rc` branch, the counterpart of this repo's
+`feat/v5-rc`. So the `v2` tag can't exist until CLI 5 GA, and a CLI 5 release candidate pinned to `v2` gets a 404.
+
 Which agent-tools ref should a CLI install?
 
 ## Decision Drivers
@@ -34,37 +37,59 @@ Which agent-tools ref should a CLI install?
 - **A. A floating major tag (`v2`) in one constant, `AGENT_TOOLS_REF`.**
 - **B. An exact release tag, such as `v2.0.0`.**
 - **C. Keep the default branch.**
+- **D. Pin `v2` during the release candidate too.**
 
 ## Decision Outcome
 
-Chosen option: **A**. `src/agents/fetcher.ts` exports `AGENT_TOOLS_REF = "v2"` and `agentToolsRawUrl(file)`.
+Chosen option: **A**, with agent-tools' `feat/v5-rc` branch standing in for `v2` until CLI 5 GA.
+`src/agents/fetcher.ts` exports `AGENT_TOOLS_REF` and `agentToolsRawUrl(file)`.
 
-- Every adapter's up-to-date check reads `raw.githubusercontent.com/doc-detective/agent-tools/v2/...`.
-- Codex and OpenCode download the `v2` zip, and `fetchAgentToolsZip` defaults to `v2`.
-- Gemini CLI and Qwen Code pass `--ref v2` to `extensions install`. Both CLIs document `--ref` for git sources.
+- Every adapter's up-to-date check reads `raw.githubusercontent.com/doc-detective/agent-tools/<ref>/...`.
+- Codex and OpenCode download `codeload.github.com/doc-detective/agent-tools/zip/<ref>`. `fetchAgentToolsZip`
+  defaults to the pinned ref.
+- Both URL shapes take a branch name with a slash as-is, so neither needs a `refs/heads/` prefix.
+- Gemini CLI and Qwen Code pass `--ref <ref>` to `extensions install`. Both CLIs document `--ref` for git sources.
 - Claude Code (`claude plugin marketplace add`) and Copilot CLI (`copilot plugin marketplace add`) have no ref option,
   so they keep tracking the default branch. The `install agents` reference page says so.
+
+#### Release candidate: `feat/v5-rc`
+
+While CLI 5 is a release candidate, `AGENT_TOOLS_REF = "feat/v5-rc"`. A push to that agent-tools branch reaches CLI 5
+release candidate users on their next `install agents`.
+
+#### General availability: `v2`
+
+At CLI 5 GA, agent-tools merges `feat/v5-rc` to `main` and releases 2.0.0, which creates the `v2` tag. Then:
+
+1. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200.
+2. Set `AGENT_TOOLS_REF = "v2"` in the change that promotes CLI 5 to `main`.
+3. Update the tests under Confirmation, this ADR, and the `install agents` reference page to say `v2`.
 
 agent-tools' release workflow moves the `v2` tag to each 2.x release. CLI 4 pins `v1` the same way, on its own
 branch.
 
 ### Consequences
 
-- Good: CLI 5 gets agent-tools 2.x fixes as they release, and never 3.x.
-- Good: the next major changes one constant.
-- Bad: `install agents` for Codex, OpenCode, Gemini CLI, and Qwen Code fails until agent-tools publishes the `v2`
-  tag. It must exist before CLI 5 GA.
+- Good: CLI 5 release candidates install the CLI 5 skills today, with no agent-tools release.
+- Good: after GA, CLI 5 gets agent-tools 2.x fixes as they release, and never 3.x.
+- Good: the GA switch and the next major each change one constant.
+- Bad: the GA switch is a manual step. Ship GA with `feat/v5-rc` and CLI 5 keeps tracking a branch.
+- Bad: switch before the `v2` tag exists and installs for Codex, OpenCode, Gemini CLI, and Qwen Code fail.
 - Bad: Claude Code and Copilot CLI installs follow the default branch. agent-tools 2.x must merge to it at CLI 5 GA.
-  Their up-to-date check reads `v2`, so when the default branch runs ahead of the tag, those two report an update on
-  every run. The update itself is harmless.
+  Their up-to-date check reads the pinned ref. When the default branch's version differs, those two report an update
+  on every run. The update itself is harmless.
 - Neutral: whether a host CLI's `extensions update` follows a moved tag is up to that CLI.
 
 ### Confirmation
 
-- `test/agents-pinned-ref.test.js` asserts `AGENT_TOOLS_REF === "v2"`, that every adapter's up-to-date URL starts
-  with `.../agent-tools/v2/`, that `fetchAgentToolsZip` defaults to `zip/v2`, and that Codex and OpenCode pass `v2`
-  to `fetchZip`.
-- `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref v2` on a fresh install.
+- `test/agents-pinned-ref.test.js` asserts `AGENT_TOOLS_REF === "feat/v5-rc"`. It also asserts that every
+  adapter's up-to-date URL starts with `.../agent-tools/feat/v5-rc/`.
+- The same file asserts that `fetchAgentToolsZip` requests `zip/feat/v5-rc`, and that Codex and OpenCode pass the
+  ref to `fetchZip`.
+- `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref feat/v5-rc` on a fresh install.
+- The `install-agents integration` workflow installs every agent for real, then checks that a second run is
+  already up to date.
+- At GA, these assertions change to `v2`.
 
 ## Pros and Cons of the Options
 
@@ -82,3 +107,9 @@ branch.
 
 - Good: no coordination with agent-tools.
 - Bad: one of the two CLI majors always gets the wrong skills.
+
+### D. `v2` during the release candidate
+
+- Good: no switch at GA.
+- Bad: the tag doesn't exist before GA. Every Codex, OpenCode, Gemini CLI, and Qwen Code install fails with a 404.
+- Bad: every agent's up-to-date check fails, so a repeat install never reports "already up to date".

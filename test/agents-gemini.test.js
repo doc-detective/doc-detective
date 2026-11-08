@@ -233,7 +233,7 @@ describe("GeminiCliAdapter.install()", function () {
     c[1] === "extensions" &&
     (c[2] === "install" || c[2] === "update");
 
-  it("fresh install runs `extensions install <url> --ref v2 --auto-update --consent --skip-settings`", async function () {
+  it("fresh install runs `extensions install <url> --ref feat/v5-rc --auto-update --consent --skip-settings`", async function () {
     const { adapter, calls } = makeSpyAdapter({ listJson: "[]" });
     const report = await adapter.install(baseOpts());
     const installs = calls.filter(mutating);
@@ -241,7 +241,7 @@ describe("GeminiCliAdapter.install()", function () {
       [
         "gemini", "extensions", "install",
         "https://github.com/doc-detective/agent-tools.git",
-        "--ref", "v2",
+        "--ref", "feat/v5-rc",
         "--auto-update", "--consent", "--skip-settings",
       ],
     ]);
