@@ -51,7 +51,8 @@ realities around them.
   branch is checked out in another worktree; the remote branch still gets deleted.
 - **What counts as approval.** A review from the Claude review bot (`claude[bot]`, the "Claude PR Review -
   Auto" workflow) counts when it's on the PR's current head. Its state must be `APPROVED`, or `COMMENTED`
-  with nothing marked blocking. This file calls that a qualifying review.
+  with nothing marked blocking. That review, or the maintainer's own approval, is what this file calls a
+  qualifying review.
   - The bot rarely returns `APPROVED`, and every push sets the layers above it back to unreviewed. So
     requiring `APPROVED` on every layer at once never converged.
   - Check that the review's `commit_id` matches the head SHA:
