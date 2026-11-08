@@ -59,6 +59,15 @@ export function asList(value: any, literal: boolean): any {
 }
 
 /**
+ * A background process's `tty`: `false` when unset or off, else the terminal
+ * size. `true` is shorthand for `{}`. The schema's 120x30 defaults sit under an
+ * anyOf, which applyDefaults skips, so they're coded here.
+ */
+export function ttySize(tty: any): any {
+  return tty ? { cols: 120, rows: 30, ...(tty === true ? {} : tty) } : false;
+}
+
+/**
  * A locator's `elementClass` as a list (asList), set on `locator` in place.
  * Pass your own copy: a normalizer never changes the authored value.
  */

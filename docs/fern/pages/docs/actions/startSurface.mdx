@@ -62,7 +62,7 @@ The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays t
 - `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
 - `args`: (Optional) Command arguments.
 - `workingDirectory`: (Optional) The folder to run the process in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead.
-- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step). `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 100, "rows": 40}` sets the size, from 1 to 1000 each. Same shape as runShell's [`background.tty`](/docs/actions/runshell#full-screen-terminal-uis).
+- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step). `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 100, "rows": 40}` sets the size, from 1 to 1000 each. Results show the size that ran, so `true` appears as `{"cols": 120, "rows": 30}`. Same shape as runShell's [`background.tty`](/docs/actions/runshell#full-screen-terminal-uis).
 - `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
 - `timeout`: (Optional) Readiness ceiling in milliseconds, `1` or more (default 60000).
 

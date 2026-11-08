@@ -24,9 +24,13 @@ import {
 } from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
 import { runCode } from "../dist/core/tests/runCode.js";
+import { normalizers } from "../dist/common/src/normalize/index.js";
 
 const require = createRequire(import.meta.url);
 const treeKill = require("tree-kill");
+
+// An authored `tty` as the effective step has it: the launcher gets that form.
+const effectiveTty = (tty) => normalizers.startSurface({ process: "x", name: "x", tty }).tty;
 
 // Kill the whole process tree (shell + child) so a shell:true background
 // process doesn't leak; child.kill() alone leaves the grandchild alive.
@@ -462,9 +466,9 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
   });
 });
 
-// `tty: true` and `tty: {}` must spawn a 120x30 PTY. Ajv doesn't inject the
-// `cols`/`rows` defaults (they sit inside an anyOf branch), so the runtime
-// owns them. These tests run on every host: a stub node-pty seeded into a
+// `tty: true` and `tty: {}` must spawn a 120x30 PTY. The normalizer fills the
+// `cols`/`rows` defaults, and spawnPtyBackgroundCommand also defaults a size
+// it isn't given. These tests run on every host: a stub node-pty seeded into a
 // throwaway runtime cache records what `pty.spawn` receives.
 describe("PTY size defaults reach node-pty's spawn (stubbed node-pty)", function () {
   this.timeout(20000);
@@ -533,8 +537,9 @@ describe("PTY size defaults reach node-pty's spawn (stubbed node-pty)", function
     });
   }
 
-  // runShell's `background.tty` and startSurface's process `tty` both hand
-  // `tty` verbatim to this shared launcher.
+  // runShell's `background.tty` and startSurface's process `tty` reach this
+  // shared launcher as the effective step's size (ADR 01167), so normalize the
+  // authored `tty` first.
   for (const [tty, expected] of [
     [true, { cols: 120, rows: 30 }],
     [{}, { cols: 120, rows: 30 }],
@@ -547,7 +552,7 @@ describe("PTY size defaults reach node-pty's spawn (stubbed node-pty)", function
       const registry = new Map();
       const result = await startBackgroundProcessSurface({
         config: { cacheDir },
-        descriptor: { command: "my-tui", name: "tui", tty },
+        descriptor: { command: "my-tui", name: "tui", tty: effectiveTty(tty) },
         processRegistry: registry,
       });
       assert.equal(result.status, "PASS", result.description);
@@ -792,15 +797,14 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
     }
   });
 
-  // The PTY size reaches spawnPtyBackgroundCommand from the descriptor's `tty`
-  // object. `true` and `{}` pass no size, so `undefined` here is right: the
-  // 120x30 default applies inside spawnPtyBackgroundCommand, which the
-  // stubbed-node-pty tests above assert at pty.spawn.
+  // The PTY size reaches spawnPtyBackgroundCommand from the effective step's
+  // `tty`, where the normalizer has expanded `true` and filled the 120x30
+  // defaults (ADR 01167).
   for (const [tty, expected] of [
-    [true, { cols: undefined, rows: undefined }],
-    [{}, { cols: undefined, rows: undefined }],
+    [true, { cols: 120, rows: 30 }],
+    [{}, { cols: 120, rows: 30 }],
     [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
-    [{ cols: 200 }, { cols: 200, rows: undefined }],
+    [{ cols: 200 }, { cols: 200, rows: 30 }],
   ]) {
     it(`passes tty ${JSON.stringify(tty)} to the PTY spawn as its size`, async function () {
       const { startBackgroundProcessSurface } = await import(
@@ -809,7 +813,7 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
       let seen;
       const result = await startBackgroundProcessSurface({
         config: {},
-        descriptor: { command: "my-tui", name: "tui", tty },
+        descriptor: { command: "my-tui", name: "tui", tty: effectiveTty(tty) },
         processRegistry: new Map(),
         deps: {
           spawnPtyBackgroundCommand: async (_cmd, _args, options) => {

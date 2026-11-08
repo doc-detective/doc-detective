@@ -4699,6 +4699,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.be.a("string");
       });
 
+      // The effective step fills the 120x30 size around what's authored (ADR 01167).
       for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
         it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
           const result = validate({
@@ -4708,7 +4709,7 @@ import { schemas } from "../dist/index.js";
             },
           });
           expect(result.valid, result.errors).to.be.true;
-          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+          expect(result.object.runShell.background.tty).to.deep.equal({ cols: 120, rows: 30, ...tty });
         });
       }
 

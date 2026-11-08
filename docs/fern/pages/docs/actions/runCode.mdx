@@ -73,7 +73,7 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
-With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. To pick the size, set `tty` to an object with `cols` and `rows`, such as `{"cols": 80, "rows": 24}`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis) in `runShell` for why the width matters.
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. To pick the size, set `tty` to an object with `cols` and `rows`, such as `{"cols": 80, "rows": 24}`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. Results show the size that ran, so `true` appears as `{"cols": 120, "rows": 30}`. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis) in `runShell` for why the width matters.
 
 ## Examples
 

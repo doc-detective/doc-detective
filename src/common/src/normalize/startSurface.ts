@@ -1,4 +1,5 @@
 import { schemas } from "../schemas/index.js";
+import { ttySize } from "./helpers.js";
 
 // A missing schema structure leaves every descriptor as it is, rather than
 // breaking module load.
@@ -20,6 +21,7 @@ function fill(descriptor: any): any {
   for (const [key, property] of Object.entries<any>(schema.properties)) {
     if ("default" in property && descriptor[key] === undefined) descriptor[key] = structuredClone(property.default);
   }
+  if (kind === "process") descriptor.tty = ttySize(descriptor.tty);
   return descriptor;
 }
 

@@ -58,8 +58,9 @@ interface ProcessSurfaceDescriptor {
   shell?: string;
   // Spawn under a pseudo-terminal (node-pty) so full-screen/interactive TUIs
   // render. node-pty is an optional heavy dep; only its ABSENCE is a SKIP.
-  // An object sets the terminal size; spawnPtyBackgroundCommand defaults it.
-  tty?: boolean | { cols?: number; rows?: number };
+  // The effective step's terminal size, or false (ADR 01167: the normalizer
+  // expands `true` and fills the size).
+  tty?: false | { cols: number; rows: number };
   // Readiness condition (port/stdio/httpGet/delayMs), executed by
   // waitForReady. No condition = ready as soon as the process spawns.
   waitUntil?: any;
@@ -153,13 +154,12 @@ async function startBackgroundProcessSurface({
     // must FAIL so it isn't hidden as optional-dependency absence.
     let bg: any;
     if (descriptor.tty) {
-      const size = typeof descriptor.tty === "object" ? descriptor.tty : {};
       try {
         bg = await d.spawnPtyBackgroundCommand(descriptor.command, args, {
           ...bgOptions,
           cacheDir: config?.cacheDir,
-          cols: size.cols,
-          rows: size.rows,
+          cols: descriptor.tty.cols,
+          rows: descriptor.tty.rows,
         });
       } catch (error: any) {
         // Spawn-time errors are NOT retried — only a transient early-exit from

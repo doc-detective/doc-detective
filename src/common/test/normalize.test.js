@@ -334,9 +334,27 @@ describe("normalization", function () {
     it("fills tty only for a background process", function () {
       const background = effective({ runShell: { command: "x", background: { name: "web" } } }).object.runShell;
       expect(background.background).to.deep.equal({ name: "web", tty: false });
-      const code = effective({ runCode: { language: "js", code: "1", background: { name: "api", tty: true } } }).object;
-      expect(code.runCode.background.tty).to.equal(true);
+      expect(effective({ runShell: "x" }).object.runShell).to.not.have.property("background");
     });
+
+    // `true` is shorthand for `{}`, and a PTY is 120x30 unless the object says
+    // otherwise. The schema's cols/rows defaults sit under an anyOf, so they're coded.
+    for (const [authored, tty] of [
+      [false, false],
+      [true, { cols: 120, rows: 30 }],
+      [{}, { cols: 120, rows: 30 }],
+      [{ cols: 80 }, { cols: 80, rows: 30 }],
+      [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+    ]) {
+      it(`makes tty: ${JSON.stringify(authored)} tty: ${JSON.stringify(tty)} for each background process`, function () {
+        const shell = effective({ runShell: { command: "x", background: { name: "a", tty: authored } } }).object;
+        const code = effective({ runCode: { language: "js", code: "1", background: { name: "a", tty: authored } } }).object;
+        const surface = effective({ startSurface: { process: "x", name: "a", tty: authored } }).object;
+        expect(shell.runShell.background.tty).to.deep.equal(tty);
+        expect(code.runCode.background.tty).to.deep.equal(tty);
+        expect(surface.startSurface.tty).to.deep.equal(tty);
+      });
+    }
 
     it("fills runCode's defaults", function () {
       const result = effective({ runCode: { language: "python", code: "print(1)" } });

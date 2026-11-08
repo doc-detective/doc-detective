@@ -581,7 +581,7 @@ async function spawnPtyBackgroundCommand(
   try {
     ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-color",
-      // `tty: {cols, rows}`; Ajv skips defaults inside the schema's anyOf.
+      // The effective step's `tty` size. A caller that passes none gets 120x30.
       cols: options.cols ?? 120,
       rows: options.rows ?? 30,
       cwd: options.cwd || process.cwd(),

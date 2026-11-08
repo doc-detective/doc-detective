@@ -102,7 +102,7 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
-With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. Many TUIs wrap or truncate their output to the width they read from `process.stdout.columns`, so a `waitUntil.stdio` pattern can depend on that width. To pick the size, set `tty` to an object with `cols` and `rows`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`.
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. Many TUIs wrap or truncate their output to the width they read from `process.stdout.columns`, so a `waitUntil.stdio` pattern can depend on that width. To pick the size, set `tty` to an object with `cols` and `rows`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. Results show the size that ran, so `true` appears as `{"cols": 120, "rows": 30}`.
 
 ```json
 {
