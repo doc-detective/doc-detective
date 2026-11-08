@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-before-all';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const w=(n,o)=>fs.writeFileSync(d+'/'+n,JSON.stringify(o));const spec={tests:[{steps:[{runShell:'echo hi'}]}]};w('setup.spec.json',spec);w('main.spec.json',spec);const base={input:'main.spec.json',telemetry:{send:false}};w('before-all-string.json',{...base,beforeAll:'setup.spec.json'});w('before-all-array.json',{...base,beforeAll:['setup.spec.json','setup.spec.json']});w('before-any.json',{...base,beforeAny:'setup.spec.json'});w('both.json',{...base,beforeAll:'setup.spec.json',beforeAny:'setup.spec.json'});\"",
+            "command": "node test/core-artifacts/cli/before-all-setup.cjs",
             "workingDirectory": "../../.."
           }
         }

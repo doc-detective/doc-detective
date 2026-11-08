@@ -49,12 +49,17 @@ describe("routing scopes through the CLI", function () {
     ["stop: run on a test", onTest({ stop: "run" }), "tests[0].onFail[0].stop:"],
     ["retry on a test", onTest({ retry: { limit: 1 } }), "tests[0].onFail[0]: unknown key 'retry'."],
     ["goToStep on a test", onTest({ goToStep: "s" }), "tests[0].onFail[0]: unknown key 'goToStep'."],
-    // The other handlers share the schema; one onPass case pins that through the CLI.
-    [
-      "stop: run on a step's onPass",
-      { tests: [{ steps: [{ ...echo, onPass: [{ stop: "run" }] }] }] },
-      "tests[0].steps[0].onPass[0].stop:",
-    ],
+    // The other handlers share the schema; a case per handler pins that through the CLI.
+    ...["onPass", "onWarning", "onSkip"].map((handler) => [
+      `stop: run on a step's ${handler}`,
+      { tests: [{ steps: [{ ...echo, [handler]: [{ stop: "run" }] }] }] },
+      `tests[0].steps[0].${handler}[0].stop:`,
+    ]),
+    ...["onPass", "onWarning", "onSkip"].map((handler) => [
+      `retry on a test's ${handler}`,
+      { tests: [{ steps: [echo], [handler]: [{ retry: { limit: 1 } }] }] },
+      `tests[0].${handler}[0]: unknown key 'retry'.`,
+    ]),
   ]) {
     it(`exits 2 on ${name}`, function () {
       const r = run(spec);
