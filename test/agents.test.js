@@ -550,6 +550,51 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
     assert.ok(logged.some((m) => /marketplace already exists/.test(m)), "should log the re-add failure");
   });
 
+  describe("update path: only the marketplace re-add is best effort", function () {
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "1.0.0", scope: "user", enabled: true },
+    ]);
+    // `fail` maps a command (e.g. "marketplace add") to the stdout/stderr it fails with.
+    function makeFailingAdapter(fail) {
+      const logged = [];
+      const adapter = new ClaudeCodeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "plugin" && args[1] === "list") {
+            return { stdout: installedList, stderr: "", exitCode: 0 };
+          }
+          const key = args[1] === "marketplace" ? `marketplace ${args[2]}` : args[1];
+          return fail[key] ? { stdout: "", stderr: "", ...fail[key], exitCode: 1 } : { stdout: "", stderr: "", exitCode: 0 };
+        },
+        existsSync: () => false,
+        readFileSync: () => { throw new Error("not stubbed"); },
+        readdirSync: () => [],
+        homedir: () => "/home/test",
+        cwd: () => "/work/proj",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      return { adapter, logged, opts: baseOpts({ scope: "global", logger: (m) => logged.push(m) }) };
+    }
+
+    it("includes the re-add's stdout in the warning", async function () {
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": { stdout: "source mismatch on stdout" } });
+      await adapter.install(opts);
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /source mismatch on stdout/.test(m)),
+        `expected the stdout in the warning; got ${JSON.stringify(logged)}`
+      );
+    });
+
+    for (const [label, fail, failing] of [
+      ["after a successful re-add", { "marketplace update": { stderr: "update broke" } }, /marketplace update/],
+      ["after a failed re-add", { "marketplace add": { stderr: "x" }, update: { stderr: "update broke" } }, /plugin update/],
+    ]) {
+      it(`still throws when a later step fails ${label}`, async function () {
+        const { adapter, opts } = makeFailingAdapter(fail);
+        await assert.rejects(adapter.install(opts), failing);
+      });
+    }
+  });
+
   it("returns already-up-to-date with no install commands when installed and current", async function () {
     const installedList = JSON.stringify([
       { id: "doc-detective@doc-detective", version: "2.0.0", scope: "user", enabled: true },

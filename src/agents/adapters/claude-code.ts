@@ -437,6 +437,8 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     // the install path (Claude Code reinstalls cleanly); `--force` on an
     // existing install prefers update semantics.
     type Cmd = [string, ...string[]];
+    // A `bestEffort` step logs a warning when it fails instead of throwing.
+    type Step = { argv: Cmd; bestEffort?: boolean };
     // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
     const addMarketplace: Cmd = [
       "claude",
@@ -447,29 +449,22 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       "--scope",
       mappedScope,
     ];
-    const commands: Cmd[] = isInstalled
+    const steps: Step[] = isInstalled
       ? [
           // Re-add first so an install made before the ref pin moves to it.
           // Best effort: a failed re-add never blocks the update below.
-          addMarketplace,
-          ["claude", "plugin", "marketplace", "update", MARKETPLACE_NAME],
-          ["claude", "plugin", "update", PLUGIN_KEY, "--scope", mappedScope],
+          { argv: addMarketplace, bestEffort: true },
+          { argv: ["claude", "plugin", "marketplace", "update", MARKETPLACE_NAME] },
+          { argv: ["claude", "plugin", "update", PLUGIN_KEY, "--scope", mappedScope] },
         ]
       : [
-          addMarketplace,
-          [
-            "claude",
-            "plugin",
-            "install",
-            PLUGIN_KEY,
-            "--scope",
-            mappedScope,
-          ],
+          { argv: addMarketplace },
+          { argv: ["claude", "plugin", "install", PLUGIN_KEY, "--scope", mappedScope] },
         ];
 
     if (opts.dryRun) {
-      for (const cmd of commands) {
-        opts.logger(`[dry-run] would run: ${cmd.join(" ")}`, "info");
+      for (const { argv } of steps) {
+        opts.logger(`[dry-run] would run: ${argv.join(" ")}`, "info");
       }
       return {
         adapterId: this.id,
@@ -479,17 +474,15 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       };
     }
 
-    for (const command of commands) {
-      const [cmd, ...args] = command;
+    for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       const result = await this.deps.run(cmd, args);
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
-        // Identity, not value, comparison: `commands` holds this same
-        // `addMarketplace` array, so `===` picks out the best-effort re-add.
-        if (isInstalled && command === addMarketplace) {
+        if (bestEffort) {
+          const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
           opts.logger(
-            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (exit code ${result.exitCode}) ${result.stderr}`,
+            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (exit code ${result.exitCode}) ${output}`,
             "warn"
           );
           continue;

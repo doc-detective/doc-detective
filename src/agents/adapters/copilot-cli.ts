@@ -172,22 +172,24 @@ export class CopilotCliAdapter implements AgentAdapter {
     }
 
     type Cmd = [string, ...string[]];
+    // A `bestEffort` step logs a warning when it fails instead of throwing.
+    type Step = { argv: Cmd; bestEffort?: boolean };
     // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
     const addMarketplace: Cmd = [
       "copilot", "plugin", "marketplace", "add", `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
     ];
-    const commands: Cmd[] = isInstalled
+    const steps: Step[] = isInstalled
       ? [
           // Re-add first so an install made before the ref pin moves to it.
           // Best effort: a failed re-add never blocks the update below.
-          addMarketplace,
-          ["copilot", "plugin", "update", PLUGIN_KEY],
+          { argv: addMarketplace, bestEffort: true },
+          { argv: ["copilot", "plugin", "update", PLUGIN_KEY] },
         ]
-      : [addMarketplace, ["copilot", "plugin", "install", PLUGIN_KEY]];
+      : [{ argv: addMarketplace }, { argv: ["copilot", "plugin", "install", PLUGIN_KEY] }];
 
     if (opts.dryRun) {
-      for (const cmd of commands) {
-        opts.logger(`[dry-run] would run: ${cmd.join(" ")}`, "info");
+      for (const { argv } of steps) {
+        opts.logger(`[dry-run] would run: ${argv.join(" ")}`, "info");
       }
       return {
         adapterId: this.id,
@@ -197,8 +199,7 @@ export class CopilotCliAdapter implements AgentAdapter {
       };
     }
 
-    for (const command of commands) {
-      const [cmd, ...args] = command;
+    for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       let result: RunResult;
       try {
@@ -222,9 +223,7 @@ export class CopilotCliAdapter implements AgentAdapter {
         // a generic "exited with code 1" instead.
         const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
         const msg = output || `exit code ${result.exitCode}`;
-        // Identity, not value, comparison: `commands` holds this same
-        // `addMarketplace` array, so `===` picks out the best-effort re-add.
-        if (isInstalled && command === addMarketplace) {
+        if (bestEffort) {
           opts.logger(
             `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${msg})`,
             "warn"

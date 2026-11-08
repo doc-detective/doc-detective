@@ -214,6 +214,24 @@ describe("CopilotCliAdapter.install()", function () {
     assert.ok(logged.some((m) => /marketplace already exists/.test(m)), "should log the re-add failure");
   });
 
+  // Only the marketplace re-add is best effort: `plugin update` failing still
+  // throws, whether the re-add before it succeeded or failed.
+  for (const reAddFails of [false, true]) {
+    it(`still throws when \`plugin update\` fails after a ${reAddFails ? "failed" : "successful"} re-add`, async function () {
+      const adapter = new CopilotCliAdapter({
+        run: async (cmd, args) => {
+          const fails = args[1] === "update" || (reAddFails && args[1] === "marketplace");
+          return { stdout: "", stderr: fails ? "it broke" : "", exitCode: fails ? 1 : 0 };
+        },
+        existsSync: (p) => p === PLUGIN_JSON_PATH,
+        readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+        homedir: () => "/home/test",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      await assert.rejects(adapter.install(baseOpts()), /plugin update/);
+    });
+  }
+
   it("reports already-up-to-date with no commands when current", async function () {
     const { adapter, calls } = makeSpyAdapter({
       installed: true, version: "1.3.0", latest: "1.3.0",
