@@ -1,3 +1,10 @@
+## [4.42.1](https://github.com/doc-detective/doc-detective/compare/v4.42.0...v4.42.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **openapi:** check the ref parser's http resolver before overriding it ([7452aca](https://github.com/doc-detective/doc-detective/commit/7452aca7e5504660151fdaba263970acba23f250))
+
 # [4.42.0](https://github.com/doc-detective/doc-detective/compare/v4.41.6...v4.42.0) (2026-11-08)
 
 
