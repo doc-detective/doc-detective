@@ -422,9 +422,11 @@ describe("ClaudeCodeAdapter.getInstallState()", function () {
 
 describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () {
   let ClaudeCodeAdapter;
+  let AGENT_TOOLS_REF;
 
   before(async function () {
     ({ ClaudeCodeAdapter } = await import("../dist/agents/adapters/claude-code.js"));
+    ({ AGENT_TOOLS_REF } = await import("../dist/agents/fetcher.js"));
   });
 
   /**
@@ -472,12 +474,12 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
       c[2] === "install" ||
       c[2] === "update");
 
-  it("runs `marketplace add` then `plugin install` with mapped scope for a fresh install", async function () {
+  it("runs `marketplace add` at the pinned ref then `plugin install` with mapped scope for a fresh install", async function () {
     const { adapter, calls } = makeSpyAdapter({ marketplaceList: "[]" });
     const report = await adapter.install(baseOpts({ scope: "project" }));
     const installs = commandsAfter(calls, MUTATING);
     assert.deepEqual(installs, [
-      "claude plugin marketplace add doc-detective/agent-tools --scope project",
+      `claude plugin marketplace add doc-detective/agent-tools#${AGENT_TOOLS_REF} --scope project`,
       "claude plugin install doc-detective@doc-detective --scope project",
     ]);
     assert.equal(report.action, "installed");
@@ -490,12 +492,14 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
     await adapter.install(baseOpts({ scope: "global" }));
     const installs = commandsAfter(calls, MUTATING);
     assert.deepEqual(installs, [
-      "claude plugin marketplace add doc-detective/agent-tools --scope user",
+      `claude plugin marketplace add doc-detective/agent-tools#${AGENT_TOOLS_REF} --scope user`,
       "claude plugin install doc-detective@doc-detective --scope user",
     ]);
   });
 
-  it("runs `marketplace update` + `plugin update` when an update is available", async function () {
+  it("re-adds the marketplace at the pinned ref, then runs `marketplace update` + `plugin update`, when an update is available", async function () {
+    // An install made before the ref pin (marketplace added bare) is found by
+    // `plugin list` and updated in place: no second `plugin install`.
     const installedList = JSON.stringify([
       { id: "doc-detective@doc-detective", version: "1.0.0", scope: "project", enabled: true },
     ]);
@@ -504,20 +508,118 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
       fetchLatestVersion: async () => "1.1.0",
     });
     const report = await adapter.install(baseOpts({ scope: "project" }));
-    const updates = commandsAfter(
-      calls,
-      (c) => c[0] === "claude" && c[2] === "marketplace" && c[3] === "update"
-    );
-    const pluginUpdates = commandsAfter(
-      calls,
-      (c) => c[0] === "claude" && c[2] === "update" && c[1] === "plugin"
-    );
-    assert.deepEqual(updates, ["claude plugin marketplace update doc-detective"]);
-    assert.deepEqual(pluginUpdates, [
+    assert.deepEqual(commandsAfter(calls, MUTATING), [
+      `claude plugin marketplace add doc-detective/agent-tools#${AGENT_TOOLS_REF} --scope project`,
+      "claude plugin marketplace update doc-detective",
       "claude plugin update doc-detective@doc-detective --scope project",
     ]);
     assert.equal(report.action, "updated");
     assert.equal(report.installedVersion, "1.1.0");
+  });
+
+  it("still updates when re-adding the marketplace at the pinned ref fails", async function () {
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "1.0.0", scope: "user", enabled: true },
+    ]);
+    const calls = [];
+    const logged = [];
+    const adapter = new ClaudeCodeAdapter({
+      run: async (cmd, args) => {
+        calls.push([cmd, ...args]);
+        if (args[0] === "plugin" && args[1] === "list") {
+          return { stdout: installedList, stderr: "", exitCode: 0 };
+        }
+        if (args[1] === "marketplace" && args[2] === "add") {
+          return { stdout: "", stderr: "marketplace already exists", exitCode: 1 };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+      existsSync: () => false,
+      readFileSync: () => { throw new Error("not stubbed"); },
+      readdirSync: () => [],
+      homedir: () => "/home/test",
+      cwd: () => "/work/proj",
+      fetchLatestVersion: async () => "1.1.0",
+    });
+    const report = await adapter.install(baseOpts({ scope: "global", logger: (m) => logged.push(m) }));
+    assert.deepEqual(commandsAfter(calls, MUTATING), [
+      `claude plugin marketplace add doc-detective/agent-tools#${AGENT_TOOLS_REF} --scope user`,
+      "claude plugin marketplace update doc-detective",
+      "claude plugin update doc-detective@doc-detective --scope user",
+    ]);
+    assert.equal(report.action, "updated");
+    assert.ok(logged.some((m) => /marketplace already exists/.test(m)), "should log the re-add failure");
+  });
+
+  describe("update path: only the marketplace re-add is best effort", function () {
+    const installedList = JSON.stringify([
+      { id: "doc-detective@doc-detective", version: "1.0.0", scope: "user", enabled: true },
+    ]);
+    // `fail` maps a command (e.g. "marketplace add") to the stdout/stderr it fails with.
+    function makeFailingAdapter(fail) {
+      const logged = [];
+      const adapter = new ClaudeCodeAdapter({
+        run: async (cmd, args) => {
+          if (args[0] === "plugin" && args[1] === "list") {
+            return { stdout: installedList, stderr: "", exitCode: 0 };
+          }
+          const key = args[1] === "marketplace" ? `marketplace ${args[2]}` : args[1];
+          if (fail[key]?.throws) throw fail[key].throws;
+          return fail[key] ? { stdout: "", stderr: "", ...fail[key], exitCode: 1 } : { stdout: "", stderr: "", exitCode: 0 };
+        },
+        existsSync: () => false,
+        readFileSync: () => { throw new Error("not stubbed"); },
+        readdirSync: () => [],
+        homedir: () => "/home/test",
+        cwd: () => "/work/proj",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      return { adapter, logged, opts: baseOpts({ scope: "global", logger: (m) => logged.push(m) }) };
+    }
+
+    it("includes the re-add's stdout in the warning", async function () {
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": { stdout: "source mismatch on stdout" } });
+      await adapter.install(opts);
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /source mismatch on stdout/.test(m)),
+        `expected the stdout in the warning; got ${JSON.stringify(logged)}`
+      );
+    });
+
+    it("ends the warning with the exit code when the re-add prints nothing", async function () {
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": {} });
+      await adapter.install(opts);
+      const warning = logged.find((m) => /Couldn't re-add/.test(m));
+      assert.ok(warning, `expected a re-add warning; got ${JSON.stringify(logged)}`);
+      assert.match(warning, /\(exit code 1\)$/);
+    });
+
+    it("warns and continues when the re-add's spawn throws", async function () {
+      const enoent = Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" });
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": { throws: enoent } });
+      const report = await adapter.install(opts);
+      assert.equal(report.action, "updated");
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /spawn claude ENOENT/.test(m)),
+        `expected the spawn error in the warning; got ${JSON.stringify(logged)}`
+      );
+    });
+
+    it("still throws when a later step's spawn throws", async function () {
+      const boom = new Error("spawn failed for plugin update");
+      const { adapter, opts } = makeFailingAdapter({ "marketplace add": { stderr: "x" }, update: { throws: boom } });
+      await assert.rejects(adapter.install(opts), /spawn failed for plugin update/);
+    });
+
+    for (const [label, fail, failing] of [
+      ["after a successful re-add", { "marketplace update": { stderr: "update broke" } }, /marketplace update/],
+      ["after a failed re-add", { "marketplace add": { stderr: "x" }, update: { stderr: "update broke" } }, /plugin update/],
+    ]) {
+      it(`still throws when a later step fails ${label}`, async function () {
+        const { adapter, opts } = makeFailingAdapter(fail);
+        await assert.rejects(adapter.install(opts), failing);
+      });
+    }
   });
 
   it("returns already-up-to-date with no install commands when installed and current", async function () {
@@ -565,10 +667,12 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
 
 describe("ClaudeCodeAdapter.install() — Path B (settings.json fallback)", function () {
   let ClaudeCodeAdapter;
+  let AGENT_TOOLS_REF;
   let tmpdir;
 
   before(async function () {
     ({ ClaudeCodeAdapter } = await import("../dist/agents/adapters/claude-code.js"));
+    ({ AGENT_TOOLS_REF } = await import("../dist/agents/fetcher.js"));
   });
 
   beforeEach(function () {
@@ -611,10 +715,35 @@ describe("ClaudeCodeAdapter.install() — Path B (settings.json fallback)", func
     const parsed = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
     assert.equal(parsed.enabledPlugins["doc-detective@doc-detective"], true);
     assert.deepEqual(parsed.extraKnownMarketplaces["doc-detective"], {
-      source: { source: "github", repo: "doc-detective/agent-tools" },
+      source: { source: "github", repo: "doc-detective/agent-tools", ref: AGENT_TOOLS_REF },
     });
     assert.equal(report.action, "fallback");
     assert.equal(report.scope, "global");
+  });
+
+  it("repoints a marketplace entry written before the ref pin, without duplicating it", async function () {
+    const settingsDir = path.join(tmpdir, ".claude");
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(path.join(settingsDir, "settings.json"), JSON.stringify({
+      enabledPlugins: { "doc-detective@doc-detective": true },
+      extraKnownMarketplaces: {
+        "doc-detective": { source: { source: "github", repo: "doc-detective/agent-tools" } },
+      },
+    }));
+
+    const adapter = makeAdapter();
+    // Found as installed (enabledPlugins), not treated as a fresh install.
+    assert.equal((await adapter.getInstallState("global")).installed, true);
+    const report = await adapter.install(baseOpts({ scope: "global" }));
+
+    const parsed = JSON.parse(fs.readFileSync(path.join(settingsDir, "settings.json"), "utf8"));
+    assert.deepEqual(parsed.extraKnownMarketplaces, {
+      "doc-detective": {
+        source: { source: "github", repo: "doc-detective/agent-tools", ref: AGENT_TOOLS_REF },
+      },
+    });
+    assert.deepEqual(parsed.enabledPlugins, { "doc-detective@doc-detective": true });
+    assert.equal(report.action, "fallback");
   });
 
   it("preserves existing unrelated settings when merging", async function () {
