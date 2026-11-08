@@ -41,6 +41,9 @@ describe("config precedence", function () {
     for (const key of ENV_KEYS) delete process.env[key];
     process.env.XDG_CONFIG_HOME = path.join(tmp, "xdg");
     process.env.APPDATA = path.join(tmp, "xdg");
+    // The working directory, like the variables above, is process-wide, so
+    // this suite's tests must run one at a time. Mocha runs a file's tests in
+    // order, and test:parallel shards are separate processes.
     cwd = process.cwd();
     process.chdir(tmp);
     resetEnvFlagWarnings();
