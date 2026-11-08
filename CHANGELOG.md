@@ -1,3 +1,248 @@
+# [5.0.0-v5-rc.10](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.9...v5.0.0-v5-rc.10) (2026-11-08)
+
+
+* docs(browser)!: document the narrowed find.click object ([a2dfc63](https://github.com/doc-detective/doc-detective/commit/a2dfc637f4ba376ff5a997ea3dea0ea1e38a7378)), closes [#816](https://github.com/doc-detective/doc-detective/issues/816)
+* feat(browser)!: normalize browser steps in validate() and tighten click ([979fd2b](https://github.com/doc-detective/doc-detective/commit/979fd2b6361f11c6344f1b189a3b1553f49adf59)), closes [#816](https://github.com/doc-detective/doc-detective/issues/816)
+* feat(capture)!: normalize capture steps and default their paths under outputDir ([4f69d7e](https://github.com/doc-detective/doc-detective/commit/4f69d7e3f8492d695b9696365af8f2bd8b6fcd62))
+* feat(cli)!: one error format for config and spec schema errors ([424f00e](https://github.com/doc-detective/doc-detective/commit/424f00ea583b1c3895ee6b4a88b037cedaea861a))
+* feat(cli)!: one separator per list flag, and a quieter JS API ([32a3fdc](https://github.com/doc-detective/doc-detective/commit/32a3fdc8a32c45c70923542842c20962440dce09))
+* feat(common)!: return the effective step from validate() ([928fe0c](https://github.com/doc-detective/doc-detective/commit/928fe0cee2bf53be17ff4b0a485bada915d6cca5))
+* feat(config)!: rename beforeAny to beforeAll ([583144f](https://github.com/doc-detective/doc-detective/commit/583144f3ca850eabd0e7d6d8ed71ed1db4f6bcc8))
+* feat(http)!: normalize navigation and HTTP steps in validate() ([872167d](https://github.com/doc-detective/doc-detective/commit/872167db4eba0c8a631f46df28ad2b9619be3bd4))
+* feat(process)!: normalize process and surface steps in validate() ([260b5d6](https://github.com/doc-detective/doc-detective/commit/260b5d67f44d1174e15ff6a80e63eab2fe6d711e))
+* feat(process)!: start every timeout at 1 ([042fced](https://github.com/doc-detective/doc-detective/commit/042fced7d35f36b974968b257b6eca6cde270699))
+* feat(routing)!: reject routing actions the runner can't perform at that scope ([d3e338e](https://github.com/doc-detective/doc-detective/commit/d3e338e668e21b1ad4105c31d687c34e3531167b))
+* feat(schemas)!: reject retry in a step's onSkip, and beforeAll with beforeAny ([edf61f0](https://github.com/doc-detective/doc-detective/commit/edf61f02d2e215aeefc713234d137d9649fdad4f))
+* feat(schemas)!: require goTo and httpRequest timeouts of at least 1 ms ([6c02507](https://github.com/doc-detective/doc-detective/commit/6c0250758d312906ea4d3dc71152986f266d002f))
+* fix(cli)!: an empty reporters list means none, and one --agent list in postinstall ([1fa04fd](https://github.com/doc-detective/doc-detective/commit/1fa04fd0e7a47598a2e56420efb80486fa65005b))
+* fix(config)!: one config env var and one precedence order ([5293a74](https://github.com/doc-detective/doc-detective/commit/5293a748f9ad1bab89b8f7ede99de2569aae1749))
+* fix(config)!: resolve paths per source, and keep the run's cache in process ([77109ab](https://github.com/doc-detective/doc-detective/commit/77109ab25fdb6bddc696c66f368f93f75b27ebe6))
+* fix(schemas)!: accept only cookie strings with a valid object form ([90683d0](https://github.com/doc-detective/doc-detective/commit/90683d062f0687b4b461ce8e2f7b5d9bc9d3bef0))
+* fix(schemas)!: reject empty cookie paths and protocol-relative URLs ([6f43846](https://github.com/doc-detective/doc-detective/commit/6f43846832d0969de22d9723c121da81c6fa41bf))
+
+
+### Bug Fixes
+
+* **agents:** honor bestEffort when the marketplace re-add's spawn throws ([0f51d05](https://github.com/doc-detective/doc-detective/commit/0f51d05ec746f154ff49c026415c6730d4a9ceea))
+* **agents:** install agent-tools from its feat/v5-rc branch until CLI 5 GA ([368f286](https://github.com/doc-detective/doc-detective/commit/368f2861be17a86079e964dae3c8dfe2992e7327))
+* **agents:** pin Claude Code and Copilot CLI marketplaces to the agent-tools ref ([d42e33b](https://github.com/doc-detective/doc-detective/commit/d42e33b6ff586fec94779ea4bbf577915e0730c2))
+* **api:** deep-merge the caller config over pre-resolved tests' config ([9df615f](https://github.com/doc-detective/doc-detective/commit/9df615f0ee7963e87b332063879ed50047020a37))
+* **capture:** keep the authored capture object unchanged in its normalizer ([a3e9798](https://github.com/doc-detective/doc-detective/commit/a3e979866731e592fa96edff683518b1790799bb))
+* **capture:** place capture paths in the runner, so reports show them absolute ([1319fb0](https://github.com/doc-detective/doc-detective/commit/1319fb0839c8fb8a8cf86f3fa27f57203c97317f))
+* **capture:** wait for a variable in a capture's path or directory ([7b7eff7](https://github.com/doc-detective/doc-detective/commit/7b7eff7fa01430b49e1ee29af8fc57c8fc10f2af))
+* **checkLink:** redact the URL in network error messages ([f5cf1b6](https://github.com/doc-detective/doc-detective/commit/f5cf1b6d10a1a4f60ffd41e3f6c6af3e3ca517de))
+* **click:** fail a boolean click with a hint to quote it ([83dabd7](https://github.com/doc-detective/doc-detective/commit/83dabd7225319103844e05344a4480915193874a))
+* **click:** fail a boolean click with a hint to quote it ([1e5f270](https://github.com/doc-detective/doc-detective/commit/1e5f270a197462cd2db5bf949b853b9790ffe57e))
+* **cli:** cut a long value on its encoded text, and guard unknown fileTypes ([f28c575](https://github.com/doc-detective/doc-detective/commit/f28c57582c603af39f23d0816e2ff4c1f3323b94))
+* **cli:** deep-merge DOC_DETECTIVE_CONFIG into resolved tests' config ([3c3dcd0](https://github.com/doc-detective/doc-detective/commit/3c3dcd098f0986ba0e7fe48bdcd43074f999a045))
+* **cli:** follow patternProperties to suggest keys, and keep raw reasons bare ([edd5820](https://github.com/doc-detective/doc-detective/commit/edd5820145a2508807dd62b153c95d88a73cc5e1))
+* **cli:** format DOC_DETECTIVE_API resolved-test errors like the rest ([627937d](https://github.com/doc-detective/doc-detective/commit/627937d97c9ed1d32805e2ea0df59269177952a7))
+* **cli:** give the reason for every spec skipped after detection ([6a0dd07](https://github.com/doc-detective/doc-detective/commit/6a0dd0778bc48dc64ec79be1af8adb391d7b5a00))
+* **cli:** keep a cut string's quotes, and log raw config errors at debug ([2a673f0](https://github.com/doc-detective/doc-detective/commit/2a673f036993337b50cb119832a9373676bbde4c))
+* **cli:** keep required keys beside deeper errors, and raw errors for -d ([1cdf4a1](https://github.com/doc-detective/doc-detective/commit/1cdf4a15c54083bc2da0ec2a1f2b360a2030b7d1))
+* **cli:** keep version metadata when its own package.json is partial ([b99eebd](https://github.com/doc-detective/doc-detective/commit/b99eebd0c82638f284fe5e09797b702fcc1cf405))
+* **cli:** log the raw schema errors of a merged spec at debug only ([a7fe536](https://github.com/doc-detective/doc-detective/commit/a7fe536be99e983a9c1aeeb6e914ca8ddb218e1f))
+* **cli:** name each key DOC_DETECTIVE_API is missing ([31b7bac](https://github.com/doc-detective/doc-detective/commit/31b7bac49715635c5eba31a6b1bc06c93781822e))
+* **cli:** name keys that can't be combined, not false schemas ([84d6fe2](https://github.com/doc-detective/doc-detective/commit/84d6fe2d93d9987903e93e5b2f141ec8d88311e0))
+* **cli:** name the bad item in a list option's choices error ([83b7999](https://github.com/doc-detective/doc-detective/commit/83b79994be63d0c704406ae4aa2eaf29de64ddfb))
+* **cli:** name the keyword when a schema error has no message ([d18206d](https://github.com/doc-detective/doc-detective/commit/d18206df6b36793e8f8ae201a7e645adfa2f49e5))
+* **cli:** never print an empty schema-error summary ([307a16c](https://github.com/doc-detective/doc-detective/commit/307a16c621a4b753ae8db180fd8eb8ca3f39583e))
+* **cli:** never throw on a bad pattern, and name an unshowable object ([d99efb7](https://github.com/doc-detective/doc-detective/commit/d99efb747917ddb782e41d69d78a03fc85d39325))
+* **cli:** print unknown for --version when the version can't be found ([087558e](https://github.com/doc-detective/doc-detective/commit/087558ee3bad74599b5d6ed4861d51580ca4da5a))
+* **cli:** put the variable name in backticks in the boolean warning ([1424e03](https://github.com/doc-detective/doc-detective/commit/1424e03e37b88a60c6e33385c8a96c40fd8074f6))
+* **cli:** read cacheDir from the --config file in install ([f026f40](https://github.com/doc-detective/doc-detective/commit/f026f40a6763674f65c23407dae575a91c6c0403))
+* **cli:** shorten invalid-step names, and redact a remote config URL ([63f6d6d](https://github.com/doc-detective/doc-detective/commit/63f6d6d476badd7e7e40cb76974f32d36493fdf4))
+* **cli:** show a function or bigint in a schema error without throwing ([5db6b19](https://github.com/doc-detective/doc-detective/commit/5db6b191a9e11c061070ea7204b28d9e72ffe403))
+* **cli:** suggest keys from if-then branches, and say "must be" for one value ([4a76935](https://github.com/doc-detective/doc-detective/commit/4a76935fdec1f65f5a91a21e2df9729e0cac7659))
+* **cli:** word a messageless not error, and type the log bridges ([1e627ae](https://github.com/doc-detective/doc-detective/commit/1e627ae13859c736f27a00289201194c6f1decf4))
+* **common:** copy a closeSurface list in its normalizer ([d0aa354](https://github.com/doc-detective/doc-detective/commit/d0aa354280ffce6f4792a6ab4a070b57282614b9))
+* **common:** copy a type key list in its normalizer ([006e852](https://github.com/doc-detective/doc-detective/commit/006e8527d2b0e48d37f6fa661837ebf327882674))
+* **common:** copy stopRecord's object form in its normalizer ([fbe9583](https://github.com/doc-detective/doc-detective/commit/fbe958345cb8ee7ef133a17718cacfa0da830779))
+* **common:** deep-copy closeSurface's references ([d041868](https://github.com/doc-detective/doc-detective/commit/d041868d14444d7bbce554d26e45299a2838207b))
+* **common:** don't read a null find.click as a left click ([38c7192](https://github.com/doc-detective/doc-detective/commit/38c71920bcbcced8d6a20c1416c00adf2c3daa4d))
+* **common:** fill a background tty's size in the effective step ([548e67c](https://github.com/doc-detective/doc-detective/commit/548e67c9b746f11f62ce58e3fdab444a7575b0ac)), closes [#846](https://github.com/doc-detective/doc-detective/issues/846)
+* **common:** guard the startSurface normalizer against a missing descriptor schema ([db7a438](https://github.com/doc-detective/doc-detective/commit/db7a43827c5e7b278669d4ab7598f99b0f43eb41))
+* **common:** keep a whole variable where a list goes until substitution ([b55bfc7](https://github.com/doc-detective/doc-detective/commit/b55bfc72a78f531798133d6f57643a361ed7e7b5))
+* **common:** keep the startSurface normalizer loadable without its schema components ([eccce03](https://github.com/doc-detective/doc-detective/commit/eccce03c3bba84be85c714c973096e7a3338bf7a))
+* **common:** keep v2 upgrades authored and place normalize errors ([fc089fa](https://github.com/doc-detective/doc-detective/commit/fc089fa8c745a82b614552cca9ad47af17d18f33))
+* **common:** leave a startSurface descriptor of no known kind as it is ([588c8f5](https://github.com/doc-detective/doc-detective/commit/588c8f52cffe3f27c36f903b162906849b8046e9))
+* **common:** leave whole-variable action values as authored ([b6f50f9](https://github.com/doc-detective/doc-detective/commit/b6f50f932ddf96bef269f9dfa7caf97b8d88aaa2))
+* **common:** list a dragAndDrop locator's elementClass ([133a3be](https://github.com/doc-detective/doc-detective/commit/133a3bec4c488afac7d322e59c16044c420f3b06))
+* **common:** make every normalizer pure ([4535d21](https://github.com/doc-detective/doc-detective/commit/4535d219bbccb1be166a9bd77237dadc0b8f237f))
+* **common:** name a missing schema in applyDefaults, and skip nested if defaults ([35efdbb](https://github.com/doc-detective/doc-detective/commit/35efdbbe3a75d8b2671146225c90fd91937e07d5))
+* **common:** skip defaults in a nested object with a oneOf, as with an anyOf ([b4156ba](https://github.com/doc-detective/doc-detective/commit/b4156ba9694b39124a7a439b0310064a379438cf))
+* **config:** drop a null beforeAny, so it can't meet a beforeAll ([d734427](https://github.com/doc-detective/doc-detective/commit/d73442718d716e6e0331ac0f1efe78720160e968))
+* **config:** drop env warnings an earlier run queued and never sent ([677a314](https://github.com/doc-detective/doc-detective/commit/677a3142ba687db53abc13e64656cbf0cac08953))
+* **config:** fail on both debug names only when one is on, and warn in postinstall ([28122d4](https://github.com/doc-detective/doc-detective/commit/28122d4fbd3027b73e6bd7223b06e90f55a69d3a))
+* **config:** give DOC_DETECTIVE_CONFIG the both-set error a file gets ([5169a45](https://github.com/doc-detective/doc-detective/commit/5169a451f3ca5998073fc47965e58d6f1270d30e))
+* **config:** let the merged logLevel decide the beforeAny warning ([3fc6ea2](https://github.com/doc-detective/doc-detective/commit/3fc6ea23933c5828f9ddd0026bc2e410dfc6dc58))
+* **config:** log DOC_DETECTIVE_CONFIG as validated, with beforeAny renamed ([77dc1d7](https://github.com/doc-detective/doc-detective/commit/77dc1d79dcef7cb885229867472800771aa8eb3a))
+* **config:** merge a v2 config source in its v3 form ([7fd7f07](https://github.com/doc-detective/doc-detective/commit/7fd7f07176b8a5411d222fb912c722fade743a91))
+* **config:** rename beforeAny in each config source before merging ([5c4f0b0](https://github.com/doc-detective/doc-detective/commit/5c4f0b01f0661237df40dfaae60a6646ed7c0fb7))
+* **config:** say which debug variable is on when both names are set ([2ac7e66](https://github.com/doc-detective/doc-detective/commit/2ac7e66cb7ae3762e4529a364e5a8f163b746a9e))
+* **config:** treat a null beforeAll as absent when renaming beforeAny ([6d1d123](https://github.com/doc-detective/doc-detective/commit/6d1d123b9407bb7000339406d6ad315eac17ef64))
+* **config:** treat a null beforeAny as absent ([d4a5555](https://github.com/doc-detective/doc-detective/commit/d4a5555af6d132dde9081797145bf24620053817))
+* **config:** treat a null beforeAny in DOC_DETECTIVE_CONFIG as absent ([79712b2](https://github.com/doc-detective/doc-detective/commit/79712b24d3470fc6c05a9bc9ce07eec7c541c56f)), closes [#829](https://github.com/doc-detective/doc-detective/issues/829)
+* **core:** normalize whole-variable actions after substitution ([1dc01e6](https://github.com/doc-detective/doc-detective/commit/1dc01e6cb958160dd4876b09c960b989028a556c))
+* **core:** resolve against a folder with a dot in its name before it exists ([cb2b5e8](https://github.com/doc-detective/doc-detective/commit/cb2b5e8122468c8521e33a74b2e2fda7069ed98a))
+* find the package root from the CommonJS build ([fc13ba3](https://github.com/doc-detective/doc-detective/commit/fc13ba3eeb40769a45d93dfd5d03037966902c7c)), closes [#820](https://github.com/doc-detective/doc-detective/issues/820)
+* handle an unknown own version in the update check and verified-by ([388eaaf](https://github.com/doc-detective/doc-detective/commit/388eaaf7f7e102246358c973a9257b173fde25e2))
+* **http:** default validateAgainstSchema after the openApi merge ([61f5dbf](https://github.com/doc-detective/doc-detective/commit/61f5dbf4423ee815124041027f808cbf19c8e8de))
+* **http:** leave an httpRequest's request and response data unresolved ([39a8002](https://github.com/doc-detective/doc-detective/commit/39a800293f0af040b2d6b616e9b2205ec557061d))
+* **pty:** find the probe worker from the CommonJS build ([0ada54b](https://github.com/doc-detective/doc-detective/commit/0ada54b93dbe51c694554f0854faaaf87ca0103f)), closes [#501](https://github.com/doc-detective/doc-detective/issues/501)
+* **reporters:** uppercase the HTTP method in HTML report labels ([5845fdf](https://github.com/doc-detective/doc-detective/commit/5845fdfc166a88ea6670970067c093e413e81cdd))
+* **report:** keep authored and odd values out of run metadata ([7a13d04](https://github.com/doc-detective/doc-detective/commit/7a13d04d417e4c59741766ed32ba52e1a7853972))
+* **report:** leave docDetectiveVersion out when the version is unknown ([58fdb14](https://github.com/doc-detective/doc-detective/commit/58fdb14ed376f43a9a26a35cebf759dbe0f78c97))
+* **runShell:** name a missing package root in the PTY probe ([9d727c9](https://github.com/doc-detective/doc-detective/commit/9d727c9f6f610317542967a70f445356826ea247))
+* **runtime:** read the debug flag when logging, not at import ([8232d86](https://github.com/doc-detective/doc-detective/commit/8232d861a34cb1bb82309183b7e1a298e7e4bd0d))
+* **runtime:** remember when the package root isn't found ([2101174](https://github.com/doc-detective/doc-detective/commit/210117455c6943bf736fcba99a51accc806321b1))
+* **schemas:** allow retry in onSkip again ([c40e986](https://github.com/doc-detective/doc-detective/commit/c40e986ea7e9f89ff7ca7ad2d4db22e6e2947d01))
+* **schemas:** echo the authored boolean in the click error ([9ce0cc2](https://github.com/doc-detective/doc-detective/commit/9ce0cc2ed9c988df0a245680e1921e39862e4cdc))
+* **schemas:** keep authored booleans and numbers through coercion ([2380d55](https://github.com/doc-detective/doc-detective/commit/2380d559a14d56fede0be8059ed0065b0595895e))
+* **schemas:** keep authored booleans and numbers through coercion ([ab45c4d](https://github.com/doc-detective/doc-detective/commit/ab45c4d2b4ceb414ca2544c15f895501fea31ab8))
+* **schemas:** list number first in wait's type array ([cd66e7c](https://github.com/doc-detective/doc-detective/commit/cd66e7cef91941fac1dea924547b105b576fa1bf))
+* **schemas:** list number first in wait's type array ([fd7809c](https://github.com/doc-detective/doc-detective/commit/fd7809ceb1c197e6179b70863ba0750fea045bc5))
+* **schemas:** name the locator a find.type can't set ([05c23ef](https://github.com/doc-detective/doc-detective/commit/05c23ef87f5abe1936acb7c229f22cfe3e7fb8ce))
+* **screenshot:** skip screenshot: false before loading the image libraries ([3726182](https://github.com/doc-detective/doc-detective/commit/37261826b8d41c4e1e76dee6c29b6537eeae16b2))
+* **scripts:** suggest ADR numbers from 01000, past the reserved range ([96a5069](https://github.com/doc-detective/doc-detective/commit/96a506936c2b1ecf835abb394eb7f5c0c5d61001))
+* **startSurface:** fail every app workingDirectory, including "." ([d211274](https://github.com/doc-detective/doc-detective/commit/d21127425e9e430008858563a60fb1c1822409a5))
+* **telemetry:** find the package version from the CommonJS build ([e1d4ea6](https://github.com/doc-detective/doc-detective/commit/e1d4ea626212fdab987e038bd343269a6c4d2c70))
+* **telemetry:** replace every space in flattened summary keys ([25af89c](https://github.com/doc-detective/doc-detective/commit/25af89c4e3a7a11afe3057b3d92335184d607530))
+* **telemetry:** send a runTests event even when results have no summary ([cb6308e](https://github.com/doc-detective/doc-detective/commit/cb6308ebe3376992e7db3c560dd99d8217c9fea9))
+* **telemetry:** send core_version as unknown when its own version can't be read ([aa45e30](https://github.com/doc-detective/doc-detective/commit/aa45e30caed6e6d4811eae9a007bdad5dce401e6))
+* **wait:** name the variable that didn't resolve ([40de8ce](https://github.com/doc-detective/doc-detective/commit/40de8ce0bd1edc3a9cf4dbead2c7ede079e1597d))
+
+
+### Features
+
+* **agents:** pin agent-tools to the v2 tag ([c6405c0](https://github.com/doc-detective/doc-detective/commit/c6405c0c99e420b178ff526aa2bdc8b6b85adffb))
+* **checkLink:** add a per-attempt timeout ([799e4af](https://github.com/doc-detective/doc-detective/commit/799e4afabef1157e30ed871628bd2671c9309430))
+* **report:** record the run environment and start times ([cbbbf66](https://github.com/doc-detective/doc-detective/commit/cbbbf66350711722d63a2a12b4a8a01046dc8ce5))
+* **runner:** report nothing_tested and interrupted outcomes ([84c8f48](https://github.com/doc-detective/doc-detective/commit/84c8f48f4b1eddffa0cc90822ab02e2845516f92))
+* **runShell:** set the pseudo-terminal size ([25b80d8](https://github.com/doc-detective/doc-detective/commit/25b80d803fea0d164ad2f08ccc8f153b04fa4a9b))
+
+
+### Reverts
+
+* **runner:** move the runner outcome reasons to their own PR ([471cc8f](https://github.com/doc-detective/doc-detective/commit/471cc8f2b9bbae0bb499c67c35acac059828a251))
+
+
+### BREAKING CHANGES
+
+* a cookie path or directory that's empty or blank, or a
+goTo, checkLink, or httpRequest URL that starts with //, makes the spec
+invalid, and the run exits 2.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a find.click object takes only button and duration, and
+find.click can't be a whole variable. Move locators and timeout onto
+find itself, and write the button name or true instead of a variable.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* An empty `reporters` list in config means no reporters,
+instead of the defaults.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* A step-level `onSkip` entry with `retry` now makes the
+spec invalid, and `validate()` rejects a config_v3 object that sets both
+`beforeAll` and `beforeAny`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* Setting both DOC_DETECTIVE_DEBUG and
+DOC_DETECTIVE_RUNTIME_DEBUG exits 2. A relative output or cacheDir in
+DOC_DETECTIVE_CONFIG resolves against the working directory, and one in the
+user config resolves against the user config's folder.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a goTo or httpRequest timeout of 0 or less makes the spec
+invalid, and the run exits 2. Remove it or set the milliseconds to wait.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a timeout of 0 on runShell, runCode, or a startSurface
+process or app descriptor makes the spec invalid (exit 2), with
+"timeout: must be >= 1". Version 4 treated it as the 60000 default in
+runShell and runCode. Leave the key out to use the default.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a saveCookie or loadCookie string with a folder but no
+.txt file name, or exactly ".txt", exits 2 instead of failing the step.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* "click": true and "click": false, a find.click string
+other than left, right, or middle, a find.type with a locator, and a
+negative browser timeout or inputDelay make the spec invalid, so the run
+exits 2. Quote the text to click it: "click": "true".
+* report steps show the effective browser step. A
+find.click that clicks appears as {button, duration}, so read
+find.click.button. A type step's keys is always a list. A swipe
+direction appears as {direction, distance, duration}.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* --reporters no longer takes space-separated names; use one
+comma-separated list (-r terminal,html). Repeating -r, -i, -t, -s, or
+install agents --agent exits 2. Config reporters accepts only terminal,
+json, html, runFolder, junit, and markdown, spelled exactly. runTests returns
+an empty report rather than null when it finds no tests, and a dry run no
+longer prints its plan to stdout.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a goTo or httpRequest URL that only contains a variable,
+such as "foo $X", is invalid; start it with the variable, http://,
+https://, or /. httpRequest request.headers values must be strings. A
+saveCookie or loadCookie object path without a directory resolves under
+outputDir, not the spec's folder.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a negative wait or runShell/runCode timeout makes a spec
+invalid (exit 2), and a timeout of 0 now times out at once instead of
+using 60000. startSurface and surface reject "browser": "edge", which used
+to open Chrome, and a bare "edge" surface names a process. A device
+descriptor with orientation, udid, or provider is invalid. Reports show
+the effective step for these actions, such as "wait": 5000 for
+"wait": true and ["web"] for "closeSurface": "web".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `screenshot: true`, `screenshot: {}`, and `record: true`
+write to `outputDir` instead of the current folder. URL-reference captures
+move to the run folder. Relative paths in a spec loaded from a URL resolve
+against `outputDir`. Reports show the effective capture step.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* --cache-dir now beats DOC_DETECTIVE_CACHE_DIR. DOC_DETECTIVE
+is deprecated, ranks below DOC_DETECTIVE_CONFIG and flags, and its container
+key no longer allows unsafe steps. A config-level loadVariables file no longer
+overrides shell variables. A config file's relative output and cacheDir
+resolve against the config file. DOC_DETECTIVE_* booleans read 0, false, no,
+and off as off, so DOC_DETECTIVE_SKIP_AUTO_UPDATE=0 checks for updates.
+./browser-snapshots is no longer used. The JS API no longer reads
+DOC_DETECTIVE.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* report steps show the effective object form. A step
+written as "goTo": "https://example.com" reports goTo as an object with
+url, timeout, params, and waitUntil, so read goTo.url instead of goTo.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* The config key `beforeAny` is renamed `beforeAll`.
+`beforeAny` still works with a warning, but a config that sets both now
+exits 2, and the v2 config upgrade and the resolved config carry
+`beforeAll` instead of `beforeAny`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* Config validation errors have a new text. The CLI prints
+`Error: Invalid config in <source>:`, one line per problem, and a reference
+link, instead of AJV's raw error string. The JS API throws `Invalid config:`
+with the same lines, instead of `Invalid config object: … Exiting.` Invalid
+specs are named relative to the working directory.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* A step-level `stop: "spec"`, `stop: "run"`, or
+`goToTest`, and a test-level `stop: "run"`, `retry`, or `goToStep`, now
+make the spec invalid, so the CLI exits 2. Version 4 downgraded the stop
+scopes with a warning and ignored the rest.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.9](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.8...v5.0.0-v5-rc.9) (2026-11-08)
 
 
