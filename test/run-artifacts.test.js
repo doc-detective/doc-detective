@@ -682,15 +682,20 @@ describe("outputResults adds the runFolder reporter", function () {
 });
 
 // The synthetic ~autorecord start and its end-of-context stop stay out of
-// report.summary.steps, so a default run doesn't count two extra steps per
-// context (ADR 01177).
+// report.summary.steps, so an autoRecord run doesn't count them (ADR 01177).
+// The runner's markers decide, not the stepId, so an authored step named like
+// one still counts.
 describe("isSyntheticAutoRecordStep", function () {
-  it("matches the synthetic start and stop, and nothing authored", function () {
-    expect(isSyntheticAutoRecordStep({ stepId: "t~autorecord", record: { path: "x.mp4" } })).to.equal(true);
-    expect(isSyntheticAutoRecordStep({ stepId: "t~autorecord~stop", stopRecord: true })).to.equal(true);
-    expect(isSyntheticAutoRecordStep({ stepId: "rec", record: { path: "x.mp4" } })).to.equal(false);
+  it("matches the synthetic start and stop by their markers, and nothing authored", function () {
+    expect(
+      isSyntheticAutoRecordStep({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
+    ).to.equal(true);
+    expect(
+      isSyntheticAutoRecordStep({ stepId: "t~autorecord~stop", stopRecord: true, __autoRecordStop: true })
+    ).to.equal(true);
+    expect(isSyntheticAutoRecordStep({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
+    expect(isSyntheticAutoRecordStep({ stepId: "login~autorecord~stop", stopRecord: true })).to.equal(false);
     expect(isSyntheticAutoRecordStep({ stepId: "stop", stopRecord: true })).to.equal(false);
-    expect(isSyntheticAutoRecordStep({ stepId: "t~autorecord", goTo: "x" })).to.equal(false);
   });
 });
 

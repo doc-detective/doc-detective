@@ -225,10 +225,11 @@ async function runTestsAndReport(config: any, options: any) {
   } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-    // The config runSpecs reads. setConfig deep-clones the caller's config, so
-    // auto-capture settings come from here, and the auto-screenshot flag below
-    // lands here (ADR 01177).
-    const runConfig = resolvedTests.config ?? config;
+    // The config runSpecs reads, always set by now (the dryRun check above
+    // reads it). setConfig deep-clones the caller's config, so auto-capture
+    // settings come from here, and the auto-screenshot flag below lands here,
+    // never on the caller's object (ADR 01177).
+    const runConfig = resolvedTests.config;
     const needs = inferRuntimeNeeds(resolvedTests, {
       configShell: config.shell,
       autoScreenshot: runConfig.autoScreenshot,
