@@ -15,6 +15,7 @@ import path from "node:path";
 import sinon from "sinon";
 import { getOperation, loadDescription } from "../dist/core/openapi.js";
 import { requireYaml } from "../dist/core/lazyYaml.js";
+import { HTTPResolver } from "@apidevtools/json-schema-ref-parser";
 
 // Helper: wrap an operation under a path + method and attach a server.
 function defWith(operation, { server = "https://api.example.com", paths } = {}) {
@@ -517,6 +518,32 @@ describe("core/openapi coverage", function () {
           sinon.assert.notCalled(logged);
         } finally {
           logged.restore();
+        }
+      });
+    }
+
+    // The guard overrides the ref parser's `http` resolver. If an update
+    // reshapes it, loading fails loudly instead of skipping the guard.
+    for (const [name, reshape] of [
+      ["has no safeUrlResolver option", (resolver) => delete resolver.safeUrlResolver],
+      ["has no read function", (resolver) => (resolver.read = undefined)],
+    ]) {
+      it(`refuses to load when json-schema-ref-parser's http resolver ${name}`, async function () {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
+        const file = path.join(tmpDir, "spec.json");
+        fs.writeFileSync(
+          file,
+          JSON.stringify({ openapi: "3.0.0", info: { title: "t", version: "1" }, paths: {} })
+        );
+        const saved = { ...HTTPResolver };
+        reshape(HTTPResolver);
+        try {
+          await assert.rejects(() => loadDescription(file), {
+            message:
+              "Couldn't load the OpenAPI description: json-schema-ref-parser's http resolver has no read function or safeUrlResolver option, so Doc Detective can't guard its $refs.",
+          });
+        } finally {
+          Object.assign(HTTPResolver, saved);
         }
       });
     }
