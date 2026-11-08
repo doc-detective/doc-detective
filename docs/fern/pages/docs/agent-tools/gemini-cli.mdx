@@ -20,7 +20,7 @@ npx doc-detective install agents --agent gemini
 
 {/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
 
-This invokes `gemini extensions install ... --ref feat/v5-rc --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. The `--ref` flag pins the agent-tools ref that matches your Doc Detective version. For which ref that is, see [`install agents`](/reference/reference/cli/install#install-agents). Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+This invokes `gemini extensions install ... --ref feat/v5-rc --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. The `--ref` flag selects the agent-tools ref that matches your Doc Detective version. For which ref that is, see [`install agents`](/reference/reference/cli/install#install-agents). Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 An extension installed before Doc Detective 5 keeps updating from the agent-tools default branch. To pin it, see [Pin a Gemini CLI or Qwen Code install made before Doc Detective 5](/reference/reference/cli/install#pin-a-gemini-cli-or-qwen-code-install-made-before-doc-detective-5).
 

@@ -52,7 +52,7 @@ The command fetches the agent-tools bundle and copies skills, the runtime plugin
 
 All three install the agent-tools ref that matches your Doc Detective version. For which ref that is, see [`install agents`](/reference/reference/cli/install#install-agents).
 
-All three installs are idempotent: re-running prints `already up to date` when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
+These installs are idempotent. Re-running one prints `already up to date` when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
 
 ## Fallback procedures
 
@@ -67,6 +67,8 @@ npx skills add doc-detective/agent-tools
 ```
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
+
+`npx skills add doc-detective/agent-tools` installs from the agent-tools default branch, not the ref that `install agents` uses. For Codex, Qwen Code, or OpenCode, use `npx doc-detective install agents` instead. For other assistants, follow [Manual installation](#manual-installation).
 
 ### Manual installation
 
