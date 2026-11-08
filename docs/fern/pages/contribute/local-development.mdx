@@ -138,7 +138,7 @@ To check `.mdx` files, Vale needs the `mdx2vast` parser on your `PATH`. Install 
 Run these commands from the repository root. Each one runs Vale in the `docs/` directory, where Vale finds its `.vale.ini` configuration.
 
 ```bash
-# Check all documentation except the generated schema reference pages, which CI also skips
+# Check the docs site pages, skipping the generated schema reference pages as CI does
 (cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 
 # Check a specific file

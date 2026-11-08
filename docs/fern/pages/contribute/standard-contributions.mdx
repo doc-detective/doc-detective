@@ -207,7 +207,7 @@ Set up what each command needs first:
 (cd docs && npx fern check)
 
 # Run style checks from the docs/ directory
-# The glob skips the generated schema reference pages, which CI also skips
+# The glob skips the generated schema reference pages, as CI does
 (cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 ```
 
