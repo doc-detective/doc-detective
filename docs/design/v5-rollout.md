@@ -35,7 +35,7 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
 
 | Phase | Window | What ships | Channel |
 |---|---|---|---|
-| 0. Safety | Nov 2 to Nov 15 | Secret masking, runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
+| 0. Safety | Nov 2 to Nov 15 | Runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
 | 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
 | 2. RC | Now to Jan 8, feature-complete by Dec 14 | The ADR 01146 contract, Action v2 RC, downstream PRs, migration guide | `doc-detective@v5-rc` |
 | 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update two days later | `@latest`, `@v2`, `release-4.x` |
@@ -65,6 +65,9 @@ groundwork), Linux native apps, real devices, and cloud device farms.
 5. **Online moves in lockstep with GA.** See [Online](#online).
 6. **Telemetry stays opt-out, and self-update stays on by default.** Both are recorded departures from
    clig in ADR 01146.
+7. **Variable values are secret by default.** 5.0 masks the value of every environment variable a run
+   substitutes or loads, and of every secret-looking name, in every output. `publicVariables` on the
+   config, a spec, or a test lists the exceptions. See [ADR 01178](../../adrs/01178-mask-environment-variable-values-in-every-output-by-default.md).
 
 ## The 5.0.0 contract
 
@@ -210,30 +213,13 @@ Verification, red to green in the Action repository:
 Every item here is a `fix:` commit. `build:` and `perf:` don't cut a release, so they wouldn't reach
 users.
 
-### 0.1 Mask secrets ([#204](https://github.com/doc-detective/doc-detective/issues/204))
+### 0.1 Mask secrets ([#204](https://github.com/doc-detective/doc-detective/issues/204)): moved to 5.0
 
-**Today:** A fake token appeared three times in the JSON report (resolved command, stdout, and
-`Authorization` header) and three times in the terminal log. `replaceEnvs` writes resolved values
-into the step (`src/core/tests.ts:5654`), and nothing masks them.
-
-**Change:**
-
-- Add a pure `maskSecrets(value, secrets)` helper in `src/core/utils.ts`. Steps keep real values; only
-  output is masked.
-- Apply it in `outputResults` (`src/utils.ts:1260`), which every reporter passes through, and in the
-  `log` functions (`src/utils.ts:59`, `src/core/utils.ts:1886`). Audit `src/core` for raw
-  `console.log` calls.
-- Mask the values of environment variables whose names match a built-in list (`TOKEN`, `SECRET`,
-  `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`), of names in a new `secrets` config array, and of
-  `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`, and `X-Api-Key` headers.
-- Skip values under 4 characters so `TOKEN=1` doesn't scrub every digit. Replace longest first, and
-  also mask the URL-encoded form.
-
-**Limits:** Screenshots and recordings can't be masked, and the docs should say so. Telemetry sends
-only `results.summary` counts (`src/core/telem.ts`), so it needs no change.
-
-**Verify:** A test that runs a fake token through every built-in reporter and the log, then searches
-the output. Schema cases for `secrets`, following "Adding a new flag" in `CLAUDE.md`.
+**Superseded.** Masking ships in 5.0 only, and it's inverted. This item planned masking names on a
+built-in list plus a `secrets` config array. 5.0 masks every value a run substitutes or loads, plus
+secret-looking names, and `publicVariables` lists the exceptions (settled decision 7,
+[ADR 01178](../../adrs/01178-mask-environment-variable-values-in-every-output-by-default.md)). 4.x gets
+an upgrade-notice row and accepts `publicVariables` as a no-op.
 
 ### 0.2 Pin runtime dependencies ([#722](https://github.com/doc-detective/doc-detective/issues/722))
 
@@ -307,7 +293,7 @@ this repository's workflows. There's no code change.
 
 ### Phase 0 exit gate
 
-Reports and logs pass the fake-token test, and a link-only page gets no badge. When a mock registry
+A link-only page gets no badge. When a mock registry
 reports 5.0.0, an installed 4.x stays on 4.x and logs the upgrade notice.
 
 ## Phase 1: prepare
@@ -646,8 +632,8 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 |---|---|
 | Failed tests exit 0 ([#674](https://github.com/doc-detective/doc-detective/issues/674)) | Phase 2, Action v2.0 |
 | Docs can run code | Settled: no change, ADR and docs in 0.5 |
-| Secrets unmasked | 0.1 |
-| Secrets reaching issues and agents | 0.1, Action v1.7 cap, Action v2.0 summary |
+| Secrets unmasked | 5.0, settled decision 7 (ADR 01178) |
+| Secrets reaching issues and agents | 5.0 masking, Action v1.7 cap, Action v2.0 summary |
 | Badges overclaim | 0.4, then 5.3 |
 | Login | 5.1 |
 | PR feedback | Action v1.7 annotations, Action v2.1 comment |
@@ -699,7 +685,7 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 | A pinned old Action meets CLI 5 | Lost issue and PR flow | Accepted for exact pins. The moving `v1` tag gets v1.7, which refuses CLI 5 |
 | Every asset must move at GA | A missed asset breaks at promotion | Each downstream PR is ready and tested against `v5-rc` first, with a final sweep for removed flags and bins |
 | A stray `BREAKING CHANGE:` lands on main | 5.0.0 is cut early | The guard in 1.5 fails the release before it publishes, and reverting the commit recovers. The flip stays on the RC branch |
-| Masking misses a secret or over-masks | A false sense of safety, or noisy reports | Explicit `secrets` config, a documented built-in list, and stated limits for images |
+| Masking misses a secret or over-masks | A false sense of safety, or noisy reports | Masked by default. `publicVariables` and a hint cover public values. The docs state the limits |
 | Solo-maintainer capacity | Dates slip | Phases 0 and 1 are valuable alone. Only the flip is date-bound, and it can move |
 | Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes only after step 3 |
 | A 5.0 regression reaches Online at promotion | Hosted runs break with no soak | Online deploys the new image deliberately at GA, after a real dispatch against `v5-rc`. `RUNNER_IMAGE` remains the override |

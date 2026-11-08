@@ -6524,3 +6524,31 @@ import { schemas } from "../dist/index.js";
       });
     }
   });
+
+  // ADR 01178: environment variables whose values output shows, on the config,
+  // a spec, or a test. A string[] of names, `*` as a wildcard.
+  describe("publicVariables", function () {
+    const shapes = {
+      config_v3: (publicVariables) => ({ publicVariables }),
+      spec_v3: (publicVariables) => ({ publicVariables, tests: [{ steps: [{ runShell: "echo hi" }] }] }),
+      test_v3: (publicVariables) => ({ publicVariables, steps: [{ runShell: "echo hi" }] }),
+    };
+    for (const [schemaKey, wrap] of Object.entries(shapes)) {
+      it(`${schemaKey} accepts a list of names and patterns`, function () {
+        const result = validate({ schemaKey, object: wrap(["BASE_URL", "DOCS_*", "*"]) });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.publicVariables).to.deep.equal(["BASE_URL", "DOCS_*", "*"]);
+      });
+
+      it(`${schemaKey} rejects a bare string`, function () {
+        const result = validate({ schemaKey, object: wrap("BASE_URL") });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("publicVariables");
+      });
+
+      it(`${schemaKey} rejects an empty or whitespace-only name`, function () {
+        expect(validate({ schemaKey, object: wrap([""]) }).valid).to.be.false;
+        expect(validate({ schemaKey, object: wrap([" \t"]) }).valid).to.be.false;
+      });
+    }
+  });

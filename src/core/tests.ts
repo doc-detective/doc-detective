@@ -1,5 +1,6 @@
 import kill from "tree-kill";
 import { noteContextDone } from "./progress.js";
+import { maskDeep, registerExport } from "./masking.js";
 import { envFlag } from "../envFlag.js";
 import { createInterruptHandler } from "./signals.js";
 import fs from "node:fs";
@@ -4935,7 +4936,9 @@ async function runContext({
       // `{...step}` report spread already drops it; delete defensively here so
       // it can never leak into a report through any push site.
       delete rep._fromAfter;
-      contextReport.steps.push(rep);
+      // The report gets a masked copy; routing, `$$`, and `variables` keep
+      // reading the real outputs (ADR 01178).
+      contextReport.steps.push(maskDeep(rep));
     };
     // Per-step outputs accumulator: maps each completed step's stepId to its
     // computed `outputs` bag, so later steps' guard `if` conditions can read a
@@ -5652,24 +5655,28 @@ async function stopAllRecordings({
       delete stepResult.description;
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
-      contextReport.steps.push({
-        ...stopRecordStep,
-        ...stepResult,
-        startedAt: new Date(stopStart).toISOString(),
-        durationMs: Date.now() - stopStart,
-      });
+      contextReport.steps.push(
+        maskDeep({
+          ...stopRecordStep,
+          ...stepResult,
+          startedAt: new Date(stopStart).toISOString(),
+          durationMs: Date.now() - stopStart,
+        })
+      );
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
       delete stopRecordStep.__stopAny;
       driver.state.recordings.pop();
-      contextReport.steps.push({
-        ...stopRecordStep,
-        result: "FAIL",
-        resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
-        startedAt: new Date(stopStart).toISOString(),
-        durationMs: Date.now() - stopStart,
-      });
+      contextReport.steps.push(
+        maskDeep({
+          ...stopRecordStep,
+          result: "FAIL",
+          resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+          startedAt: new Date(stopStart).toISOString(),
+          durationMs: Date.now() - stopStart,
+        })
+      );
     }
   }
 }
@@ -6106,6 +6113,8 @@ async function runStep({
             expression: expression,
             context: { ...metaValues, ...actionResult.outputs },
           });
+          // Masked from here on when the run references it (ADR 01178).
+          registerExport(key, process.env[key]);
         } catch (error: any) {
           // An earlier failure is the one that matters to the reader.
           if (actionResult.status !== "FAIL") {

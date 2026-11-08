@@ -39,7 +39,7 @@ main(processArgv).catch((err) => {
   if (err instanceof TypeError || err instanceof ReferenceError || err instanceof RangeError) {
     reportCrash(err, { version: ownVersion() });
   } else {
-    console.error(`Error: ${err?.message || err}`);
+    diag(`Error: ${err?.message || err}`);
   }
   process.exit(2);
 });

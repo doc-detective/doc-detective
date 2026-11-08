@@ -8,6 +8,7 @@ import {
   redactUrlForOutput,
 } from "./utils.js";
 import { readFile, parseFileContent, locationOf } from "./files.js";
+import { diag } from "../cliOutput.js";
 import type { FileInfo } from "@apidevtools/json-schema-ref-parser";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
@@ -419,7 +420,7 @@ async function getExample(
       example = await generator.generate(definition);
       if (example) return example;
     } catch (error) {
-      console.warn(`Error generating example: ${error}`);
+      diag(`Error generating example: ${error}`);
     }
   }
 

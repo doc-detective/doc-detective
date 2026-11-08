@@ -9340,6 +9340,15 @@
           ".env"
         ]
       },
+      "publicVariables": {
+        "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
       "origin": {
         "description": "Default protocol and domain to use for relative URLs.",
         "type": "string"
@@ -26793,6 +26802,15 @@
               ".env"
             ]
           },
+          "publicVariables": {
+            "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          },
           "origin": {
             "description": "Default protocol and domain to use for relative URLs.",
             "type": "string"
@@ -32410,6 +32428,15 @@
                   "type": "string",
                   "description": "Path to the content that the specification is associated with."
                 },
+                "publicVariables": {
+                  "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
                 "if": {
                   "title": "Condition",
                   "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -33866,6 +33893,15 @@
                           "contentPath": {
                             "type": "string",
                             "description": "Path to the content that the test is associated with."
+                          },
+                          "publicVariables": {
+                            "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
+                            }
                           },
                           "detectSteps": {
                             "type": "boolean",
@@ -141035,6 +141071,15 @@
                   "type": "string",
                   "description": "Path to the content that the specification is associated with."
                 },
+                "publicVariables": {
+                  "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
+                },
                 "if": {
                   "title": "Condition",
                   "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -142491,6 +142536,15 @@
                           "contentPath": {
                             "type": "string",
                             "description": "Path to the content that the test is associated with."
+                          },
+                          "publicVariables": {
+                            "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
+                            }
                           },
                           "detectSteps": {
                             "type": "boolean",
@@ -259304,6 +259358,15 @@
         "type": "string",
         "description": "Path to the content that the specification is associated with."
       },
+      "publicVariables": {
+        "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
       "if": {
         "title": "Condition",
         "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -260760,6 +260823,15 @@
                 "contentPath": {
                   "type": "string",
                   "description": "Path to the content that the test is associated with."
+                },
+                "publicVariables": {
+                  "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  }
                 },
                 "detectSteps": {
                   "type": "boolean",
@@ -422597,6 +422669,15 @@
       "contentPath": {
         "type": "string",
         "description": "Path to the content that the test is associated with."
+      },
+      "publicVariables": {
+        "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
       },
       "detectSteps": {
         "type": "boolean",

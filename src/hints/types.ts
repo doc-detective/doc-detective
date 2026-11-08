@@ -176,6 +176,13 @@ export interface HintContext {
    */
   recordingSerialized: boolean;
   /**
+   * Variables whose values this run's output masked as `***NAME***` and whose
+   * names don't contain TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or
+   * CREDENTIAL (ADR 01178). Read from the in-process masking registry, so no
+   * I/O. Powers `listPublicVariables`.
+   */
+  maskedNonSecretNames: Set<string>;
+  /**
    * True if any step report carried a `source: "custom"` assertion record —
    * i.e. the user authored a `step.assertions` condition. (Every step also has
    * `source: "implicit"` records under the unified model, so this specifically
@@ -269,8 +276,11 @@ export interface Hint {
    * existing ids should not change once shipped.
    */
   id: string;
-  /** Markdown body. Rendered through `src/hints/render.ts`. */
-  markdown: string;
+  /**
+   * Markdown body. Rendered through `src/hints/render.ts`. A function builds
+   * it from the run's context, for a hint that names what the run did.
+   */
+  markdown: string | ((ctx: HintContext) => string);
   /** Predicate. Hint is eligible iff this returns true. */
   when: (ctx: HintContext) => boolean;
   /**

@@ -284,6 +284,9 @@ navigation:
           - page: Docker & headless
             path: pages/docs/ci/docker-and-headless.mdx
             slug: docker-and-headless
+          - page: Secrets in output
+            path: pages/docs/ci/secrets.mdx
+            slug: secrets
           - page: Upgrade to v5
             path: pages/docs/ci/upgrade-to-v5.mdx
             slug: upgrade-to-v5
