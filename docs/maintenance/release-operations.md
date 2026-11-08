@@ -51,7 +51,7 @@ realities around them.
   branch is checked out in another worktree; the remote branch still gets deleted.
 - **What counts as approval.** A review from the Claude review bot (`claude[bot]`, the "Claude PR Review -
   Auto" workflow) counts when it's on the PR's current head. Its state must be `APPROVED`, or `COMMENTED`
-  with nothing marked blocking.
+  with nothing marked blocking. This file calls that a qualifying review.
   - The bot rarely returns `APPROVED`, and every push sets the layers above it back to unreviewed. So
     requiring `APPROVED` on every layer at once never converged.
   - Check that the review's `commit_id` matches the head SHA:
@@ -68,14 +68,14 @@ realities around them.
   - CodeQL (the `code_quality` rule) passed. Two checks are named `Analyze (javascript-typescript)`, so tell
     the CodeQL and Code Quality ones apart by `workflow`.
 - **An approval covers only the commit it reviewed.** Any push, including a `gh stack` rebase, moves the head.
-  The bot then reviews again, and the PR needs a fresh `APPROVED` review on the new head before it merges.
+  The bot then reviews again, and the PR needs a fresh qualifying review on the new head before it merges.
   - Rebases get no exception, on purpose. The bot reviews every push on its own, so the strict rule costs
     only a wait.
   - It also means nobody has to judge whether a rebase changed the PR's diff.
 - Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
   layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
   `feat/v5-rc` has no ruleset to enforce approval. It merges once every layer being merged has green checks
-  and its own counting review on its current head. An approval on the top PR doesn't approve the layers
+  and its own qualifying review on its current head: `APPROVED`, or `COMMENTED` with nothing blocking. An approval on the top PR doesn't approve the layers
   below it.
 - Stale CodeQL on old branches clears by merging current `origin/main` into the branch.
   `reviewDecision: CHANGES_REQUESTED` persists even after fixes. Only an APPROVED review or a
