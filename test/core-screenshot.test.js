@@ -283,7 +283,11 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   const publicDir = path.resolve("./test/server/public");
   const referenceFixture = path.join(publicDir, "url-reference-fixture.png");
   const notAPngFixture = path.join(publicDir, "not-a-real.png");
-  const runsDir = path.resolve("./doc-detective-runs");
+  // A URL reference's capture goes to its context's screenshots/ folder in
+  // the run folder (ADR 01173). runTests' default outputDir is cwd.
+  const runsDir = path.resolve(".doc-detective", "runs");
+  const inRunScreenshots = (file) =>
+    Boolean(file) && file.startsWith(runsDir + path.sep) && path.basename(path.dirname(file)) === "screenshots";
   const url = "http://localhost:8092/url-reference-fixture.png";
 
   let runsDirExistedBefore = false;
@@ -299,7 +303,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     // production SSRF guard blocks by default. Opt in for the duration of
     // this suite and restore the prior value in `after`.
     process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
-    // Snapshot the current contents of doc-detective-runs so teardown only
+    // Snapshot the current contents of .doc-detective/runs so teardown only
     // removes run folders this suite created, not pre-existing artifacts or
     // folders created by unrelated tests or developer work.
     runsDirExistedBefore = fs.existsSync(runsDir);
@@ -394,9 +398,8 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       );
       assert.equal(step.outputs.referenceUrl, url);
       assert.ok(
-        step.outputs.screenshotPath &&
-          step.outputs.screenshotPath.includes("doc-detective-runs"),
-        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+        inRunScreenshots(step.outputs.screenshotPath),
+        `screenshotPath should live in the run folder's screenshots/, got ${step.outputs.screenshotPath}`
       );
       assert.ok(
         fs.existsSync(step.outputs.screenshotPath),
@@ -537,9 +540,8 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       );
       assert.equal(step.outputs.referenceUrl, url);
       assert.ok(
-        step.outputs.screenshotPath &&
-          step.outputs.screenshotPath.includes("doc-detective-runs"),
-        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+        inRunScreenshots(step.outputs.screenshotPath),
+        `screenshotPath should live in the run folder's screenshots/, got ${step.outputs.screenshotPath}`
       );
 
       const bytesAfter = fs.readFileSync(referenceFixture);

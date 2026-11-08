@@ -1,10 +1,10 @@
 {
   "specId": "recording-permutations",
-  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab), macOS (avfoundation), and Linux (x11grab on a per-runner Xvfb display); the browser engine needs headed Chrome (Windows/macOS).",
+  "description": "Validates each permutation of recording support that isn't already covered by recording.spec.json: the record value forms (boolean/false), both engines as a string shorthand, every ffmpeg target (display/window/viewport), custom fps, all output formats (mp4/webm/gif) per engine, an uppercase extension, and the engine-specific headless skip. ffmpeg permutations run on Windows (gdigrab), macOS (avfoundation), and Linux (x11grab on a per-runner Xvfb display); the browser engine needs headed Chrome (Windows/macOS).",
   "tests": [
     {
       "testId": "rec-perm-record-true",
-      "description": "record: true (boolean) auto-resolves to the browser engine on headed Chrome.",
+      "description": "record: true (boolean) auto-resolves to the browser engine on headed Chrome, and writes <outputDir>/<stepId>.mp4 (ADR 01173). The check reads outputDir from config.groups.json, the config the fixture jobs run with.",
       "runOn": [
         {
           "platforms": [
@@ -22,6 +22,14 @@
           "goTo": "http://localhost:8092"
         },
         {
+          "description": "Remove the last run's file, which record's default overwrite: \"false\" would skip on. After goTo: a browser-engine recording whose context starts with runShell times out its download.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),out=p.resolve(require('./config.groups.json').outputDir);require('fs').rmSync(p.join(out,'rec-perm-record-true.mp4'),{force:true})\"",
+            "workingDirectory": ".."
+          }
+        },
+        {
+          "stepId": "rec-perm-record-true",
           "record": true
         },
         {
@@ -31,7 +39,60 @@
           }
         },
         {
-          "stopRecord": true
+          "stopRecord": true,
+          "variables": {
+            "REC_TRUE_PATH": "$$recordingPath"
+          }
+        },
+        {
+          "description": "The recording is <outputDir>/<stepId>.mp4.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.REC_TRUE_PATH,out=p.resolve(require('./config.groups.json').outputDir);const ok=require('fs').existsSync(f)&&p.relative(out,f)==='rec-perm-record-true.mp4';if(!ok){console.error(f,'not in',out);process.exit(1)}\"",
+            "workingDirectory": ".."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-stoprecord-null",
+      "description": "stopRecord: null stops the latest recording, as true does.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-stoprecord-null.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": null,
+          "variables": {
+            "REC_NULL_PATH": "$$recordingPath"
+          }
+        },
+        {
+          "description": "The recording stopped and saved.",
+          "runShell": "node -e \"process.exit(require('fs').existsSync(process.env.REC_NULL_PATH) ? 0 : 1)\""
         }
       ]
     },
@@ -378,6 +439,52 @@
         },
         {
           "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "rec-perm-ffmpeg-uppercase-mp4",
+      "description": "An uppercase extension (.MP4) is valid, and the recording is written as an mp4 (ADR 01173).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "rec-perm-uppercase.MP4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "REC_UPPER_PATH": "$$recordingPath",
+            "REC_UPPER_FORMAT": "$$format"
+          }
+        },
+        {
+          "description": "The file exists, and its format reads as mp4.",
+          "runShell": "node -e \"const ok = process.env.REC_UPPER_FORMAT === 'mp4' && require('fs').existsSync(process.env.REC_UPPER_PATH); process.exit(ok ? 0 : 1)\""
         }
       ]
     },

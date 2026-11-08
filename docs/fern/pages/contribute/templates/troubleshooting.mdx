@@ -210,7 +210,7 @@ Tests fail immediately without opening a browser window, preventing Doc Detectiv
 
 Doc Detective can't locate or launch the browser for several reasons:
 
-1. **No browser installed**: Chrome, Firefox, or Edge isn't installed
+1. **No browser installed**: No supported browser is installed (Chrome or Firefox, or Safari on macOS)
 2. **Browser not in PATH**: Browser is installed but not in system PATH
 3. **Permissions issue**: Doc Detective doesn't have permission to launch the browser
 4. **Conflicting browser process**: Another process is interfering with browser launch
@@ -237,7 +237,7 @@ If the command fails, install a supported browser:
 
 - **Chrome**: https://www.google.com/chrome/
 - **Firefox**: https://www.mozilla.org/firefox/
-- **Edge**: https://www.microsoft.com/edge
+- **Safari**: Included with macOS
 
 ### Step 2: Specify browser explicitly
 
@@ -253,7 +253,7 @@ Add browser configuration to `.doc-detective.json`:
 }
 ```
 
-Valid values: `"chrome"`, `"firefox"`, `"edge"`
+Valid values: `"chrome"`, `"firefox"`, `"safari"`, `"webkit"`. `"safari"` and `"webkit"` work only on macOS.
 
 ### Step 3: Restart your terminal
 
@@ -287,18 +287,12 @@ If one browser doesn't work, try another:
 { "runOn": [{ "browsers": ["firefox"] }] }
 ```
 
-### Option 2: Specify browser path manually
+### Option 2: Reinstall the browser
 
-If the browser is installed in a non-standard location:
+If the managed browser or its driver is missing or broken, install it again:
 
-```json
-{
-  "runOn": [
-    {
-      "browsers": [{ "name": "chrome", "executablePath": "/custom/path/to/chrome" }]
-    }
-  ]
-}
+```bash
+npx doc-detective install browsers chrome chromedriver --force
 ```
 
 ### Option 3: Run in headless mode

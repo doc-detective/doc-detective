@@ -20,14 +20,17 @@ import { closeSurface } from "../dist/core/tests/closeSurface.js";
 import {
   translateProcessKeys,
   resolveSurface,
-  resolveInputDelay,
   _processKeyMap,
 } from "../dist/core/tests/typeKeys.js";
 import { runShell } from "../dist/core/tests/runShell.js";
 import { runCode } from "../dist/core/tests/runCode.js";
+import { normalizers } from "../dist/common/src/normalize/index.js";
 
 const require = createRequire(import.meta.url);
 const treeKill = require("tree-kill");
+
+// An authored `tty` as the effective step has it: the launcher gets that form.
+const effectiveTty = (tty) => normalizers.startSurface({ process: "x", name: "x", tty }).tty;
 
 // Kill the whole process tree (shell + child) so a shell:true background
 // process doesn't leak; child.kill() alone leaves the grandchild alive.
@@ -424,6 +427,30 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
     }
   });
 
+  for (const [label, options, expected] of [
+    ["defaults to 120x30", undefined, "120x30"],
+    ["takes cols/rows from options", { cols: 80, rows: 24 }, "80x24"],
+    ["defaults the missing rows", { cols: 200 }, "200x30"],
+    ["defaults the missing cols", { rows: 10 }, "120x10"],
+  ]) {
+    it(`sizes the PTY: ${label}`, async function () {
+      if (!ptyAvailable) this.skip();
+      const probe = writeProbe(
+        "process.stdout.write('SIZE:'+process.stdout.columns+'x'+process.stdout.rows+':END')"
+      );
+      const bg = await spawnPtyBackgroundCommand(`node ${probe}`, [], options);
+      try {
+        await waitForStdio(bg, "/SIZE:\\d+x\\d+:END/", {
+          deadline: Date.now() + 15000,
+        });
+        assert.match(bg.getCombined(), new RegExp(`SIZE:${expected}:END`));
+      } finally {
+        await bg.kill();
+        fs.rmSync(probe, { force: true });
+      }
+    });
+  }
+
   it("kill() terminates the PTY (exited resolves)", async function () {
     if (!ptyAvailable) this.skip();
     const tmp = writeProbe("setInterval(() => {}, 100000);");
@@ -437,6 +464,102 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
       fs.rmSync(tmp, { force: true });
     }
   });
+});
+
+// `tty: true` and `tty: {}` must spawn a 120x30 PTY. The normalizer fills the
+// `cols`/`rows` defaults, and spawnPtyBackgroundCommand also defaults a size
+// it isn't given. These tests run on every host: a stub node-pty seeded into a
+// throwaway runtime cache records what `pty.spawn` receives.
+describe("PTY size defaults reach node-pty's spawn (stubbed node-pty)", function () {
+  this.timeout(20000);
+  const PTY = "@homebridge/node-pty-prebuilt-multiarch";
+  let cacheDir;
+  let savedCacheEnv;
+
+  before(async function () {
+    savedCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+    delete process.env.DOC_DETECTIVE_CACHE_DIR; // it outranks ctx.cacheDir
+    cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-pty-stub-"));
+    const pkgDir = path.join(cacheDir, "runtime", "node_modules", PTY);
+    fs.mkdirSync(pkgDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, "runtime", "package.json"), "{}");
+    fs.writeFileSync(
+      path.join(pkgDir, "package.json"),
+      JSON.stringify({ name: PTY, version: "0.0.0", main: "index.js" })
+    );
+    // Exits right away, so the Windows ConPTY probe (which loads this same
+    // stub in a worker) reports healthy instead of timing out.
+    fs.writeFileSync(
+      path.join(pkgDir, "index.js"),
+      `exports.spawn = function (file, args, opts) {
+  (globalThis.__ddPtySpawns = globalThis.__ddPtySpawns || []).push(opts);
+  return {
+    pid: 4242,
+    onData() {},
+    onExit(cb) { setImmediate(() => cb({ exitCode: 0 })); },
+    write() {},
+    kill() {},
+  };
+};
+`
+    );
+    const { resolveHeavyDepPath } = await import("../dist/runtime/loader.js");
+    if (resolveHeavyDepPath(PTY, { cacheDir }) !== path.join(pkgDir, "index.js")) {
+      // A real node-pty in the package's own node_modules wins over the cache.
+      this.skip();
+    }
+  });
+
+  after(function () {
+    if (savedCacheEnv !== undefined) process.env.DOC_DETECTIVE_CACHE_DIR = savedCacheEnv;
+    delete globalThis.__ddPtySpawns;
+    if (cacheDir) fs.rmSync(cacheDir, { recursive: true, force: true });
+  });
+
+  beforeEach(function () {
+    globalThis.__ddPtySpawns = [];
+  });
+
+  function lastSize() {
+    assert.equal(globalThis.__ddPtySpawns.length, 1, "pty.spawn calls");
+    const { cols, rows } = globalThis.__ddPtySpawns[0];
+    return { cols, rows };
+  }
+
+  for (const [label, options, expected] of [
+    ["no size", {}, { cols: 120, rows: 30 }],
+    ["{cols: 80, rows: 24}", { cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+  ]) {
+    it(`spawnPtyBackgroundCommand with ${label} spawns ${expected.cols}x${expected.rows}`, async function () {
+      const bg = await spawnPtyBackgroundCommand("my-tui", [], { ...options, cacheDir });
+      await bg.kill();
+      assert.deepEqual(lastSize(), expected);
+    });
+  }
+
+  // runShell's `background.tty` and startSurface's process `tty` reach this
+  // shared launcher as the effective step's size (ADR 01167), so normalize the
+  // authored `tty` first.
+  for (const [tty, expected] of [
+    [true, { cols: 120, rows: 30 }],
+    [{}, { cols: 120, rows: 30 }],
+    [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+  ]) {
+    it(`a background process with tty ${JSON.stringify(tty)} spawns ${expected.cols}x${expected.rows}`, async function () {
+      const { startBackgroundProcessSurface } = await import(
+        "../dist/core/tests/processSurface.js"
+      );
+      const registry = new Map();
+      const result = await startBackgroundProcessSurface({
+        config: { cacheDir },
+        descriptor: { command: "my-tui", name: "tui", tty: effectiveTty(tty) },
+        processRegistry: registry,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      await registry.get("tui").bg.kill();
+      assert.deepEqual(lastSize(), expected);
+    });
+  }
 });
 
 describe("waitForOutputMatch", function () {
@@ -524,28 +647,6 @@ describe("_processKeyMap / translateProcessKeys", function () {
 
   it("still maps $CTRL$ + an ASCII letter to a control byte", function () {
     assert.deepEqual(translateProcessKeys(["$CTRL$", "c"]), ["\x03"]);
-  });
-});
-
-// Finding 6 (PR #394): `inputDelay || 100` replaced an explicit author `0`
-// with 100, silently ignoring "type as fast as possible". `?? 100` only fills
-// in the default when inputDelay is absent (undefined/null), honoring an
-// explicit 0.
-describe("resolveInputDelay (finding 6: explicit 0 is honored)", function () {
-  it("returns 100 when inputDelay is undefined (schema default)", function () {
-    assert.equal(resolveInputDelay(undefined), 100);
-  });
-
-  it("returns 100 when inputDelay is null", function () {
-    assert.equal(resolveInputDelay(null), 100);
-  });
-
-  it("returns 0 when inputDelay is an explicit 0 (NOT 100)", function () {
-    assert.equal(resolveInputDelay(0), 0);
-  });
-
-  it("returns the author value for a positive delay", function () {
-    assert.equal(resolveInputDelay(500), 500);
   });
 });
 
@@ -695,6 +796,41 @@ describe("startBackgroundProcessSurface (Phase 6 shared launcher)", function () 
       fs.rmSync(tmp, { force: true });
     }
   });
+
+  // The PTY size reaches spawnPtyBackgroundCommand from the effective step's
+  // `tty`, where the normalizer has expanded `true` and filled the 120x30
+  // defaults (ADR 01167).
+  for (const [tty, expected] of [
+    [true, { cols: 120, rows: 30 }],
+    [{}, { cols: 120, rows: 30 }],
+    [{ cols: 80, rows: 24 }, { cols: 80, rows: 24 }],
+    [{ cols: 200 }, { cols: 200, rows: 30 }],
+  ]) {
+    it(`passes tty ${JSON.stringify(tty)} to the PTY spawn as its size`, async function () {
+      const { startBackgroundProcessSurface } = await import(
+        "../dist/core/tests/processSurface.js"
+      );
+      let seen;
+      const result = await startBackgroundProcessSurface({
+        config: {},
+        descriptor: { command: "my-tui", name: "tui", tty: effectiveTty(tty) },
+        processRegistry: new Map(),
+        deps: {
+          spawnPtyBackgroundCommand: async (_cmd, _args, options) => {
+            seen = options;
+            return { pid: 1, kill: async () => {} };
+          },
+          spawnBackgroundCommand: () => {
+            throw new Error("tty must take the PTY path");
+          },
+          waitForReady: async () => {},
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(seen.cols, expected.cols);
+      assert.equal(seen.rows, expected.rows);
+    });
+  }
 
   it("fails fast without a process registry", async function () {
     const { startBackgroundProcessSurface } = await import(

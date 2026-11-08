@@ -11,6 +11,7 @@ import {
   buildEffectiveConfig,
   fetchSpec,
   filterSecrets,
+  finalizeBodyFor,
   main,
   makeLogShipper,
   postFinalize,
@@ -253,6 +254,50 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
     );
     assert.equal(cfg.outputDir, "/var/dd/ws/output");
     assert.equal(cfg.input, "/var/dd/ws/specs");
+  });
+
+  it("forces exitOnFail: true so the exit code always carries the outcome", () => {
+    const cfg = buildEffectiveConfig({ exitOnFail: false }, { type: "inline", specs: [] });
+    assert.equal(cfg.exitOnFail, true);
+  });
+});
+
+describe("runner-entrypoint: finalizeBodyFor", () => {
+  it("exit 0 → succeeded", () => {
+    assert.deepEqual(finalizeBodyFor(0, false), { status: "succeeded", exit_code: 0, summary: {} });
+  });
+
+  it("exit 1 → succeeded with tests_failed", () => {
+    assert.deepEqual(finalizeBodyFor(1, false), {
+      status: "succeeded", exit_code: 1, summary: { reason: "tests_failed" },
+    });
+  });
+
+  it("exit 2 → failed with nothing_tested", () => {
+    assert.deepEqual(finalizeBodyFor(2, false), {
+      status: "failed", exit_code: 2, summary: { reason: "nothing_tested" },
+    });
+  });
+
+  it("exit 130 → canceled with interrupted", () => {
+    assert.deepEqual(finalizeBodyFor(130, false), {
+      status: "canceled", exit_code: 130, summary: { reason: "interrupted" },
+    });
+  });
+
+  it("exit 143 or a forwarded SIGTERM → canceled with sigterm", () => {
+    assert.deepEqual(finalizeBodyFor(143, false), {
+      status: "canceled", exit_code: 143, summary: { reason: "sigterm" },
+    });
+    assert.deepEqual(finalizeBodyFor(0, true), {
+      status: "canceled", exit_code: 0, summary: { reason: "sigterm" },
+    });
+  });
+
+  it("any other code → failed with nonzero_exit", () => {
+    assert.deepEqual(finalizeBodyFor(7, false), {
+      status: "failed", exit_code: 7, summary: { reason: "nonzero_exit" },
+    });
   });
 });
 

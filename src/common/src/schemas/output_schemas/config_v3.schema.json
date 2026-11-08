@@ -7,6 +7,15 @@
   "dynamicDefaults": {
     "configId": "uuid"
   },
+  "not": {
+    "required": [
+      "beforeAll",
+      "beforeAny"
+    ]
+  },
+  "errorMessage": {
+    "not": "set `beforeAll` or `beforeAny`, not both."
+  },
   "properties": {
     "$schema": {
       "description": "JSON Schema for this object.",
@@ -54,7 +63,7 @@
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
       "type": "array",
       "items": {
         "type": "string",
@@ -118,8 +127,27 @@
       },
       "default": {}
     },
-    "beforeAny": {
+    "beforeAll": {
       "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "beforeAny": {
+      "description": "Deprecated: use `beforeAll`.",
+      "deprecated": true,
       "anyOf": [
         {
           "type": "string"
@@ -277,6 +305,11 @@
                         "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                         "readOnly": true
                       },
+                      "version": {
+                        "type": "string",
+                        "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                        "readOnly": true
+                      },
                       "headless": {
                         "type": "boolean",
                         "description": "If `true`, runs the browser in headless mode.",
@@ -356,6 +389,11 @@
                               "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
                               "readOnly": true
                             },
+                            "version": {
+                              "type": "string",
+                              "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
+                              "readOnly": true
+                            },
                             "headless": {
                               "type": "boolean",
                               "description": "If `true`, runs the browser in headless mode.",
@@ -411,7 +449,7 @@
                 ]
               },
               "retries": {
-                "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.",
+                "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.",
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 10
@@ -588,23 +626,6 @@
                       "headless": {
                         "type": "boolean",
                         "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                      },
-                      "orientation": {
-                        "type": "string",
-                        "enum": [
-                          "portrait",
-                          "landscape"
-                        ],
-                        "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                      },
-                      "udid": {
-                        "type": "string",
-                        "minLength": 1,
-                        "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                      },
-                      "provider": {
-                        "type": "object",
-                        "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                       }
                     }
                   }
@@ -665,6 +686,11 @@
                     "explicit": {
                       "type": "boolean",
                       "description": "Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).",
+                      "readOnly": true
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.",
                       "readOnly": true
                     },
                     "headless": {
@@ -2053,8 +2079,7 @@
                               },
                               "workingDirectory": {
                                 "type": "string",
-                                "description": "Working directory for the command.",
-                                "default": "."
+                                "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                               },
                               "exitCodes": {
                                 "type": "array",
@@ -2080,7 +2105,7 @@
                               },
                               "directory": {
                                 "type": "string",
-                                "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                               },
                               "maxVariation": {
                                 "type": "number",
@@ -2102,6 +2127,7 @@
                               "timeout": {
                                 "type": "integer",
                                 "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                                "minimum": 1,
                                 "default": 60000
                               },
                               "background": {
@@ -2150,9 +2176,34 @@
                                     }
                                   },
                                   "tty": {
-                                    "type": "boolean",
                                     "default": false,
-                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                    "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                    "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the normalizer applies the 120/30 defaults (ADR 01167).",
+                                    "anyOf": [
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "cols": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 1000,
+                                            "default": 120,
+                                            "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                          },
+                                          "rows": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 1000,
+                                            "default": 30,
+                                            "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                          }
+                                        }
+                                      }
+                                    ]
                                   }
                                 }
                               }
@@ -2204,8 +2255,7 @@
                                 },
                                 "workingDirectory": {
                                   "type": "string",
-                                  "description": "Working directory for the command.",
-                                  "default": "."
+                                  "description": "Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
                                 },
                                 "exitCodes": {
                                   "type": "array",
@@ -2231,7 +2281,7 @@
                                 },
                                 "directory": {
                                   "type": "string",
-                                  "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+                                  "description": "Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`."
                                 },
                                 "maxVariation": {
                                   "type": "number",
@@ -2253,6 +2303,7 @@
                                 "timeout": {
                                   "type": "integer",
                                   "description": "Max time in milliseconds the command is allowed to run. If the command runs longer than this, the step fails. When `background` is set, this is instead the max time to wait for `background.waitUntil` to be satisfied before the step fails.",
+                                  "minimum": 1,
                                   "default": 60000
                                 },
                                 "background": {
@@ -2301,9 +2352,34 @@
                                       }
                                     },
                                     "tty": {
-                                      "type": "boolean",
                                       "default": false,
-                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them."
+                                      "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the step is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
+                                      "$comment": "The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the normalizer applies the 120/30 defaults (ADR 01167).",
+                                      "anyOf": [
+                                        {
+                                          "type": "boolean"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "properties": {
+                                            "cols": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 1000,
+                                              "default": 120,
+                                              "description": "Terminal width in columns (what the process reads as `process.stdout.columns`)."
+                                            },
+                                            "rows": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 1000,
+                                              "default": 30,
+                                              "description": "Terminal height in rows (what the process reads as `process.stdout.rows`)."
+                                            }
+                                          }
+                                        }
+                                      ]
                                     }
                                   }
                                 }
@@ -2391,6 +2467,19 @@
                               }
                             },
                             "timeout": 60000
+                          },
+                          {
+                            "command": "my-tui",
+                            "background": {
+                              "name": "tui",
+                              "tty": {
+                                "cols": 80,
+                                "rows": 24
+                              },
+                              "waitUntil": {
+                                "stdio": "/Ready/"
+                              }
+                            }
                           }
                         ]
                       }
@@ -2472,13 +2561,13 @@
                   },
                   "statusCode": {
                     "type": "integer",
-                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                    "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                   },
                   "useExample": {
                     "type": [
                       "string"
                     ],
-                    "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                    "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                     "enum": [
                       "request",
                       "response",
@@ -2493,12 +2582,21 @@
                     "default": ""
                   },
                   "headers": {
-                    "type": "object",
-                    "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                    "additionalProperties": {
-                      "type": "string"
-                    },
-                    "title": "OpenAPI request headers"
+                    "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                    "title": "OpenAPI request headers",
+                    "anyOf": [
+                      {
+                        "title": "Request headers (object)",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "title": "Request headers (string)",
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "components": {
@@ -2520,6 +2618,11 @@
                   {
                     "name": "Reqres",
                     "operationId": "getUserById"
+                  },
+                  {
+                    "name": "Reqres",
+                    "operationId": "getUserById",
+                    "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                   },
                   {
                     "descriptionPath": "https://api.example.com/openapi.json",
@@ -2830,6 +2933,18 @@
             "x32",
             "x64"
           ]
+        },
+        "docDetectiveVersion": {
+          "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+          "type": "string"
+        },
+        "nodeVersion": {
+          "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+          "type": "string"
+        },
+        "osRelease": {
+          "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+          "type": "string"
         }
       },
       "title": "Environment details"
@@ -3446,7 +3561,7 @@
       "default": "auto"
     },
     "retries": {
-      "description": "How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
+      "description": "How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. That route's `retry.limit` sets its count, and the step's `attempts` result field reports how many times it ran. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
       "type": "integer",
       "minimum": 0,
       "maximum": 10,
@@ -3486,6 +3601,18 @@
               "x32",
               "x64"
             ]
+          },
+          "docDetectiveVersion": {
+            "description": "The version of Doc Detective that ran, for example `4.42.0`.",
+            "type": "string"
+          },
+          "nodeVersion": {
+            "description": "The Node.js version that ran Doc Detective, without the leading `v`, for example `24.15.0`.",
+            "type": "string"
+          },
+          "osRelease": {
+            "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
+            "type": "string"
           }
         },
         "title": "Environment details"

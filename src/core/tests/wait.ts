@@ -15,24 +15,19 @@ async function wait({ config, step, driver }: { config?: any; step: any; driver:
     return result;
   }
 
-  // Resolve wait value
-  if (step.wait === true || step.wait === "true") {
-    // True boolean
-    step.wait = 5000;
-  } else if (step.wait === false || step.wait === "false") {
+  // The effective step holds milliseconds, `false` to skip, or a $VAR that
+  // didn't resolve (ADR 01167).
+  const duration = isValidStep.object.wait;
+  if (duration === false) {
     result.status = "SKIPPED";
     result.description = "Wait skipped.";
     return result;
-  } else if (typeof step.wait === "string") {
-    // Convert to number
-    const waitValue = parseInt(step.wait, 10);
-    if (isNaN(waitValue)) {
-      result.status = "FAIL";
-      result.description = `Invalid wait value: ${step.wait}. Must be a number or boolean.`;
-      return result;
-    }
-    // Set wait value
-    step.wait = waitValue;
+  }
+  // Only a valid string reaches here: a $VAR that substitution left in place.
+  if (typeof duration !== "number") {
+    result.status = "FAIL";
+    result.description = `Couldn't wait: the variable '${duration}' in \`wait\` isn't set. Set it to a number of milliseconds.`;
+    return result;
   }
 
   // Run action
@@ -42,9 +37,9 @@ async function wait({ config, step, driver }: { config?: any; step: any; driver:
     // which is critical for finding elements that are dynamically rendered by JavaScript.
     // A simple setTimeout() only pauses Node.js and can leave the WebDriver session stale.
     if (driver) {
-      await driver.pause(step.wait);
+      await driver.pause(duration);
     } else {
-      await new Promise((r) => setTimeout(r, step.wait));
+      await new Promise((r) => setTimeout(r, duration));
     }
   } catch (error: any) {
     // FAIL: Error waiting

@@ -1,0 +1,188 @@
+{
+  "specId": "cli-browser-tightening",
+  "description": "Browser steps that can't do what they say make the spec invalid (ADR 01175), through the real CLI: exit 2, with a message that says how to fix it.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-browser-tightening';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const steps={'click-true':{click:true},'click-false':{click:false},'click-text':{click:'true'},'find-click-text':{find:{selector:'#a',click:'Submit'}},'find-click-object':{find:{selector:'#a',click:{selector:'#b'}}},'find-click-variable':{find:{selector:'#a',click:'\\u0024BTN'}},'find-type-selector':{find:{selector:'#a',type:{keys:'x',selector:'#b'}}},'find-type-element-text':{find:{selector:'#a',type:{keys:'x',elementText:'b'}}},'click-timeout':{click:{selector:'#a',timeout:-1}},'find-timeout':{find:{selector:'#a',timeout:-1}},'type-input-delay':{type:{keys:'a',inputDelay:-10}},'drag-source-timeout':{dragAndDrop:{source:{selector:'#a',timeout:-1},target:'b'}},'drag-target-timeout':{dragAndDrop:{source:'a',target:{selector:'#b',timeout:-1}}},'annotate-timeout':{annotate:{add:[{outline:{selector:'#a',timeout:-1}}]}}};for(const[name,step]of Object.entries(steps))fs.writeFileSync(d+'/'+name+'.spec.json',JSON.stringify({tests:[{steps:[step]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "boolean-click-exit-2",
+      "description": "A boolean click names no element. The error says to quote it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/click-true.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be string or object (got true). To click an element whose text is \"true\", quote it: \"click\": \"true\""
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/click-false.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be string or object (got false). To click an element whose text is \"false\", quote it: \"click\": \"false\""
+          }
+        }
+      ]
+    },
+    {
+      "testId": "quoted-click-text-valid",
+      "description": "A quoted \"true\" is element text, so the spec is still valid.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/click-text.spec.json --dry-run --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "\"click\": \"true\""
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-click-exit-2",
+      "description": "find.click is a boolean, a button name, or {button, duration}. Element text, a click_v3 object, and a whole variable are invalid.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-click-text.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].find.click"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-click-object.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].find.click"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-click-variable.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].find.click"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "find-type-locator-exit-2",
+      "description": "find already locates the element, so find.type can't set a locator. The error names the key.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-type-selector.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must not set `selector` (`find` already locates the element)"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-type-element-text.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must not set `elementText` (`find` already locates the element)"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "negative-durations-exit-2",
+      "description": "Timeouts and delays are 0 or more.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/click-timeout.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/find-timeout.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/type-input-delay.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/drag-source-timeout.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/drag-target-timeout.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-browser-tightening/annotate-timeout.spec.json --output-dir .tmp/fixture-browser-tightening/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "must be >= 0"
+          }
+        }
+      ]
+    }
+  ]
+}

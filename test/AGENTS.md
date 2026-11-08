@@ -24,6 +24,12 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `ss -ltnp 'sport = :8092'` or `lsof -iTCP:8092 -sTCP:LISTEN` on Linux and macOS. Then inspect the
   owning process's command line. It may be mocha from a sibling `.claude/worktrees/*` checkout, or a
   days-old orphan. Wait or kill only orphaned listeners, then rerun.
+- **Don't `spawnSync` a CLI run that browses a server in the mocha process.** The 8092 and 8093
+  servers live in mocha's own process, and `spawnSync` blocks its event loop. A spawned
+  `doc-detective` run that loads one of their pages never gets an answer, so the test hangs and holds
+  the ports for every other session. Spawn asynchronously, with a kill timer, and serve from your
+  own server on port `0`. The effective-step test in [cli-contract.test.js](cli-contract.test.js)
+  shows the pattern.
 - **Browserless worktrees fail the browser-dependent tests.** Consider a worktree with no Chrome,
   Firefox, or Appium installed, and no network to lazy-provision them. Browser-dependent tests fail
   with "Chrome browser is not available", or with step-count assertions (`0 !== 1`,
@@ -70,6 +76,13 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   To avoid it, point `--output-dir` somewhere under `.tmp/`, or clean up before the full
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
+- **Nested `npm run` fails at deep worktree paths on Windows.** Each nested `npm run` adds
+  `node_modules/.bin` directories to `PATH`. At deep `.claude/worktrees/*` paths that overflows
+  cmd.exe's `PATH`, and the step fails with `'node' is not recognized as an internal or external
+  command`. `npm run build` nests three levels deep. Run the steps of the `build` scripts in
+  [package.json](../package.json) and [src/common/package.json](../src/common/package.json) with
+  `node` directly instead, for example `node ./src/schemas/dereferenceSchemas.cjs` from
+  `src/common/` and `node node_modules/typescript/bin/tsc` from the root.
 
 - **`--dry-run` prints no warnings.** A dry run forces the log level to `silent`, so stdout holds only
   the test plan. A fixture that checks a warning has to run its steps instead. The detection fixtures

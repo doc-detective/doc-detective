@@ -2195,6 +2195,54 @@ describe("getRunner() function", function () {
 
   // --- Routing: retry action ---
 
+  it("onSkip retry re-runs a step whose own action returned SKIPPED", async () => {
+    // `wait: false` runs and reports SKIPPED, so onSkip's retry re-runs it:
+    // 1 initial run + 2 retries.
+    const t = { tests: [{ steps: [{ wait: false, onSkip: [{ retry: { limit: 2 } }] }] }] };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-onskip-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const step = result.specs[0].tests[0].contexts[0].steps[0];
+      assert.equal(step.result, "SKIPPED");
+      assert.equal(step.attempts, 3);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("onSkip retry doesn't re-run a step skipped before it ran", async () => {
+    // A guard-`if`-false step never ran, so its retry entry is passed over and
+    // the next entry (stop) applies.
+    const t = {
+      tests: [
+        {
+          steps: [
+            {
+              if: "$$platform == nowhere",
+              runShell: "node -e \"process.exit(0)\"",
+              onSkip: [{ retry: { limit: 2 } }, { stop: "test" }],
+            },
+            { runShell: "node -e \"process.exit(0)\"" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-onskip-guard-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const [guarded, next] = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(guarded.result, "SKIPPED");
+      assert.equal(guarded.attempts, undefined);
+      assert.equal(next.result, "SKIPPED");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("onFail retry recovers a transient failure (fails once, passes on retry)", async () => {
     // A counter-file step exits 1 on its first run and 0 on the second.
     // onFail:[{retry:{limit:2}}] re-runs it; the retry passes, so the step is
@@ -2744,10 +2792,9 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("test-level stop:run is deferred -> treated as stop:spec (remaining tests SKIPPED)", async () => {
-    // stop:run is not yet implemented at test scope; it warns once and halts the
-    // spec's remaining tests (same as stop:spec). testA FAILs+stop:run -> testB
-    // SKIPPED with the routing reason; verdict FAIL.
+  it("test-level stop:run is rejected, so the spec doesn't run (ADR 01168)", async () => {
+    // The runner can't stop a whole run, so the schema rejects the request
+    // instead of quietly treating it as stop:spec.
     const t = {
       tests: [
         {
@@ -2760,16 +2807,11 @@ describe("getRunner() function", function () {
     };
     const tempFilePath = path.resolve("./test/temp-routing-test-stoprun.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
-    const config = { input: tempFilePath, logLevel: "debug" };
-    let result;
+    const config = { input: tempFilePath, logLevel: "silent" };
     try {
-      result = await runTests(config);
-      const tests = result.specs[0].tests;
-      assert.equal(tests.length, 2);
-      assert.equal(tests[0].result, "FAIL");
-      assert.equal(tests[1].result, "SKIPPED");
-      assert.match(tests[1].contexts[0].resultDescription, /prior test stopped the spec/);
-      assert.equal(result.summary.specs.fail, 1);
+      // The API skips an invalid spec; the CLI exits 2 (test/routing-scope.test.js).
+      const result = await runTests(config);
+      assert.ok(!result?.specs?.length, "the invalid spec must not run");
     } finally {
       fs.unlinkSync(tempFilePath);
     }

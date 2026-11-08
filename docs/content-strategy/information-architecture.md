@@ -198,6 +198,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 |---|---|---|---|
 | Track overview / start here (new) | P1 | ★ | |
 | CI/CD: GitHub Action recipe | P1 | ★ | |
+| AI issue mentions | P1 | | Authored: `/docs/ci/issue-mentions`. The Action's `issue_mentions` and `issue_prompt` inputs (deprecated aliases `integrations` and `prompt`). Moved from `/docs/test-docs/integrations`, whose title collided with the config's `integrations` key. |
 | CI recipes: other platforms (new) | P1 | | Fills the GitHub-only gap. |
 | Reporters & artifacts (new) | P1 | ★ | terminal/json/html/runFolder + run-folder layout. |
 | Docker & headless (new) | P2 | ★ | |

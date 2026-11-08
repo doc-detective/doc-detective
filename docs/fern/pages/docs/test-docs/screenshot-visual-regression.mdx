@@ -50,7 +50,7 @@ When a comparison runs, the step exposes `$$variation` (the fractional differenc
 
 ### Reference images in cloud storage
 
-`path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference. It writes the new capture to `./doc-detective-runs/<run-timestamp>/` for inspection, and ignores `overwrite` because it never mutates remote storage:
+`path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference. It writes the new capture for inspection to the context's `screenshots/` folder in the [run folder](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts), even when `runFolder` isn't one of your reporters. It ignores `overwrite`, because it never mutates remote storage. In the following example, the new file is `<stepId>_<timestamp>_home.png`:
 
 ```json
 {

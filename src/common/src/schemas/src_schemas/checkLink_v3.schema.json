@@ -12,13 +12,9 @@
   "components": {
     "schemas": {
       "string": {
-        "title": "Check link (detailed)",
-        "description": "Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.",
-        "type": "string",
-        "pattern": "(^(http://|https://|\\/).*$|^\\$[A-Za-z0-9_]+$)",
-        "transform": [
-          "trim"
-        ]
+        "title": "Check link (simple)",
+        "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+        "$ref": "goTo_v3.schema.json#/components/schemas/url"
       },
       "object": {
         "title": "Check link (detailed)",
@@ -30,16 +26,11 @@
         ],
         "properties": {
           "url": {
-            "type": "string",
-            "description": "URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.",
-            "pattern": "(^(http://|https://|/).*$|^\\$[A-Za-z0-9_]+$)",
-            "transform": [
-              "trim"
-            ]
+            "$ref": "goTo_v3.schema.json#/components/schemas/url"
           },
           "origin": {
             "type": "string",
-            "description": "Protocol and domain to navigate to. Prepended to `url`.",
+            "description": "Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.",
             "transform": [
               "trim"
             ]
@@ -53,7 +44,7 @@
             "default": {}
           },
           "statusCodes": {
-            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
+            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
             "anyOf": [
               {
                 "type": "integer"
@@ -77,25 +68,16 @@
               308
             ]
           },
+          "timeout": {
+            "type": "integer",
+            "description": "Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.",
+            "minimum": 1,
+            "default": 10000
+          },
           "headers": {
-            "description": "Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
+            "description": "Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).",
             "default": {},
-            "anyOf": [
-              {
-                "title": "Request headers (object)",
-                "description": "Headers to include in the HTTP request, in key/value format. Values must be strings.",
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "properties": {}
-              },
-              {
-                "title": "Request headers (string)",
-                "description": "Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123\nAuthorization: Bearer token`.",
-                "type": "string"
-              }
-            ]
+            "$ref": "httpRequest_v3.schema.json#/components/schemas/requestHeaders"
           }
         }
       }
@@ -104,9 +86,15 @@
   "examples": [
     "https://www.google.com",
     "/search",
+    "$BASE_URL/docs",
+    {
+      "url": "https://www.example.com",
+      "headers": "X-Api-Key: abc123\nAuthorization: Bearer token"
+    },
     {
       "url": "https://www.google.com",
-      "statusCodes": 200
+      "statusCodes": 200,
+      "timeout": 5000
     },
     {
       "url": "/search",

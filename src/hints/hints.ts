@@ -193,21 +193,21 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // extractBeforeAnySharedSetup (advanced)
+  // extractBeforeAllSharedSetup (advanced)
   // ------------------------------------------------------------------
   {
-    id: "extractBeforeAnySharedSetup",
+    id: "extractBeforeAllSharedSetup",
     priority: 20,
     markdown: [
-      "Repeating the same setup across specs? Move it into a `beforeAny` spec — it runs once before the rest of the input:",
+      "Repeating the same setup across specs? Move it into a `beforeAll` spec — it runs once before the rest of the input:",
       "",
       "```json",
-      "{ \"beforeAny\": \"./setup.spec.json\" }",
+      "{ \"beforeAll\": \"./setup.spec.json\" }",
       "```",
     ].join("\n"),
     when: (ctx) =>
       ctx.totalSpecs >= 5 &&
-      !ctx.config?.beforeAny,
+      !ctx.config?.beforeAll,
   },
 
   // ------------------------------------------------------------------
