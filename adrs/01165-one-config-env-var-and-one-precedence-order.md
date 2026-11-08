@@ -59,6 +59,8 @@ Chosen option: **A**, with the order below.
 
 - **Deep merge.** Objects merge key by key, and arrays and scalars replace. The CLI's `setConfig` does all
   of the layering. The runner's `setConfig`, which the JS API calls, reads only the config it's given.
+  The `config` in pre-resolved tests, from `DOC_DETECTIVE_API` or `runTests(config, { resolvedTests })`,
+  deep-merges under the caller's config the same way. The caller's config wins any conflict.
 - **`DOC_DETECTIVE`** is a deprecated alias of `DOC_DETECTIVE_CONFIG`. Its `config` object merges just
   below `DOC_DETECTIVE_CONFIG`, so flags beat it. It's validated like any config source, and each run
   warns: ``Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.``

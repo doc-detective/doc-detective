@@ -1,5 +1,6 @@
 import { spawnCommand } from "../dist/utils.js";
 import assert from "node:assert/strict";
+import http from "node:http";
 
 // A DOC_DETECTIVE_API run never writes to `-o`/config.output — cli.ts routes
 // its results through reportResults() (a POST back to the orchestration
@@ -201,6 +202,42 @@ describe("DOC_DETECTIVE_API environment variable", function () {
         process.env.DOC_DETECTIVE_CONFIG = originalConfigEnv;
       } else {
         delete process.env.DOC_DETECTIVE_CONFIG;
+      }
+    }
+  });
+
+  it("deep-merges DOC_DETECTIVE_CONFIG into the fetched config, end to end", async () => {
+    // Its own server, so the payload can carry a nested config. A dry run
+    // prints the merged config without running anything.
+    const payload = {
+      resolvedTestsId: "deep-merge",
+      config: { telemetry: { send: true, userId: "api-user" } },
+      specs: [
+        { specId: "s", tests: [{ testId: "t", contexts: [{ contextId: "c", steps: [{ stepId: "1", wait: 1 }] }] }] },
+      ],
+    };
+    const server = http.createServer((req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(payload));
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const saved = { api: process.env.DOC_DETECTIVE_API, config: process.env.DOC_DETECTIVE_CONFIG };
+    process.env.DOC_DETECTIVE_API = JSON.stringify({
+      accountId: "a",
+      url: `http://127.0.0.1:${server.address().port}`,
+      token: "t",
+      contextIds: "c",
+    });
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ telemetry: { send: false }, autoUpdate: false });
+    try {
+      const result = await spawnCommand("node ./bin/doc-detective.js --dry-run");
+      assert.equal(result.exitCode, 0, `stderr:\n${result.stderr}`);
+      assert.deepEqual(JSON.parse(result.stdout).config.telemetry, { send: false, userId: "api-user" });
+    } finally {
+      server.close();
+      for (const [key, name] of [["api", "DOC_DETECTIVE_API"], ["config", "DOC_DETECTIVE_CONFIG"]]) {
+        if (saved[key] === undefined) delete process.env[name];
+        else process.env[name] = saved[key];
       }
     }
   });

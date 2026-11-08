@@ -452,6 +452,27 @@ describe("core/index.ts — runTests offline branches", function () {
     assert.equal(result.summary, undefined, "must not have executed");
   });
 
+  it("deep-merges the caller config over resolvedTests.config (ADR 01165)", async function () {
+    const spec = path.join(tmpDir, "deep.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.telemetry = { send: true, userId: "api-user" };
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: tampered }
+    );
+    // The caller's `send` wins; the embedded `userId` it doesn't set survives.
+    assert.deepEqual(result.config.telemetry, { send: false, userId: "api-user" });
+  });
+
   it("merges against an empty {} when resolvedTests.config is absent (|| {} fallback)", async function () {
     // Exercises the `resolvedTests.config || {}` fallback — resolvedTests
     // carries no embedded config at all (a caller could hand-build a

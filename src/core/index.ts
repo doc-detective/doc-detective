@@ -1,7 +1,7 @@
 import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests, deepMerge } from "./utils.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
   telemetryAllowed,
@@ -91,7 +91,9 @@ async function runTestsAndReport(config: any, options: any) {
     // so CLI overrides like --dry-run / --logLevel are preserved when tests
     // come pre-resolved (DOC_DETECTIVE_API path). Without this merge, a
     // user running `--dry-run` against an orchestration-supplied resolved
-    // payload would silently execute tests.
+    // payload would silently execute tests. Objects merge and arrays
+    // replace, as in every config layer (ADR 01165), so an embedded nested
+    // key the caller doesn't set survives.
     //
     // Note: the `resolvedTests.config || {}` fallback is covered (see
     // test/cli-index-adapters-coverage.test.js — a resolvedTests payload
@@ -103,7 +105,7 @@ async function runTestsAndReport(config: any, options: any) {
     // adds — see the follow-up task spawned for that bug), so it isn't
     // exercised here. Left un-ignored since most of this line IS covered;
     // the residual branch is a known, tracked gap, not annotated dead code.
-    config = { ...(resolvedTests.config || {}), ...(config || {}) };
+    config = deepMerge(resolvedTests.config || {}, config || {});
     resolvedTests.config = config;
   }
 
