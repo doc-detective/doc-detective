@@ -100,13 +100,13 @@ export interface ProcessReadiness {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
 export interface AppReadiness {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria1;

@@ -42,7 +42,6 @@ export {
   translateProcessKeys,
   splitKeyRuns,
   resolveSurface,
-  resolveInputDelay,
 };
 
 // Split a `keys` array into ordered runs of literal text and $KEY$ tokens for
@@ -115,14 +114,6 @@ const _processKeyMap: Record<string, string> = {
 // dead zone. Exporting here keeps the binding live for tests without the TDZ
 // hazard.
 export { _processKeyMap };
-
-// Resolve the effective inter-keystroke delay (ms). The schema default is 100,
-// but an author may explicitly request 0 ("type as fast as possible"). Use
-// nullish coalescing so ONLY an absent value (undefined/null) falls back to the
-// default — an explicit 0 is honored rather than being clobbered by `|| 100`.
-function resolveInputDelay(inputDelay: unknown): number {
-  return typeof inputDelay === "number" ? inputDelay : 100;
-}
 
 // Translate an authored keys array into the raw bytes written to a process's
 // stdin. Plain strings pass through verbatim. A `$…$` sentinel maps via
@@ -226,8 +217,7 @@ async function typeToProcess({
   }
 
   const waitUntil = step.type.waitUntil;
-  const timeout =
-    typeof step.type.timeout === "number" ? step.type.timeout : 5000;
+  const timeout = step.type.timeout;
   const inputDelay = step.type.inputDelay;
 
   // 2. Translate keys to raw stdin bytes (plain verbatim; `$…$` via the process
@@ -410,27 +400,9 @@ async function typeKeys({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): `type` is an object, `keys` is a list, and
+  // `inputDelay` and `timeout` are filled.
   step = isValidStep.object;
-
-  // Convert to array
-  if (typeof step.type === "string") {
-    step.type = [step.type];
-  }
-  // Convert to object
-  if (Array.isArray(step.type)) {
-    step.type = { keys: step.type };
-  }
-  // Convert keys property to object
-  if (typeof step.type.keys === "string") {
-    step.type.keys = [step.type.keys];
-  }
-  // Set default values
-  step.type = {
-    ...step.type,
-    keys: step.type.keys || [],
-    inputDelay: resolveInputDelay(step.type.inputDelay),
-  };
 
   // Skip if no keys to type
   if (!step.type.keys.length) {
@@ -467,7 +439,7 @@ async function typeKeys({
       const resolvedWindow = await resolveAppWindow({
         entry: appRef.entry!,
         selector: appRef.window,
-        timeoutMs: step.type.timeout ?? 5000,
+        timeoutMs: step.type.timeout,
       });
       if (!resolvedWindow.ok) {
         result.status = "FAIL";
@@ -547,9 +519,7 @@ async function typeKeys({
       const found = await findAppElement({
         driver: appDriver,
         criteria: step.type,
-        // ?? so an explicit `timeout: 0` (schema minimum) stays an
-        // immediate check instead of being clobbered to the default.
-        timeout: step.type.timeout ?? 5000,
+        timeout: step.type.timeout,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
       });
@@ -564,7 +534,7 @@ async function typeKeys({
       if (element) await element.click();
       // No inputDelay between runs on app surfaces: the schema promises the
       // native driver types atomically ("Not applied on app surfaces in this
-      // phase"), and AJV's useDefaults injects inputDelay=100 even when the
+      // phase"), and the effective step fills inputDelay=100 even when the
       // author omits it — so applying it here would add an unpromised 100ms
       // between every text/token run (e.g. "text" + $ENTER$).
       for (const run of runs) {
@@ -596,7 +566,7 @@ async function typeKeys({
       const ready = await findAppElement({
         driver: appRef.entry!.driver,
         criteria: wu.find,
-        timeout: step.type.timeout ?? 5000,
+        timeout: step.type.timeout,
         platform: appRef.entry!.platform,
         root: scopedFindRoot(appRef.entry!, windowTarget),
       });
@@ -773,7 +743,7 @@ async function typeKeys({
     const readiness = await waitForBrowserReadiness({
       driver,
       waitUntil: step.type.waitUntil,
-      timeout: typeof step.type.timeout === "number" ? step.type.timeout : 5000,
+      timeout: step.type.timeout,
     });
     if (!readiness.ok) {
       result.status = "FAIL";

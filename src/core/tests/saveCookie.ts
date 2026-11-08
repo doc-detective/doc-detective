@@ -27,42 +27,17 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object with a `name` and either a
+  // `variable` or a `path`, which the schema guarantees.
   step = isValidStep.object;
-
-  // Parse configuration
-  let cookieName: any, filePath: any, directory: any, overwrite: any, domain: any, variable: any;
-
-  if (typeof step.saveCookie === "string") {
-    if (step.saveCookie.endsWith(".txt")) {
-      // Simple string format - treat as cookie name, save to environment variable
-      cookieName = path.basename(step.saveCookie, ".txt");
-      filePath = step.saveCookie;
-    } else {
-      // Simple string format - treat as cookie name, save to environment variable
-      cookieName = step.saveCookie;
-      variable = cookieName;
-    }
-  } else {
-    // Object format
-    cookieName = step.saveCookie.name;
-    filePath = step.saveCookie.path;
-    directory = step.saveCookie.directory;
-    overwrite = step.saveCookie.overwrite;
-    domain = step.saveCookie.domain;
-    variable = step.saveCookie.variable;
-
-    if (!cookieName) {
-      result.status = "FAIL";
-      result.description = "Cookie name must be specified.";
-      return result;
-    }
-    if (!variable && !filePath) {
-      result.status = "FAIL";
-      result.description = "Either variable or file path must be specified.";
-      return result;
-    }
-  }
+  const {
+    name: cookieName,
+    path: filePath,
+    directory,
+    overwrite,
+    domain,
+    variable,
+  } = step.saveCookie;
 
   try {
     // Get all cookies from the browser
@@ -105,7 +80,8 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
       const fullPath = path.resolve(outputDirectory, filePath);
 
       // Check if file exists and handle overwrite
-      if (fs.existsSync(fullPath) && !(overwrite === true || overwrite === "true")) {
+      // `overwrite` is a boolean; validation coerces "true" to true.
+      if (fs.existsSync(fullPath) && overwrite !== true) {
         result.status = "FAIL";
         result.description = `File '${fullPath}' already exists and overwrite is not enabled.`;
         return result;

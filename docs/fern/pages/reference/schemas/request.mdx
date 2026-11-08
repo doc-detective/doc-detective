@@ -12,9 +12,11 @@ description: "Reference for the `Request` schema."
 
 ## Fields
 
+Validation applies the defaults shown here.
+
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-headers | one of:<br/>- object([Request headers (object)](/reference/schemas/request-headers-object))<br/>- string | Optional. Headers to include in the HTTP request. | ``{}``
+headers | one of:<br/>- object<br/>- string | Optional. Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name. | ``{}``
 parameters | object([Request parameters](/reference/schemas/request-parameters)) | Optional. URL parameters to include in the HTTP request, in key/value format. | ``{}``
 body | one of:<br/>- object([Request body (object)](/reference/schemas/request-body-object))<br/>- array of unknown<br/>- string | Optional. The body of the HTTP request. | ``{}``
 

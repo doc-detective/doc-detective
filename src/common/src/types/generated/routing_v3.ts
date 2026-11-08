@@ -5,25 +5,20 @@
  */
 
 /**
- * A single dynamic-routing entry: an optional condition (`if`) plus exactly one routing action. Attached to a step or test handler (`onPass`, `onFail`, `onWarning`, `onSkip`). For step-level handlers, `continue`, `stop`, `retry`, and `goToStep` are evaluated at runtime; `goToTest` is validated but not yet executed (deferred at step scope). For test-level handlers, `continue`, `stop`, and `goToTest` are evaluated at runtime (test scope; `goToTest` jumps to a test within the spec), while `retry` and `goToStep` are not applicable at test scope.
+ * A single routing entry on a test handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test` or `spec`), or `goToTest`. Step handlers take a step routing entry instead.
  */
 export type Routing = {
   if?: Condition;
   /**
-   * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
+   * Continue with the next test. Use to explicitly suppress a default handler behavior.
    */
   continue?: true;
   /**
-   * Stop execution at the given scope.
+   * Stop at the given scope. `test` does nothing, because the test already finished. `spec` skips the spec's remaining tests.
    */
-  stop?: "test" | "spec" | "run";
-  retry?: Retry;
+  stop?: "test" | "spec";
   /**
-   * Identifier of the step to jump to.
-   */
-  goToStep?: string;
-  /**
-   * Identifier of the test to jump to.
+   * Identifier of the test to jump to, within the same spec.
    */
   goToTest?: string;
 } & {
@@ -33,21 +28,3 @@ export type Routing = {
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition = string | [string, ...string[]];
-
-/**
- * Retry the current step.
- */
-export interface Retry {
-  /**
-   * Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.
-   */
-  limit: number;
-  /**
-   * Delay in milliseconds before each retry.
-   */
-  delay?: number;
-  /**
-   * Backoff strategy applied to the delay between retries.
-   */
-  backoff?: "fixed" | "exponential";
-}

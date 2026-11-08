@@ -15,7 +15,9 @@ The `click` action works in several ways:
 
 To find an element before clicking it, consider the [`find`](/docs/actions/find) action. It locates elements and optionally clicks them in a single step.
 
-**Note:** A `click` action with no target, meaning no element text or selector, clicks the active element or the element at the current cursor position.
+A `click` string always names the element, so `"click": "right"` clicks the element whose text is "right". To choose the mouse button, use the object format's `button`. In [`find`](/docs/actions/find), a `click` string names the button instead.
+
+`click` needs an element, so `"click": true` and `"click": false` make the spec invalid, and the run exits `2`. To click an element whose text is `true` or `false`, quote the value: `"click": "true"`.
 
 ## Properties
 
@@ -25,6 +27,7 @@ When using the object format, you can specify:
 - `duration`: (Optional) How long to hold the press, in milliseconds. It's a long-press on mobile app surfaces and a press-and-hold of the primary button on desktop apps. On browsers it's a press-and-hold of the given `button`. Omit it for a normal click. A long-press on an app surface is primary-button only, so `duration` with a non-left `button` fails the step. On browsers, a held click needs the W3C actions endpoint. Like non-left buttons, it's desktop-browser-only.
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to click. If combined with `elementText`, the element must match both the text and the selector.
 - `elementText`: (Optional) Display text of the element to click. If combined with `selector`, the element must match both the text and the selector.
+- `timeout`: (Optional) Maximum time in milliseconds to wait for the element to exist. Default is `5000`. `0` checks once.
 - `surface`: (Optional) The browser session, window, or tab the element lives in, such as `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`. It can also be the [native app surface](/docs/actions/startsurface) the element lives in, such as `{ "app": "notepad" }`. Omit it to act on the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls. `selector` there accepts a native locator, either XPath or a `~`-prefixed accessibility ID, instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows) and [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 
 **Outputs:** when you target an element by text or selector, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.

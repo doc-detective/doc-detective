@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { goTo } from "../dist/core/tests/goTo.js";
 import { replaceEnvs } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/validate.js";
 
 // Minimal driver stub: captures the URL passed to `driver.url()` and then
 // throws so goTo short-circuits its wait-loop. We only care about the URL
@@ -202,9 +203,11 @@ describe("goTo guards and top-level error handling", function () {
     assert.equal(calls.url, "https://my-app.com/dashboard");
   });
 
-  it("resolves the shorthand string form of goTo (step.goTo as a string)", async function () {
+  it("navigates to the URL of an expanded goTo shorthand (ADR 01167)", async function () {
+    // Handlers get the effective step: validate() expands the shorthand.
     const { driver, calls } = stubDriver();
-    await goTo({ config: {}, step: { goTo: "https://example.com/x" }, driver });
+    const step = validate({ schemaKey: "step_v3", object: { goTo: "https://example.com/x" } }).object;
+    await goTo({ config: {}, step, driver });
     assert.equal(calls.url, "https://example.com/x");
   });
 

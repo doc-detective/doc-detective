@@ -1,6 +1,6 @@
 {
   "detectSteps": false,
-  "beforeAny": [
+  "beforeAll": [
     "./test-setup/start-server.spec.json",
     "./test-setup/start-docs-server.spec.json"
   ],

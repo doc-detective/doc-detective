@@ -98,7 +98,6 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
   step = isValidStep.object;
 
   // Multi-surface Phase 3/4: focus the session + window/tab the source and
@@ -114,31 +113,17 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
     driver = switched.driver ?? driver;
   }
 
-  // Set default duration if not provided
-  const duration = step.dragAndDrop.duration || 1000;
+  // The effective step (ADR 01167) fills the duration and keeps an authored 0.
+  const { duration } = step.dragAndDrop;
 
   let sourceElement: any, targetElement: any;
 
   try {
-    // Prepare find steps for source and target
-    let sourceFindStep: any;
-    if (typeof step.dragAndDrop.source === "string") {
-      sourceFindStep = { find: step.dragAndDrop.source };
-    } else if (typeof step.dragAndDrop.source === "object") {
-      sourceFindStep = { find: { ...step.dragAndDrop.source } };
-    }
-
-    let targetFindStep: any;
-    if (typeof step.dragAndDrop.target === "string") {
-      targetFindStep = { find: step.dragAndDrop.target };
-    } else if (typeof step.dragAndDrop.target === "object") {
-      targetFindStep = { find: { ...step.dragAndDrop.target } };
-    }
-
-    // Execute both element searches concurrently
+    // Source and target each take find's string or object form. Execute both
+    // element searches concurrently.
     const [sourceResult, targetResult] = await Promise.all([
-      findElement({ config, step: sourceFindStep, driver }),
-      findElement({ config, step: targetFindStep, driver }),
+      findElement({ config, step: { find: step.dragAndDrop.source }, driver }),
+      findElement({ config, step: { find: step.dragAndDrop.target }, driver }),
     ]);
 
     // Expose distinct existence outputs, then evaluate the two ordered specs

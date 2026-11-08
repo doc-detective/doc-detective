@@ -435,8 +435,9 @@ were found in.
 
 1. **Append-per-visit summary counting.** Revisited steps and tests count every visit. Document that
    summary totals can exceed specs × tests × contexts. This is locked: count every visit.
-2. **`stop: "run"` under concurrency.** It can only stop *scheduling* new jobs. In-flight contexts
-   finish, so it's deterministic only at `concurrentRunners: 1`. Document that.
+2. ~~**`stop: "run"` under concurrency.**~~ **Superseded.** The schema rejects `stop: "run"`, and a
+   step-level `stop: "spec"`, until the runner can perform them
+   ([ADR 01168](../../adrs/01168-reject-routing-actions-the-runner-cant-perform-at-that-scope.md)).
 
 ## Deferred
 
@@ -455,12 +456,12 @@ were found in.
       "steps": [
         {
           "stepId": "bashHello",
-          "runShell": { "command": "bash -c 'echo hello'", "exitCodes": [0], "stdio": "hello" },
-          "onFail": [
-            { "if": "$$platform == windows", "goToTest": "cmdHello" },
-            { "stop": "test" }
-          ]
+          "runShell": { "command": "bash -c 'echo hello'", "exitCodes": [0], "stdio": "hello" }
         }
+      ],
+      "onFail": [
+        { "if": "$$platform == windows", "goToTest": "cmdHello" },
+        { "stop": "spec" }
       ]
     },
     {
@@ -476,6 +477,9 @@ were found in.
   ]
 }
 ```
+
+`goToTest` is a test-level action, so the handler sits on the test, not the step. A step-level
+`goToTest` is invalid ([ADR 01168](../../adrs/01168-reject-routing-actions-the-runner-cant-perform-at-that-scope.md)).
 
 On Windows, `bashHello` fails → routes to `cmdHello` (which passes); both appear in the report.
 On non-Windows, `bashHello` passes and `cmdHello`'s guard `if` is false → `cmdHello` is SKIPPED.

@@ -8,11 +8,11 @@ The `screenshot` action captures a PNG image of the current browser viewport or 
 
 You can specify the screenshot action in several ways:
 
-- **Boolean Shorthand:** Set `screenshot: true` to capture the full viewport with default settings.
-- **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path.
+- **Boolean Shorthand:** Set `screenshot: true` to capture the full viewport with default settings, saved as `<stepId>.png` in `outputDir`. Set `screenshot: false` to skip the step.
+- **String Shorthand:** Provide a file path directly as the value for the `screenshot` key (for example, `screenshot: "my_screenshot.png"`). This saves the full viewport screenshot to the specified path. A relative path resolves against the spec file.
 - **Object Format:** Use an object for more control over the path, visual comparison, and cropping:
-  - `path`: (Optional) The file path to save the screenshot to, or an `http(s)://` URL to a remote PNG image. It can include directories. Omitting it generates a default path. Given a URL, Doc Detective downloads the remote image and uses it as a read-only reference for comparison. It writes the new capture to `./doc-detective-runs/<run-timestamp>/` instead of overwriting the remote image.
-  - `directory`: (Optional) The directory where the screenshot will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
+  - `path`: (Optional) The file path to save the screenshot to, or an `http(s)://` URL to a remote PNG image. It can include directories. A relative path resolves against `directory` if set, else against the spec file. If omitted, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. Given a URL, Doc Detective downloads the remote image and uses it as a read-only reference for comparison. It writes the new capture to the [run folder](#automatic-screenshots) instead of overwriting the remote image.
+  - `directory`: (Optional) The directory where the screenshot will be saved. A relative directory resolves against the spec file. With no spec file, such as a step passed to the JavaScript `getRunner()` API, it resolves against `outputDir`.
   - `maxVariation`: (Optional) The maximum acceptable visual difference (0 to 1) when comparing against a reference image. If the variation exceeds this threshold, the step returns WARNING. If set, visual comparison is enabled.
   - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
     - `"false"`: Never overwrite the reference image.
@@ -24,6 +24,8 @@ You can specify the screenshot action in several ways:
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
   - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
+
+**Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.png`, goes in `outputDir`, so it lands on the same path every run and later runs compare against it. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
 ## Annotations
 
@@ -139,7 +141,7 @@ Annotations change the image's pixels. If you compare against a reference image 
 
 If the browser can't reach the reference image's size, Doc Detective logs a warning and compares the first screenshot. A headed Chrome window can't grow past the display, and no browser window can shrink below its minimum width. Each resize costs a second screenshot, so once an environment change is permanent, refresh the reference image with `"overwrite": "true"`.
 
-**URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads that image once per run. It uses the image as a read-only reference for comparison. The new screenshot is saved to `./doc-detective-runs/<run-timestamp>/<stepId>_<filename>.png` for inspection. The `overwrite` setting is ignored, because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This suits teams that store reference images in cloud storage like S3 without managing local files.
+**URL Paths:** When `path` is an `http(s)://` URL pointing to a PNG image, Doc Detective downloads that image once per run. It uses the image as a read-only reference for comparison. The new screenshot is saved for inspection in the context's `screenshots/` folder in the run folder, the same folder [automatic screenshots](#automatic-screenshots) use. The `overwrite` setting is ignored, because remote storage is never mutated. The step result includes `outputs.referenceUrl` for traceability. This suits teams that store reference images in cloud storage like S3 without managing local files.
 
 <Note>
 URL paths must end in `.png` (or `.PNG`) and can include query strings for signed URLs. The step fails if the URL is unreachable or returns invalid image data.
@@ -166,7 +168,7 @@ Here are a few ways you might use the `screenshot` action:
 
 ### Basic full viewport screenshot (boolean shorthand)
 
-Saves to a default path like `output/screenshot_1745032062266.png`.
+Saves `<stepId>.png` in `outputDir`.
 
 {/* test {"testId":"screenshot-boolean-shorthand","detectSteps":false} */}
 
@@ -239,7 +241,7 @@ Compares against `./output/reference_images/home_page.png`. Fails if difference 
 
 ### Visual comparison against a remote URL
 
-Compares against a reference image stored in S3 or other cloud storage. The new capture is saved locally under `./doc-detective-runs/<run-timestamp>/` for inspection.
+Compares against a reference image stored in S3 or other cloud storage. The new capture is saved in the run folder for inspection.
 
 ```json
 {

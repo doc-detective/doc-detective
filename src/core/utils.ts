@@ -96,11 +96,13 @@ export {
   fetchFile,
   isRelativeUrl,
   appendQueryParams,
+  parseHeaders,
   isDeviceWebContext,
   computeSettleCeiling,
   redactUrlForOutput,
   assertUrlHostIsPublic,
   sanitizeFilesystemName,
+  hasVariable,
   compileFilter,
   isRetryableSessionError,
   isSessionAlive,
@@ -117,6 +119,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSpecErrors,
+  specSchemas,
   findFreePort,
   runConcurrent,
   createResourceRegistry,
@@ -579,7 +582,7 @@ async function spawnPtyBackgroundCommand(
   try {
     ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-color",
-      // `tty: {cols, rows}`; Ajv skips defaults inside the schema's anyOf.
+      // The effective step's `tty` size. A caller that passes none gets 120x30.
       cols: options.cols ?? 120,
       rows: options.rows ?? 30,
       cwd: options.cwd || process.cwd(),
@@ -1231,6 +1234,15 @@ const ONE_ACTION_MESSAGE = "a step can only have one action.";
 function summarizeSpecErrors(errors: string, object: any, rootSchemaKey = "spec_v3"): string {
   const byPath = new Map<string, string[]>();
   const unknownByPath = new Map<string, string[]>();
+  // A schema's own `errorMessage` (ajv-errors) is written to be read as is, so
+  // keep each one whole. AJV prints it as `<path> <message> ({"errors":[…]})`.
+  // Removing the first error leaves the next one's `, ` separator in front.
+  errors = errors
+    .replace(/(?:^|, )(\/\S*)? ?((?:(?!, \/).)+?) \(\{"errors":\[.*?\]\}\)(?=, |$)/g, (_, instancePath = "", message) => {
+      byPath.set(instancePath, [...(byPath.get(instancePath) ?? []), `${message}.`]);
+      return "";
+    })
+    .replace(/^, /, "");
   for (const match of errors.matchAll(/(\/\S*)? ?(must [^(,]*?)\s*(\([^)]*\))?(?:, |$)/g)) {
     const [, instancePath = "", message, params = ""] = match;
     if (/"passingSchemas":\[/.test(params)) {
@@ -1348,6 +1360,24 @@ function computeSettleCeiling(waitTimeout: number, elapsedMs: number): number {
   return Math.max(0, Math.min(SETTLE_CEILING_MAX_MS, waitTimeout - elapsedMs));
 }
 
+/**
+ * Request headers as an object. The schema's string form has one
+ * `Name: value` header per line; a line splits on its first colon, since values
+ * hold colons (URLs, times), and a line without a name or a value is skipped.
+ */
+function parseHeaders(headers: Record<string, string> | string | undefined): Record<string, string> {
+  if (typeof headers !== "string") return headers ?? {};
+  const out: Record<string, string> = {};
+  for (const line of headers.split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    if (key && value) out[key] = value;
+  }
+  return out;
+}
+
 function appendQueryParams(
   url: string,
   params: Record<string, unknown> | undefined | null
@@ -1452,6 +1482,15 @@ const FETCH_BINARY_DEFAULTS = {
   maxBodyLength: 50 * 1024 * 1024,
   maxRedirects: 5,
 };
+
+/**
+ * Whether a value holds a `$VAR` reference, whole or embedded. Any `$NAME` of
+ * one or more letters, digits, or underscores counts, matching the schemas'
+ * `\$[A-Za-z0-9_]+` variable pattern.
+ */
+function hasVariable(value: unknown): boolean {
+  return typeof value === "string" && /\$[A-Za-z0-9_]/.test(value);
+}
 
 // Replace characters that are invalid in filenames on Windows (and often
 // problematic on other platforms) with `_`. Keeps dots, hyphens, and

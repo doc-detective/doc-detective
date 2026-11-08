@@ -3,8 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
+import { runSpecs } from "../dist/core/tests.js";
+import { getEnvironment } from "../dist/core/config.js";
 
-// Advanced ordering under concurrentRunners: beforeAny / setup(before) /
+// Advanced ordering under concurrentRunners: beforeAll / setup(before) /
 // cleanup(after) / afterAll. These exercise the local runner end-to-end with
 // runShell-only steps so they're deterministic and driver-free.
 
@@ -39,7 +41,7 @@ function writeSpec(dir, name, spec) {
 describe("Advanced ordering under concurrentRunners", function () {
   this.timeout(120000);
 
-  it("report spec order matches input order (beforeAny → main → afterAll)", async () => {
+  it("report spec order matches input order (beforeAll → main → afterAll)", async () => {
     const dir = mkTempDir();
     try {
       const b = writeSpec(dir, "b.json", {
@@ -52,7 +54,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [{ runShell: "echo a" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [m],
         afterAll: [a],
         logLevel: "error",
@@ -64,18 +66,18 @@ describe("Advanced ordering under concurrentRunners", function () {
     }
   });
 
-  it("beforeAny completes before any main/afterAll starts under concurrentRunners>1", async () => {
+  it("beforeAll completes before any main/afterAll starts under concurrentRunners>1", async () => {
     const dir = mkTempDir();
     try {
       const log = path.join(dir, "order.log");
-      // beforeAny/afterAll steps are slow (300ms); main is instant. Without a
+      // beforeAll/afterAll steps are slow (300ms); main is instant. Without a
       // barrier, concurrent runners let the instant main tokens land before the
-      // slow beforeAny tokens — which the assertions below catch.
+      // slow beforeAll tokens — which the assertions below catch.
       const b1 = writeSpec(dir, "b1.json", {
-        tests: [{ steps: [appendStep(dir, log, "beforeAny", 300)] }],
+        tests: [{ steps: [appendStep(dir, log, "beforeAll", 300)] }],
       });
       const b2 = writeSpec(dir, "b2.json", {
-        tests: [{ steps: [appendStep(dir, log, "beforeAny", 300)] }],
+        tests: [{ steps: [appendStep(dir, log, "beforeAll", 300)] }],
       });
       const m1 = writeSpec(dir, "m1.json", {
         tests: [{ steps: [appendStep(dir, log, "main", 0)] }],
@@ -90,7 +92,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [appendStep(dir, log, "afterAll", 300)] }],
       });
       await runTests({
-        beforeAny: [b1, b2],
+        beforeAll: [b1, b2],
         input: [m1, m2],
         afterAll: [a1, a2],
         concurrentRunners: 4,
@@ -100,16 +102,16 @@ describe("Advanced ordering under concurrentRunners", function () {
         .readFileSync(log, "utf8")
         .split("\n")
         .filter(Boolean);
-      const lastBeforeAny = tokens.lastIndexOf("beforeAny");
+      const lastBeforeAll = tokens.lastIndexOf("beforeAll");
       const firstMain = tokens.indexOf("main");
       const lastMain = tokens.lastIndexOf("main");
       const firstAfterAll = tokens.indexOf("afterAll");
-      assert.equal(tokens.filter((t) => t === "beforeAny").length, 2);
+      assert.equal(tokens.filter((t) => t === "beforeAll").length, 2);
       assert.equal(tokens.filter((t) => t === "main").length, 2);
       assert.equal(tokens.filter((t) => t === "afterAll").length, 2);
       assert.ok(
-        lastBeforeAny < firstMain,
-        `every beforeAny must precede every main; got ${tokens.join(",")}`
+        lastBeforeAll < firstMain,
+        `every beforeAll must precede every main; got ${tokens.join(",")}`
       );
       assert.ok(
         lastMain < firstAfterAll,
@@ -135,9 +137,10 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(path.basename(spec.contentPath), "core.json");
       const steps = spec.tests[0].contexts[0].steps;
       assert.equal(steps.length, 2);
-      // Report shows core.json starting with setup.json's steps.
-      assert.equal(steps[0].runShell, "echo setup-step");
-      assert.equal(steps[1].runShell, "echo main-step");
+      // Report shows core.json starting with setup.json's steps, in their
+      // effective form (ADR 01167).
+      assert.equal(steps[0].runShell.command, "echo setup-step");
+      assert.equal(steps[1].runShell.command, "echo main-step");
       assert.equal(spec.tests[0].result, "PASS");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -167,7 +170,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(steps[0].result, "FAIL");
       assert.equal(steps[1].result, "SKIPPED");
       // The cleanup step is hard-routed: it runs despite the prior failure.
-      assert.equal(steps[2].runShell, "echo cleanup-ran");
+      assert.equal(steps[2].runShell.command, "echo cleanup-ran");
       assert.equal(steps[2].result, "PASS");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -195,8 +198,55 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(steps.length, 3);
       assert.equal(steps[0].result, "PASS"); // main step
       assert.equal(steps[1].result, "FAIL"); // first cleanup step
-      assert.equal(steps[2].runShell, "echo cleanup2-done");
+      assert.equal(steps[2].runShell.command, "echo cleanup2-done");
       assert.equal(steps[2].result, "PASS"); // second cleanup step still ran
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // ADR 01169: a plan resolved before the rename tags setup specs "beforeAny".
+  it("runs a pre-resolved spec tagged with the old beforeAny phase first", async () => {
+    const dir = mkTempDir();
+    try {
+      const log = path.join(dir, "order.log");
+      const spec = (specId, token, phase) => ({
+        specId,
+        ...(phase ? { _phase: phase } : {}),
+        tests: [{ testId: specId, contexts: [{ contextId: specId, steps: [appendStep(dir, log, token)] }] }],
+      });
+      await runSpecs({
+        resolvedTests: {
+          config: { logLevel: "silent", telemetry: { send: false }, environment: getEnvironment(), concurrentRunners: 1 },
+          specs: [spec("main", "main"), spec("setup", "setup", "beforeAny")],
+        },
+      });
+      const tokens = fs.readFileSync(log, "utf8").split("\n").filter(Boolean);
+      assert.deepEqual(tokens, ["setup", "main"]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // The runtime only writes exact phase names, so matching is exact. Anything
+  // else, a differently cased alias or a prototype key, runs as main.
+  it("runs a spec with an unknown or differently cased phase as main", async () => {
+    const dir = mkTempDir();
+    try {
+      const log = path.join(dir, "order.log");
+      const spec = (specId, phase) => ({
+        specId,
+        _phase: phase,
+        tests: [{ testId: specId, contexts: [{ contextId: specId, steps: [appendStep(dir, log, specId)] }] }],
+      });
+      await runSpecs({
+        resolvedTests: {
+          config: { logLevel: "silent", telemetry: { send: false }, environment: getEnvironment(), concurrentRunners: 1 },
+          specs: [spec("upper", "BEFOREANY"), spec("proto", "__proto__"), spec("setup", "beforeAll")],
+        },
+      });
+      const tokens = fs.readFileSync(log, "utf8").split("\n").filter(Boolean);
+      assert.deepEqual(tokens, ["setup", "upper", "proto"]);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -215,7 +265,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ after: cleanup, steps: [{ runShell: "echo ok" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [core],
         logLevel: "error",
       });
@@ -288,8 +338,8 @@ describe("Advanced ordering under concurrentRunners", function () {
   });
 
   // Locks the ADR's documented choice: phase failures do not abort later
-  // phases (beforeAny is run-everything; afterAll is cleanup and always runs).
-  it("a failing beforeAny spec does not abort main specs", async () => {
+  // phases (beforeAll is run-everything; afterAll is cleanup and always runs).
+  it("a failing beforeAll spec does not abort main specs", async () => {
     const dir = mkTempDir();
     try {
       const b = writeSpec(dir, "b.json", {
@@ -299,7 +349,7 @@ describe("Advanced ordering under concurrentRunners", function () {
         tests: [{ steps: [{ runShell: "echo main" }] }],
       });
       const result = await runTests({
-        beforeAny: [b],
+        beforeAll: [b],
         input: [m],
         concurrentRunners: 4,
         logLevel: "error",
@@ -310,7 +360,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       const main = result.specs.find(
         (s) => path.basename(s.contentPath) === "m.json"
       );
-      assert.equal(before.result, "FAIL"); // beforeAny failed
+      assert.equal(before.result, "FAIL"); // beforeAll failed
       assert.equal(main.result, "PASS"); // main still ran
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
