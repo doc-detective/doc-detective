@@ -1078,7 +1078,8 @@ function runFolderSrc(p) {
 // A context's automatic recording (its ~autorecord step), as a src for the
 // player at the top of the context, and its steps without the synthetic start
 // and stop. A recording that didn't save keeps its steps in the list, so the
-// reason shows.
+// reason shows. Array.prototype.find is fine here: collectMedia already needs
+// ES2015.
 function autoRecording(ctx) {
   var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
   var start = all.find(function(item) {
