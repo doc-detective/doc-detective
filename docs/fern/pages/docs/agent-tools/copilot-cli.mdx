@@ -18,11 +18,9 @@ From any project directory, run:
 npx doc-detective install agents --agent copilot
 ```
 
-{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc in this paragraph to v2 then. */}
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
 
-The command invokes the native Copilot CLI plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. The command adds the marketplace without pinning a branch or tag, so Copilot CLI installs from the agent-tools default branch. Codex, Gemini CLI, Qwen Code, and OpenCode pin the `feat/v5-rc` branch during the Doc Detective 5 release candidate. Re-run at any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
-
-Right after a fresh install, the command can still report an update. That's expected: the up-to-date check reads the `feat/v5-rc` branch, while the install follows the default branch. Running the update is harmless.
+The command invokes the native Copilot CLI plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. During the Doc Detective 5 release candidate, the command adds the marketplace at the agent-tools `feat/v5-rc` branch, which can change between installs until general availability. When it updates an existing install, it re-adds the marketplace at that branch before updating. Re-run at any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
@@ -36,20 +34,14 @@ If the `copilot` binary isn't on your PATH, install it first with `npm install -
 
 ### Fallback installation
 
-If `npx doc-detective install agents` isn't an option, install via the slash commands built into Copilot CLI.
+If `npx doc-detective install agents` isn't an option, run these Copilot CLI plugin commands from your shell, not inside a Copilot CLI session:
 
-1. Open Copilot CLI:
+```bash
+copilot plugin marketplace add doc-detective/agent-tools#feat/v5-rc
+copilot plugin install doc-detective@doc-detective
+```
 
-    ```bash
-    copilot
-    ```
-
-2. Install the Doc Detective plugin:
-
-    ```
-    /plugin marketplace add doc-detective/agent-tools
-    /plugin install doc-detective@doc-detective
-    ```
+The `#feat/v5-rc` suffix adds the marketplace at the agent-tools branch for the Doc Detective 5 release candidate. Copilot CLI documents this suffix for the shell command, not for the in-session `/plugin` command.
 
 ## Bootstrap a project
 
