@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { timestamp } from "../core/utils.js";
+import { stepActions } from "../common/src/stepActions.js";
 
 export async function htmlReporter(
   config: any = {},
@@ -930,10 +931,7 @@ function hlJson(json) {
   );
 }
 
-var ACTIONS = ["goTo","find","click","screenshot","checkLink","httpRequest",
-  "runShell","runCode","runBrowserScript","type","typeKeys","wait","record",
-  "stopRecord","loadVariables","loadCookie","saveCookie","dragAndDrop",
-  "swipe","startSurface","closeSurface","moveTo","scroll"];
+var ACTIONS = ${JSON.stringify(stepActions)};
 function actionKey(step) {
   for (var i = 0; i < ACTIONS.length; i++) if (ACTIONS[i] in step) return ACTIONS[i];
   return "step";
@@ -1231,7 +1229,7 @@ function buildStepDetail(step) {
 
   // Input/output panels
   var rest = Object.assign({}, step);
-  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs;
+  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs; delete rest.startedAt;
   var inputJson = JSON.stringify(rest, null, 2);
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 

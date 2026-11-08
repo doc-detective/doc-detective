@@ -12,6 +12,8 @@ This is a dependency package, not a standalone application. Changes here affect 
 
 > Schema changes are user-facing, because they alter the test and config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
 
+> Schema keys and descriptions follow ["Plans and interfaces"](../../CLAUDE.md#plans-and-interfaces-required) in the root guide. That means shared values, present-tense descriptions, a deprecated alias for every rename, and units kept in names.
+
 ## Architecture
 
 ### Schema System (Core Component)
@@ -27,7 +29,11 @@ This is a dependency package, not a standalone application. Changes here affect 
 - Dereferences all references using `@apidevtools/json-schema-ref-parser`
 - Removes `$id` properties
 - Generates `schemas.json` (all schemas as single object)
-- Publishes v3 schemas to `dist/schemas/` for external consumption
+
+`generate:types` then writes `src/types/generated/` and `src/stepActions.ts` (the exported
+`stepActions` list, derived from `step_v3`). Both are committed. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which publishes every v3 schema as
+`dist/schemas/<name>_v3.schema.json` (the `$schema` URLs on unpkg).
 
 **Schema versioning:**
 - v2 schemas: Legacy, supported via `compatibleSchemas` transformation map
@@ -124,7 +130,7 @@ Two hazards come with generation:
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
 4. Run `npm run build`, which sequences `dereferenceSchemas`, `generate:types`, and `compile`. It does NOT run tests. Run `npm run test:coverage` separately, per ADR 01057.
-5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
+5. A new v3 schema is published to `dist/schemas/` automatically. A new step action lands in `stepActions` automatically; commit the regenerated `src/stepActions.ts`.
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
 
@@ -299,8 +305,29 @@ coerces values to make a branch pass. With a string branch first, an authored in
 runtime as a name rather than an index. String branches accept coercion from nearly everything,
 so whichever branch is first wins.
 
-**Rule:** in schema `anyOf` unions, order narrow scalar types (integer, boolean) BEFORE string
-branches, and note the reasoning in the schema description.
+Order alone can't fix every union, because scalars coerce into each other. A leading
+`type: boolean` branch turns `"true"` into `true` and `1` into `true`. A leading `type: number`
+branch turns `true` into `1`. Ajv coerces only through `type`, and only when a value matches none
+of the listed types. So make the first branches non-coercing
+([ADR 01161](../../adrs/01161-keep-authored-scalar-types-through-coercion.md)):
+
+- **Scalar-only union: one `type` array**, such as `{"type": ["boolean", "number", "string"]}`
+  for `elementAttribute` values. Every listed type survives as authored.
+- **Scalar branches without their own constraints: merge them into one leading `type` array.**
+  `wait` uses `["number", "boolean"]` ahead of its `$VAR` string branch. Order inside the array
+  doesn't change what an authored value becomes. The LSP offers the first listed type as the
+  value kind, so list the usual one first.
+- **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
+  with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
+  `click_v3` does this.
+- **A plain `type: boolean` first is fine** when no later branch accepts `"true"`, `"false"`,
+  `0`, or `1`, such as a string branch with a file-extension `pattern` (`record_v3`,
+  `screenshot_v3`).
+
+Say why in a `$comment` on the branch. The ratchet in `test/schema.test.js` fails on any
+`anyOf`/`oneOf` where a branch's `type` would coerce a scalar meant for a later branch. That
+includes a `type: boolean` branch ahead of a string branch with no `pattern`, `enum`, or `const`. Pair a
+schema change with a `validate.test.js` case that checks the validated value, not only validity.
 
 Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
 consumer's validated objects. Keep shared schemas default-free unless every consumer wants the

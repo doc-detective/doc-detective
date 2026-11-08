@@ -115,10 +115,14 @@ export interface CheckResult {
  * hiccup block the run.
  */
 export async function checkForUpdate(
-  currentVersion: string,
+  currentVersion: string | undefined,
   deps: SelfUpdateDeps = {}
 ): Promise<CheckResult> {
   const logger = deps.logger ?? defaultLogger;
+  if (!currentVersion) {
+    logger("own version unknown; skipping self-update", "debug");
+    return { latest: null, newer: false };
+  }
   const http = deps.http ?? {
     get: (url, opts) => axios.get(url, opts),
   };

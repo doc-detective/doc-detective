@@ -6,6 +6,8 @@ This repository contains files to generate a [Fern Docs](https://buildwithfern.c
 
 Before drafting or restructuring any page, consult the content strategy in [content-strategy/](content-strategy/). It holds the audiences, personas, Critical User Journeys (CUJs), and information architecture that govern this site. The site is **organized by user intent (persona + journey), not by document type**. Identify the persona and CUJ a page serves, then sequence the content by that journey. Deep-link into the Reference shelf rather than duplicating it, and record any new page in [content-strategy/information-architecture.md](content-strategy/information-architecture.md). See [content-strategy/README.md](content-strategy/README.md) for the full workflow.
 
+Pages describe what the tool does today, and quoted messages follow one style. See ["Plans and interfaces"](../CLAUDE.md#plans-and-interfaces-required) (rule 4) and ["Messages"](../CLAUDE.md#messages-required) in the root guide.
+
 ## Repository layout
 
 - `README.md` explains the repository, and provides onboarding instructions for working with the documentation.
@@ -32,6 +34,9 @@ This project uses Doc Detective to test its own documentation.
 - You can find a test example at `fern/pages/docs/get-started/sample.spec.json`.
 
 - **DO:** When you change documentation related to a feature, review the corresponding `.spec.json` file to see if the test needs to be updated.
+- **Example check.** [`test/doc-examples.test.js`](../test/doc-examples.test.js) runs in `npm test`. It validates every fenced `json` and `yaml` block in `fern/pages/**/*.mdx` and the READMEs that looks like a spec, test, step, or config against `doc-detective-common`. Fix an example that fails, don't skip it.
+  - To keep a deliberately incomplete or wrong example, add `invalid` to the fence's info string, and always pair it with a title: ```` ```json title="first-test.spec.json" invalid ````. Fern renders the text after the language as the block title, so a bare ```` ```json invalid ```` shows "invalid" as the title. With a `title` set, Fern hides `invalid` before or after it (checked with `fern docs dev`).
+  - The check skips fences nested inside a ```` ````markdown ```` sample. Fern renders those literally, so never mark them `invalid`: readers would see the marker.
 
 ### Test servers
 

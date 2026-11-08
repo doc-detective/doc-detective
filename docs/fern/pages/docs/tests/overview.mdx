@@ -6,10 +6,10 @@ description: Tests tell Doc Detective what actions to perform, how, and where.
 Tests tell Doc Detective what actions to perform, how, and where. Tests are made of three sets of components:
 
 - **Test specification**: The highest-level component, test specifications (or specs) are collection of tests that should run together. [Contexts](/docs/test-docs/platforms-and-browsers) defined in the spec apply to all tests in the spec. Test specifications are equivalent to test suites in other testing frameworks.
-- **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. Tests are equivalent to test cases in other testing frameworks.
-- **Steps**: A step is a single action to perform within a test. Each individual step acts as an assertion that the step completes as expected. Steps are roughly equivalent to assertions in other testing frameworks.
+- **Test**: A test to run within a spec. Each test has a name, and a set of steps to perform. If you omit `testId`, Doc Detective generates one. An ID you set must be unique within its spec, or the spec is invalid and the run [exits `2`](/reference/reference/cli#exit-codes). Tests are equivalent to test cases in other testing frameworks.
+- **Steps**: A step is a single action to perform within a test. A step with two actions makes the spec invalid, so split it into two steps. Each individual step acts as an assertion that the step completes as expected. Steps are roughly equivalent to assertions in other testing frameworks.
 
-  Each step can perform an action, which is a command that tells Doc Detective what to do. Actions can have additional properties that further define the action.
+  Each step can perform an action, which is a command that tells Doc Detective what to do. Actions can have additional properties that further define the action. A key that isn't part of the step or action schema makes the spec invalid, so check spelling against each action's reference.
 
   - [**checkLink**](/docs/actions/checklink): Check if a URL returns an acceptable status code from a GET request.
   - [**click**](/docs/actions/click): Click or tap an element.
@@ -226,7 +226,8 @@ A step passes only when both its implicit and custom assertions pass. Custom ass
 
 - If the action's implicit check fails, Doc Detective skips the custom assertions and the step stays FAIL.
 - Sometimes the action produces no result to assert on, either because it was deliberately skipped (for example, `wait: false`) or because it errored first. Doc Detective then skips the custom assertions, and the step keeps its original status.
-- An expression that can't be resolved fails closed, so the assertion fails and the step fails.
+- An expression that can't be resolved fails closed, so the assertion fails and the step fails. See [when a condition is false](/reference/reference/expressions#when-a-condition-is-false).
+- Write each assertion as a string, such as `"$$outputs.exitCode == 0"`. If `assertions` holds objects, such as the assertion records in a results file, the step fails.
 
 <Note>
 Referencing other steps' outputs with `$$steps.*` in custom assertions isn't supported. Assertions can reference only the current step's `$$outputs.*` and `$$platform`.
@@ -302,7 +303,7 @@ Only step-level conditions can read `$$steps.*`. A spec- or test-level `if` that
 
 ### How conditions resolve
 
-- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it.
+- A condition that can't be resolved fails closed: Doc Detective skips the unit rather than running it. Plain text such as `"yes"`, or a `jq()` query that fails or finds nothing, also counts as false. See [when a condition is false](/reference/reference/expressions#when-a-condition-is-false).
 - A false spec condition skips every test and context in the spec. A false test condition skips every context of that test. A false step condition skips only that step.
 - `if` and [contexts](/docs/test-docs/platforms-and-browsers) are separate layers. `runOn` selects which platform and browser combinations a unit needs, while `if` decides whether to run a unit at all. Either one can skip a unit.
 
@@ -641,7 +642,7 @@ Use a test's `before` and `after` fields to run setup and cleanup steps around a
 - **`before`**: Path to a test specification whose steps run before the test. The setup steps are prepended to the test and run under the test's own identifiers. The report therefore shows a single logical test that starts with those steps.
 - **`after`**: Path to a test specification whose steps run after the test. Cleanup steps always run, even when an earlier step fails, so your environment is always restored. A failing cleanup step doesn't skip the remaining cleanup steps, and cleanup results still count toward the test's result.
 
-Doc Detective uses only the `steps` from the first test in the referenced spec.
+Doc Detective uses only the `steps` from the first test in the referenced spec. If a `before` or `after` file doesn't exist, or one of its steps is invalid, the spec is invalid.
 
 ```json
 {
@@ -863,7 +864,7 @@ Doc Detective supports multiple output reporters. By default, it uses `terminal`
 
 - **terminal**: Displays a colored summary of test results in your terminal.
 - **runFolder**: Saves results, reports, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
-- **json**: Saves results to a `testResults-<timestamp>.json` file.
+- **json**: Saves results to a `testResults-<runId>.json` file.
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
 
 <Tabs>

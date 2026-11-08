@@ -24,9 +24,7 @@ import { setRunCacheDir } from "./runtime/cacheDir.js";
 import type { Logger } from "./runtime/loader.js";
 import { updateCheckAllowed } from "./envFlag.js";
 import { argv as processArgv } from "node:process";
-import { createRequire } from "node:module";
-
-const cliRequire = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
 main(processArgv).catch((err) => {
@@ -39,7 +37,7 @@ main(processArgv).catch((err) => {
   // A mistake in a command gets its message. A bug gets a bug report. Reaching
   // here with one of these types means a defect in Doc Detective, not bad input.
   if (err instanceof TypeError || err instanceof ReferenceError || err instanceof RangeError) {
-    reportCrash(err, { version: cliRequire("../package.json").version });
+    reportCrash(err, { version: ownVersion() });
   } else {
     console.error(`Error: ${err?.message || err}`);
   }
@@ -143,7 +141,7 @@ async function runTestsHandler(args: any) {
     // helper so config.logLevel is respected.
     // Typed as the runtime's Logger: its LogLevel has no "warn", which log() would drop.
     const cliLogger: Logger = (msg, level = "info") => log(msg, level, config);
-    const currentVersion: string = cliRequire("../package.json").version;
+    const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.

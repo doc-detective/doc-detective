@@ -47,8 +47,8 @@ By default, the action runs from the repository root and uses the config file Do
 |---|---|---|
 | `version` | `5` | Doc Detective version to run, as a version number, a range such as `^5`, or an npm tag such as `latest`. Action `@v2` expects version 5 or later. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
-| `config` | None | Path to a configuration file. |
-| `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+| `config` | None | Path to a configuration file, relative to `working_directory`. |
+| `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. With an empty `version`, the action always passes the `--output-dir` flag. Version 4 rejects that flag, so the local build must be version 5 or later.

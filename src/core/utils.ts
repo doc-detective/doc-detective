@@ -15,6 +15,7 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
+import { ownVersion } from "../runtime/heavyDeps.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -28,6 +29,44 @@ import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js
 let axiosModule: Promise<typeof import("axios").default> | undefined;
 export function loadAxios(): Promise<typeof import("axios").default> {
   return (axiosModule ??= import("axios").then((m) => m.default));
+}
+
+/**
+ * Browser and driver versions for a context's report (ADR 01163), read from
+ * the WebdriverIO session's capabilities, falling back to the detected app
+ * (`availableApps` entry) where the session is silent. appium-geckodriver
+ * echoes the requested capabilities rather than geckodriver's, so Firefox's
+ * versions come from the detected build ID (`nightly_161.0a1`) and the
+ * managed `geckodriver-<version>` binary name. Safari reports no driver
+ * version.
+ */
+export function sessionVersions({
+  capabilities,
+  app,
+}: {
+  capabilities?: any;
+  app?: { name?: string; version?: string; driver?: string };
+}): { browserVersion?: string; driver?: { name: string; version?: string } } {
+  const result: { browserVersion?: string; driver?: { name: string; version?: string } } = {};
+  // Runs after the driver started, so odd values are ignored, never thrown on.
+  const str = (value: unknown) =>
+    typeof value === "string" && value ? value : undefined;
+  const caps = capabilities ?? {};
+  const browserVersion =
+    str(caps.browserVersion) ?? str(app?.version)?.replace(/^[a-z]+_/, "");
+  if (browserVersion) result.browserVersion = browserVersion;
+  const chromedriver = str(caps.chrome?.chromedriverVersion);
+  if (chromedriver) {
+    result.driver = { name: "chromedriver", version: chromedriver.split(" ")[0] };
+  } else if (app?.name === "firefox") {
+    const version =
+      str(caps["moz:geckodriverVersion"]) ??
+      /geckodriver-(\d+(?:\.\d+)*)/i.exec(path.basename(str(app.driver) ?? ""))?.[1];
+    result.driver = { name: "geckodriver", ...(version && { version }) };
+  } else if (app?.name === "safari") {
+    result.driver = { name: "safaridriver" };
+  }
+  return result;
 }
 
 export {
@@ -545,11 +584,9 @@ async function spawnPtyBackgroundCommand(
   try {
     ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-color",
-      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
-      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
-      // expected width when authoring `waitUntil.stdio` patterns.
-      cols: 120,
-      rows: 30,
+      // `tty: {cols, rows}`; Ajv skips defaults inside the schema's anyOf.
+      cols: options.cols ?? 120,
+      rows: options.rows ?? 30,
       cwd: options.cwd || process.cwd(),
       env: shellSpawnEnv(options.shell) ?? process.env,
     });
@@ -2591,7 +2628,7 @@ function applyVerifiedMarkers({
   }
 
   const today = verifiedDate();
-  const version: string = createRequire(import.meta.url)("../../package.json").version;
+  const version = ownVersion() ?? "unknown";
   for (const file of files) {
     try {
       if (!fs.existsSync(file)) continue;

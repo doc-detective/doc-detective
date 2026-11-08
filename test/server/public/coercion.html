@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coercion Test Page</title>
+</head>
+<body>
+    <h1>Coercion Test Page</h1>
+    <!-- Counts left and right clicks, so a find with click: false can prove
+         it clicked nothing. -->
+    <button id="counter" data-left="0" data-right="0"
+        onclick="bump('left')" oncontextmenu="bump('right'); return false">Count clicks</button>
+    <!-- A button whose label is the word "true": click: "true" clicks it. -->
+    <button id="true-label" onclick="this.dataset.clicked = 'yes'">true</button>
+    <!-- elementAttribute true checks presence, not the value "true". -->
+    <div id="attrs" data-present="yes">Attributes</div>
+    <!-- elementAttribute "true" matches the value, not mere presence. -->
+    <div class="pair" aria-expanded="false">Collapsed</div>
+    <div class="pair" aria-expanded="true">Expanded</div>
+
+    <script>
+        function bump(kind) {
+            const counter = document.getElementById("counter");
+            counter.dataset[kind] = String(Number(counter.dataset[kind]) + 1);
+        }
+    </script>
+</body>
+</html>

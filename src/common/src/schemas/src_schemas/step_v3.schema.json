@@ -79,6 +79,12 @@
             "minimum": 0,
             "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
             "readOnly": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
+            "readOnly": true
           }
         },
         "title": "Common"
@@ -264,6 +270,7 @@
     "attempts": {},
     "visit": {},
     "durationMs": {},
+    "startedAt": {},
     "checkLink": {},
     "click": {},
     "find": {},
@@ -903,11 +910,6 @@
     {
       "click": {
         "$ref": "click_v3.schema.json#/examples/2"
-      }
-    },
-    {
-      "click": {
-        "$ref": "click_v3.schema.json#/examples/3"
       }
     },
     {
