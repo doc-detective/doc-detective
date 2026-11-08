@@ -180,6 +180,8 @@ for (let i = 0; i < (c.runs ?? 1); i++) {
     encoding: "utf8",
     timeout: 120_000,
   });
+  // An earlier run that failed is checked below, not overwritten.
+  if (run.error || run.status !== 0) break;
 }
 const fail = (message) => {
   console.error(`Case ${name}: ${message}`);
