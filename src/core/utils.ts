@@ -2364,6 +2364,40 @@ export async function realizeViewport(
 }
 
 /**
+ * Bring a browser session's viewport back to the size it was given
+ * (`driver.state.sizeTarget`) after something else moved it, such as Chrome's
+ * tab-sharing bar, which takes ~57px off a captured tab (ADR 01176). Only on
+ * the tab the size was set on, and only for a viewport or the default: an
+ * authored window size is the window's, not the viewport's. Best-effort, so a
+ * session that can't resize keeps its size.
+ */
+export async function restoreSessionViewport(driver: any, config: any = {}): Promise<void> {
+  const target = driver?.state?.sizeTarget;
+  if (!target || target.kind === "window") return;
+  try {
+    if (driver.state.sizeTargetHandle !== (await driver.getWindowHandle?.())) return;
+    // The bar comes and goes a moment after the capture does, so wait (up to
+    // a second) for the viewport to hold still before measuring it.
+    let last = await readViewport(driver);
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const now = await readViewport(driver);
+      if (now.width === last.width && now.height === last.height) break;
+      last = now;
+    }
+    await realizeViewport(
+      driver,
+      { width: target.width, height: target.height },
+      config,
+      undefined,
+      "debug"
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
  * Viewport for a desktop browser session nobody sized. Without it the size is
  * whatever the engine and host pick (headless Chrome renders 758×426 on
  * Windows, headless Firefox 1366×683), which drifts between runner images.
