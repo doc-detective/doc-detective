@@ -43,8 +43,8 @@ const referenced = new Set<string>();
 let publicMatchers: RegExp[] = [];
 const hits = new Set<string>();
 
-type Needle = { needle: string; mask: string; name: string };
-type Secret = { value: string; name: string };
+type Secret = { value: string; name: string; names: string[] };
+type Needle = { needle: string; mask: string; names: string[] };
 let needles: Needle[] = [];
 let secrets: Secret[] = [];
 let stale = true;
@@ -149,6 +149,8 @@ function formsOf(value: string): string[] {
   const form = new URLSearchParams({ v: value }).toString().slice(2);
   return [
     value,
+    // Each with both spellings of a space. Only the URLSearchParams form starts
+    // with `+`; for the others the `%20` variant is a duplicate the Set drops.
     ...[urlEncoded, strict, allEscaped, form].flatMap((encoded) => [
       encoded,
       encoded.replace(/%20/g, "+"),
@@ -166,24 +168,29 @@ function rebuild(): void {
   secrets = [];
   for (const [value, names] of namesByValue) {
     if (value.length < MIN_LENGTH || NOT_SECRET.has(value)) continue;
-    const name = names.find((candidate) => !isPublic(candidate));
-    if (name) secrets.push({ value, name });
+    // The mask names the first non-public name; the hint and the debug line list them all.
+    const secretNames = names.filter((candidate) => !isPublic(candidate));
+    if (secretNames.length > 0) secrets.push({ value, name: secretNames[0], names: secretNames });
   }
   secrets.sort((a, b) => b.value.length - a.value.length);
-  const raw: { needle: string; name: string }[] = [];
-  for (const { value, name } of secrets) {
-    for (const needle of new Set(formsOf(value))) {
-      if (needle.length >= MIN_LENGTH) raw.push({ needle, name });
+  const raw: { needle: string; secret: Secret }[] = [];
+  for (const secret of secrets) {
+    for (const needle of new Set(formsOf(secret.value))) {
+      if (needle.length >= MIN_LENGTH) raw.push({ needle, secret });
     }
   }
   // Longest first: masking a short value first would strand the rest of a long one.
   raw.sort((a, b) => b.needle.length - a.needle.length);
-  // A mask that would itself contain a secret names nothing instead.
+  // A mask that would itself contain a secret names nothing instead. Once per name.
+  const masks = new Map<string, string>();
   const maskFor = (name: string) => {
-    const preferred = `***${name}***`;
-    return raw.some(({ needle }) => preferred.includes(needle)) ? "***" : preferred;
+    if (!masks.has(name)) {
+      const preferred = `***${name}***`;
+      masks.set(name, raw.some(({ needle }) => preferred.includes(needle)) ? "***" : preferred);
+    }
+    return masks.get(name) as string;
   };
-  needles = raw.map(({ needle, name }) => ({ needle, name, mask: maskFor(name) }));
+  needles = raw.map(({ needle, secret }) => ({ needle, names: secret.names, mask: maskFor(secret.name) }));
 }
 
 function maskBasicAuth(text: string): string {
@@ -192,8 +199,8 @@ function maskBasicAuth(text: string): string {
     const decoded = Buffer.from(token, "base64").toString("utf8");
     const secret = secrets.find(({ value }) => decoded.includes(value));
     if (!secret) return match;
-    hits.add(secret.name);
-    return `${prefix}${needles.find((n) => n.name === secret.name)?.mask ?? "***"}`;
+    for (const name of secret.names) hits.add(name);
+    return `${prefix}${needles.find((n) => n.names === secret.names)?.mask ?? "***"}`;
   });
 }
 
@@ -204,10 +211,10 @@ function maskString<T>(text: T): T {
   rebuild();
   if (needles.length === 0) return text;
   let out: string = maskBasicAuth(text);
-  for (const { needle, mask, name } of needles) {
+  for (const { needle, mask, names } of needles) {
     if (out.includes(needle)) {
       out = out.split(needle).join(mask);
-      hits.add(name);
+      for (const name of names) hits.add(name);
     }
   }
   return out as unknown as T;
@@ -296,7 +303,7 @@ function secretValuesForCapture(): string[] {
 
 function maskedVariableNames(): string[] {
   rebuild();
-  return [...new Set(secrets.map(({ name }) => name))].sort();
+  return [...new Set(secrets.flatMap(({ names }) => names))].sort();
 }
 
 function maskedHitNames(): string[] {

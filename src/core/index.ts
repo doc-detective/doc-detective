@@ -459,7 +459,8 @@ function prepareMasking(resolvedTests: any, config: any) {
   }
   // replaceEnvs registers each value it substitutes. It rewrites in place, so
   // it works on a deep clone: the specs must stay unsubstituted until each step
-  // runs. The clone is thrown away.
+  // runs. The clone is thrown away. JSON is enough: resolved specs are plain
+  // JSON, parsed from spec files and inline statements.
   replaceEnvs(JSON.parse(JSON.stringify(resolvedTests.specs ?? [])));
   const names = maskedVariableNames();
   if (names.length > 0) {
