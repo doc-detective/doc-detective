@@ -2078,8 +2078,8 @@ function readFixture(filename) {
           const checkLinkSteps = steps.filter((s) => s.checkLink);
           expect(checkLinkSteps.length).to.be.greaterThanOrEqual(3);
           expect(checkLinkSteps.map((s) => s.checkLink)).to.include("https://doc-detective.com");
-          expect(checkLinkSteps.map((s) => s.checkLink)).to.include("https://doc-detective.com/docs/get-started/intro");
-          expect(checkLinkSteps.map((s) => s.checkLink)).to.include("https://doc-detective.com/docs/get-started/actions/type");
+          expect(checkLinkSteps.map((s) => s.checkLink)).to.include("https://docs.doc-detective.com/docs/get-started/introduction");
+          expect(checkLinkSteps.map((s) => s.checkLink)).to.include("https://docs.doc-detective.com/docs/actions/type");
 
           // Should detect bold text as find steps
           const findSteps = steps.filter((s) => s.find);
@@ -2104,7 +2104,7 @@ function readFixture(filename) {
           // "If you open [type](url)" should match goToUrl pattern
           const goToSteps = steps.filter((s) => s.goTo);
           expect(goToSteps.length).to.be.greaterThanOrEqual(1);
-          expect(goToSteps.map((s) => s.goTo)).to.include("https://doc-detective.com/docs/get-started/actions/type");
+          expect(goToSteps.map((s) => s.goTo)).to.include("https://docs.doc-detective.com/docs/actions/type");
         });
       });
 
@@ -2139,7 +2139,7 @@ function readFixture(filename) {
           // Should have the inline goTo step
           const goToSteps = steps.filter((s) => s.goTo);
           expect(goToSteps.length).to.equal(1);
-          expect(goToSteps[0].goTo).to.equal("https://doc-detective.com/docs/get-started/actions/type");
+          expect(goToSteps[0].goTo).to.equal("https://docs.doc-detective.com/docs/actions/type");
 
           // Should have the inline find step
           const findSteps = steps.filter((s) => s.find);

@@ -367,7 +367,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       return parsed && typeof parsed === "object" ? parsed : undefined;
     } catch (err) {
       throw new Error(
-        `Settings file at ${p} is not valid JSON. Fix or remove it, then re-run install-agents. (${String(err)})`
+        `Settings file at ${p} is not valid JSON. Fix or remove it, then re-run \`install agents\`. (${String(err)})`
       );
     }
   }

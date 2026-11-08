@@ -2193,6 +2193,14 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ configPath: ".doc-detective.json" }))).to.equal(false);
   });
 
+  it("addConfigFile: points $schema at this repo's config schema, not the archived common repo", function () {
+    const h = findHint("addConfigFile");
+    expect(h.markdown).to.include(
+      "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/config_v3.schema.json"
+    );
+    expect(h.markdown).to.not.include("doc-detective/common/refs/heads/main");
+  });
+
   it("addNpmScript: fires only when package.json exists and lacks a doc-detective script", function () {
     const h = findHint("addNpmScript");
     // package.json exists, no doc-detective script -> fire

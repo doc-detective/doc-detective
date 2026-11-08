@@ -62,7 +62,7 @@ When a comparison runs, the step exposes `$$variation` (the fractional differenc
 }
 ```
 
-Doc Detective refuses to fetch a reference image from a private, loopback, or link-local address, including its IPv4-mapped IPv6 form. This guards against server-side request forgery (SSRF). It also refuses the `169.254.169.254` cloud-metadata endpoint. A blocked URL fails the step with a message that starts with `Couldn't fetch remote reference image`. To compare against a reference on an internal address, such as a local development server, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to opt out. That disables the guard for every reference URL in the run, so use it only with specifications you trust.
+The reference URL can also be on a local development server or a private network, such as `http://localhost:8080/home.png`, with no setting. To guard against server-side request forgery (SSRF), Doc Detective refuses a public host's redirect to a private address. That includes loopback and link-local addresses, such as the `169.254.169.254` cloud-metadata endpoint.
 
 ## Verify it works
 
@@ -77,11 +77,17 @@ Doc Detective refuses to fetch a reference image from a private, loopback, or li
 
 **Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
 
-### A remote reference URL fails with "Refusing to fetch private/loopback address"
+### A remote reference URL fails with "Couldn't follow the redirect"
 
-**Cause:** the SSRF guard blocks reference URLs that resolve to a private, loopback, or link-local address.
+**Cause:** the reference URL is on a public host that redirects to a private, loopback, or link-local address. Doc Detective refuses that hop to guard against SSRF.
 
-**Solution:** host the reference image on a public address, or set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true` to compare against an internal address such as a local development server.
+**Solution:** point `path` at the final address directly. If you trust the redirect, set the `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` environment variable.
+
+### A local reference URL fails with "DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses"
+
+**Cause:** the runner sets `DOC_DETECTIVE_BLOCK_LOCAL_URLS`, which refuses every private and loopback reference URL. Shared runners set it on purpose.
+
+**Solution:** host the reference image on a public address, or unset `DOC_DETECTIVE_BLOCK_LOCAL_URLS` where you control the runner. See [Refuse local URLs on shared runners](/docs/ci/docker-and-headless#refuse-local-urls-on-shared-runners).
 
 ## What's next
 

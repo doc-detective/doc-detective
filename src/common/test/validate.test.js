@@ -6426,3 +6426,101 @@ import { schemas } from "../dist/index.js";
       });
     });
   });
+
+  describe("httpRequest statusCodes shapes", function () {
+    it("accepts a single integer", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: 404 } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("still accepts an array of integers", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: [200, 404] } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("rejects a non-numeric string", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: "ok" } },
+      });
+      expect(result.valid).to.be.false;
+    });
+  });
+
+  describe("config environment arch", function () {
+    for (const arch of [
+      "arm",
+      "arm64",
+      "ia32",
+      "loong64",
+      "mips",
+      "mipsel",
+      "ppc",
+      "ppc64",
+      "riscv64",
+      "s390",
+      "s390x",
+      "x64",
+    ]) {
+      it(`accepts Node's os.arch() value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    }
+
+    for (const arch of ["arm32", "x32"]) {
+      it(`rejects the non-Node value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });
+
+  describe("$schema is a free-form string", function () {
+    const legacy = (name) =>
+      `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/${name}_v3.schema.json`;
+    const versioned = (name) =>
+      `https://unpkg.com/doc-detective-common@5/dist/schemas/${name}_v3.schema.json`;
+    const cases = {
+      spec_v3: { name: "spec", object: { tests: [{ steps: [{ wait: 1 }] }] } },
+      config_v3: { name: "config", object: {} },
+      context_v3: { name: "context", object: { platforms: "linux" } },
+      step_v3: { name: "step", object: { wait: 1 } },
+      test_v3: { name: "test", object: { steps: [{ wait: 1 }] } },
+    };
+
+    for (const [schemaKey, { name, object }] of Object.entries(cases)) {
+      for (const [label, $schema] of [
+        ["the versioned unpkg URL", versioned(name)],
+        ["the legacy URL", legacy(name)],
+        ["a local path", `./schemas/${name}_v3.schema.json`],
+      ]) {
+        it(`${schemaKey} accepts ${label}`, function () {
+          const result = validate({ schemaKey, object: { ...object, $schema } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it(`${schemaKey} rejects an empty $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: "" } });
+        expect(result.valid).to.be.false;
+      });
+
+      it(`${schemaKey} rejects a non-string $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: {} } });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });

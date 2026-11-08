@@ -24,6 +24,7 @@ import {
   fetchFile,
   getRunOutputDir,
   hasVariable,
+  UrlGuardError,
   redactUrlForOutput,
   sanitizeFilesystemName,
   realizeViewport,
@@ -534,7 +535,11 @@ async function captureScreenshot({
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
+      // A guard error's message is complete; don't wrap it.
+      const msg = fetched.message?.message ?? String(fetched.message);
+      result.description = fetched.message instanceof UrlGuardError
+        ? msg
+        : `Couldn't fetch remote reference image (${redactedUrl}): ${msg}`;
       return result;
     }
     existFilePath = fetched.path;

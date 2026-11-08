@@ -219,7 +219,7 @@ export class CopilotCliAdapter implements AgentAdapter {
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
         if (code === "ENOENT") {
           throw new Error(
-            "GitHub Copilot CLI is not installed or not on PATH. Run `npm install -g @github/copilot` (then `copilot login`) and re-run install-agents."
+            "GitHub Copilot CLI is not installed or not on PATH. Run `npm install -g @github/copilot` (then `copilot login`) and re-run `install agents`."
           );
         }
         throw err;
@@ -238,7 +238,7 @@ export class CopilotCliAdapter implements AgentAdapter {
         }
         if (/auth|login|token|unauthori[sz]ed/i.test(msg)) {
           throw new Error(
-            `GitHub Copilot CLI is not authenticated. Run \`copilot login\` and re-run install-agents. (copilot said: ${msg})`
+            `GitHub Copilot CLI is not authenticated. Run \`copilot login\` and re-run \`install agents\`. (copilot said: ${msg})`
           );
         }
         throw new Error(

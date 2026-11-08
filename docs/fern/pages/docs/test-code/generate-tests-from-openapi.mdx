@@ -32,7 +32,7 @@ Register the description once under `integrations.openApi` in your `.doc-detecti
 }
 ```
 
-`descriptionPath` accepts a local path or a URL, and Doc Detective resolves any `$ref`s in the description when it loads it. A config-level entry applies to every test in the run, so this is the best place to declare a description you reuse across specs.
+`descriptionPath` accepts a local path or a URL, and Doc Detective resolves any `$ref`s in the description when it loads it. Both the description and its `$ref`s can be on `localhost` or a private network. A config-level entry applies to every test in the run, so this is the best place to declare a description you reuse across specs.
 
 If you'd rather keep everything in one file, skip the config and load the description directly from the step instead. See [Step 2](#step-2-reference-an-operation-from-a-step).
 
@@ -244,6 +244,12 @@ Each step that resolved its operation, sent the request (or returned a mock), an
 **Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step.
 
 **Solution:** Confirm the response matches the schema, or set `validateAgainstSchema` to `request` or `none` to narrow the check when the description is stricter than the live API.
+
+### The description fails to load with "a public document can't refer to…"
+
+**Cause:** A public document, such as a `descriptionPath` URL on a public host, has a `$ref` to a local file or a private address. Private addresses include loopback and link-local ones. Doc Detective refuses that `$ref` to guard against server-side request forgery (SSRF).
+
+**Solution:** Download the description and point `descriptionPath` at the local copy. If you trust the description, set the `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` environment variable.
 
 ## What's next
 

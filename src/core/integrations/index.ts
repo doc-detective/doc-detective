@@ -84,7 +84,8 @@ function collectChangedFiles(report: any) {
  *   - total: Total number of changed files found
  *   - successful: Number of files successfully uploaded
  *   - failed: Number of files that failed to upload
- *   - skipped: Number of files skipped (no uploader or config found)
+ *   - skipped: Number of files skipped (no uploader for the integration type, no matching
+ *     integration config, or the integration doesn't set `uploadOnChange: true`)
  *   - details: Array of per-file results with localPath, status (PASS/FAIL/SKIPPED), and description or reason
  */
 async function uploadChangedFiles({ config, report, log }: { config: any; report: any; log: any }) {
@@ -113,16 +114,13 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     const uploader = getUploader(file.sourceIntegration);
 
     if (!uploader) {
-      log(
-        config,
-        "warning",
-        `No uploader found for integration type: ${file.sourceIntegration.type}`
-      );
+      const why = `no uploader handles integration type \`${file.sourceIntegration.type}\`.`;
+      log(config, "warning", `Couldn't upload ${file.localPath}: ${why}`);
       results.skipped++;
       results.details.push({
         localPath: file.localPath,
         status: "SKIPPED",
-        reason: `No uploader for type: ${file.sourceIntegration.type}`,
+        reason: `Skipped: ${why}`,
       });
       continue;
     }
@@ -134,17 +132,22 @@ async function uploadChangedFiles({ config, report, log }: { config: any; report
     );
 
     if (!integrationConfig) {
-      log(
-        config,
-        "warning",
-        `No integration config found for: ${file.sourceIntegration.integrationName}`
-      );
+      const why = `no \`${file.sourceIntegration.integrationName}\` integration is configured.`;
+      log(config, "warning", `Couldn't upload ${file.localPath}: ${why}`);
       results.skipped++;
       results.details.push({
         localPath: file.localPath,
         status: "SKIPPED",
-        reason: `No integration config found for: ${file.sourceIntegration.integrationName}`,
+        reason: `Skipped: ${why}`,
       });
+      continue;
+    }
+
+    if (integrationConfig.uploadOnChange !== true) {
+      const reason = `Skipped: \`uploadOnChange\` isn't enabled for integration ${file.sourceIntegration.integrationName}.`;
+      log(config, "debug", `${file.localPath}: ${reason}`);
+      results.skipped++;
+      results.details.push({ localPath: file.localPath, status: "SKIPPED", reason });
       continue;
     }
 
