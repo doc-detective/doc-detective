@@ -74,7 +74,9 @@ Chosen option: **A**.
   isn't supported in headless mode without a virtual display (Xvfb).`, pointed at Xvfb as the fix. It's
   replaced everywhere by one that names the browser and the fixes that work: `Skipped: a headless <browser>
   can't be screen-recorded. Set the context's \`headless\` to \`false\`, or use Chrome, which records headless.`
-  `<browser>` is the display name, Chrome or Firefox. A context launches headless unless `headless` is `false`, so
+  `<browser>` is the display name, Chrome or Firefox. Headless Chrome reaches this guard only with an explicit
+  `engine: "ffmpeg"`, so its message ends `or use the \`browser\` engine, which records headless Chrome.`
+  instead. A context launches headless unless `headless` is `false`, so
   an omitted `headless` counts as headless here too. Safari has no headless mode, so it's never skipped this way.
 - A failed copy of the browser recording still closes the recorder tab, restores focus, and removes any partial
   file. Its message names the cause: the browser didn't finish within 20 seconds, recorded no video, or sent too

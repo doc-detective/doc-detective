@@ -57,6 +57,9 @@ function expectNoScreenshots(report, check) {
   check(steps(report).every((s) => !s.autoScreenshot), "no step has an autoScreenshot");
 }
 
+// cli/auto-capture-defaults.spec.json runs the cases through junit-run-folder,
+// plus junit-both-false. recording/autorecord-defaults.spec.json runs
+// headless-firefox and the cases from headed-chrome-record to autorecord-false.
 const cases = {
   // Headless Chrome with no keys: a screenshot per step, and a tab recording.
   "headless-chrome": {

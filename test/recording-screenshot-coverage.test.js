@@ -791,8 +791,13 @@ describe("startRecording: guards + browser engine", function () {
     }
   });
 
+  // Headless Chrome reaches this guard only through an explicit
+  // `engine: "ffmpeg"`, so its fix is the browser engine, not Chrome.
   it("ffmpeg engine on a headless browser -> SKIPPED, naming the browser", async function () {
-    for (const [name, display] of [["firefox", "Firefox"], ["chrome", "Chrome"]]) {
+    for (const [name, display, alternative] of [
+      ["firefox", "Firefox", "use Chrome, which records headless"],
+      ["chrome", "Chrome", "use the `browser` engine, which records headless Chrome"],
+    ]) {
       const target = path.join(tmpDir, `headless-${name}.mp4`);
       const result = await startRecording({
         config,
@@ -803,7 +808,7 @@ describe("startRecording: guards + browser engine", function () {
       assert.equal(result.status, "SKIPPED", name);
       assert.equal(
         result.description,
-        `Skipped: a headless ${display} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or use Chrome, which records headless.`
+        `Skipped: a headless ${display} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or ${alternative}.`
       );
     }
   });
@@ -1009,9 +1014,7 @@ describe("startRecording: guards + browser engine", function () {
           this.recorderArgs = [arg, ...rest];
           return recorderStarted;
         }
-        // The viewport probe takes no arguments.
-        if (typeof fn === "function" && fn.length === 0 && arg === undefined)
-          return viewport;
+        if (fn?.name === "readViewport") return viewport;
         // document.title setter: (title) => (document.title = title)
         if (typeof fn === "function" && fn.length >= 1 && typeof arg === "string") {
           title = arg;
