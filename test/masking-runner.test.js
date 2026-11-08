@@ -320,4 +320,84 @@ describe("masking in a run", function () {
     assert.match(out, /Masking the values? of \d+ variables?: [^\n]*DD_MASK_TOKEN/);
     assert.equal(out.includes("tok-real-98765"), false);
   });
+
+  describe("path saves", function () {
+    let dir;
+    beforeEach(() => (dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-mask-save-"))));
+    afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    const savingSpec = (file) => ({
+      specId: "mask-save",
+      tests: [
+        {
+          testId: "t",
+          steps: [
+            { runShell: { command: "echo saved $DD_MASK_SAVE", path: path.join(dir, `${file}-shell.txt`), maxVariation: 0, overwrite: "false" } },
+            {
+              runCode: {
+                language: "javascript",
+                code: "console.log('code ' + process.env.DD_MASK_SAVE)",
+                path: path.join(dir, `${file}-code.txt`),
+                maxVariation: 0,
+                overwrite: "false",
+              },
+            },
+            {
+              httpRequest: {
+                url: "http://localhost:8092/api/echo",
+                method: "post",
+                request: { body: { value: "$DD_MASK_SAVE" } },
+                path: path.join(dir, `${file}-http.json`),
+                maxVariation: 0,
+                overwrite: "false",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    it("writes ***NAME*** in place of the value, and compares masked against masked", async function () {
+      setEnv("DD_MASK_SAVE", "save-value-24680");
+      const first = await run([savingSpec("a")]);
+      for (const name of ["a-shell.txt", "a-code.txt", "a-http.json"]) {
+        const text = fs.readFileSync(path.join(dir, name), "utf8");
+        assert.equal(text.includes("save-value-24680"), false, `${name}: ${text}`);
+        assert.match(text, /\*\*\*DD_MASK_SAVE\*\*\*/, name);
+      }
+      assert.deepEqual(first.specs[0].tests[0].contexts[0].steps.map((s) => s.result), ["PASS", "PASS", "PASS"]);
+      const second = await run([savingSpec("a")]);
+      const steps = second.specs[0].tests[0].contexts[0].steps;
+      assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"]);
+      assert.deepEqual(steps.map((s) => s.outputs.variation), [0, 0, 0]);
+    });
+
+    it("masks a runBrowserScript save but leaves a saveCookie file raw", async function () {
+      this.timeout(180000);
+      setEnv("DD_MASK_COOKIE", "cookie-value-13579");
+      const results = await run([
+        {
+          specId: "mask-browser-save",
+          tests: [
+            {
+              testId: "t",
+              runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
+              steps: [
+                { goTo: "http://localhost:8092/cookies/set/session/$DD_MASK_COOKIE" },
+                { runBrowserScript: { script: "return document.cookie;", path: path.join(dir, "script.txt") } },
+                { saveCookie: { name: "session", path: path.join(dir, "cookie.txt") } },
+              ],
+            },
+          ],
+        },
+      ]);
+      const steps = results.specs[0].tests[0].contexts[0].steps;
+      assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"], JSON.stringify(steps));
+      const script = fs.readFileSync(path.join(dir, "script.txt"), "utf8");
+      assert.equal(script.includes("cookie-value-13579"), false, script);
+      assert.match(script, /\*\*\*DD_MASK_COOKIE\*\*\*/);
+      // loadCookie reads this file back, so it keeps the real value.
+      assert.match(fs.readFileSync(path.join(dir, "cookie.txt"), "utf8"), /cookie-value-13579/);
+    });
+  });
 });

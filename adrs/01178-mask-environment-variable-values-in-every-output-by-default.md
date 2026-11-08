@@ -212,6 +212,10 @@ See https://docs.doc-detective.com/reference/schemas/config
   8092 server echoes into an httpRequest response header; referenced, `.env`, and
   secret-named values; `publicVariables` exact, `DD_*`, and `*` on the config, a spec, and a test; a 3-character
   value; URL-encoded and base64 forms; and a `Basic` header the 8092 server echoes.
+- Saved files: `test/masking-runner.test.js` checks that runShell, runCode, httpRequest, and runBrowserScript
+  `path` files hold `***NAME***`, that a second run with `maxVariation: 0` passes with a variation of `0`, and
+  that a `saveCookie` file keeps the real value. The fixture case `path-save-and-compare` runs the CLI twice
+  against one saved file.
 
 ## Pros and Cons of the Options
 
