@@ -55,6 +55,7 @@ export {
   // on a real macOS host (a null there means the AXIsProcessTrusted bind
   // regressed), which the injectable `deps.probeAccessibility` can't catch.
   probeMacAccessibility,
+  probeMacScreenRecording,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -860,6 +861,30 @@ async function probeMacAccessibility(): Promise<boolean | null> {
         "JavaScript",
         "-e",
         "ObjC.import('ApplicationServices'); ObjC.bindFunction('AXIsProcessTrusted', ['bool', []]); $.AXIsProcessTrusted()",
+      ],
+      { timeout: 10000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        const verdict = String(stdout).trim();
+        resolve(verdict === "true" ? true : verdict === "false" ? false : null);
+      }
+    );
+  });
+}
+
+// Whether the app that runs Doc Detective may capture the screen on macOS
+// (Screen Recording permission), via CGPreflightScreenCaptureAccess, which
+// asks without prompting. null when the probe itself fails: inconclusive, so a
+// recording preflight never skips on it (ADR 01177).
+async function probeMacScreenRecording(): Promise<boolean | null> {
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('CoreGraphics'); ObjC.bindFunction('CGPreflightScreenCaptureAccess', ['bool', []]); $.CGPreflightScreenCaptureAccess()",
       ],
       { timeout: 10000 },
       (error, stdout) => {

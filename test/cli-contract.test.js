@@ -356,7 +356,8 @@ describe("CLI contract", function () {
             ],
           })
         );
-        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json", "--output-dir", "out"], {
+        // Auto capture off, so the steps are the four written here (ADR 01177).
+        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json", "--output-dir", "out", "--no-auto-screenshot", "--no-auto-record"], {
           cwd,
           env: childEnv({ DD_CONTRACT_URL: url }),
           stdio: ["ignore", "pipe", "pipe"],
@@ -933,8 +934,10 @@ describe("CLI contract", function () {
     });
 
     for (const mode of [["--json"], ["--plain"], ["-o", "-"]]) {
-      it(`leaves no run folder for ${mode.join(" ")} -r terminal`, function () {
-        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal"]);
+      // With auto capture on, the run folder runs whatever `reporters` says
+      // (ADR 01177), so turn it off to see the reporter gate alone.
+      it(`leaves no run folder for ${mode.join(" ")} -r terminal with auto capture off`, function () {
+        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal", "--no-auto-screenshot", "--no-auto-record"]);
         expect(r.status, r.stderr).to.equal(0);
         expect(fs.existsSync(path.join(cwd, ".doc-detective"))).to.equal(false);
       });

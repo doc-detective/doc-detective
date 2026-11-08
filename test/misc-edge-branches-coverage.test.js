@@ -1055,8 +1055,11 @@ describe("core/utils.ts — cleanTemp / waitForStdio / run output helpers", func
     assert.equal(runArchivesArtifacts({ autoRecord: true, reporters: ["terminal"] }, []), true);
   });
 
-  it("runArchivesArtifacts: false when no artifacts and no runFolder reporter active", function () {
-    assert.equal(runArchivesArtifacts({ reporters: ["terminal", "json"] }, []), false);
+  it("runArchivesArtifacts: false when both auto keys are off and no runFolder reporter is active", function () {
+    assert.equal(
+      runArchivesArtifacts({ reporters: ["terminal", "json"], autoScreenshot: false, autoRecord: false }, []),
+      false
+    );
   });
 });
 

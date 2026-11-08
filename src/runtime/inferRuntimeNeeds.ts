@@ -18,13 +18,23 @@ export interface RuntimeNeeds {
   // be available. The inference is platform-agnostic; the preflight caller
   // gates on process.platform === "win32".
   windowsBash: boolean;
+  // True when sharp/pngjs/pixelmatch are in `npmPackages` only for automatic
+  // screenshots, so a failed install can turn those off instead of failing
+  // the run (ADR 01177).
+  autoScreenshotOnly: boolean;
 }
 
 export interface InferRuntimeNeedsOptions {
   // The config-level `shell` default (config_v3 `shell`, default `bash`).
   // Step-level `shell` fields win over it, mirroring the runtime resolver.
   configShell?: string;
+  // The config-level auto-capture keys. Unset means on (ADR 01177); specs and
+  // tests override them.
+  autoScreenshot?: boolean;
+  autoRecord?: boolean;
 }
+
+const SCREENSHOT_PACKAGES = ["sharp", "pngjs", "pixelmatch"];
 
 // Set view of the shared canonical list for O(1) membership checks below.
 const BROWSER_STEP_KEY_SET = new Set<string>(BROWSER_STEP_KEYS);
@@ -59,11 +69,16 @@ export function inferRuntimeNeeds(
   let sawScreenshotStep = false;
   let sawRecordingStep = false;
   let sawBashShellStep = false;
+  // Automatic screenshots and recordings (ADR 01177): a test that drives a
+  // UI takes them unless its resolved key (test > spec > config) is `false`.
+  let autoScreenshots = false;
+  let autoRecords = false;
 
   for (const spec of specs) {
     collectBrowserNamesFromRunOn(spec?.runOn, browsers);
     for (const test of arrayOrEmpty<any>(spec?.tests)) {
       collectBrowserNamesFromRunOn(test?.runOn, browsers);
+      let drivesUi = false;
       for (const ctx of arrayOrEmpty<any>(test?.contexts)) {
         collectBrowserNamesFromRunOn(ctx?.runOn, browsers);
         if (typeof ctx?.browser?.name === "string") {
@@ -75,6 +90,7 @@ export function inferRuntimeNeeds(
         for (const step of arrayOrEmpty<any>(ctx?.steps)) {
           const flags = classifyStep(step, ctxHasNonBrowserSignal);
           if (flags.browser) sawBrowserStep = true;
+          if (flags.ui) drivesUi = true;
           if (flags.screenshot) sawScreenshotStep = true;
           if (flags.recording) sawRecordingStep = true;
           if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
@@ -87,10 +103,17 @@ export function inferRuntimeNeeds(
       for (const step of arrayOrEmpty<any>(test?.steps)) {
         const flags = classifyStep(step, testHasNonBrowserSignal);
         if (flags.browser) sawBrowserStep = true;
+        if (flags.ui) drivesUi = true;
         if (flags.screenshot) sawScreenshotStep = true;
         if (flags.recording) sawRecordingStep = true;
         if (stepNeedsBash(step, configShell)) sawBashShellStep = true;
         collectStartSurfaceEngines(step, browsers);
+      }
+      if (drivesUi) {
+        if ((test?.autoScreenshot ?? spec?.autoScreenshot ?? options.autoScreenshot) !== false)
+          autoScreenshots = true;
+        if ((test?.autoRecord ?? spec?.autoRecord ?? options.autoRecord) !== false)
+          autoRecords = true;
       }
     }
   }
@@ -111,16 +134,19 @@ export function inferRuntimeNeeds(
       if (name === "safari") npmPackages.add("appium-safari-driver");
     }
   }
-  if (sawScreenshotStep) {
-    npmPackages.add("sharp");
-    npmPackages.add("pngjs");
-    npmPackages.add("pixelmatch");
+  if (sawScreenshotStep || autoScreenshots) {
+    for (const name of SCREENSHOT_PACKAGES) npmPackages.add(name);
   }
-  if (sawRecordingStep) {
+  if (sawRecordingStep || autoRecords) {
     npmPackages.add("@ffmpeg-installer/ffmpeg");
   }
 
-  return { browsers, npmPackages, windowsBash: sawBashShellStep };
+  return {
+    browsers,
+    npmPackages,
+    windowsBash: sawBashShellStep,
+    autoScreenshotOnly: autoScreenshots && !sawScreenshotStep,
+  };
 }
 
 // Whether a step's shell-based execution resolves to bash. runShell honors
@@ -198,12 +224,15 @@ function classifyStep(
   hasNonBrowserSignal = false
 ): {
   browser: boolean;
+  // Drives a browser, native app, or device: what auto capture covers.
+  ui: boolean;
   screenshot: boolean;
   recording: boolean;
 } {
   if (!step || typeof step !== "object")
-    return { browser: false, screenshot: false, recording: false };
+    return { browser: false, ui: false, screenshot: false, recording: false };
   let browser = false;
+  let ui = false;
   let screenshot = false;
   let recording = false;
   // A non-browser-targeted step drives a native app driver or a background
@@ -220,11 +249,19 @@ function classifyStep(
     (hasNonBrowserSignal && stepIsSurfacelessInteraction(step));
   for (const key of Object.keys(step)) {
     if (!nonBrowserTargeted && BROWSER_STEP_KEY_SET.has(key)) browser = true;
+    if (BROWSER_STEP_KEY_SET.has(key) && !stepTargetsProcessSurface(step)) ui = true;
     if (SCREENSHOT_STEP_KEYS.has(key)) screenshot = true;
     if (RECORDING_STEP_KEYS.has(key)) recording = true;
   }
   // A startSurface browser descriptor opens a real WebDriver session (Phase
   // 6) — the goTo-opener sibling. App/process descriptors don't set this.
   if (stepOpensBrowserSurface(step)) browser = true;
-  return { browser, screenshot, recording };
+  if (
+    stepOpensBrowserSurface(step) ||
+    startSurfaceDescriptors(step).some(
+      (d: any) => d && typeof d === "object" && typeof d.app === "string"
+    )
+  )
+    ui = true;
+  return { browser, ui, screenshot, recording };
 }
