@@ -322,8 +322,8 @@ Develop and merge any change that spans more than one pull request as a GitHub s
 the `gh stack` extension. Don't open independent PRs for dependent work, and don't hand-rebase a chain of
 branches.
 
-- Install the extension once: `gh extension install github/gh-stack`. Stacked PRs must be enabled for the
-  repository. `gh stack` exits 9 when they aren't.
+- Install the extension once: `gh extension install github/gh-stack`. Stacked PRs need no repository or
+  organization setting.
 - Start on the stack's trunk, which is `main` or a release branch such as `feat/v5-rc`:
   `gh stack init --base <trunk> <first-branch>`. Add each layer with `gh stack add <branch>`. Keep each layer
   one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
