@@ -32,20 +32,16 @@ If the `copilot` binary isn't on your PATH, install it first with `npm install -
 
 ### Fallback installation
 
-If `npx doc-detective install agents` isn't an option, install via the slash commands built into Copilot CLI.
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
 
-1. Open Copilot CLI:
+If `npx doc-detective install agents` isn't an option, run these Copilot CLI plugin commands from your shell, not inside a Copilot CLI session:
 
-    ```bash
-    copilot
-    ```
+```bash
+copilot plugin marketplace add doc-detective/agent-tools#feat/v5-rc
+copilot plugin install doc-detective@doc-detective
+```
 
-2. Install the Doc Detective plugin:
-
-    ```
-    /plugin marketplace add doc-detective/agent-tools
-    /plugin install doc-detective@doc-detective
-    ```
+The `#feat/v5-rc` suffix pins the marketplace to the same agent-tools ref that `install agents` uses. Copilot CLI documents this suffix for the shell command, not for the in-session `/plugin` command.
 
 ## Bootstrap a project
 
