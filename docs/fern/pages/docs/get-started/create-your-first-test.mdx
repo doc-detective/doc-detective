@@ -164,8 +164,11 @@ After running the test, you should see the results in your terminal, which Doc D
               "platform": "linux",
               "browser": {
                 "name": "firefox",
-                "version": "nightly_136.0a1",
-                "path": "/home/hawkeyexl/Workspaces/doc-detective-core/browser-snapshots/firefox/linux-nightly_136.0a1/firefox/firefox"
+                "version": "136.0a1"
+              },
+              "driver": {
+                "name": "geckodriver",
+                "version": "0.36.0"
               },
               "steps": [
                 {
@@ -208,7 +211,7 @@ After running the test, you should see the results in your terminal, which Doc D
 }
 ```
 
-This output confirms that all the test steps passed successfully, and the screenshot was saved to the specified path.
+This output confirms that all the test steps passed successfully, and the screenshot was saved to the specified path. The example leaves out some fields. The full file also records when the run started and the machine that ran it. See [Tell environment changes from product changes](/docs/ci/reporters-and-artifacts#tell-environment-changes-from-product-changes).
 
 Additionally, you should see a new image file named `example.png` saved in your project folder. Open this file to view the captured screenshot of the page:
 
