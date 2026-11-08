@@ -1384,6 +1384,14 @@ describe("saveBrowserRecording", function () {
     assert.equal(failure, "Couldn't save the recording: no such window.");
     assert.equal(fs.existsSync(filePath), false);
   });
+
+  it("says a chunk came back empty instead of writing it", async function () {
+    const driver = { execute: async (fn, ...args) => (args.length === 1 ? 1000 : undefined) };
+    const filePath = path.join(tmpDir, "nochunk.webm");
+    const failure = await saveBrowserRecording({ driver, filePath, chunkSize: 300 });
+    assert.equal(failure, "Couldn't save the recording: the browser sent no data for bytes 0 to 300.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
 });
 
 // A copy that throws still closes the recorder tab and restores focus, so
