@@ -24,6 +24,7 @@ import {
   verifyAppDrivers,
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
+  fileTypeObject,
   renameDeprecatedConfigKeys,
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
@@ -582,7 +583,7 @@ describe("config.ts — setConfig", function () {
         setConfig({
           config: { logLevel: "silent", concurrentRunners: "not-a-number-or-bool-or-int" },
         }),
-      /Invalid config object/
+      /Invalid config:\nconcurrentRunners: must be integer or boolean/
     );
   });
 
@@ -661,10 +662,19 @@ describe("config.ts — setConfig", function () {
     }
   });
 
+  it("names an unknown fileType string, should the schema and the table drift", function () {
+    assert.throws(() => fileTypeObject("not-a-filetype"), /Unknown fileType "not-a-filetype"/);
+    const markdown = fileTypeObject("markdown");
+    assert.notEqual(markdown, defaultFileTypes.markdown);
+    assert.deepEqual(markdown, defaultFileTypes.markdown);
+    const custom = { name: "x", extensions: ["x"] };
+    assert.equal(fileTypeObject(custom), custom);
+  });
+
   it("rejects an unknown fileType keyword string at the schema layer", async function () {
     // AJV's config_v3 enum guard fires before setConfig's own
     // defaultFileTypes[fileType] undefined check, so an unknown fileType
-    // string surfaces as an "Invalid config object" schema error.
+    // string surfaces as an "Invalid config:" schema error.
     await assert.rejects(
       () =>
         setConfig({
@@ -675,7 +685,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: ["totally-not-a-filetype"],
           },
         }),
-      /Invalid config object/
+      /Invalid config:\nfileTypes\[0\]: must be one of markdown, asciidoc, html, dita/
     );
   });
 
@@ -721,29 +731,28 @@ describe("config.ts — setConfig", function () {
     assert.deepEqual(warnings, ["Warning: `beforeAny` is deprecated. Rename it to `beforeAll`."]);
   });
 
-  // Each source is renamed on its own, so a DOC_DETECTIVE override wins over the
-  // config whichever name either one uses.
-  for (const [configKey, envKey] of [["beforeAny", "beforeAll"], ["beforeAll", "beforeAny"]]) {
-    it(`lets a DOC_DETECTIVE ${envKey} override a config ${configKey}`, async function () {
-      const saved = process.env.DOC_DETECTIVE;
-      process.env.DOC_DETECTIVE = JSON.stringify({ config: { [envKey]: "./b.json" } });
-      let config;
-      let lines;
-      try {
-        ({ result: config, lines } = await captureConsoleError(() =>
-          setConfig({
-            config: { logLevel: "warning", dryRun: true, input: "./README.md", [configKey]: "./a.json" },
-          })
-        ));
-      } finally {
-        if (saved === undefined) delete process.env.DOC_DETECTIVE;
-        else process.env.DOC_DETECTIVE = saved;
-      }
-      assert.deepEqual(config.beforeAll, ["./b.json"]);
-      assert.equal("beforeAny" in config, false);
-      assert.equal(lines.filter((line) => /beforeAny/.test(line)).length, 1);
-    });
-  }
+  // The runner reads only the config it's given (ADR 01152), so a DOC_DETECTIVE
+  // override doesn't reach it. The CLI renames and merges each source; see
+  // "beforeAll in the CLI config" in cli-output-units.
+  it("renames the given config's beforeAny and ignores DOC_DETECTIVE", async function () {
+    const saved = process.env.DOC_DETECTIVE;
+    process.env.DOC_DETECTIVE = JSON.stringify({ config: { beforeAll: "./b.json" } });
+    let config;
+    let lines;
+    try {
+      ({ result: config, lines } = await captureConsoleError(() =>
+        setConfig({
+          config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+        })
+      ));
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE;
+      else process.env.DOC_DETECTIVE = saved;
+    }
+    assert.deepEqual(config.beforeAll, ["./a.json"]);
+    assert.equal("beforeAny" in config, false);
+    assert.equal(lines.filter((line) => /beforeAny/.test(line)).length, 1);
+  });
 
   it("treats a null beforeAny as absent, and drops it", function () {
     const warn = sinon.spy();
@@ -781,21 +790,12 @@ describe("config.ts — setConfig", function () {
     assert.equal(warn.callCount, 1);
   });
 
-  it("doesn't warn about beforeAny when a DOC_DETECTIVE override is silent", async function () {
-    const saved = process.env.DOC_DETECTIVE;
-    process.env.DOC_DETECTIVE = JSON.stringify({ config: { logLevel: "silent" } });
-    let config;
-    let lines;
-    try {
-      ({ result: config, lines } = await captureConsoleError(() =>
-        setConfig({
-          config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
-        })
-      ));
-    } finally {
-      if (saved === undefined) delete process.env.DOC_DETECTIVE;
-      else process.env.DOC_DETECTIVE = saved;
-    }
+  it("doesn't warn about beforeAny when the config is silent", async function () {
+    const { result: config, lines } = await captureConsoleError(() =>
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+      })
+    );
     assert.deepEqual(config.beforeAll, ["./a.json"]);
     assert.deepEqual(lines.filter((line) => /beforeAny/.test(line)), []);
   });
@@ -945,63 +945,16 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /\/fileTypes\/0\/extends must be equal to one of the allowed values/
+      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita \(got "nope-nope"\)\./
     );
   });
 
-  it("applies a DOC_DETECTIVE env-var config override via deepMerge", async function () {
-    process.env.DOC_DETECTIVE = JSON.stringify({
-      config: { concurrentRunners: 3 },
-    });
+  it("ignores DOC_DETECTIVE, which only the CLI reads (ADR 01165)", async function () {
+    process.env.DOC_DETECTIVE = JSON.stringify({ config: { concurrentRunners: 3 }, container: "x" });
     const config = await setConfig({
       config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
     });
-    assert.equal(config.concurrentRunners, 3);
-  });
-
-  it("ignores malformed JSON in the DOC_DETECTIVE env var and still resolves", async function () {
-    process.env.DOC_DETECTIVE = "{ not valid json";
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.ok(config.environment);
-  });
-
-  it("deep-merges a nested object from DOC_DETECTIVE, preserving un-overridden nested keys", async function () {
-    // Base telemetry has both keys; the env override only sets `send`. The
-    // recursive both-sides-are-objects merge keeps userId and overrides send.
-    process.env.DOC_DETECTIVE = JSON.stringify({ config: { telemetry: { send: true } } });
-    const config = await setConfig({
-      config: {
-        logLevel: "silent",
-        dryRun: true,
-        input: ["./README.md"],
-        telemetry: { send: false, userId: "keep-me" },
-      },
-    });
-    assert.equal(config.telemetry.send, true);
-    assert.equal(config.telemetry.userId, "keep-me");
-  });
-
-  it("deep-clones a nested override object when the base has no matching object key", async function () {
-    // Base has no telemetry object, so the override branch clones via
-    // deepMerge({}, override[key]).
-    process.env.DOC_DETECTIVE = JSON.stringify({
-      config: { telemetry: { send: false, userId: "cloned" } },
-    });
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.equal(config.telemetry.send, false);
-    assert.equal(config.telemetry.userId, "cloned");
-  });
-
-  it("ignores a DOC_DETECTIVE value whose parsed config is not an object", async function () {
-    process.env.DOC_DETECTIVE = JSON.stringify({ config: "a string, not an object" });
-    const config = await setConfig({
-      config: { logLevel: "silent", dryRun: true, input: ["./README.md"] },
-    });
-    assert.ok(config.environment);
+    assert.equal(config.concurrentRunners, 1);
   });
 
   it("loads an OpenAPI description into config.integrations.openApi", async function () {

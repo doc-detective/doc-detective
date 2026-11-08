@@ -93,7 +93,7 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   applyHelpText(program);
   program.configureOutput({
     outputError: (message, write) =>
-      write(rewriteRootError(message, program.commands.map((command) => command.name()))),
+      write(rewriteRootError(message, program.commands.map((command) => command.name()), process.argv.slice(2))),
   });
   warnOnDeprecatedUse(program);
   return program;

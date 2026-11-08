@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 // axios loads lazily, keeping startup light (test/startup-modules.test.js).
 import { loadAxios } from "./utils.js";
+import { envFlag } from "../envFlag.js";
 import type { ChildProcess } from "node:child_process";
 
 // Opt-in reuse of browser-pool Appium servers across runTests calls in one
@@ -14,7 +15,7 @@ export type Server = { port: number; process: ChildProcess | null; display?: str
 type ServerCache = ReturnType<typeof createServerCache>;
 
 function reuseAppiumEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return ["true", "1"].includes(String(env.DOC_DETECTIVE_REUSE_APPIUM ?? ""));
+  return envFlag("DOC_DETECTIVE_REUSE_APPIUM", env);
 }
 
 // Node `--import` preload for a reusable server: exit once stdin closes. The

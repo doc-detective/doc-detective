@@ -13,14 +13,17 @@ import {
   loadProjectEnv,
   readStdinInputs,
   writeResultsFile,
+  discoverConfigPath,
+  isDebugRequested,
 } from "./utils.js";
 import { buildProgram } from "./cliProgram.js";
 import { maybeShowHint } from "./hints/index.js";
 import { applyColorFlags, applyInputFlag, diag, reportCrash, showRunProgress, verdictLine } from "./cliOutput.js";
 import { runProgress } from "./core/progress.js";
+import { setRunCacheDir } from "./runtime/cacheDir.js";
+import type { Logger } from "./runtime/loader.js";
+import { updateCheckAllowed } from "./envFlag.js";
 import { argv as processArgv } from "node:process";
-import path from "node:path";
-import fs from "node:fs";
 import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
@@ -80,27 +83,20 @@ async function runTestsHandler(args: any) {
   await loadProjectEnv(args);
   await readStdinInputs(args);
 
-  // Get .doc-detective JSON or YAML config, if it exists, preferring a config arg if provided
-  const configPathJSON = path.resolve(process.cwd(), ".doc-detective.json");
-  const configPathYAML = path.resolve(process.cwd(), ".doc-detective.yaml");
-  const configPathYML = path.resolve(process.cwd(), ".doc-detective.yml");
-  // Treat any non-empty `--config` as authoritative (resolved to an
-  // absolute path). A mistyped path then fails deterministically via
-  // setConfig rather than silently falling back to auto-discovery.
-  const hasExplicitConfig =
-    typeof args.config === "string" && args.config.trim().length > 0;
-  const configPath = hasExplicitConfig
-    ? path.resolve(args.config.trim())
-    : fs.existsSync(configPathJSON)
-    ? configPathJSON
-    : fs.existsSync(configPathYAML)
-    ? configPathYAML
-    : fs.existsSync(configPathYML)
-    ? configPathYML
-    : null;
-
   // Set config
-  const config: any = await setConfig({ configPath: configPath, args: args });
+  // An invalid config carries AJV's raw errors as its cause. With -d, they go
+  // out at debug level before the summary the top-level catch prints.
+  const debugConfigErrors = (error: any) => {
+    if (error?.cause && (args.debug || args.logLevel === "debug" || isDebugRequested())) {
+      log(`CLI:CONFIG ERRORS: ${String(error.cause).trim()}`, "debug", { logLevel: "debug" });
+    }
+    throw error;
+  };
+  const config: any = await setConfig({ configPath: discoverConfigPath(args), args: args }).catch(debugConfigErrors);
+  // One cache for every runtime lookup in this run, now that the flag, the
+  // environment, and the config files have had their say. Held in process,
+  // so steps' child processes don't inherit it.
+  setRunCacheDir(config.cacheDir);
 
   // Guard the pretty-print dumps behind a cheap level check so the (large)
   // JSON.stringify only runs when the debug message would actually print.
@@ -114,9 +110,10 @@ async function runTestsHandler(args: any) {
   }
 
   // Self-update on startup. Honors config.autoUpdate (schema default true),
-  // DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 (set by the re-execed child to prevent
-  // loops, and by Docker images), and process.env.CI (CI environments
-  // should pin their version explicitly — surprise updates in CI are bad).
+  // which DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 turns off in setConfig (Docker
+  // images set it), process.env.CI (CI environments should pin their version
+  // explicitly — surprise updates in CI are bad), and the internal re-exec
+  // marker, which no flag overrides, so an updated child never loops.
   //
   // The registry check (`checkForUpdate`, up to a 3s round-trip) is STARTED
   // here but not awaited: it runs concurrently with input detection /
@@ -138,18 +135,12 @@ async function runTestsHandler(args: any) {
   // module's own (separately covered) tests. The join-inside-runTests seam is
   // covered directly in test/cli-index-adapters-coverage.test.js.
   let updateJoin: (() => Promise<void>) | undefined;
-  if (
-    config.autoUpdate !== false &&
-    !process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE &&
-    !process.env.CI
-  ) {
+  if (updateCheckAllowed(config)) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
-    // helper so config.logLevel is respected. Map "warn" → "warning".
-    const cliLogger = (msg: string, level: string = "info") => {
-      const mapped = level === "warn" ? "warning" : level;
-      log(msg, mapped, config);
-    };
+    // helper so config.logLevel is respected.
+    // Typed as the runtime's Logger: its LogLevel has no "warn", which log() would drop.
+    const cliLogger: Logger = (msg, level = "info") => log(msg, level, config);
     const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
@@ -195,13 +186,17 @@ async function runTestsHandler(args: any) {
   const results = await (resolvedTests
     ? runTests(config, { resolvedTests, updateJoin, strictSpecs })
     : runTests(config, { updateJoin, strictSpecs })
-  ).finally(stopProgress);
+  )
+    .catch(debugConfigErrors)
+    .finally(stopProgress);
 
-  // Dry-run already emitted the resolved-tests JSON inside runTests().
+  // A dry run prints the resolved test plan here; runTests() only returns it.
   // Skip both reporters (which assume executed-result shape) and the
   // orchestration-API report-back path.
   if (config.dryRun) {
-    if (!results && config.exitOnFail !== false) {
+    if (results?.specs?.length > 0) {
+      console.log(JSON.stringify(results, null, 2));
+    } else if (config.exitOnFail !== false) {
       // Dry runs silence logs to keep stdout clean, so say why there's no plan.
       console.error("No tests found, so there's no test plan to print.");
       process.exitCode = 2;

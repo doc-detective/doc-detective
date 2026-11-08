@@ -1,11 +1,12 @@
 import { styleText } from "node:util";
 import type { Command } from "commander";
+import { REPORTER_NAMES } from "./cliOptions.js";
 
 const DOCS = "https://docs.doc-detective.com/reference/cli";
 const ISSUES = "https://github.com/doc-detective/doc-detective/issues";
 
 const RUN_EXIT_CODES = `Exit codes:
-  0  All tests passed, warned, or were skipped
+  0  No test failed, and at least one passed or warned
   1  At least one test failed
   2  Nothing was tested: bad usage, bad config, no tests, or an internal error
   130, 143  Interrupted by SIGINT or SIGTERM`;
@@ -195,26 +196,38 @@ export function applyHelpText(command: Command) {
   command.commands.forEach(applyHelpText);
 }
 
-// Edit distance, for "did you mean". Commander suggests flags, but a root that has
-// its own action reports a mistyped command as an extra argument.
+// Edit distance, for "did you mean", with two swapped neighbors as one edit
+// (optimal string alignment). Commander suggests flags, but a root that has its
+// own action reports a mistyped command as an extra argument.
 function distance(a: string, b: string): number {
-  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  const d = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
   for (let i = 1; i <= a.length; i++) {
-    const row = [i];
     for (let j = 1; j <= b.length; j++) {
-      row[j] = Math.min(row[j - 1] + 1, previous[j] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      d[i][j] = Math.min(d[i][j - 1] + 1, d[i - 1][j] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
     }
-    previous = row;
   }
-  return previous[b.length];
+  return d[a.length][b.length];
 }
 
+// Under 3 edits, and fewer than half the word's letters, so a short word like
+// `nope` isn't stretched into a different one like `type`. The half-length rule
+// applies to schema keys and to subcommand names (rewriteRootError) on purpose:
+// every command is 3+ letters, and a swap counts as one edit, so `rnu` → `run`.
+// A one-letter word only matches exactly (0 edits), so it never gets a guess,
+// and a two-letter word needs 0 edits too: `fo` doesn't suggest `foo`. The
+// half-length rule is the tighter one up to 5 letters (1 edit at 3 or 4, 2 at
+// 5); from 6 letters on, the 3-edit cap is.
 export function nearestCommand(word: string, names: string[]): string | undefined {
   let best: string | undefined;
   let bestDistance = 3;
   for (const name of names) {
     const d = distance(word.toLowerCase(), name.toLowerCase());
-    if (d < bestDistance) {
+    if (d < bestDistance && d * 2 < word.length) {
       best = name;
       bestDistance = d;
     }
@@ -224,10 +237,25 @@ export function nearestCommand(word: string, names: string[]): string | undefine
 
 // Rewrite the root's "too many arguments" as what it almost always is: a command
 // that doesn't exist, or a path that needs `-i`.
-export function rewriteRootError(message: string, commandNames: string[]): string {
+export function rewriteRootError(message: string, commandNames: string[], argv: string[] = []): string {
+  // A list option's bad choice: name the first bad item, not the whole list.
+  const choice = /^(error: option '[^']+' argument )'([^']*,[^']*)'( is invalid\. Allowed choices are (.*)\.\s*)$/s.exec(message);
+  if (choice) {
+    const allowed = choice[4].split(/,\s*/);
+    const bad = choice[2].split(",").map((item) => item.trim()).find((item) => item && !allowed.includes(item));
+    if (bad) return `${choice[1]}'${bad}'${choice[3]}`;
+  }
   const match = /too many arguments\b.*: ([^,\s]+)[^:]*\.\s*$/.exec(message);
   if (!match) return message;
   const word = match[1];
+  // `-r terminal html`, the 4.x form: reporters after the first one.
+  const flagAt = argv.findIndex((arg, i) => ["-r", "--reporters"].includes(arg) && argv[i + 2] === word);
+  if (flagAt >= 0 && REPORTER_NAMES.includes(word)) {
+    const extra = [];
+    for (let i = flagAt + 2; REPORTER_NAMES.includes(argv[i]); i++) extra.push(argv[i]);
+    const list = [argv[flagAt + 1], ...extra].join(",");
+    return `error: unknown command '${word}'. To use several reporters, give one comma-separated list: ${argv[flagAt]} ${list}\n`;
+  }
   const near = nearestCommand(word, commandNames);
   const hint = near ? ` (Did you mean ${near}?)` : ` To test a path, use: doc-detective run ${word}`;
   return `error: unknown command '${word}'.${hint}\n`;

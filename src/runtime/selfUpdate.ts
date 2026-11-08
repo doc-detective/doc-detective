@@ -2,6 +2,7 @@ import axios from "axios";
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import path from "node:path";
 import type { Logger, SpawnFn } from "./loader.js";
+import { isDebugRequested, REEXEC_MARKER, updateCheckAllowed } from "../envFlag.js";
 
 export type InstallMode = "global" | "local" | "npx" | "unknown";
 
@@ -21,9 +22,9 @@ export interface SelfUpdateDeps {
 // logLevel; this in-module fallback is only for direct test or
 // programmatic use that calls `checkForUpdate` / `selfUpdate` without
 // passing `deps.logger`.
-const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
+// Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
-  if (level === "debug" && !RUNTIME_DEBUG) return;
+  if (level === "debug" && !isDebugRequested()) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };
@@ -42,6 +43,8 @@ const REGISTRY_TIMEOUT_MS = 3_000;
  *
  * We avoid pulling in the full `semver` dep for this single use site.
  */
+export { REEXEC_MARKER, updateCheckAllowed };
+
 export function compareVersions(a: string, b: string): number {
   const [coreA, preA = ""] = a.split("-");
   const [coreB, preB = ""] = b.split("-");
@@ -193,8 +196,9 @@ export interface SelfUpdateResult {
  *   - unknown: like local — never mutate state we don't understand.
  *
  * In the re-exec paths, the child inherits the parent's stdio and is
- * spawned with DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 to prevent infinite update
- * loops if the new version's check fires again.
+ * spawned with DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 and REEXEC_MARKER set. The
+ * child gets the original argv, so `--auto-update` would beat the variable;
+ * the marker is what keeps it from checking again.
  */
 export async function selfUpdate(
   latestVersion: string,
@@ -229,7 +233,7 @@ export async function selfUpdate(
     return { updated: false, reexec: false };
   }
 
-  const childEnv = { ...process.env, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" };
+  const childEnv = { ...process.env, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", [REEXEC_MARKER]: "1" };
   const npmExe = process.platform === "win32" ? "npm.cmd" : "npm";
   const npxExe = process.platform === "win32" ? "npx.cmd" : "npx";
 

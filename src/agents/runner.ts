@@ -76,7 +76,7 @@ export async function runInstallAgents(
     if (effective.degraded) {
       logger(
         `⚠ ${adapter.displayName} does not support ${scope} scope — installing as ${effective.scope}.`,
-        "warn"
+        "warning"
       );
     }
     logger(`\n→ ${adapter.displayName} (${adapter.id}) — scope: ${effective.scope}`, "info");

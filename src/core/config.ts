@@ -2,7 +2,8 @@ import os from "node:os";
 import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
-import { log, spawnCommand, loadEnvs, replaceEnvs, specSchemas } from "./utils.js";
+import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage, allSchemas } from "./utils.js";
+import { clearPendingEnvWarnings, setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -12,7 +13,7 @@ import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browser
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 
-export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
+export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild, fileTypeObject };
 
 // Rename deprecated config keys in place, in each config source before they're
 // merged, so a later source wins whichever name either one uses (ADR 01169).
@@ -34,7 +35,7 @@ function renameDeprecatedConfigKeys(
       // The schema's own message; config-coverage's "ends the both-set error"
       // test keeps the two aligned. No fallback on purpose: if the schema moves
       // the message, that test should fail, so no stale text ever ships.
-      throw new Error(`Invalid config. beforeAll: ${specSchemas().config_v3.errorMessage.not}`);
+      throw new Error(`Invalid config. beforeAll: ${allSchemas().config_v3.errorMessage.not}`);
     }
     config.beforeAll = config.beforeAny;
     delete config.beforeAny;
@@ -100,40 +101,6 @@ async function verifyAppDrivers(
   return out;
 }
 
-/**
- * Deep merge two objects, with override properties taking precedence
- * @param {Object} target - The target object to merge into
- * @param {Object} override - The override object containing properties to merge
- * @returns {Object} A new object with merged properties
- */
-function deepMerge(target: any, override: any): any {
-  const result = { ...target };
-
-  for (const key in override) {
-    if (override.hasOwnProperty(key)) {
-      if (
-        override[key] != null &&
-        typeof override[key] === "object" &&
-        !Array.isArray(override[key])
-      ) {
-        if (
-          result[key] != null &&
-          typeof result[key] === "object" &&
-          !Array.isArray(result[key])
-        ) {
-          result[key] = deepMerge(result[key], override[key]);
-        } else {
-          result[key] = deepMerge({}, override[key]);
-        }
-      } else {
-        result[key] = override[key];
-      }
-    }
-  }
-
-  return result;
-}
-
 // Map of Node-detected platforms to common-term equivalents
 const platformMap: any = {
   darwin: "mac",
@@ -150,72 +117,51 @@ const platformMap: any = {
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
+// A fileType entry as an object: a built-in name becomes a copy of its
+// definition, and an object passes through. The schema already limits names;
+// this throws a named error if the schema and the table ever drift apart.
+function fileTypeObject(fileType: any) {
+  if (typeof fileType === "object") return fileType;
+  if (!defaultFileTypes[fileType]) {
+    throw new Error(`Unknown fileType "${fileType}". Use one of: ${Object.keys(defaultFileTypes).join(", ")}.`);
+  }
+  return structuredClone(defaultFileTypes[fileType]);
+}
+
 async function setConfig({ config, detectApps = true }: any) {
+  // An earlier run that failed before it had a sink left its warnings queued.
+  clearPendingEnvWarnings();
+
   // Set environment variables from file
-  if (config.loadVariables) await loadEnvs(config.loadVariables);
+  if (config.loadVariables) await loadEnvs(config.loadVariables, { override: false });
 
   // Load environment variables for `config`. replaceEnvs rewrites in place, so
   // work on a copy: the caller's object stays unchanged across runs. JSON, not
   // structuredClone, to match the clone validate() applies just below.
   config = replaceEnvs(JSON.parse(JSON.stringify(config)));
 
-  // Apply config overrides from DOC_DETECTIVE environment variable
-  let envOverrides: any;
-  if (process.env.DOC_DETECTIVE) {
-    try {
-      const docDetectiveEnv = JSON.parse(process.env.DOC_DETECTIVE);
-      if (
-        docDetectiveEnv.config &&
-        typeof docDetectiveEnv.config === "object"
-      ) {
-        envOverrides = docDetectiveEnv.config;
-      }
-    } catch (error: any) {
-      log(
-        config,
-        "warning",
-        `Invalid JSON in DOC_DETECTIVE environment variable: ${error.message}. Ignoring config overrides.`
-      );
-    }
-  }
-  // Rename each source before the merge, so the override wins whichever name it
-  // uses. The callback only captures the warning. The rename rejects both names
-  // in one source; config_v3's `not: {required}` is the backstop for API callers
-  // that skip the rename.
+  // Rename deprecated keys. The runner reads only the config it's given (ADR
+  // 01152), so that's the one source. The callback only captures the warning,
+  // and the rename rejects both names; config_v3's `not: {required}` is the
+  // backstop for callers that skip the rename.
   let deprecation: string | undefined;
-  renameDeprecatedConfigKeys([config, envOverrides], (message) => (deprecation = message));
-  if (envOverrides) config = deepMerge(config, envOverrides);
-  // Emit after the merge, so the merged logLevel decides.
+  renameDeprecatedConfigKeys([config], (message) => (deprecation = message));
   if (deprecation) log(config, "warning", deprecation);
 
-  // Validate inbound `config`.
-  const validityCheck = validate({ schemaKey: "config_v3", object: config });
+  // Validate inbound `config`. Thrown, not logged: the caller prints it once.
+  const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
   if (!validityCheck.valid) {
-    // TODO: Improve error message reporting.
-    log(
-      config,
-      "error",
-      `Invalid config object: ${validityCheck.errors}. Exiting.`
-    );
-    throw new Error(`Invalid config object: ${validityCheck.errors}. Exiting.`);
+    throw new Error(configErrorMessage("", validityCheck.errorObjects, config), { cause: validityCheck.errors });
   }
   config = validityCheck.object;
+  // Environment warnings print at this config's level, for JS API callers too.
+  const logged = config;
+  setEnvWarningSink((message) => log(logged, "warning", message));
 
-  // Replace fileType strings with objects. Copy the default: the normalizing
-  // below mutates entries in place, and common's table is shared by every run.
-  config.fileTypes = config.fileTypes.map((fileType: any) => {
-    if (typeof fileType === "object") return fileType;
-    const fileTypeObject = defaultFileTypes[fileType];
-    if (typeof fileTypeObject !== "undefined") return structuredClone(fileTypeObject);
-    log(
-      config,
-      "error",
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-    throw new Error(
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-  });
+  // Replace fileType strings with objects. The schema limits the strings to the
+  // built-in names. Copy the default: the normalizing below mutates entries in
+  // place, and common's table is shared by every run.
+  config.fileTypes = config.fileTypes.map(fileTypeObject);
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];
@@ -232,9 +178,6 @@ async function setConfig({ config, detectApps = true }: any) {
     } else {
       config.afterAll = [config.afterAll];
     }
-  }
-  if (typeof config.fileTypes === "string") {
-    config.fileTypes = [config.fileTypes];
   }
   config.fileTypes = config.fileTypes.map((fileType: any) => {
     if (fileType.inlineStatements) {
@@ -442,8 +385,7 @@ const cachedAppsByDir: Map<string, any[]> = new Map();
 
 function cacheKeyFor(config: any): string {
   // Reuse `getBrowsersDir` so the key respects every override the rest
-  // of the runtime honors (env var > config.cacheDir > tmpdir, with the
-  // legacy `./browser-snapshots/` fallback).
+  // of the runtime honors (env var > config.cacheDir > default cache).
   return getBrowsersDir({ cacheDir: config?.cacheDir });
 }
 
@@ -683,11 +625,9 @@ function selectInstalledBuild<T extends ScannedBuild>(
 }
 
 async function getAvailableApps({ config }: any) {
-  // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
-  // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
-  // relative to the current CWD, so it has to run against the user's
-  // original CWD to honor a project-local `./browser-snapshots/` directory.
-  // Reusing the same resolved absolute path for both the cache key and the
+  // Resolve the browsers cache dir *before* chdir-ing, so a relative cacheDir
+  // resolves against the user's original CWD. Reusing the same resolved path
+  // for both the cache key and the
   // `getInstalledBrowsers` call below keeps `cachedAppsByDir` consistent
   // with the directory actually scanned.
   const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });

@@ -18,7 +18,7 @@ From any project directory, run:
 npx doc-detective install agents --agent claude
 ```
 
-The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. It pins the marketplace to the agent-tools ref that matches your Doc Detective version. For which ref that is, see [`install agents`](/reference/reference/cli/install#install-agents). Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
@@ -31,6 +31,8 @@ If the `claude` binary isn't on your PATH but `~/.claude/` exists, the command e
 
 ### Fallback installation
 
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
+
 If `npx doc-detective install agents` isn't an option, install via Claude Code's own slash commands.
 
 1. Open Claude Code:
@@ -42,9 +44,11 @@ If `npx doc-detective install agents` isn't an option, install via Claude Code's
 2. Add the Doc Detective marketplace and install the plugin:
 
     ```
-    /plugin marketplace add doc-detective/agent-tools
+    /plugin marketplace add doc-detective/agent-tools#feat/v5-rc
     /plugin install doc-detective@doc-detective
     ```
+
+    The `#feat/v5-rc` suffix pins the marketplace to the same agent-tools ref that `install agents` uses.
 
 ## Bootstrap a project
 

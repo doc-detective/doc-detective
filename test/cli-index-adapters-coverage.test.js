@@ -395,9 +395,10 @@ describe("core/index.ts — runTests offline branches", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("returns null when the input resolves to no tests", async function () {
+  it("returns an empty report when the input resolves to no tests", async function () {
     // A directory with only non-test text → detectTests finds nothing →
-    // detectAndResolveTests returns null → runTests logs the warning + null.
+    // detectAndResolveTests returns null → runTests logs the warning and
+    // returns an empty report (ADR 01152).
     fs.writeFileSync(path.join(tmpDir, "readme.txt"), "just prose, no tests");
     const result = await runTests({
       input: [tmpDir],
@@ -406,7 +407,7 @@ describe("core/index.ts — runTests offline branches", function () {
       telemetry: { send: false },
       reporters: [],
     });
-    assert.equal(result, null);
+    assert.deepEqual(result.specs, []);
   });
 
   it("detectAndResolveTests returns null for an input with no detectable tests", async function () {
@@ -449,6 +450,27 @@ describe("core/index.ts — runTests offline branches", function () {
     );
     assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
     assert.equal(result.summary, undefined, "must not have executed");
+  });
+
+  it("deep-merges the caller config over resolvedTests.config (ADR 01165)", async function () {
+    const spec = path.join(tmpDir, "deep.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.telemetry = { send: true, userId: "api-user" };
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: tampered }
+    );
+    // The caller's `send` wins; the embedded `userId` it doesn't set survives.
+    assert.deepEqual(result.config.telemetry, { send: false, userId: "api-user" });
   });
 
   it("merges against an empty {} when resolvedTests.config is absent (|| {} fallback)", async function () {

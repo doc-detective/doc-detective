@@ -5,6 +5,7 @@
  */
 
 import YAML from "yaml";
+import type { ErrorObject } from "ajv";
 import { validate, transformToSchemaKey } from "./validate.js";
 import { SchemaKey } from "./schemas/index.js";
 import { defaultFileTypes, detectFileTypeFromContent, FileType } from "./fileTypes.js";
@@ -39,7 +40,10 @@ export interface DetectedTest {
   [key: string]: any;
 }
 
-export type InvalidHandler = (reason: string, details?: { schemaKey: string; object: any }) => void;
+export type InvalidHandler = (
+  reason: string,
+  details?: { schemaKey: string; object: any; errorObjects?: ErrorObject[] }
+) => void;
 
 export interface DetectTestsInput {
   content: string;
@@ -54,8 +58,8 @@ export interface DetectTestsInput {
   testIdBase?: string;
   /**
    * Called when something the author wrote is dropped for being invalid, with
-   * the validation errors, and the schema and object they apply to. Without it,
-   * the drop only logs a warning.
+   * the validation errors, and the schema, object, and structured AJV errors
+   * they apply to. Without it, the drop only logs a warning.
    */
   onInvalid?: InvalidHandler;
 }
@@ -402,10 +406,15 @@ export async function parseContent({
             schemaKey: "test_v2" as SchemaKey,
             object: test,
             addDefaults: false,
+            structuredErrors: true,
           });
           if (!v2Validation.valid) {
             log(config, "warn", `Inline test in ${filePath} isn't valid. Skipping.`);
-            onInvalid?.(v2Validation.errors, { schemaKey: "test_v2", object: test });
+            onInvalid?.(v2Validation.errors, {
+              schemaKey: "test_v2",
+              object: test,
+              errorObjects: v2Validation.errorObjects,
+            });
             break;
           }
           const transformed = transformToSchemaKey({
@@ -610,11 +619,12 @@ export async function parseContent({
           schemaKey: "step_v3" as SchemaKey,
           object: step,
           addDefaults: false,
+          structuredErrors: true,
         });
         /* c8 ignore next 3 - V8 phantom branch on if-else/switch-case */
         if (!validation.valid) {
           log(config, "warn", `Step ${JSON.stringify(step)} isn't a valid step. Skipping.`);
-          onInvalid?.(validation.errors, { schemaKey: "step_v3", object: step });
+          onInvalid?.(validation.errors, { schemaKey: "step_v3", object: step, errorObjects: validation.errorObjects });
           return;
         }
         step = validation.object;
@@ -676,11 +686,14 @@ export async function parseContent({
       schemaKey: "test_v3" as SchemaKey,
       object: test,
       addDefaults: false,
+      structuredErrors: true,
     });
     if (!validation.valid) {
       log(config, "warn", `Couldn't convert test in ${filePath} to valid test. Skipping.`);
       // A test that only ended up with no steps isn't an authoring mistake.
-      if (test.steps.length) onInvalid?.(validation.errors, { schemaKey: "test_v3", object: test });
+      if (test.steps.length) {
+        onInvalid?.(validation.errors, { schemaKey: "test_v3", object: test, errorObjects: validation.errorObjects });
+      }
       return;
     }
     validatedTests.push(validation.object);
