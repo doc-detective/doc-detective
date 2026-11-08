@@ -62,4 +62,12 @@ describe("JS API contract", function () {
     const plan = await runTests({ ...base(), input: [path.join(dir, "pass.spec.json")], dryRun: true });
     assert.equal(plan.config.concurrentRunners, 1);
   });
+
+  // ADR 01150: the JS API throws the CLI's format, with no source to name.
+  it("rejects an invalid config in the shared format", async function () {
+    await assert.rejects(runTests({ ...base(), invalidKey: true }), {
+      message:
+        "Invalid config:\nunknown key 'invalidKey'.\nSee https://docs.doc-detective.com/reference/schemas/config",
+    });
+  });
 });
