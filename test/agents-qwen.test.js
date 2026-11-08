@@ -143,8 +143,10 @@ describe("QwenCodeAdapter.getInstallState()", function () {
 
 describe("QwenCodeAdapter.install()", function () {
   let QwenCodeAdapter;
+  let AGENT_TOOLS_REF;
   before(async function () {
     ({ QwenCodeAdapter } = await import("../dist/agents/adapters/qwen-code.js"));
+    ({ AGENT_TOOLS_REF } = await import("../dist/agents/fetcher.js"));
   });
 
   const CANON_SKILL = path.join(
@@ -184,7 +186,7 @@ describe("QwenCodeAdapter.install()", function () {
     c[1] === "extensions" &&
     (c[2] === "install" || c[2] === "update");
 
-  it("fresh install runs `extensions install <url> --ref feat/v5-rc --auto-update --consent`", async function () {
+  it("fresh install runs `extensions install <url> --ref <AGENT_TOOLS_REF> --auto-update --consent`", async function () {
     const { adapter, calls } = makeSpyAdapter({ installed: false });
     const report = await adapter.install(baseOpts());
     const installs = calls.filter(mutating);
@@ -192,7 +194,7 @@ describe("QwenCodeAdapter.install()", function () {
       [
         "qwen", "extensions", "install",
         "https://github.com/doc-detective/agent-tools:doc-detective",
-        "--ref", "feat/v5-rc",
+        "--ref", AGENT_TOOLS_REF,
         "--auto-update", "--consent",
       ],
     ]);

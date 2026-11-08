@@ -31,6 +31,10 @@ const MAX_ZIP_BYTES = 50 * 1024 * 1024;
  * release candidate this is agent-tools' `feat/v5-rc` branch. At CLI 5 GA it
  * becomes the floating `v2` tag, which agent-tools' release moves forward.
  * Raw and codeload URLs both take a slash-containing branch name as-is.
+ *
+ * TODO(ADR 01164): at CLI 5 GA, set this to "v2" once agent-tools' `v2` tag
+ * exists. The ADR's "General availability: `v2`" steps and Confirmation section
+ * list every file that changes with it.
  */
 export const AGENT_TOOLS_REF = "feat/v5-rc";
 

@@ -9,8 +9,9 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
     ({ AGENT_TOOLS_REF, fetchAgentToolsZip } = await import("../dist/agents/fetcher.js"));
   });
 
-  // During the CLI 5 release candidate the pin is agent-tools' feat/v5-rc
-  // branch; at CLI 5 GA it becomes the floating v2 tag.
+  // The only assertion on the ref's value; every other agent test reads the
+  // constant. During the CLI 5 release candidate the pin is agent-tools'
+  // feat/v5-rc branch; at CLI 5 GA it becomes the floating v2 tag.
   it("is agent-tools' feat/v5-rc branch until CLI 5 GA", function () {
     assert.equal(AGENT_TOOLS_REF, "feat/v5-rc");
   });
@@ -22,7 +23,7 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
         get: async (u) => { url = u; throw new Error("stop"); },
       })
     );
-    assert.equal(url, "https://codeload.github.com/doc-detective/agent-tools/zip/feat/v5-rc");
+    assert.equal(url, `https://codeload.github.com/doc-detective/agent-tools/zip/${AGENT_TOOLS_REF}`);
   });
 
   describe("every adapter's latest-version check reads the pinned ref", function () {
@@ -31,9 +32,9 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
     let urls;
     before(async function () {
       axios = (await import("axios")).default;
-      origGet = axios.get;
     });
     beforeEach(function () {
+      origGet = axios.get;
       urls = [];
       axios.get = async (url) => { urls.push(url); return { data: "" }; };
     });
@@ -53,7 +54,8 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
         const mod = await import(`../dist/agents/adapters/${file}.js`);
         await mod[factory]().fetchLatestVersion().catch(() => {});
         assert.equal(urls.length, 1);
-        assert.match(urls[0], /^https:\/\/raw\.githubusercontent\.com\/doc-detective\/agent-tools\/feat\/v5-rc\//);
+        const prefix = `https://raw.githubusercontent.com/doc-detective/agent-tools/${AGENT_TOOLS_REF}/`;
+        assert.ok(urls[0].startsWith(prefix), `${urls[0]} should start with ${prefix}`);
       });
     }
   });
@@ -75,7 +77,7 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
       await assert.rejects(
         adapter.install({ scope: "global", force: true, dryRun: false, cwd: process.cwd(), logger: () => {} })
       );
-      assert.equal(ref, "feat/v5-rc");
+      assert.equal(ref, AGENT_TOOLS_REF);
     });
   }
 });

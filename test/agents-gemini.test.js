@@ -197,8 +197,10 @@ describe("GeminiCliAdapter.getInstallState()", function () {
 
 describe("GeminiCliAdapter.install()", function () {
   let GeminiCliAdapter;
+  let AGENT_TOOLS_REF;
   before(async function () {
     ({ GeminiCliAdapter } = await import("../dist/agents/adapters/gemini-cli.js"));
+    ({ AGENT_TOOLS_REF } = await import("../dist/agents/fetcher.js"));
   });
 
   function makeSpyAdapter({ listJson = "[]", latest = undefined } = {}) {
@@ -233,7 +235,7 @@ describe("GeminiCliAdapter.install()", function () {
     c[1] === "extensions" &&
     (c[2] === "install" || c[2] === "update");
 
-  it("fresh install runs `extensions install <url> --ref feat/v5-rc --auto-update --consent --skip-settings`", async function () {
+  it("fresh install runs `extensions install <url> --ref <AGENT_TOOLS_REF> --auto-update --consent --skip-settings`", async function () {
     const { adapter, calls } = makeSpyAdapter({ listJson: "[]" });
     const report = await adapter.install(baseOpts());
     const installs = calls.filter(mutating);
@@ -241,7 +243,7 @@ describe("GeminiCliAdapter.install()", function () {
       [
         "gemini", "extensions", "install",
         "https://github.com/doc-detective/agent-tools.git",
-        "--ref", "feat/v5-rc",
+        "--ref", AGENT_TOOLS_REF,
         "--auto-update", "--consent", "--skip-settings",
       ],
     ]);

@@ -62,8 +62,12 @@ release candidate users on their next `install agents`.
 At CLI 5 GA, agent-tools merges `feat/v5-rc` to `main` and releases 2.0.0, which creates the `v2` tag. Then:
 
 1. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200.
-2. Set `AGENT_TOOLS_REF = "v2"` in the change that promotes CLI 5 to `main`.
-3. Update the tests under Confirmation, this ADR, and the `install agents` reference page to say `v2`.
+2. Set `AGENT_TOOLS_REF = "v2"` in `src/agents/fetcher.ts`, in the change that promotes CLI 5 to `main`.
+   A `TODO(ADR 01164)` comment marks the line.
+3. Change the one value assertion in `test/agents-pinned-ref.test.js` to `"v2"`.
+4. Update this ADR and `docs/fern/pages/reference/cli/install.mdx`. A `TODO(ADR 01164)` comment marks the docs
+   paragraph.
+5. Confirm `grep -rn "feat/v5-rc" src test docs/fern` finds nothing.
 
 agent-tools' release workflow moves the `v2` tag to each 2.x release. CLI 4 pins `v1` the same way, on its own
 branch.
@@ -82,14 +86,15 @@ branch.
 
 ### Confirmation
 
-- `test/agents-pinned-ref.test.js` asserts `AGENT_TOOLS_REF === "feat/v5-rc"`. It also asserts that every
-  adapter's up-to-date URL starts with `.../agent-tools/feat/v5-rc/`.
-- The same file asserts that `fetchAgentToolsZip` requests `zip/feat/v5-rc`, and that Codex and OpenCode pass the
+- `test/agents-pinned-ref.test.js` asserts `AGENT_TOOLS_REF === "feat/v5-rc"`. That's the only test that names
+  the ref.
+- The same file asserts that every adapter's up-to-date URL starts with `.../agent-tools/<AGENT_TOOLS_REF>/`.
+  It also asserts that `fetchAgentToolsZip` requests `zip/<AGENT_TOOLS_REF>`, and that Codex and OpenCode pass the
   ref to `fetchZip`.
-- `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref feat/v5-rc` on a fresh install.
+- `test/agents-gemini.test.js` and `test/agents-qwen.test.js` assert `--ref <AGENT_TOOLS_REF>` on a fresh install.
 - The `install-agents integration` workflow installs every agent for real, then checks that a second run is
   already up to date.
-- At GA, these assertions change to `v2`.
+- At GA, only the value assertion changes to `v2`. The rest read the constant.
 
 ## Pros and Cons of the Options
 
