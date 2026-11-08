@@ -101,7 +101,7 @@ Doc Detective can add new fields at any time, so ignore the ones you don't recog
 
 ### Steps show what ran
 
-Each step in the results is the effective step, the one Doc Detective ran. Its action is in object form, with every default filled, even if you wrote a shorthand. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url`. Step-level fields you didn't set, such as `variables`, stay out.
+Each step in the results is the effective step, the one Doc Detective ran. Shorthand appears in its full form, with every default filled. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url` or `runShell.command`. A screenshot or recording reports its file's absolute `path`, so read `screenshot.path` or `record.path` to find the file. A `click` or `find` string stays a string, because a string already matches an element by any identifier. Step-level fields you didn't set, such as `variables`, stay out. The expanded form is only how results report a step, so your specs can keep the shorthand.
 
 ### Find slow specs with `durationMs`
 
