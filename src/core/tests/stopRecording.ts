@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, restoreSessionViewport } from "../utils.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -263,6 +263,8 @@ async function stopRecording({
           await driver.switchToWindow(pickReturnHandle(remainingHandles));
         }
         await syncHandles(driver);
+        // Chrome's sharing bar is gone now, so the viewport grew by its height.
+        await restoreSessionViewport(driver, config);
       };
 
       // Switch to recording tab

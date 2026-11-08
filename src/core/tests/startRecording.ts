@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log, hasVariable } from "../utils.js";
+import { log, hasVariable, restoreSessionViewport } from "../utils.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
   switchToSurface,
@@ -513,6 +513,9 @@ async function startRecording({
     await driver.execute((documentTitle: any) => {
       document.title = documentTitle;
     }, documentTitle);
+    // Chrome's sharing bar now takes ~57px off this tab; grow the window back
+    // so screenshots keep the session's size while it records.
+    await restoreSessionViewport(driver, config);
     // Set recorder
     result.recording = {
       type: "MediaRecorder",
