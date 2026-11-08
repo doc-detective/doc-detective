@@ -463,7 +463,7 @@ Uninstalling may reset the extension's own settings.
 
 ## Environment variable values are masked
 
-**What changed:** Logs, reports, results files, `--json`, the dry-run plan, and the GitHub Action's issues show environment variable values as `***NAME***`. That covers every variable a run substitutes as `$NAME` or loads from `.env`, `loadVariables`, or a credential file. It also covers any variable whose name contains `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, or `CREDENTIAL`. Values shorter than 4 characters aren't masked. Steps, assertions, and routing still use the real values.
+**What changed:** Logs, reports, results files, `--json`, the dry-run plan, and the GitHub Action's issues show environment variable values as `***NAME***`. That covers every variable a run substitutes as `$NAME` or loads from `.env`, `loadVariables`, or a credential file. It also covers any variable whose name contains `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, or `CREDENTIAL`. Values shorter than 4 characters aren't masked. Steps, assertions, and routing still use the real values. Files a step saves with `path` hold `***NAME***` too.
 
 ```text
 version 4  "command": "curl -H \"Authorization: Bearer correct-horse\" https://api.example.com/me"

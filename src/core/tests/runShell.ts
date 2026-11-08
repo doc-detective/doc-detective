@@ -12,6 +12,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { maskString } from "../masking.js";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -221,12 +222,15 @@ async function runShell({
     // Set filePath
     let filePath = step.runShell.path;
     log(config, "debug", `Saving stdio to file: ${filePath}`);
+    // The file holds masked output, and a comparison is masked against masked
+    // (ADR 01178). Routing still reads the real stdout from outputs.
+    const saved = maskString(result.outputs.stdio.stdout);
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file. No prior content to compare against,
       // so there is NO variation assertion in this branch.
-      fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+      fs.writeFileSync(filePath, saved);
     } else {
       if (step.runShell.overwrite == "false") {
         // File already exists
@@ -239,7 +243,7 @@ async function runShell({
       // Calculate fractional diff between existing file content and command output content, not length
       const fractionalDiff = calculateFractionalDifference(
         existingFile,
-        result.outputs.stdio.stdout
+        saved
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
@@ -254,7 +258,7 @@ async function runShell({
       if (fractionalDiff > step.runShell.maxVariation) {
         if (step.runShell.overwrite == "aboveVariation") {
           // Overwrite file
-          fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved output to file.`);
         }
         descriptions.push(
@@ -267,7 +271,7 @@ async function runShell({
       } else {
         if (step.runShell.overwrite == "true") {
           // Overwrite file
-          fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved output to file.`);
         }
         descriptions.push(

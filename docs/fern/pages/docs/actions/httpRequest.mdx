@@ -35,7 +35,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `exampleKey`: (Optional) Key of the specific example to use if multiple exist.
     - `headers`: (Optional) Request headers to add to every request built from the definition, such as an `Authorization` header, in the same two forms as `request.headers`. A step-level value overrides a matching header set in your configuration, and `request.headers` override these by name.
     *Note: Properties like `request.headers`, `request.parameters`, `request.body` can override values from the OpenAPI definition or example.*
-  - *Output Saving:* You can also save the response body using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`httpRequest`](/reference/schemas/httprequest) reference for details.
+  - *Output Saving:* You can also save the response body using `path`, `directory`, `maxVariation`, and `overwrite` properties. The saved file shows environment variable values as `***NAME***`. See [Saved files](/docs/ci/secrets#saved-files) and the [`httpRequest`](/reference/schemas/httprequest) reference.
 
 **Setting Variables:** To capture parts of the response for later steps, use the step-level `variables` object. You can assign values based on the response using expressions like `$$response.body`, `$$response.headers`, `$$response.status`, etc. You can use dot notation for nested JSON fields (for example, `$$response.body.user.id`).
 
