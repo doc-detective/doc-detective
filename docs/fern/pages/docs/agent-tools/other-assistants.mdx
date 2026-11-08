@@ -48,6 +48,8 @@ Without `--scope`, the CLI prompts for which scope to use.
 
 The command fetches the agent-tools bundle and copies skills, the runtime plugin, hooks, and agents into the appropriate scope directory (`~/.config/opencode/` or `./.opencode/`). OpenCode auto-discovers them on next launch.
 
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 and drop the release-candidate sentences then. */}
+
 Codex, Qwen Code, and OpenCode install from the agent-tools `feat/v5-rc` branch during the Doc Detective 5 release candidate. That branch holds the agent-tools changes for Doc Detective 5 and can change between installs until Doc Detective 5 reaches general availability.
 
 All three installs are idempotent: re-running prints `already up to date` when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.

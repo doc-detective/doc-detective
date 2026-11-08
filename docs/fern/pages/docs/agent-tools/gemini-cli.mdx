@@ -18,6 +18,8 @@ From any project directory, run:
 npx doc-detective install agents --agent gemini
 ```
 
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 and drop the release-candidate sentences then. */}
+
 This invokes `gemini extensions install ... --ref feat/v5-rc --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. During the Doc Detective 5 release candidate, the extension comes from the agent-tools `feat/v5-rc` branch, which holds the agent-tools changes for Doc Detective 5. That branch can change between installs until Doc Detective 5 reaches general availability. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
