@@ -101,6 +101,11 @@ describe("normalization", function () {
 
     it("leaves step-level keys as authored", function () {
       expect(Object.keys(effective({ goTo: "https://x.com" }).object)).to.deep.equal(["goTo"]);
+      // Values that differ from the schema defaults, so a default can't stand in for them.
+      const authored = { unsafe: true, breakpoint: true, outputs: { TITLE: "$$title" }, variables: { X: "1" } };
+      const result = effective({ goTo: "https://x.com", ...authored });
+      expect(result.valid, result.errors).to.equal(true);
+      expect(result.object).to.deep.include(authored);
     });
 
     it("normalizes every step in a test and a spec", function () {
@@ -770,6 +775,10 @@ describe("normalization", function () {
 
   describe("deprecated aliases", function () {
     let warn;
+    // renameAliases warns once per process, through a module-level Set. This
+    // reset runs before each test here, so what earlier tests warned can't hide
+    // a warning from these. Only this block resets it. Any other test that
+    // asserts a deprecation warning needs its own _resetWarnedForTest().
     beforeEach(function () {
       _resetWarnedForTest();
       warn = sinon.stub(console, "warn");
