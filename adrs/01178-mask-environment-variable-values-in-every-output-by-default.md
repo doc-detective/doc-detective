@@ -77,8 +77,9 @@ A secret value shows as `***NAME***`. When that text would itself contain a secr
 `***`. These forms are masked, longest first:
 
 - raw, JSON-escaped, and HTML-escaped;
-- URL-encoded three ways, each with `%20` and `+` for spaces: `encodeURIComponent`, strict RFC 3986 (which also
-  encodes `!'()*`, as curl `--data-urlencode` and Python's `quote` do), and `URLSearchParams`;
+- URL-encoded four ways, each with `%20` and `+` for spaces. They're `encodeURIComponent`, strict RFC 3986
+  (which also encodes `!'()*`, as curl `--data-urlencode` and Python's `quote` do), and `URLSearchParams`. The
+  fourth also encodes `~`, as PHP's `urlencode` and older curl do;
 - base64 and base64url at all three byte alignments, for values of 7 or more bytes, so short values don't scrub
   image data;
 - a `Basic <token>` header: the token is decoded, and if it holds a secret the whole token becomes `***NAME***`.
@@ -155,6 +156,9 @@ Masking text can't reach pixels, so the page hides secrets itself:
   script returns `[index, text]` candidates, Node picks the indices that hold a secret, and a second script blurs
   those. Hiding a typed field sends no argument at all; the typed keys reach the page by typing, which is
   unavoidable.
+- Failures fail closed where they'd show a secret. If the blur scripts fail, the screenshot fails rather than
+  capture the page unblurred. If hiding a typed field fails, typing goes on and logs at debug. A later screenshot
+  still blurs that field, because its value holds the secret.
 - Not covered, and documented: page text that shows a secret during a recording, and native app and device
   captures. Text in iframes, shadow DOM, canvas, and CSS pseudo-elements isn't blurred either.
 

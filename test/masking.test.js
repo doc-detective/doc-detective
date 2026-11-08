@@ -47,6 +47,17 @@ describe("masking", function () {
       }
     });
 
+    it("masks the encoding that also escapes ~, as PHP's urlencode and older curl do", function () {
+      const value = "p~ss word*1!";
+      registerEnvValue("PASSWORD", value);
+      // PHP's urlencode: everything but letters, digits, and -_. is escaped, with + for spaces.
+      const php = encodeURIComponent(value)
+        .replace(/[!'()*~]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+        .replace(/%20/g, "+");
+      assert.equal(maskString(`p=${php}`), "p=***PASSWORD***", php);
+      assert.equal(maskString(`p=${php.replace(/\+/g, "%20")}`), "p=***PASSWORD***");
+    });
+
     it("masks the JSON-escaped value", function () {
       registerEnvValue("PASSWORD", 'a"b\\c');
       const json = JSON.stringify({ keys: 'a"b\\c' });
