@@ -776,6 +776,25 @@ describe("utils.ts coverage", function () {
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
     });
+
+    it("deep-merges DOC_DETECTIVE_CONFIG into the fetched config, as setConfig does", async function () {
+      captureConsole(sandbox);
+      process.env.DOC_DETECTIVE_API = JSON.stringify({
+        accountId: "a",
+        url: "http://api.test",
+        token: "tok",
+        contextIds: ["c1"],
+      });
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ telemetry: { send: false } });
+      sandbox.stub(axios, "get").resolves({
+        data: {
+          config: { telemetry: { send: true, userId: "x" } },
+          specs: [{ tests: [{ contexts: [{ steps: [{ wait: 5 }] }] }] }],
+        },
+      });
+      const out = await getResolvedTestsFromEnv();
+      assert.deepEqual(out.resolvedTests.config.telemetry, { send: false, userId: "x" });
+    });
   });
 
   // ---------------------------------------------------------------------------

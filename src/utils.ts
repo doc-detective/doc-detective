@@ -129,14 +129,8 @@ async function getResolvedTestsFromEnv(config: any = {}) {
 
     // Get config from environment variable for merging
     const envConfig = await getConfigFromEnv();
-    if (envConfig) {
-      // Apply config overrides to resolvedTests.config
-      if (resolvedTests.config) {
-        resolvedTests.config = { ...resolvedTests.config, ...envConfig };
-      } else {
-        resolvedTests.config = envConfig;
-      }
-    }
+    // Objects merge and arrays replace, as in setConfig (ADR 01165).
+    if (envConfig) resolvedTests.config = deepMerge(resolvedTests.config ?? {}, envConfig);
 
     log(
       `CLI:RESOLVED_TESTS:\n${JSON.stringify(resolvedTests, null, 2)}`,
@@ -422,6 +416,8 @@ async function setConfig({
   // Lowest first: the user config, the project config, the deprecated
   // DOC_DETECTIVE, then DOC_DETECTIVE_CONFIG. Objects merge, arrays replace
   // (ADR 01165). Single-purpose variables and flags go on top, below.
+  // readUserConfig and readLegacyEnvConfig anchor their own relative paths;
+  // the project config, above, and DOC_DETECTIVE_CONFIG are anchored here.
   config = deepMerge((await readUserConfig()) ?? {}, config);
   const legacyConfig = readLegacyEnvConfig();
   if (legacyConfig) config = deepMerge(config, legacyConfig);
