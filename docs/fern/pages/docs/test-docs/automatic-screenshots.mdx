@@ -53,6 +53,8 @@ The number is the step's place in the test, so the first step you wrote is `01-â
 
 While screenshots are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
+To look through the screenshots, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each step's automatic screenshot appears with the step, labeled **Automatic**. The report loads the images from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report).
+
 Automatic screenshots don't compare against a reference. To gate on drift, add a `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
 
 ## Turn them off
