@@ -11,6 +11,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { maskString } from "../masking.js";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -158,16 +159,19 @@ async function runBrowserScript({
       }
       const filePath = step.runBrowserScript.path;
       log(config, "debug", `Saving script result to file: ${filePath}`);
+      // The file holds the masked result, and a comparison is masked against
+      // masked (ADR 01178). `output` still matches the real result.
+      const saved = maskString(serialized);
 
       if (!fs.existsSync(filePath)) {
         // Doesn't exist, save output to file. No prior content to compare
         // against, so there is NO variation assertion in this branch.
-        fs.writeFileSync(filePath, serialized);
+        fs.writeFileSync(filePath, saved);
       } else {
         const existingFile = fs.readFileSync(filePath, "utf8");
         const fractionalDiff = calculateFractionalDifference(
           existingFile,
-          serialized
+          saved
         );
         log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
@@ -184,7 +188,7 @@ async function runBrowserScript({
             step.runBrowserScript.overwrite == "aboveVariation" ||
             step.runBrowserScript.overwrite == "true"
           ) {
-            fs.writeFileSync(filePath, serialized);
+            fs.writeFileSync(filePath, saved);
             descriptions.push(`Saved output to file.`);
           } else {
             descriptions.push(`Didn't overwrite the existing file.`);
@@ -200,7 +204,7 @@ async function runBrowserScript({
           // Within variation: only "true" forces a rewrite; otherwise the
           // existing file is left as-is.
           if (step.runBrowserScript.overwrite == "true") {
-            fs.writeFileSync(filePath, serialized);
+            fs.writeFileSync(filePath, saved);
             descriptions.push(`Saved output to file.`);
           }
         }
