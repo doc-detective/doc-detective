@@ -145,7 +145,7 @@ A step that never ran reports `0`. That covers a step that was skipped, guarded 
 
 ### Tell environment changes from product changes
 
-When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run, and Doc Detective populates every field:
+When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run:
 
 ```json
 {
@@ -154,7 +154,7 @@ When a test that passed yesterday fails today, check whether the environment cha
   "environment": {
     "platform": "linux",
     "arch": "x64",
-    "docDetectiveVersion": "4.42.0",
+    "docDetectiveVersion": "5.0.0",
     "nodeVersion": "24.15.0",
     "osRelease": "6.8.0-1017-azure"
   },
@@ -168,7 +168,7 @@ When a test that passed yesterday fails today, check whether the environment cha
 }
 ```
 
-- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory.
+- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory. If Doc Detective can't read its own version, it leaves out `docDetectiveVersion`.
 - Each context that started a browser records the `browser.version` and the `driver` that drove it. A context without a browser has neither. Safari's driver reports no version.
 - `startedAt` is an ISO 8601 UTC timestamp with milliseconds. It's on the run, each context, and each step that ran. A node ends at `startedAt` plus `durationMs`. Specs and tests have no `startedAt`, because their durations are sums rather than spans.
 
