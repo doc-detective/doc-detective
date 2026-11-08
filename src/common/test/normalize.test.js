@@ -637,18 +637,23 @@ describe("normalization", function () {
   describe("plain defaults", function () {
     // A probe action per case, so the rule is tested on a shape no real schema
     // has yet. Each needs its own name: applyDefaults caches by action.
-    for (const union of ["anyOf", "oneOf"]) {
-      const probe = `${union}Probe`;
+    const CONDITIONS = {
+      anyOf: { anyOf: [{ required: ["a"] }, { required: ["b"] }] },
+      oneOf: { oneOf: [{ required: ["a"] }, { required: ["b"] }] },
+      if: { if: { required: ["a"] }, then: { required: ["b"] } },
+    };
+    for (const [keyword, condition] of Object.entries(CONDITIONS)) {
+      const probe = `${keyword}Probe`;
       afterEach(function () {
         delete schemas[`${probe}_v3`];
       });
 
-      it(`leaves defaults in a nested object with a ${union} to the normalizer`, function () {
+      it(`leaves defaults in a nested object with ${keyword} to the normalizer`, function () {
         schemas[`${probe}_v3`] = {
           properties: {
             nested: {
               type: "object",
-              [union]: [{ required: ["a"] }, { required: ["b"] }],
+              ...condition,
               properties: { a: { type: "integer", default: 1 }, b: { type: "integer", default: 2 } },
             },
           },
@@ -656,6 +661,10 @@ describe("normalization", function () {
         expect(applyDefaults({}, probe)).to.deep.equal({});
       });
     }
+
+    it("names the schema it can't find", function () {
+      expect(() => applyDefaults({}, "noSuchAction")).to.throw(Error, '"noSuchAction_v3"');
+    });
   });
 
   describe("the registry", function () {

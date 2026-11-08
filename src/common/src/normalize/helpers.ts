@@ -68,8 +68,9 @@ export function listClasses(locator: any, literal: boolean): any {
 }
 
 // Every plain default in a schema node's properties, as [dotted path, value].
-// Defaults under anyOf/oneOf, or in nested objects with required keys, depend on
-// the rest of the step, so the action's normalizer codes them by hand. allOf
+// Defaults under anyOf/oneOf, or in nested objects with required keys or an
+// `if`, depend on the rest of the step, so the action's normalizer codes them
+// by hand. allOf
 // merges one level only: its parts' own properties count, but an allOf inside
 // one of those parts doesn't, so code such a default by hand too. A part with
 // no `properties` (an if/then, say) contributes nothing.
@@ -81,7 +82,7 @@ function plainDefaults(node: any, prefix = ""): [string, any][] {
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
     const path = prefix + key;
     if ("default" in property) return [[path, property.default]];
-    if (property.type === "object" && !property.required && !property.anyOf && !property.oneOf) {
+    if (property.type === "object" && !property.required && !property.anyOf && !property.oneOf && !property.if) {
       return plainDefaults(property, `${path}.`);
     }
     return [];
@@ -106,6 +107,8 @@ export function applyDefaults(value: any, action: string, skip: string[] = []): 
     // - its `object` component, when the root wraps the union in an `allOf`
     //   guard (click, ADR 01175).
     const schema = (schemas as any)[`${action}_v3`];
+    // A schema added since the last build isn't in the bundle yet.
+    if (!schema) throw new Error(`applyDefaults: no "${action}_v3" schema found. Run \`npm run build\` in src/common.`);
     const branch =
       schema.anyOf?.find((part: any) => part.properties || part.allOf) ??
       (schema.properties ? schema : schema.components.schemas.object);
