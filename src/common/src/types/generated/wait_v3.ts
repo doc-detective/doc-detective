@@ -5,7 +5,7 @@
  */
 
 /**
- * Pause (in milliseconds) before performing the next action.
+ * Pause before the next action, in milliseconds. `true` pauses for 5000 milliseconds, and `false` skips the step.
  */
 export type Wait = WaitSimple | WaitEnvironmentVariable;
 export type WaitSimple = number | boolean;

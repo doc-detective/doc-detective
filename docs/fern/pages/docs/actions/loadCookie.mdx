@@ -23,7 +23,7 @@ The `loadCookie` action supports multiple formats:
 
 ### String format
 
-Load a cookie by name from default location or by file path:
+A cookie name loads that cookie from the environment variable of the same name. A path ending in `.txt` loads the cookie named for the file, `session_token` here, from that path in `outputDir`, where `saveCookie` writes it:
 
 ```json title="Load from environment variable"
 {
@@ -57,8 +57,8 @@ Load a cookie with detailed configuration:
 |-------|------|-------------|---------|
 | `name` | string | **Required.** Name of the specific cookie to load. | |
 | `variable` | string | Environment variable name containing the cookie as JSON string. Can't be used with `path`. | |
-| `path` | string | File path to cookie file, relative to directory. Supports Netscape cookie format. Can't be used with `variable`. | |
-| `directory` | string | Directory containing the cookie file. | |
+| `path` | string | File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted. Can't be used with `variable`. | |
+| `directory` | string | Directory containing the cookie file. A relative directory resolves against the spec file. | `outputDir` |
 | `domain` | string | Specific domain to filter the cookie by when loading from multi-cookie file (optional). | |
 
 ## Examples

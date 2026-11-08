@@ -137,8 +137,11 @@ async function resolvePaths({
     "descriptionPath",
     "workingDirectory",
   ];
-  // Spec objects that are configurable by the user and shouldn't be resolved
+  // Spec objects that are configurable by the user and shouldn't be resolved:
+  // httpRequest's `request` and `response`, and their v2 names.
   const specNoResolve = [
+    "request",
+    "response",
     "requestData",
     "responseData",
     "requestHeaders",
@@ -169,11 +172,14 @@ async function resolvePaths({
       return relativePath;
     }
 
-    // Check if filePath exists and is a file
+    // Check if filePath exists and is a file. A trailing separator marks a
+    // folder that may not exist yet, even one with a dot in its name.
     const fileExists = fs.existsSync(filePath);
-    const isFile = fileExists
-      ? fs.lstatSync(filePath).isFile()
-      : path.parse(filePath).ext !== "";
+    const isFile = /[\\/]$/.test(filePath)
+      ? false
+      : fileExists
+        ? fs.lstatSync(filePath).isFile()
+        : path.parse(filePath).ext !== "";
 
     // Use directory of filePath if it's a file (or looks like one)
     const basePath = isFile ? path.dirname(filePath) : filePath;
@@ -246,7 +252,9 @@ async function resolvePaths({
             property === "path" &&
             object.directory &&
             path.isAbsolute(object.directory)
-              ? resolve(relativePathBase, item, object.directory)
+              ? // Append sep so resolve() treats it as a folder even if it doesn't
+                // exist yet or has a dot in its name (ADR 01173).
+                resolve(relativePathBase, item, object.directory + path.sep)
               : resolve(relativePathBase, item, filePath);
           object[property][i] = resolved;
         }
@@ -256,6 +264,15 @@ async function resolvePaths({
       ((objectType === "spec" && !specNoResolve.includes(property)) ||
         objectType === "config")
     ) {
+      // A cookie file `path` without `directory` belongs under outputDir, which
+      // the cookie handlers join at run time (ADR 01174). The recursive call
+      // below resolves every `path` against the spec, so save this one first
+      // and put it back afterward, undoing that resolution.
+      const cookie = object[property];
+      const cookiePath =
+        isStep && (property === "saveCookie" || property === "loadCookie") && cookie?.path && !cookie.directory
+          ? cookie.path
+          : undefined;
       object[property] = await resolvePaths({
         config: config,
         object: object[property],
@@ -263,6 +280,7 @@ async function resolvePaths({
         nested: true,
         objectType: objectType,
       });
+      if (cookiePath !== undefined) object[property].path = cookiePath;
     } else if (typeof object[property] === "string") {
       if (
         object[property].startsWith("https://") ||
@@ -279,10 +297,11 @@ async function resolvePaths({
           const directory = path.isAbsolute(object.directory)
             ? object.directory
             : resolve(relativePathBase, object.directory, filePath);
+          // `directory` is a folder, even before it exists.
           object[property] = resolve(
             relativePathBase,
             object[property],
-            directory
+            directory + path.sep
           );
         } else {
           object[property] = resolve(

@@ -15,13 +15,7 @@ import { normalizeEngine, resolveSessionForRef } from "./browserSessions.js";
 
 // Declared before the export list so the binding exists when the list is
 // evaluated (a `const` isn't hoisted like a function declaration).
-const RESERVED_ENGINE_KEYWORDS = new Set([
-  "chrome",
-  "firefox",
-  "safari",
-  "webkit",
-  "edge",
-]);
+const RESERVED_ENGINE_KEYWORDS = new Set(["chrome", "firefox", "safari", "webkit"]);
 
 export {
   RESERVED_ENGINE_KEYWORDS,

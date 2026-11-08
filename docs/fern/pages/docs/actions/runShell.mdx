@@ -17,8 +17,8 @@ You can specify the command directly as a string or use an object for more optio
   - `command`: (Required) The command or script to execute.
   - `shell`: (Optional) The shell to run the command in: `bash` (default), `cmd`, or `powershell`. `cmd` and `powershell` only work on Windows. If unset, uses the config-level `shell` setting, which defaults to `bash`.
   - `args`: (Optional) An array of arguments to pass to the command.
-  - `workingDirectory`: (Optional) The directory in which to run the command. If the directory doesn't exist, the command can't start, and the step fails with a `Couldn't start the command` message.
-  - `timeout`: (Optional) Maximum duration in milliseconds to wait for the command to complete.
+  - `workingDirectory`: (Optional) The folder to run the command in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead. If the folder doesn't exist, the command can't start, and the step fails with a `Couldn't start the command` message.
+  - `timeout`: (Optional) Maximum duration in milliseconds, `1` or more, to wait for the command to complete (default: `60000`).
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the command's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the command's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
   - `background`: (Optional) An object that starts the command as a long-running background process. The step returns as soon as the process is ready, instead of waiting for it to exit. Including this object enables background mode. Omit it for a normal blocking run. See [Background processes](#background-processes).
@@ -102,7 +102,7 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
-With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. Many TUIs wrap or truncate their output to the width they read from `process.stdout.columns`, so a `waitUntil.stdio` pattern can depend on that width. To pick the size, set `tty` to an object with `cols` and `rows`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`.
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. Many TUIs wrap or truncate their output to the width they read from `process.stdout.columns`, so a `waitUntil.stdio` pattern can depend on that width. To pick the size, set `tty` to an object with `cols` and `rows`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. Results show the size that ran, so `true` appears as `{"cols": 120, "rows": 30}`.
 
 ```json
 {

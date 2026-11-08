@@ -417,8 +417,26 @@ annotate | unknown | Optional. No description provided. | —
 
 ```json
 {
+  "httpRequest": "$API_URL/users"
+}
+```
+
+```json
+{
   "httpRequest": {
     "url": "https://reqres.in/api/users"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "/api/users",
+    "statusCodes": 200,
+    "request": {
+      "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+    }
   }
 }
 ```
@@ -571,35 +589,6 @@ annotate | unknown | Optional. No description provided. | —
       "descriptionPath": "https://api.example.com/openapi.json",
       "operationId": "createUser",
       "useExample": "both"
-    }
-  }
-}
-```
-
-```json
-{
-  "httpRequest": {
-    "openApi": {
-      "descriptionPath": "https://api.example.com/openapi.json",
-      "operationId": "updateUser",
-      "useExample": "request",
-      "exampleKey": "acme"
-    }
-  }
-}
-```
-
-```json
-{
-  "httpRequest": {
-    "openApi": {
-      "descriptionPath": "https://api.example.com/openapi.json",
-      "operationId": "updateUser",
-      "useExample": "request",
-      "exampleKey": "acme",
-      "headers": {
-        "Authorization": "Bearer $TOKEN"
-      }
     }
   }
 }

@@ -501,8 +501,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
       {
         field: "workingDirectory",
-        // "." is the schema's injected default, not an author request.
-        isSet: (value) => value !== undefined && value !== ".",
+        isSet: (value) => value !== undefined,
         guidance:
           "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
@@ -548,8 +547,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       ...DESKTOP_UNSUPPORTED_MOBILE_FIELDS,
       {
         field: "workingDirectory",
-        // "." is the schema's injected default, not an author request.
-        isSet: (value) => value !== undefined && value !== ".",
+        isSet: (value) => value !== undefined,
         guidance:
           "The macOS app driver launches apps through LaunchServices, which offers no working-directory control; launch via runShell if the cwd matters.",
       },
@@ -603,7 +601,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
       {
         field: "workingDirectory",
-        isSet: (value) => value !== undefined && value !== ".",
+        isSet: (value) => value !== undefined,
         guidance:
           "A working directory is meaningless for an Android package launch.",
       },
@@ -665,7 +663,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       },
       {
         field: "workingDirectory",
-        isSet: (value) => value !== undefined && value !== ".",
+        isSet: (value) => value !== undefined,
         guidance: "A working directory is not meaningful for iOS app launches.",
       },
       {
