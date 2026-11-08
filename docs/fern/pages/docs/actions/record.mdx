@@ -28,7 +28,7 @@ You can specify the recording action in several ways:
 
 ## Secrets in recordings
 
-Doc Detective doesn't blur page text during a recording. A page that displays the value of a secret environment variable, such as an API key on a settings page, shows it in the video. End the recording before the test reaches that page. In a browser, a field that a `type` step typed a secret into shows dots, so the typed value stays out of the video. Native app and device recordings don't hide typed values. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+Doc Detective doesn't blur page text during a recording. A page that displays the value of a secret environment variable, such as an API key on a settings page, shows it in the video. End the recording before the test reaches that page. In a browser, a `type` step or the `type` option of a `find` step can type a secret into a field. The field then shows dots, so the typed value stays out of the video. Native app and device recordings don't hide typed values. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
 ## Recording engines
 
