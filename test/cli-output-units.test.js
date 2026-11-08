@@ -2,7 +2,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import assert from "node:assert/strict";
 import { expect } from "chai";
+import { captureConsoleError } from "./capture-errors.js";
 import { nearestCommand, rewriteRootError } from "../dist/cliHelp.js";
 import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist/cliOutput.js";
 import { createInterruptHandler } from "../dist/core/signals.js";
@@ -332,5 +334,116 @@ describe("credentials from files", function () {
       message = error.message;
     });
     expect(message).to.include("apiKeyFile");
+  });
+});
+
+// ADR 01169: the CLI renames a deprecated beforeAny before it resolves paths.
+describe("beforeAll in the CLI config", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-before-all-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const withConfig = (config) => {
+    const file = path.join(dir, "config.json");
+    fs.writeFileSync(file, JSON.stringify(config));
+    return setConfig({ configPath: file, args: {} });
+  };
+
+  it("resolves beforeAll relative to the config file", async function () {
+    const config = await withConfig({ beforeAll: "setup.spec.json" });
+    expect(config.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+  });
+
+  it("renames beforeAny to beforeAll and warns once", async function () {
+    const { result, lines } = await captureConsoleError(() => withConfig({ beforeAny: "setup.spec.json" }));
+    expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+    expect(result).to.not.have.property("beforeAny");
+    expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([
+      "Warning: `beforeAny` is deprecated. Rename it to `beforeAll`.",
+    ]);
+  });
+
+  // Each source is renamed on its own, so DOC_DETECTIVE_CONFIG wins over the file
+  // whichever name either one uses.
+  for (const [fileKey, envKey] of [["beforeAny", "beforeAll"], ["beforeAll", "beforeAny"]]) {
+    it(`lets DOC_DETECTIVE_CONFIG ${envKey} override a file ${fileKey}`, async function () {
+      const saved = process.env.DOC_DETECTIVE_CONFIG;
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ [envKey]: "b.spec.json" });
+      try {
+        const { result, lines } = await captureConsoleError(() => withConfig({ [fileKey]: "a.spec.json" }));
+        expect(result.beforeAll).to.equal(path.join(dir, "b.spec.json"));
+        expect(result).to.not.have.property("beforeAny");
+        expect(lines.filter((line) => line.includes("beforeAny"))).to.have.lengthOf(1);
+      } finally {
+        if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+        else process.env.DOC_DETECTIVE_CONFIG = saved;
+      }
+    });
+  }
+
+  // The warning follows the merged config, so a user config's logLevel applies.
+  it("doesn't warn about beforeAny when the user config is silent", async function () {
+    const saved = process.env.XDG_CONFIG_HOME;
+    const home = path.join(dir, "xdg");
+    fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+    fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ logLevel: "silent" }));
+    process.env.XDG_CONFIG_HOME = home;
+    try {
+      const { result, lines } = await captureConsoleError(() => withConfig({ beforeAny: "setup.spec.json" }));
+      expect(result.beforeAll).to.equal(path.join(dir, "setup.spec.json"));
+      expect(lines.filter((line) => line.includes("beforeAny"))).to.deep.equal([]);
+    } finally {
+      if (saved === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = saved;
+    }
+  });
+
+  it("rejects a DOC_DETECTIVE_CONFIG that sets both, with a config file's message", async function () {
+    const saved = process.env.DOC_DETECTIVE_CONFIG;
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" });
+    try {
+      await assert.rejects(withConfig({}), {
+        message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.",
+      });
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = saved;
+    }
+  });
+
+  it("accepts beforeAll beside a null beforeAny in DOC_DETECTIVE_CONFIG, as in a config file", async function () {
+    const saved = process.env.DOC_DETECTIVE_CONFIG;
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: null });
+    try {
+      const result = await withConfig({});
+      expect(result.beforeAll).to.include("a.spec.json");
+      expect(result).to.not.have.property("beforeAny");
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = saved;
+    }
+  });
+
+  it("logs DOC_DETECTIVE_CONFIG with beforeAny renamed, as it was validated", async function () {
+    const saved = process.env.DOC_DETECTIVE_CONFIG;
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: "debug", beforeAny: "b.spec.json" });
+    try {
+      const { lines } = await captureConsoleError(() => withConfig({}));
+      const dump = lines.find((line) => line.includes("CLI:ENV_CONFIG"));
+      expect(dump).to.include('"beforeAll": "b.spec.json"');
+      expect(dump).to.not.include("beforeAny");
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = saved;
+    }
+  });
+
+  it("rejects a config that sets both", async function () {
+    await assert.rejects(withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }), {
+      message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.",
+    });
   });
 });

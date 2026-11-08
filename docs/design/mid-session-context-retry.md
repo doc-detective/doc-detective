@@ -147,7 +147,7 @@ On a confirmed dead-session FAIL within budget:
 4. **Restart the step loop at index 0.** `before` and `after` steps are already inlined into
    `context.steps` at detection time (`detectTests.ts:623-669`). A from-scratch re-run therefore
    **re-runs setup and cleanup on the fresh session**. That's the desired semantics, since setup
-   re-establishes state on the new browser. `beforeAny` and `afterAll` are whole-spec phases, and
+   re-establishes state on the new browser. `beforeAll` and `afterAll` are whole-spec phases, and
    correctly do **not** re-run for a single context.
 5. The existing `finally` (`4974-5042`) remains the **terminal** cleanup, unchanged. It stops final
    recordings, sweeps the session, tears down the app, and does the **pool release**.

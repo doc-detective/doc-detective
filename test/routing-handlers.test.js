@@ -74,17 +74,6 @@ describe("routing: resolveStepRouting", function () {
       { action: "stop", scope: "test" }
     );
   });
-  it("stop scope is preserved (spec / run)", async function () {
-    assert.deepEqual(
-      await resolveStepRouting({
-        status: "FAIL",
-        step: { onFail: [{ stop: "run" }] },
-        context: ctx,
-      }),
-      { action: "stop", scope: "run" }
-    );
-  });
-
   // --- if-selector matching: first match wins ---
   it("first entry whose `if` matches wins", async function () {
     // platform is windows, so the linux entry is skipped; the second matches.
@@ -135,26 +124,6 @@ describe("routing: resolveStepRouting", function () {
       { action: "continue" }
     );
   });
-  it("goToStep -> goToStep decision; deferred goToTest -> default for the status", async function () {
-    // goToStep is now live; goToTest is still deferred (behaves as if no handler
-    // matched -> the status default).
-    assert.deepEqual(
-      await resolveStepRouting({
-        status: "FAIL",
-        step: { onFail: [{ goToStep: "cleanup" }] },
-        context: ctx,
-      }),
-      { action: "goToStep", stepId: "cleanup" }
-    );
-    assert.deepEqual(
-      await resolveStepRouting({
-        status: "PASS",
-        step: { onPass: [{ goToTest: "x" }] },
-        context: ctx,
-      }),
-      { action: "continue" }
-    );
-  });
   it("a matched goToStep entry stops scanning (a later entry can't override it)", async function () {
     // The first entry matches (no `if`) -> goToStep, and the trailing
     // `{continue:true}` must NOT take effect.
@@ -167,20 +136,6 @@ describe("routing: resolveStepRouting", function () {
       { action: "goToStep", stepId: "x" }
     );
   });
-  it("a matched deferred goToTest entry stops scanning (a later entry can't override it)", async function () {
-    // goToTest is still deferred: the first entry matches but its action is not
-    // implemented -> return the status default and STOP scanning, so the
-    // trailing `{continue:true}` must NOT take effect. FAIL default is stop:test.
-    assert.deepEqual(
-      await resolveStepRouting({
-        status: "FAIL",
-        step: { onFail: [{ goToTest: "x" }, { continue: true }] },
-        context: ctx,
-      }),
-      { action: "stop", scope: "test" }
-    );
-  });
-
   // --- goToStep action ---
   it("onFail [{goToStep:'cleanup'}] -> goToStep decision", async function () {
     assert.deepEqual(

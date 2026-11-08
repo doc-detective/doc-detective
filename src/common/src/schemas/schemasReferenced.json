@@ -2889,25 +2889,25 @@
           "onPass": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onFail": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onWarning": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.schema.json#"
+              "$ref": "routing_v3.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -6518,40 +6518,8 @@
           "type": "string",
           "enum": [
             "test",
-            "spec",
-            "run"
+            "spec"
           ]
-        },
-        "retry": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "limit"
-          ],
-          "properties": {
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "delay": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 3600000
-            },
-            "backoff": {
-              "type": "string",
-              "enum": [
-                "fixed",
-                "exponential"
-              ]
-            }
-          }
-        },
-        "goToStep": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
         },
         "goToTest": {
           "type": "string",
@@ -6568,16 +6536,6 @@
         {
           "required": [
             "stop"
-          ]
-        },
-        {
-          "required": [
-            "retry"
-          ]
-        },
-        {
-          "required": [
-            "goToStep"
           ]
         },
         {
@@ -6603,6 +6561,77 @@
                   "minLength": 1,
                   "pattern": "\\S"
                 }
+              }
+            ]
+          },
+          "step": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "#/components/schemas/condition"
+              },
+              "continue": {
+                "const": true
+              },
+              "stop": {
+                "type": "string",
+                "enum": [
+                  "test"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "limit"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600000
+                  },
+                  "backoff": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "exponential"
+                    ]
+                  }
+                }
+              },
+              "goToStep": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "retry"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
               }
             ]
           }
@@ -7262,6 +7291,15 @@
       "dynamicDefaults": {
         "configId": "uuid"
       },
+      "not": {
+        "required": [
+          "beforeAll",
+          "beforeAny"
+        ]
+      },
+      "errorMessage": {
+        "not": "set `beforeAll` or `beforeAny`, not both."
+      },
       "properties": {
         "$schema": {
           "type": "string",
@@ -7343,7 +7381,25 @@
           },
           "default": {}
         },
+        "beforeAll": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
         "beforeAny": {
+          "deprecated": true,
           "anyOf": [
             {
               "type": "string"
@@ -10930,25 +10986,25 @@
           "onPass": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onFail": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onWarning": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "onSkip": {
             "type": "array",
             "items": {
-              "$ref": "routing_v3.nodefaults.schema.json#"
+              "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/step"
             }
           },
           "$schema": {
@@ -14476,40 +14532,8 @@
           "type": "string",
           "enum": [
             "test",
-            "spec",
-            "run"
+            "spec"
           ]
-        },
-        "retry": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "limit"
-          ],
-          "properties": {
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "delay": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 3600000
-            },
-            "backoff": {
-              "type": "string",
-              "enum": [
-                "fixed",
-                "exponential"
-              ]
-            }
-          }
-        },
-        "goToStep": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
         },
         "goToTest": {
           "type": "string",
@@ -14526,16 +14550,6 @@
         {
           "required": [
             "stop"
-          ]
-        },
-        {
-          "required": [
-            "retry"
-          ]
-        },
-        {
-          "required": [
-            "goToStep"
           ]
         },
         {
@@ -14561,6 +14575,77 @@
                   "minLength": 1,
                   "pattern": "\\S"
                 }
+              }
+            ]
+          },
+          "step": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "if": {
+                "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/condition"
+              },
+              "continue": {
+                "const": true
+              },
+              "stop": {
+                "type": "string",
+                "enum": [
+                  "test"
+                ]
+              },
+              "retry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "limit"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600000
+                  },
+                  "backoff": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "exponential"
+                    ]
+                  }
+                }
+              },
+              "goToStep": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "continue"
+                ]
+              },
+              {
+                "required": [
+                  "stop"
+                ]
+              },
+              {
+                "required": [
+                  "retry"
+                ]
+              },
+              {
+                "required": [
+                  "goToStep"
+                ]
               }
             ]
           }
@@ -15207,6 +15292,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
+      "not": {
+        "required": [
+          "beforeAll",
+          "beforeAny"
+        ]
+      },
+      "errorMessage": {
+        "not": "set `beforeAll` or `beforeAny`, not both."
+      },
       "properties": {
         "$schema": {
           "type": "string",
@@ -15279,7 +15373,25 @@
             "type": "string"
           }
         },
+        "beforeAll": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
+        },
         "beforeAny": {
+          "deprecated": true,
           "anyOf": [
             {
               "type": "string"
