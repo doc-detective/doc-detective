@@ -331,7 +331,8 @@ branches.
 - When the trunk or a lower layer moves, run `gh stack sync` or `gh stack rebase`, not a manual rebase.
   `gh stack rebase` only updates local branches, so follow it with `gh stack push` to publish them.
 - Merge bottom-up with `gh stack merge <pr> --merge`. It merges every PR up to and including `<pr>`, all or
-  nothing. Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
+  nothing, so every one of those PRs needs its own approval first. Use `--merge`, never squash, so each
+  layer's `BREAKING CHANGE:` footer reaches semantic-release.
 - A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See
   [release-operations.md](docs/maintenance/release-operations.md).
 - Put independent work in separate stacks.

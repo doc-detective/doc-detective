@@ -61,7 +61,9 @@ realities around them.
   Bot comments, such as CodeRabbit's or the Claude review's, never count as approval.
 - Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
   layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
-  `feat/v5-rc`, which has no ruleset, merges once its checks are green and an approving comment is there.
+  `feat/v5-rc` has no ruleset to enforce approval. It merges once every layer being merged has green checks
+  and its own approving comment from the maintainer. An approval on the top PR doesn't approve the layers
+  below it.
 - Stale CodeQL on old branches clears by merging current `origin/main` into the branch.
   `reviewDecision: CHANGES_REQUESTED` persists even after fixes. Only an APPROVED review or a
   dismissal clears it. A later COMMENTED review does not.
