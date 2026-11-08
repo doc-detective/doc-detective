@@ -12,10 +12,11 @@
 
 const SECRET_NAME = /TOKEN|SECRET|PASSWORD|API_KEY|PRIVATE_KEY|CREDENTIAL/i;
 const MIN_LENGTH = 4;
-// Shorter base64 needles would match inside unrelated image data.
+// In UTF-8 bytes. Shorter base64 needles would match inside unrelated image data.
 const MIN_BASE64_LENGTH = 7;
 const NOT_SECRET = new Set(["true", "false", "null"]);
 // `Basic <token>`: the token is decoded, so a short password inside it still masks.
+// Global, for String.prototype.replace only; never use it with .test() or .exec().
 const BASIC_AUTH = /(\bBasic\s+)([A-Za-z0-9+/_-]+={0,2})/gi;
 
 export {
@@ -184,8 +185,11 @@ function rebuild(): void {
   }
   // Longest first: masking a short value first would strand the rest of a long one.
   raw.sort((a, b) => b.needle.length - a.needle.length);
-  // A mask that would itself contain a secret names nothing instead. Each
-  // secret's mask is set once, here, and its needles and Basic auth read it.
+  // A mask that would itself contain a secret names nothing instead. Any
+  // secret's needle counts, not just its own: `***PASSWORD***` written for one
+  // secret would print another whose value is `WORD`, and a second pass would
+  // mask inside the mask. Each secret's mask is set once, here, and its
+  // needles and Basic auth read it.
   for (const secret of secrets) {
     const preferred = `***${secret.name}***`;
     secret.mask = raw.some(({ needle }) => preferred.includes(needle)) ? "***" : preferred;
