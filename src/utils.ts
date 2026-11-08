@@ -337,7 +337,9 @@ function assertValidConfig(config: any, source: string): any {
   if (!validation.valid) {
     throw new Error(configErrorMessage(source, validation.errorObjects, renamed), { cause: validation.errors });
   }
-  // A v3 source comes back as the copy, so return the caller's own object.
+  // With addDefaults: false, validate() returns the object it was given, the
+  // renamed copy, unless it migrated a v2 config to v3. So a v3 source returns
+  // the caller's own object, and a v2 one its v3 form.
   return validation.object === renamed ? config : validation.object;
 }
 

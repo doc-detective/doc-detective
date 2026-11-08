@@ -1358,6 +1358,8 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
   // "#", holds one path, so it always takes the "isn't allowed here" line.
   for (const [parent, paths] of forbidden) {
     if (paths.size > 1) {
+      // Only a non-root parent gets here, so every path has a last segment.
+      // It can be "", a real empty key, so don't filter falsy keys out.
       const keys = [...paths].map((forbiddenPath) => partsOf(forbiddenPath).at(-1));
       lines.push(`${prefixOf(partsOf(parent))}set only one of ${keys.sort().join(", ")}.`);
     } else lines.push(`${prefixOf(partsOf([...paths][0]))}isn't allowed here.`);

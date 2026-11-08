@@ -11,6 +11,7 @@ import { applyInputFlag, isInteractive, reportCrash, verdictLine } from "../dist
 import { createInterruptHandler } from "../dist/core/signals.js";
 import { knownKeysAt, summarizeSchemaErrors } from "../dist/core/utils.js";
 import { validate } from "../dist/common/src/index.js";
+import { schemas } from "../dist/common/src/schemas/index.js";
 import { telemetryAllowed, telemetryNotice } from "../dist/core/telemLite.js";
 import { defaultCacheRoot, userConfigDir } from "../dist/runtime/cacheDir.js";
 import { checkForUpdate } from "../dist/runtime/selfUpdate.js";
@@ -97,6 +98,12 @@ describe("summarizeSchemaErrors", function () {
 
   it("handles a step with no recognizable key", function () {
     expect(summarize(spec({}))).to.include("tests[0].steps[0]: no action");
+  });
+
+  // The formatter reads the shared step keys from here and falls back to none,
+  // so a schema change that moves them fails this test rather than going quiet.
+  it("finds step_v3's shared keys where the formatter reads them", function () {
+    expect(Object.keys(schemas.step_v3.components.schemas.common.properties)).to.include("stepId");
   });
 
   it("names a missing required key", function () {

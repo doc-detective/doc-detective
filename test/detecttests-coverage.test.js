@@ -6,8 +6,11 @@ import {
   detectTests,
   parseTests,
   generateSpecId,
+  skipInvalidSpec,
 } from "../dist/core/detectTests.js";
 import { setConfig } from "../dist/core/config.js";
+import { validate } from "../dist/common/src/index.js";
+import { captureConsoleError } from "./capture-errors.js";
 
 // Exercises currently-uncovered paths in src/core/detectTests.ts:
 // qualifyFiles (dir recursion, dedup, missing input, glob), isValidSourceFile
@@ -434,5 +437,40 @@ describe("detectTests coverage", function () {
       const inside = path.join(process.cwd(), "stable", "x.json");
       assert.equal(generateSpecId(inside), generateSpecId(inside));
     });
+  });
+});
+
+// Every spec that fails its schema check after detection (a before/after
+// merge, inline statements, a runShell file type) is skipped the same way.
+describe("skipInvalidSpec", function () {
+  const RAW = /errorObjects|instancePath/;
+  const invalid = () => {
+    const object = { tests: [] };
+    return { object, validation: validate({ schemaKey: "spec_v3", object, addDefaults: false, structuredErrors: true }) };
+  };
+  const MESSAGE = "Tests from doc.md don't create a valid test specification. Skipping.";
+
+  it("warns with the formatted lines, not the raw errors, outside a strict run", async function () {
+    const config = { logLevel: "info" };
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec(config, "doc.md", MESSAGE, validation, object));
+    const output = lines.join("\n");
+    assert.match(output, /Skipping\.\ntests: must NOT have fewer than 1 items\./);
+    assert.doesNotMatch(output, RAW);
+    assert.equal(config._invalidSpecs.length, 1);
+  });
+
+  it("leaves the reason to a strict run's error", async function () {
+    const config = { logLevel: "info", _strictSpecs: true };
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec(config, "doc.md", MESSAGE, validation, object));
+    assert.deepEqual(lines, []);
+    assert.match(config._invalidSpecs[0], /tests: must NOT have fewer than 1 items\./);
+  });
+
+  it("logs the raw errors at debug", async function () {
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec({ logLevel: "debug" }, "doc.md", MESSAGE, validation, object));
+    assert.match(lines.join("\n"), RAW);
   });
 });

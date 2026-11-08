@@ -31,7 +31,7 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec };
 
 /**
  * Detects tests from files based on config.
@@ -117,6 +117,16 @@ function noteInvalidSpec(config: any, source: string, reason = "It isn't valid J
     Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
   }
   config._invalidSpecs.push(`${displayPath(source)}\n${reason}`);
+}
+
+// Skip a spec that failed its schema check, and say why once: a strict run's
+// error carries the formatted lines, so only a non-strict run's warning does.
+// The raw errors stay at debug.
+function skipInvalidSpec(config: any, file: string, message: string, validation: any, object: any, schemaKey = "spec_v3") {
+  const summary = summarizeSchemaErrors(validation.errorObjects, object, schemaKey);
+  noteInvalidSpec(config, file, summary);
+  log(config, "debug", validation);
+  if (!config._strictSpecs) log(config, "warning", `${message}\n${summary}`);
 }
 
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
@@ -804,17 +814,13 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         structuredErrors: true,
       });
       if (!validation.valid) {
-        const summary = summarizeSchemaErrors(validation.errorObjects, content);
-        noteInvalidSpec(config, file, summary);
-        log(config, "debug", validation);
-        // In a strict run, the error that stops the run carries this instead.
-        if (!config._strictSpecs) {
-          log(
-            config,
-            "warning",
-            `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.\n${summary}`
-          );
-        }
+        skipInvalidSpec(
+          config,
+          file,
+          `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`,
+          validation,
+          content
+        );
         return null;
       }
       content = validation.object;
@@ -895,13 +901,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           schemaKey: "test_v3",
           object: test,
           addDefaults: false,
+          structuredErrors: true,
         });
         if (!validation.valid) {
-          log(
-            config,
-            "warning",
-            `Failed to convert ${file} to a runShell step: ${validation.errors}. Skipping.`
-          );
+          skipInvalidSpec(config, file, `Couldn't convert ${file} to a runShell step. Skipping.`, validation, test, "test_v3");
           return null;
         }
 
@@ -917,13 +920,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           schemaKey: "spec_v3",
           object: spec,
           addDefaults: false,
+          structuredErrors: true,
         });
         if (!specValidation.valid) {
-          log(
-            config,
-            "warning",
-            `Tests from ${file} don't create a valid test specification. Skipping.`
-          );
+          skipInvalidSpec(config, file, `Tests from ${file} don't create a valid test specification. Skipping.`, specValidation, spec);
         } else {
           spec = await resolvePaths({
             config: config,
@@ -974,15 +974,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         structuredErrors: true,
       });
       if (!validation.valid) {
-        log(
-          config,
-          "warning",
-          `Tests from ${file} don't create a valid test specification. Skipping.`
-        );
-        // A document with no tests in it is just a document.
-        if (spec.tests.length > 0) {
-          noteInvalidSpec(config, file, summarizeSchemaErrors(validation.errorObjects, spec));
-        }
+        const message = `Tests from ${file} don't create a valid test specification. Skipping.`;
+        // A document with no tests in it is just a document: no reason to give.
+        if (spec.tests.length === 0) log(config, "warning", message);
+        else skipInvalidSpec(config, file, message, validation, spec);
       } else {
         spec = await resolvePaths({
           config: config,
