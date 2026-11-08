@@ -68,6 +68,18 @@ describe("hiding secrets in captures", function () {
       assert.deepEqual(driver.calls, [[hideFocusedField]]);
     });
 
+    it("fails closed, naming why, when the page won't run the blur", async function () {
+      registerEnvValue("DD_PASSWORD", SECRET);
+      const driver = {
+        execute: async () => {
+          throw new Error("session lost");
+        },
+      };
+      await assert.rejects(blurSecretsForCapture(driver), {
+        message: "Couldn't hide secret values on the page before the screenshot: session lost",
+      });
+    });
+
     it("types anyway when the page rejects the hiding style", async function () {
       registerEnvValue("DD_PASSWORD", SECRET);
       const typed = [];
