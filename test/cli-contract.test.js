@@ -821,6 +821,13 @@ describe("CLI contract", function () {
       );
     });
 
+    it("rejects a repeated -r after a list with only the repeat error", function () {
+      usage(
+        run(["-r", "terminal,json", "-r", "html"]),
+        "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: terminal,json,html."
+      );
+    });
+
     it("rejects a repeated -i, and shows the comma form", function () {
       usage(
         run(["-i", "a", "-i", "b"]),

@@ -102,7 +102,7 @@ Two hazards come with generation:
 - Object type: `config` or `spec` (different path properties)
 
 **Properties resolved:**
-- Config: `input`, `output`, `loadVariables`, `beforeAny`, `afterAll`, `mediaDirectory`, etc.
+- Config: `input`, `output`, `loadVariables`, `beforeAll`, `afterAll`, `mediaDirectory`, etc.
 - Spec: `file`, `path`, `directory`, `before`, `after`, `workingDirectory`, etc.
 - Skips: HTTP(S) URLs, already-absolute paths, user data properties (e.g., `requestData`)
 

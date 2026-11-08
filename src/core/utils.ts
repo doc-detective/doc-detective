@@ -122,6 +122,7 @@ export {
   shortJson,
   knownKeysAt,
   configErrorMessage,
+  allSchemas,
   findFreePort,
   runConcurrent,
   createResourceRegistry,

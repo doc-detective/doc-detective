@@ -2,7 +2,7 @@ import os from "node:os";
 import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
 import { defaultFileTypes } from "../common/src/fileTypes.js";
-import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage } from "./utils.js";
+import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage, allSchemas } from "./utils.js";
 import { clearPendingEnvWarnings, setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
@@ -13,7 +13,36 @@ import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browser
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild, fileTypeObject };
+export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild, fileTypeObject };
+
+// Rename deprecated config keys in place, in each config source before they're
+// merged, so a later source wins whichever name either one uses (ADR 01169).
+// Setting both names in one source is an error. Calls `warn` at most once for
+// all the sources. Callers should capture that message and log it after they
+// merge the sources, so the merged `logLevel` applies.
+function renameDeprecatedConfigKeys(
+  sources: (Record<string, any> | null | undefined)[],
+  warn: (message: string) => void
+) {
+  let renamed = false;
+  for (const config of sources) {
+    // null means absent, so drop it: left in, it would meet another source's
+    // beforeAll in the merge and read as both set.
+    if (config?.beforeAny === null) delete config.beforeAny;
+    if (config?.beforeAny === undefined) continue;
+    // The same goes for beforeAll: only a non-null value conflicts.
+    if (config.beforeAll != null) {
+      // The schema's own message; config-coverage's "ends the both-set error"
+      // test keeps the two aligned. No fallback on purpose: if the schema moves
+      // the message, that test should fail, so no stale text ever ships.
+      throw new Error(`Invalid config. beforeAll: ${allSchemas().config_v3.errorMessage.not}`);
+    }
+    config.beforeAll = config.beforeAny;
+    delete config.beforeAny;
+    renamed = true;
+  }
+  if (renamed) warn("`beforeAny` is deprecated. Rename it to `beforeAll`.");
+}
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -111,6 +140,14 @@ async function setConfig({ config, detectApps = true }: any) {
   // structuredClone, to match the clone validate() applies just below.
   config = replaceEnvs(JSON.parse(JSON.stringify(config)));
 
+  // Rename deprecated keys. The runner reads only the config it's given (ADR
+  // 01152), so that's the one source. The callback only captures the warning,
+  // and the rename rejects both names; config_v3's `not: {required}` is the
+  // backstop for callers that skip the rename.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([config], (message) => (deprecation = message));
+  if (deprecation) log(config, "warning", deprecation);
+
   // Validate inbound `config`. Thrown, not logged: the caller prints it once.
   const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
   if (!validityCheck.valid) {
@@ -128,11 +165,11 @@ async function setConfig({ config, detectApps = true }: any) {
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];
-  if (typeof config.beforeAny === "string") {
-    if (config.beforeAny === "") {
-      config.beforeAny = [];
+  if (typeof config.beforeAll === "string") {
+    if (config.beforeAll === "") {
+      config.beforeAll = [];
     } else {
-      config.beforeAny = [config.beforeAny];
+      config.beforeAll = [config.beforeAll];
     }
   }
   if (typeof config.afterAll === "string") {

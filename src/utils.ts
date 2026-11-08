@@ -2,6 +2,7 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
+import { renameDeprecatedConfigKeys } from "./core/config.js";
 import {
   configErrorMessage,
   deepMerge,
@@ -167,26 +168,36 @@ async function getConfigFromEnv() {
       );
     }
 
+    // Rename, then validate, as a config file does: setting both gets the same
+    // both-set error, and a null beforeAny counts as absent. It works on a
+    // copy, so envConfig is unchanged and setConfig still does the real rename
+    // and its warning.
+    const renamed = { ...envConfig };
+    renameDeprecatedConfigKeys([renamed], () => {});
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
-      object: envConfig,
+      object: renamed,
       structuredErrors: true,
     });
 
     if (!envValidation.valid) {
-      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, envConfig), {
+      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, renamed), {
         cause: envValidation.errors,
       });
     }
 
-    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
+    // Log the validated shape, with beforeAny renamed.
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(renamed, null, 2)}`, "debug", renamed);
   } catch (error: any) {
     if (error instanceof SyntaxError) {
       throw new Error(
         `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
       );
     }
+    // Re-throw the rest on purpose: the shape error, the validation error, and
+    // renameDeprecatedConfigKeys' both-set error. Don't swallow them here.
     throw error;
   }
   return envConfig;
@@ -316,12 +327,18 @@ async function readUserConfig() {
 // `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
 // Returns the source to merge: the caller's own object, or a v2 config's v3
 // form, so the merge never mixes v2 keys into a v3 config.
+// It validates a copy with `beforeAny` renamed, so both names in one source get
+// the rename's error and a null `beforeAny` counts as absent. setConfig renames
+// the source itself, and warns, before the merge (ADR 01169).
 function assertValidConfig(config: any, source: string): any {
-  const validation = validate({ schemaKey: "config_v3", object: config, addDefaults: false, structuredErrors: true });
+  const renamed = { ...config };
+  renameDeprecatedConfigKeys([renamed], () => {});
+  const validation = validate({ schemaKey: "config_v3", object: renamed, addDefaults: false, structuredErrors: true });
   if (!validation.valid) {
-    throw new Error(configErrorMessage(source, validation.errorObjects, config), { cause: validation.errors });
+    throw new Error(configErrorMessage(source, validation.errorObjects, renamed), { cause: validation.errors });
   }
-  return validation.object;
+  // A v3 source comes back as the copy, so return the caller's own object.
+  return validation.object === renamed ? config : validation.object;
 }
 
 // Secrets can come from a file rather than the config or environment, where they
@@ -418,10 +435,17 @@ async function setConfig({
   // (ADR 01165). Single-purpose variables and flags go on top, below.
   // readUserConfig and readLegacyEnvConfig anchor their own relative paths;
   // the project config, above, and DOC_DETECTIVE_CONFIG are anchored here.
-  config = deepMerge((await readUserConfig()) ?? {}, config);
+  const userConfig = await readUserConfig();
   const legacyConfig = readLegacyEnvConfig();
-  if (legacyConfig) config = deepMerge(config, legacyConfig);
   const envConfig = await getConfigFromEnv();
+  // Rename each source before the merge, so a later source wins whichever name
+  // it uses (ADR 01169). Each was validated as a renamed copy, so both names in
+  // one source already failed. The callback only captures the warning, which
+  // prints once the log level is final, below.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([userConfig, config, legacyConfig, envConfig], (message) => (deprecation = message));
+  config = deepMerge(userConfig ?? {}, config);
+  if (legacyConfig) config = deepMerge(config, legacyConfig);
   if (envConfig) config = deepMerge(config, anchorPaths(envConfig, process.cwd()));
 
   if (readCredentials) readCredentialFiles(config);
@@ -501,6 +525,7 @@ async function setConfig({
   // The runner's setConfig sets the sink again on purpose, so JS API callers,
   // who never reach this one, get the same warnings.
   setEnvWarningSink((message) => log(message, "warning", logged));
+  if (deprecation) log(deprecation, "warning", config);
   if (args.telemetry === false || process.env.DO_NOT_TRACK) {
     config.telemetry = { ...(config.telemetry || {}), send: false };
   }

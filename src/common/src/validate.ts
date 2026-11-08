@@ -486,7 +486,7 @@ export function transformToSchemaKey({
       recursive: object?.runTests?.recursive || object.recursive,
       relativePathBase: object.relativePathBase,
       detectSteps: object?.runTests?.detectSteps,
-      beforeAny: object?.runTests?.setup,
+      beforeAll: object?.runTests?.setup,
       afterAll: object?.runTests?.cleanup,
       logLevel: object.logLevel,
       telemetry: object.telemetry,

@@ -86,6 +86,7 @@ async function runTestsAndReport(config: any, options: any) {
   let results: any;
 
   if (options.resolvedTests) {
+    // TODO(ADR 01168): validate DOC_DETECTIVE_API payloads against the schema; API runs are post-v5.
     resolvedTests = options.resolvedTests;
     // Caller-provided config wins over the embedded resolved-tests config
     // so CLI overrides like --dry-run / --logLevel are preserved when tests

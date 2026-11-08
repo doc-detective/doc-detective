@@ -78,10 +78,10 @@ describe("detectTests coverage", function () {
   describe("qualifyFiles", function () {
     it("returns [] and warns when no input sources are specified", async function () {
       // Build a valid config first, then blank out input so the
-      // sequence-empty short-circuit (no beforeAny/input/afterAll) runs.
+      // sequence-empty short-circuit (no beforeAll/input/afterAll) runs.
       const config = await makeConfig({ input: ["./README.md"] });
       config.input = [];
-      config.beforeAny = [];
+      config.beforeAll = [];
       config.afterAll = [];
       const specs = await detectTests({ config });
       assert.deepEqual(specs, []);
@@ -147,18 +147,18 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 1);
     });
 
-    it("stamps the beforeAny / main / afterAll phase onto detected specs", async function () {
+    it("stamps the beforeAll / main / afterAll phase onto detected specs", async function () {
       const before = write("before.md", "# B\n\n<!-- step {\"goTo\": \"https://b.com\"} -->\n");
       const main = write("main.json", specJSON("https://m.com"));
       const after = write("after.md", "# A\n\n<!-- step {\"goTo\": \"https://a.com\"} -->\n");
       const config = await makeConfig({
         input: [main],
-        beforeAny: [before],
+        beforeAll: [before],
         afterAll: [after],
       });
       const specs = await detectTests({ config });
       const phases = specs.map((s) => s._phase).sort();
-      assert.deepEqual(phases, ["afterAll", "beforeAny", "main"]);
+      assert.deepEqual(phases, ["afterAll", "beforeAll", "main"]);
     });
   });
 

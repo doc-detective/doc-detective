@@ -297,7 +297,7 @@ async function qualifyFiles({ config }: { config: any }) {
   let files: string[] = [];
   // Same members as `files`, for the dedup check in isValidSourceFile.
   const seen = new Set<string>();
-  // Each sequence entry carries its phase so config-level beforeAny / afterAll
+  // Each sequence entry carries its phase so config-level beforeAll / afterAll
   // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
   // heretto splices inherit the triggering entry's phase. The per-file phase is
   // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
@@ -328,7 +328,7 @@ async function qualifyFiles({ config }: { config: any }) {
       phase,
     }));
 
-  sequence = sequence.concat(toEntries(config.beforeAny, "beforeAny"));
+  sequence = sequence.concat(toEntries(config.beforeAll, "beforeAll"));
   sequence = sequence.concat(toEntries(config.input, "main"));
   sequence = sequence.concat(toEntries(config.afterAll, "afterAll"));
 
@@ -597,7 +597,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       //   keeps the same ID across runs and machines.
       if (!content.specId) content.specId = generateSpecId(file);
       if (!content.contentPath) content.contentPath = file;
-      // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
+      // Internal phase marker (beforeAll / main / afterAll) so runSpecs can gate
       // execution as barriers. Stripped before reporting; never in public schema.
       // Captured here and stamped after the validate / resolvePaths transforms
       // below, because spec_v3 rejects unknown keys.
@@ -981,7 +981,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           objectType: "spec",
         });
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
-        // keys, so a text/markdown file referenced by beforeAny/afterAll would
+        // keys, so a text/markdown file referenced by beforeAll/afterAll would
         // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
         spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
         return spec;

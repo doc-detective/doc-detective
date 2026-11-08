@@ -46,6 +46,7 @@ Shorthair
 Unescaped
 afterAll
 batchMatches
+beforeAll
 beforeAny
 breakpoint
 callouts

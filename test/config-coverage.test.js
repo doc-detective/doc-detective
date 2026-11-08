@@ -25,8 +25,11 @@ import {
   detectInstalledBrowserDrivers,
   selectInstalledBuild,
   fileTypeObject,
+  renameDeprecatedConfigKeys,
 } from "../dist/core/config.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
+import { schemas } from "../dist/common/src/schemas/index.js";
+import { captureConsoleError } from "./capture-errors.js";
 
 // A throwaway cache dir per test keeps getAvailableApps / getBrowserDiagnostics
 // isolated from any real install and from each other's module-level cache.
@@ -686,33 +689,135 @@ describe("config.ts — setConfig", function () {
     );
   });
 
-  it("normalizes an empty-string beforeAny/afterAll to an empty array", async function () {
+  it("normalizes an empty-string beforeAll/afterAll to an empty array", async function () {
     const config = await setConfig({
       config: {
         logLevel: "silent",
         dryRun: true,
         input: ["./README.md"],
-        beforeAny: "",
+        beforeAll: "",
         afterAll: "",
       },
     });
-    assert.deepEqual(config.beforeAny, []);
+    assert.deepEqual(config.beforeAll, []);
     assert.deepEqual(config.afterAll, []);
   });
 
-  it("wraps non-empty string beforeAny/afterAll/input into arrays", async function () {
+  it("wraps non-empty string beforeAll/afterAll/input into arrays", async function () {
     const config = await setConfig({
       config: {
         logLevel: "silent",
         dryRun: true,
         input: "./README.md",
-        beforeAny: "./setup.json",
+        beforeAll: "./setup.json",
         afterAll: "./cleanup.json",
       },
     });
     assert.deepEqual(config.input, ["./README.md"]);
-    assert.deepEqual(config.beforeAny, ["./setup.json"]);
+    assert.deepEqual(config.beforeAll, ["./setup.json"]);
     assert.deepEqual(config.afterAll, ["./cleanup.json"]);
+  });
+
+  // ADR 01169: beforeAny is a deprecated alias for beforeAll.
+  it("renames a deprecated beforeAny to beforeAll and warns once", async function () {
+    const { result: config, lines } = await captureConsoleError(() =>
+      setConfig({
+        config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./setup.json" },
+      })
+    );
+    assert.deepEqual(config.beforeAll, ["./setup.json"]);
+    assert.equal("beforeAny" in config, false);
+    const warnings = lines.filter((line) => /beforeAny/.test(line));
+    assert.deepEqual(warnings, ["Warning: `beforeAny` is deprecated. Rename it to `beforeAll`."]);
+  });
+
+  // The runner reads only the config it's given (ADR 01152), so a DOC_DETECTIVE
+  // override doesn't reach it. The CLI renames and merges each source; see
+  // "beforeAll in the CLI config" in cli-output-units.
+  it("renames the given config's beforeAny and ignores DOC_DETECTIVE", async function () {
+    const saved = process.env.DOC_DETECTIVE;
+    process.env.DOC_DETECTIVE = JSON.stringify({ config: { beforeAll: "./b.json" } });
+    let config;
+    let lines;
+    try {
+      ({ result: config, lines } = await captureConsoleError(() =>
+        setConfig({
+          config: { logLevel: "warning", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+        })
+      ));
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE;
+      else process.env.DOC_DETECTIVE = saved;
+    }
+    assert.deepEqual(config.beforeAll, ["./a.json"]);
+    assert.equal("beforeAny" in config, false);
+    assert.equal(lines.filter((line) => /beforeAny/.test(line)).length, 1);
+  });
+
+  it("treats a null beforeAny as absent, and drops it", function () {
+    const warn = sinon.spy();
+    const source = { beforeAny: null };
+    const other = { beforeAll: "./a.json", beforeAny: null };
+    renameDeprecatedConfigKeys([source, other], warn);
+    assert.deepEqual(source, {});
+    assert.deepEqual(other, { beforeAll: "./a.json" });
+    assert.equal(warn.callCount, 0);
+  });
+
+  it("renames beforeAny in every source that uses it, and warns once", function () {
+    const warn = sinon.spy();
+    const file = { beforeAny: "./file.json" };
+    const env = { beforeAny: "./env.json" };
+    renameDeprecatedConfigKeys([file, env], warn);
+    assert.deepEqual(file, { beforeAll: "./file.json" });
+    assert.deepEqual(env, { beforeAll: "./env.json" });
+    assert.equal(warn.callCount, 1);
+  });
+
+  it("accepts beforeAll beside a null beforeAny", async function () {
+    const config = await setConfig({
+      config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: null },
+    });
+    assert.equal("beforeAny" in config, false);
+    assert.ok(config.beforeAll);
+  });
+
+  it("treats a null beforeAll as absent when beforeAny is set", function () {
+    const warn = sinon.spy();
+    const source = { beforeAll: null, beforeAny: "./x.json" };
+    renameDeprecatedConfigKeys([source], warn);
+    assert.deepEqual(source, { beforeAll: "./x.json" });
+    assert.equal(warn.callCount, 1);
+  });
+
+  it("doesn't warn about beforeAny when the config is silent", async function () {
+    const { result: config, lines } = await captureConsoleError(() =>
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAny: "./a.json" },
+      })
+    );
+    assert.deepEqual(config.beforeAll, ["./a.json"]);
+    assert.deepEqual(lines.filter((line) => /beforeAny/.test(line)), []);
+  });
+
+  it("rejects a config that sets both beforeAll and beforeAny", async function () {
+    await assert.rejects(
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: "./b.json" },
+      }),
+      { message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both." }
+    );
+  });
+
+  it("ends the both-set error with the schema's own message", async function () {
+    const schemaMessage = schemas.config_v3.errorMessage.not;
+    assert.equal(typeof schemaMessage, "string");
+    await assert.rejects(
+      setConfig({
+        config: { logLevel: "silent", dryRun: true, input: "./README.md", beforeAll: "./a.json", beforeAny: "./b.json" },
+      }),
+      (error) => error.message.endsWith(`beforeAll: ${schemaMessage}`)
+    );
   });
 
   it("normalizes a custom object fileType's string inlineStatements and markup regex into arrays", async function () {
