@@ -43,7 +43,7 @@ const referenced = new Set<string>();
 let publicMatchers: RegExp[] = [];
 const hits = new Set<string>();
 
-type Secret = { value: string; name: string; names: string[] };
+type Secret = { value: string; name: string; names: string[]; mask: string };
 type Needle = { needle: string; mask: string; names: string[] };
 let needles: Needle[] = [];
 let secrets: Secret[] = [];
@@ -84,6 +84,8 @@ function registerEnvFile(parsed: Record<string, string> | null | undefined, env:
 function beginRunMasking(): void {
   publicMatchers = [];
   hits.clear();
+  // A name an earlier run referenced doesn't make this run's export secret.
+  referenced.clear();
   stale = true;
 }
 
@@ -149,8 +151,9 @@ function formsOf(value: string): string[] {
   const form = new URLSearchParams({ v: value }).toString().slice(2);
   return [
     value,
-    // Each with both spellings of a space. Only the URLSearchParams form starts
-    // with `+`; for the others the `%20` variant is a duplicate the Set drops.
+    // Each with both spellings of a space: `%20` turned to `+`, and `+` turned
+    // to `%20`. Only the URLSearchParams form contains `+`, so for the other
+    // three the second variant equals the original, and the Set drops it.
     ...[urlEncoded, strict, allEscaped, form].flatMap((encoded) => [
       encoded,
       encoded.replace(/%20/g, "+"),
@@ -170,7 +173,7 @@ function rebuild(): void {
     if (value.length < MIN_LENGTH || NOT_SECRET.has(value)) continue;
     // The mask names the first non-public name; the hint and the debug line list them all.
     const secretNames = names.filter((candidate) => !isPublic(candidate));
-    if (secretNames.length > 0) secrets.push({ value, name: secretNames[0], names: secretNames });
+    if (secretNames.length > 0) secrets.push({ value, name: secretNames[0], names: secretNames, mask: "" });
   }
   secrets.sort((a, b) => b.value.length - a.value.length);
   const raw: { needle: string; secret: Secret }[] = [];
@@ -181,16 +184,13 @@ function rebuild(): void {
   }
   // Longest first: masking a short value first would strand the rest of a long one.
   raw.sort((a, b) => b.needle.length - a.needle.length);
-  // A mask that would itself contain a secret names nothing instead. Once per name.
-  const masks = new Map<string, string>();
-  const maskFor = (name: string) => {
-    if (!masks.has(name)) {
-      const preferred = `***${name}***`;
-      masks.set(name, raw.some(({ needle }) => preferred.includes(needle)) ? "***" : preferred);
-    }
-    return masks.get(name) as string;
-  };
-  needles = raw.map(({ needle, secret }) => ({ needle, names: secret.names, mask: maskFor(secret.name) }));
+  // A mask that would itself contain a secret names nothing instead. Each
+  // secret's mask is set once, here, and its needles and Basic auth read it.
+  for (const secret of secrets) {
+    const preferred = `***${secret.name}***`;
+    secret.mask = raw.some(({ needle }) => preferred.includes(needle)) ? "***" : preferred;
+  }
+  needles = raw.map(({ needle, secret }) => ({ needle, names: secret.names, mask: secret.mask }));
 }
 
 function maskBasicAuth(text: string): string {
@@ -200,7 +200,7 @@ function maskBasicAuth(text: string): string {
     const secret = secrets.find(({ value }) => decoded.includes(value));
     if (!secret) return match;
     for (const name of secret.names) hits.add(name);
-    return `${prefix}${needles.find((n) => n.names === secret.names)?.mask ?? "***"}`;
+    return `${prefix}${secret.mask}`;
   });
 }
 

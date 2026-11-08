@@ -100,9 +100,9 @@ A value a child process hashes, splits, or otherwise transforms isn't masked.
   specs will substitute. That covers logs printed before a step runs.
 
 The registry is module state, shared by concurrent runners, and append-only for the process. Tests reset it
-between cases. Each core `runTests` starts with an empty public list and no hint names, so an earlier
-programmatic run's `["*"]` can't unmask a later one. Two runs at once in one process still share one public
-list.
+between cases. Each core `runTests` starts with an empty public list, no hint names, and no noted `$NAME`
+references. So an earlier programmatic run's `["*"]` can't unmask a later one. Two runs at once in one process
+still share one public list.
 
 ### Masked copies
 

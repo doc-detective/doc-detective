@@ -668,6 +668,8 @@ async function startRecording({
     // Masked before each cut, so no fragment of a secret is left (ADR 01178).
     stderrTail = maskString(stderrTail + text).slice(-2000);
     if (!captureInfo.frameSize && captureInfo.head.length < 8192) {
+      // Unmasked on purpose: only parseCaptureFrameSize reads it, and only the
+      // frame size leaves this handle. A mask could break the parse.
       captureInfo.head = (captureInfo.head + text).slice(0, 8192);
       captureInfo.frameSize = parseCaptureFrameSize(captureInfo.head);
     }
