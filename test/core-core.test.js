@@ -1,6 +1,7 @@
 const originalConsoleError = console.error;
 import fs from "node:fs";
 import { runTests } from "../dist/core/index.js";
+import { loadHeavyDep } from "../dist/runtime/loader.js";
 import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
@@ -3314,5 +3315,69 @@ describe("getRunner() function", function () {
     } finally {
       fs.unlinkSync(tempFilePath);
     }
+  });
+});
+
+// ADR 01178: a browser screenshot blurs the elements that show a secret. Pixels
+// are a capture output the fixture gate can't read, so this compares two runs.
+describe("Screenshots hide secret values", function () {
+  this.timeout(300000);
+  const SECRET = "blur-me-secret-4242";
+  let dir;
+  before(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-mask-shot-"));
+    process.env.DD_SCREEN_SECRET = SECRET;
+  });
+  after(() => {
+    delete process.env.DD_SCREEN_SECRET;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function shoot(name, config = {}) {
+    const specPath = path.join(dir, `${name}.spec.json`);
+    const shot = path.join(dir, `${name}.png`);
+    fs.writeFileSync(
+      specPath,
+      JSON.stringify({
+        tests: [
+          {
+            runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
+            steps: [
+              { goTo: "http://localhost:8092" },
+              {
+                runBrowserScript:
+                  "document.body.insertAdjacentHTML('beforeend', '<div id=\"secret-box\" style=\"position:fixed;top:0;left:0;width:400px;height:80px;background:#fff;color:#000;font:40px monospace;z-index:9999\">$DD_SCREEN_SECRET</div>'); return true;",
+              },
+              { screenshot: { path: shot, overwrite: "true" } },
+            ],
+          },
+        ],
+      })
+    );
+    const result = await runTests({ input: specPath, logLevel: "silent", telemetry: { send: false }, ...config });
+    const steps = result.specs[0].tests[0].contexts[0].steps;
+    assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"], JSON.stringify(steps));
+    return shot;
+  }
+
+  it("differs, inside the element that shows the secret, from a capture with publicVariables [\"*\"]", async function () {
+    const masked = await shoot("masked");
+    const shown = await shoot("shown", { publicVariables: ["*"] });
+    const { PNG } = await loadHeavyDep("pngjs");
+    const [a, b] = [masked, shown].map((file) => PNG.sync.read(fs.readFileSync(file)));
+    assert.equal(a.width, b.width);
+    const differing = (x0, y0, x1, y1) => {
+      let count = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const i = (y * a.width + x) * 4;
+          if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2]) count++;
+        }
+      }
+      return count / ((x1 - x0) * (y1 - y0));
+    };
+    // Inside the 400×80 box at any device pixel ratio, and well below it.
+    assert.ok(differing(10, 10, 390, 70) > 0.05, "the secret's box wasn't blurred");
+    assert.ok(differing(0, a.height - 100, a.width, a.height) < 0.01, "pixels outside the box changed");
   });
 });
