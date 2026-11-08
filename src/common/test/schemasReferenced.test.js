@@ -39,6 +39,14 @@ function run(check, object) {
 describe("schemasReferenced", function () {
   this.timeout(600000);
 
+  // A dereferenced schema compiles to one huge function (every $ref inlined).
+  // Once the corpus loop makes step_v3/spec_v3 hot, V8's Maglev JIT, which has
+  // no size cap, takes ~10 GB to optimize it, enough to OOM a CI runner.
+  // .mocharc.yml turns Maglev off; fail here, before the spike, if it's not.
+  before(function () {
+    expect(process.execArgv, "run under .mocharc.yml's node-option: no-maglev").to.include("--no-maglev");
+  });
+
   it("has the same schema keys as schemas.json", function () {
     expect(Object.keys(schemasReferenced.schemas).sort()).to.deep.equal(Object.keys(schemas).sort());
   });

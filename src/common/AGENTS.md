@@ -227,6 +227,12 @@ When creating new schema version (e.g., v4):
 
 **Run tests:** `npm test` (or `mocha`)
 
+**Keep Maglev off.** `.mocharc.yml` runs mocha with `node-option: no-maglev`. `test/schemasReferenced.test.js`
+compiles the dereferenced schemas, and each compiles to one huge function. V8's Maglev JIT has no size cap.
+Once the corpus loop makes the `step_v3` and `spec_v3` validators hot, it peaks at about 11 GB optimizing them,
+which kills the 16 GB CI runner with a "shutdown signal" and no test error. Without Maglev the coverage run
+peaks under 2 GB. The suite's `before` hook fails fast if the flag is missing.
+
 **Example pattern:**
 ```javascript
 const result = validate({ schemaKey: "step_v3", object: example });
