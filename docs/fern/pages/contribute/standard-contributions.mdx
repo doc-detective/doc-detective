@@ -118,6 +118,20 @@ Include
 - **File name** (optional): Use `title="filename.ext"`
 - **Context**: Explain what the code does before showing it
 
+The repository's tests check `json` and `yaml` examples that look like a Doc Detective spec, test, step, or config against the Doc Detective schemas. See [Example validation](#example-validation).
+
+To show a deliberately incomplete or wrong example in a `json` or `yaml` block, add `invalid` to the fence's info string and pair it with a `title`. The check skips that block, and the title hides the marker on the rendered page:
+
+````markdown
+```json title="broken-step.json" invalid
+{
+  "goTo": 42
+}
+```
+````
+
+Without a `title`, the page shows "invalid" as the block's title.
+
 ### Links and references
 
 Link to related documentation:
@@ -268,6 +282,27 @@ Make sure that the documentation site builds successfully. Failures usually indi
 - Markdown syntax errors
 - Missing closing tags
 - Invalid front matter
+
+#### Example validation
+
+The test suite validates `json` and `yaml` code examples in `docs/fern/pages/`, the root `README.md`, and `src/common/README.md`. It recognizes a block by its top-level keys:
+
+- A `tests` key makes it a spec.
+- A `steps` array that contains an action makes it a test.
+- Only step fields, at least one of them an action such as `goTo` or `httpRequest`, make it a step.
+- Only configuration keys make it a config.
+
+Each recognized block must pass the Doc Detective schema for its type. The check skips blocks marked `invalid` and any JSON or YAML it doesn't recognize, such as workflow files, API responses, and output samples.
+
+The check runs with the code tests, which a pull request that only changes `docs/` doesn't trigger. A broken example in that pull request then fails the next pull request that changes code. To catch problems before you submit, run the check in a local clone of the `doc-detective/doc-detective` repository. It needs Node.js 24.15 or later but not a browser. From the repository root, install dependencies, compile the schemas the check reads, and run it:
+
+```bash
+npm ci
+npm run build
+npx mocha test/doc-examples.test.js
+```
+
+A passing run reports how many blocks it checked and skipped, with `0 invalid`. A failure names the file, the line, and the schema error. Fix the example so it matches the schema. Don't mark it `invalid` to silence the failure: reserve `invalid` for examples that show wrong input on purpose.
 
 ## Need help?
 
