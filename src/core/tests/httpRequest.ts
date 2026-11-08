@@ -18,6 +18,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { maskDeep } from "../masking.js";
 
 export { httpRequest };
 
@@ -547,13 +548,16 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // Set filePath
     let filePath = step.httpRequest.path;
     log(config, "debug", `Saving output to file: ${filePath}`);
+    // The file holds the masked body, and a comparison is masked against
+    // masked (ADR 01178).
+    const saved = JSON.stringify(maskDeep(response.data), null, 2);
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file
       await fs.promises.writeFile(
         filePath,
-        JSON.stringify(response.data, null, 2)
+        saved
       );
       descriptions.push(`Saved output to file.`);
     } else {
@@ -568,7 +572,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       // Calculate fractional diff between existing file content and command output content, not length
       const fractionalDiff = calculateFractionalDifference(
         existingFile,
-        JSON.stringify(response.data, null, 2)
+        saved
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
@@ -587,7 +591,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
           // Overwrite file
           await fs.promises.writeFile(
             filePath,
-            JSON.stringify(response.data, null, 2)
+            saved
           );
           descriptions.push(`Saved response to file.`);
         }
@@ -601,7 +605,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       } else {
         if (step.httpRequest.overwrite == "true") {
           // Overwrite file
-          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved response to file.`);
         }
       }
