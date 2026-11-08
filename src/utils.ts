@@ -830,7 +830,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       const htmlFile = path.resolve(runDir, `${reportType}.html`);
       try {
         const { buildHtml } = await import("./reporters/htmlReporter.js");
-        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
+        fs.writeFileSync(htmlFile, buildHtml(persistedResults, { htmlDir: runDir }));
         log(`Run report: ${displayPath(htmlFile)}`, "info", config);
       } catch (htmlErr) {
         // Pass the error as a separate arg so its stack survives (string
