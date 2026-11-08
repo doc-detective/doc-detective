@@ -2199,7 +2199,8 @@ describe("getRunner() function", function () {
     // `wait: false` runs and reports SKIPPED, so onSkip's retry re-runs it:
     // 1 initial run + 2 retries.
     const t = { tests: [{ steps: [{ wait: false, onSkip: [{ retry: { limit: 2 } }] }] }] };
-    const tempFilePath = path.resolve("./test/temp-routing-onskip-retry.json");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-onskip-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "silent" });
@@ -2207,7 +2208,7 @@ describe("getRunner() function", function () {
       assert.equal(step.result, "SKIPPED");
       assert.equal(step.attempts, 3);
     } finally {
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
@@ -2228,7 +2229,8 @@ describe("getRunner() function", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-routing-onskip-guard-retry.json");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-onskip-guard-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "silent" });
@@ -2237,7 +2239,7 @@ describe("getRunner() function", function () {
       assert.equal(guarded.attempts, undefined);
       assert.equal(next.result, "SKIPPED");
     } finally {
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 

@@ -406,6 +406,19 @@ describe("beforeAll in the CLI config", function () {
     }
   });
 
+  it("accepts beforeAll beside a null beforeAny in DOC_DETECTIVE_CONFIG, as in a config file", async function () {
+    const saved = process.env.DOC_DETECTIVE_CONFIG;
+    process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ beforeAll: "a.spec.json", beforeAny: null });
+    try {
+      const result = await withConfig({});
+      expect(result.beforeAll).to.include("a.spec.json");
+      expect(result).to.not.have.property("beforeAny");
+    } finally {
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+      else process.env.DOC_DETECTIVE_CONFIG = saved;
+    }
+  });
+
   it("rejects a config that sets both", async function () {
     await assert.rejects(withConfig({ beforeAll: "a.spec.json", beforeAny: "b.spec.json" }), {
       message: "Invalid config. beforeAll: set `beforeAll` or `beforeAny`, not both.",

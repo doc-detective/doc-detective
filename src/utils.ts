@@ -173,15 +173,17 @@ async function getConfigFromEnv() {
       );
     }
 
-    // Before AJV runs, give an env config that sets both beforeAll and beforeAny
-    // the same both-set error a config file gets. It checks a copy, so envConfig
-    // is unchanged and setConfig still does the real rename and its warning.
-    renameDeprecatedConfigKeys([{ ...envConfig }], () => {});
+    // Rename, then validate, as a config file does: setting both gets the same
+    // both-set error, and a null beforeAny counts as absent. It works on a
+    // copy, so envConfig is unchanged and setConfig still does the real rename
+    // and its warning.
+    const renamed = { ...envConfig };
+    renameDeprecatedConfigKeys([renamed], () => {});
 
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
-      object: envConfig,
+      object: renamed,
     });
 
     if (!envValidation.valid) {
