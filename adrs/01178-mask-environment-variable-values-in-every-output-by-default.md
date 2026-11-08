@@ -233,6 +233,20 @@ See https://docs.doc-detective.com/reference/schemas/config
   - a `saveCookie` file keeps the real value.
 
   The fixture case `path-save-and-compare` runs the CLI twice against one saved file.
+- Browser captures, in `test/masking-capture.test.js`, in headless Chrome against the 8092 page:
+  - the candidate, selection, and blur scripts blur exact text, text inside a longer string, split text, and an
+    input value;
+  - they skip a `<script>`, and blur nothing when no secret is registered.
+
+  With a stubbed driver, it checks three things:
+  - no page script receives a secret value;
+  - typing hides the field only when the keys hold a secret;
+  - a page that rejects the style doesn't fail the `type` step.
+- A focused test in `test/core-core.test.js` screenshots an element that holds a secret. Inside that element, the
+  image differs from one taken with `publicVariables: ["*"]`. Below it, the two match.
+- Fixture `test/core-artifacts/interactions/type-secret.spec.json` types a secret, a public variable, and literal
+  text in headless Chrome and Firefox. Only the secret hides the field. Both browsers support
+  `-webkit-text-security`, so the `color: transparent` fallback covers older engines only.
 
 ## Pros and Cons of the Options
 

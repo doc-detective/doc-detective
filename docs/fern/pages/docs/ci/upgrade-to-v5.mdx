@@ -470,6 +470,8 @@ version 4  "command": "curl -H \"Authorization: Bearer correct-horse\" https://a
 version 5  "command": "curl -H \"Authorization: Bearer ***API_TOKEN***\" ***BASE_URL***/me"
 ```
 
+Browser screenshots blur elements that show a secret, and a field that receives a typed secret shows dots. So a reference screenshot that showed a secret differs from new captures.
+
 **What to do:** Check whether a script or a later job reads a value back from a report, such as a URL. If one does, list the variable in `publicVariables` on the config, a spec, or a test. `["*"]` keeps version 4's behavior. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 
 ## Cache location
