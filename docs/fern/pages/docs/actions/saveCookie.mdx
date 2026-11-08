@@ -10,7 +10,7 @@ Reload saved cookies with the [`loadCookie`](/docs/actions/loadcookie) action.
 
 A cookie file holds the real cookie value, because `loadCookie` reads it back. Unlike the output files that actions such as `runShell`, `runCode`, and `httpRequest` save with `path`, it isn't masked. An authentication cookie works like a password. Add the cookie file's folder (`directory`, or `outputDir` by default) to `.gitignore`, and leave it out of uploaded CI artifacts.
 
-A cookie saved with `variable` holds the real value too. Saving it doesn't register it for masking, even when the variable's name looks secret. Logs and reports mask it only after a later step substitutes it as `$NAME` in one of its fields. Loading the cookie with `loadCookie` doesn't register it for masking. A `runShell` or `runCode` command that reads the variable from its environment prints the real cookie, so don't print or dump the environment in those commands. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+A cookie saved with `variable` holds the real value too. Saving it doesn't register it for masking, even when the variable's name looks secret. Logs and reports mask it only after a later step substitutes it as `$NAME` in a step field. Loading the cookie with `loadCookie` doesn't register it for masking. A `runShell` or `runCode` command that reads the variable from its environment prints the real cookie, so don't print or dump the environment in those commands. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 
 > For comprehensive options, see the [`saveCookie`](/reference/schemas/savecookie) reference.
 
