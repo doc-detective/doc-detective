@@ -1014,6 +1014,8 @@ describe("startRecording: guards + browser engine", function () {
           this.recorderArgs = [arg, ...rest];
           return recorderStarted;
         }
+        // startRecording's viewport probe, by its name. The build doesn't
+        // minify, so the arrow function keeps the name of its const.
         if (fn?.name === "readViewport") return viewport;
         // document.title setter: (title) => (document.title = title)
         if (typeof fn === "function" && fn.length >= 1 && typeof arg === "string") {
