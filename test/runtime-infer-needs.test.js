@@ -33,17 +33,68 @@ describe("runtime/inferRuntimeNeeds", function () {
   });
 
   it("a goTo step pulls in wdio + appium + @puppeteer/browsers + chromium driver (default browser)", function () {
-    const needs = inferRuntimeNeeds([
-      makeSpec([{ goTo: { url: "https://x.test" } }]),
-    ]);
+    const needs = inferRuntimeNeeds(
+      [makeSpec([{ goTo: { url: "https://x.test" } }])],
+      { autoScreenshot: false, autoRecord: false }
+    );
     expect([...needs.browsers]).to.deep.equal(["chrome"]);
     expect(needs.npmPackages.has("webdriverio")).to.equal(true);
     expect(needs.npmPackages.has("appium")).to.equal(true);
     expect(needs.npmPackages.has("@puppeteer/browsers")).to.equal(true);
     expect(needs.npmPackages.has("appium-chromium-driver")).to.equal(true);
-    // No screenshot / record steps in this spec — those bundles stay out.
+    // No screenshot / record steps, and both auto keys off — those bundles stay out.
     expect(needs.npmPackages.has("sharp")).to.equal(false);
     expect(needs.npmPackages.has("@ffmpeg-installer/ffmpeg")).to.equal(false);
+  });
+
+  // ADR 01177: auto screenshots and recordings are on unless set to false, so
+  // their packages install up front, before the first test.
+  describe("auto capture", function () {
+    const SHOT = ["sharp", "pngjs", "pixelmatch"];
+    const FFMPEG = "@ffmpeg-installer/ffmpeg";
+    const goTo = [{ goTo: { url: "https://x.test" } }];
+
+    it("adds ffmpeg and the screenshot packages when a UI context runs with both keys unset", function () {
+      const needs = inferRuntimeNeeds([makeSpec(goTo)]);
+      expect(needs.npmPackages.has(FFMPEG)).to.equal(true);
+      for (const p of SHOT) expect(needs.npmPackages.has(p), p).to.equal(true);
+      expect(needs.autoScreenshotOnly).to.equal(true);
+    });
+
+    it("adds them for an app-surface context too", function () {
+      const needs = inferRuntimeNeeds([
+        makeSpec([{ startSurface: { app: "notepad" } }, { find: { elementText: "x", surface: { app: "notepad" } } }]),
+      ]);
+      expect(needs.npmPackages.has(FFMPEG)).to.equal(true);
+      expect(needs.npmPackages.has("sharp")).to.equal(true);
+    });
+
+    it("adds nothing for a context with no UI step", function () {
+      const needs = inferRuntimeNeeds([makeSpec([{ runShell: { command: "echo hi" } }])]);
+      expect([...needs.npmPackages]).to.deep.equal([]);
+    });
+
+    it("adds nothing with both keys false", function () {
+      const needs = inferRuntimeNeeds([makeSpec(goTo)], { autoScreenshot: false, autoRecord: false });
+      expect(needs.npmPackages.has(FFMPEG)).to.equal(false);
+      for (const p of SHOT) expect(needs.npmPackages.has(p), p).to.equal(false);
+      expect(needs.autoScreenshotOnly).to.equal(false);
+    });
+
+    it("lets a spec or test turn a key back on (test > spec > config)", function () {
+      const spec = makeSpec(goTo);
+      spec.autoRecord = true;
+      spec.tests[0].autoScreenshot = true;
+      const needs = inferRuntimeNeeds([spec], { autoScreenshot: false, autoRecord: false });
+      expect(needs.npmPackages.has(FFMPEG)).to.equal(true);
+      expect(needs.npmPackages.has("sharp")).to.equal(true);
+    });
+
+    it("doesn't mark the screenshot packages auto-only when a screenshot step needs them too", function () {
+      const needs = inferRuntimeNeeds([makeSpec([...goTo, { screenshot: { path: "s.png" } }])]);
+      expect(needs.npmPackages.has("sharp")).to.equal(true);
+      expect(needs.autoScreenshotOnly).to.equal(false);
+    });
   });
 
   it("a runBrowserScript step requires a browser (wdio + appium + default chrome)", function () {
