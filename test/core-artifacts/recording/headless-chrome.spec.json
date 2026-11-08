@@ -247,7 +247,6 @@
         {
           "record": {
             "path": "firefox-headless-omitted.mp4",
-            "engine": "ffmpeg",
             "overwrite": "true"
           }
         },
