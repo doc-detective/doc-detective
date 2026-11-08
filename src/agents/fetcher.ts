@@ -38,7 +38,10 @@ const MAX_ZIP_BYTES = 50 * 1024 * 1024;
  */
 export const AGENT_TOOLS_REF = "feat/v5-rc";
 
-/** Raw file URL in agent-tools at the pinned ref. */
+/**
+ * Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF. The URL
+ * changes with that constant at CLI 5 GA; see its TODO above.
+ */
 export function agentToolsRawUrl(file: string): string {
   return `https://raw.githubusercontent.com/${REPO_SLUG}/${AGENT_TOOLS_REF}/${file}`;
 }

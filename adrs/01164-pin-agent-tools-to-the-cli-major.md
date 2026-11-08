@@ -49,8 +49,9 @@ Chosen option: **A**, with agent-tools' `feat/v5-rc` branch standing in for `v2`
   defaults to the pinned ref.
 - Both URL shapes take a branch name with a slash as-is, so neither needs a `refs/heads/` prefix.
 - Gemini CLI and Qwen Code pass `--ref <ref>` to `extensions install`. Both CLIs document `--ref` for git sources.
-- Claude Code (`claude plugin marketplace add`) and Copilot CLI (`copilot plugin marketplace add`) have no ref option,
-  so they keep tracking the default branch. The `install agents` reference page says so.
+- Claude Code (`claude plugin marketplace add`) and Copilot CLI (`copilot plugin marketplace add`) add the bare
+  `doc-detective/agent-tools` marketplace, so they keep tracking the default branch. The `install agents` reference
+  page says so. Both CLIs document an `owner/repo#ref` source, so pinning these two is an open follow-up.
 
 #### Release candidate: `feat/v5-rc`
 

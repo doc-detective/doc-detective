@@ -45,6 +45,10 @@ export interface ClaudeCodeDeps {
   fetchLatestVersion: () => Promise<string | undefined>;
 }
 
+// The up-to-date check reads the pinned ref (ADR 01164), but the install adds
+// the marketplace as bare `doc-detective/agent-tools`, with no `#ref`, so it
+// follows agent-tools' default branch. When the two carry different versions,
+// a fresh install can still report an update. Running that update is harmless.
 const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
 
 export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
