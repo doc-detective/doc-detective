@@ -81,8 +81,7 @@ import {
   computeEffectiveConcurrency,
   jobExclusiveResources,
   checkSystemBinary,
-  xvfbDisplay,
-  startXvfb,
+  startFreeXvfb,
   XVFB_SCREEN_SIZE,
   isRecordingActive,
   recordStepName,
@@ -1971,6 +1970,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // and the port→display map so a context that acquires a server records the
   // same display its browser renders on.
   const xvfbProcesses: any[] = [];
+  const xvfbDisplaysTaken = new Set<string>();
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
   // Set only when this run takes and hands back idle servers (ADR 01125).
@@ -2043,8 +2043,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         }
         let display: string | undefined;
         if (useXvfbDisplays) {
-          display = xvfbDisplay(i);
-          xvfbProcesses.push(await startXvfb(display));
+          const started = await startFreeXvfb({ index: i, taken: xvfbDisplaysTaken });
+          display = started.display;
+          xvfbProcesses.push(started.proc);
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
         // A reusable server exits once this process dies (ADR 01125).
