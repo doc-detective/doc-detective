@@ -10,7 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
-import { agentToolsRawUrl } from "../fetcher.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -29,10 +29,6 @@ export interface CopilotCliDeps {
 const MARKETPLACE_NAME = "doc-detective";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
-// The up-to-date check reads the pinned ref (ADR 01164), but the install adds
-// the marketplace as bare `doc-detective/agent-tools`, with no `#ref`, so it
-// follows agent-tools' default branch. When the two carry different versions,
-// a fresh install can still report an update. Running that update is harmless.
 const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
 
 export function defaultCopilotCliDeps(): CopilotCliDeps {
@@ -175,12 +171,18 @@ export class CopilotCliAdapter implements AgentAdapter {
     }
 
     type Cmd = [string, ...string[]];
+    // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
+    const addMarketplace: Cmd = [
+      "copilot", "plugin", "marketplace", "add", `doc-detective/agent-tools#${AGENT_TOOLS_REF}`,
+    ];
     const commands: Cmd[] = isInstalled
-      ? [["copilot", "plugin", "update", PLUGIN_KEY]]
-      : [
-          ["copilot", "plugin", "marketplace", "add", "doc-detective/agent-tools"],
-          ["copilot", "plugin", "install", PLUGIN_KEY],
-        ];
+      ? [
+          // Re-add first so an install made before the ref pin moves to it.
+          // Best effort: a failed re-add never blocks the update below.
+          addMarketplace,
+          ["copilot", "plugin", "update", PLUGIN_KEY],
+        ]
+      : [addMarketplace, ["copilot", "plugin", "install", PLUGIN_KEY]];
 
     if (opts.dryRun) {
       for (const cmd of commands) {
@@ -194,7 +196,8 @@ export class CopilotCliAdapter implements AgentAdapter {
       };
     }
 
-    for (const [cmd, ...args] of commands) {
+    for (const command of commands) {
+      const [cmd, ...args] = command;
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       let result: RunResult;
       try {
@@ -218,6 +221,13 @@ export class CopilotCliAdapter implements AgentAdapter {
         // a generic "exited with code 1" instead.
         const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
         const msg = output || `exit code ${result.exitCode}`;
+        if (isInstalled && command === addMarketplace) {
+          opts.logger(
+            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${msg})`,
+            "warn"
+          );
+          continue;
+        }
         if (/auth|login|token|unauthori[sz]ed/i.test(msg)) {
           throw new Error(
             `GitHub Copilot CLI is not authenticated. Run \`copilot login\` and re-run install-agents. (copilot said: ${msg})`

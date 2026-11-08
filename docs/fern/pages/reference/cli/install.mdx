@@ -61,9 +61,7 @@ Doc Detective 5 installs agent-tools 2.x, the release line that matches its CLI.
 - During the Doc Detective 5 release candidate, it reads the agent-tools `feat/v5-rc` branch.
 - At general availability, it reads the agent-tools `v2` tag.
 
-Codex, OpenCode, Gemini CLI, and Qwen Code install from that ref. The up-to-date check for every agent reads it too.
-
-Claude Code and Copilot CLI add agent-tools as a plugin marketplace without a ref, so they install from the agent-tools default branch.
+Every agent installs from that ref, and every agent's up-to-date check reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace pinned to that ref. When they update an existing install, they re-add the marketplace at that ref first.
 
 ### `install runtime`
 

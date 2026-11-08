@@ -10,7 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
-import { agentToolsRawUrl } from "../fetcher.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -45,10 +45,6 @@ export interface ClaudeCodeDeps {
   fetchLatestVersion: () => Promise<string | undefined>;
 }
 
-// The up-to-date check reads the pinned ref (ADR 01164), but the install adds
-// the marketplace as bare `doc-detective/agent-tools`, with no `#ref`, so it
-// follows agent-tools' default branch. When the two carry different versions,
-// a fresh install can still report an update. Running that update is harmless.
 const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
 
 export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
@@ -79,6 +75,7 @@ export function defaultClaudeCodeDeps(): ClaudeCodeDeps {
 }
 
 const MARKETPLACE_NAME = "doc-detective";
+const MARKETPLACE_REPO = "doc-detective/agent-tools";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
 
@@ -311,13 +308,14 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     const current = this.readSettingsFile(settingsPath);
     const merged = this.mergeSettingsForDocDetective(current);
 
-    // Only treat settings as current when the marketplace entry actually
-    // points at our repo. A stale fork URL or malformed entry should still
-    // be repaired — otherwise we'd silently leave broken state in place.
+    // Only treat settings as current when the marketplace entry points at our
+    // repo at the pinned ref. A stale fork URL, a malformed entry, or an entry
+    // written before the ref pin is rewritten in place under the same key.
     const mp = current?.extraKnownMarketplaces?.[MARKETPLACE_NAME];
     const hasExpectedMarketplace =
       mp?.source?.source === "github" &&
-      mp?.source?.repo === "doc-detective/agent-tools";
+      mp?.source?.repo === MARKETPLACE_REPO &&
+      mp?.source?.ref === AGENT_TOOLS_REF;
     const alreadyRegistered =
       current?.enabledPlugins?.[PLUGIN_KEY] === true && hasExpectedMarketplace;
 
@@ -382,7 +380,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     next.extraKnownMarketplaces = {
       ...(next.extraKnownMarketplaces ?? {}),
       [MARKETPLACE_NAME]: {
-        source: { source: "github", repo: "doc-detective/agent-tools" },
+        source: { source: "github", repo: MARKETPLACE_REPO, ref: AGENT_TOOLS_REF },
       },
     };
     return next;
@@ -439,21 +437,26 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     // the install path (Claude Code reinstalls cleanly); `--force` on an
     // existing install prefers update semantics.
     type Cmd = [string, ...string[]];
+    // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
+    const addMarketplace: Cmd = [
+      "claude",
+      "plugin",
+      "marketplace",
+      "add",
+      `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
+      "--scope",
+      mappedScope,
+    ];
     const commands: Cmd[] = isInstalled
       ? [
+          // Re-add first so an install made before the ref pin moves to it.
+          // Best effort: a failed re-add never blocks the update below.
+          addMarketplace,
           ["claude", "plugin", "marketplace", "update", MARKETPLACE_NAME],
           ["claude", "plugin", "update", PLUGIN_KEY, "--scope", mappedScope],
         ]
       : [
-          [
-            "claude",
-            "plugin",
-            "marketplace",
-            "add",
-            "doc-detective/agent-tools",
-            "--scope",
-            mappedScope,
-          ],
+          addMarketplace,
           [
             "claude",
             "plugin",
@@ -476,11 +479,19 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       };
     }
 
-    for (const [cmd, ...args] of commands) {
+    for (const command of commands) {
+      const [cmd, ...args] = command;
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       const result = await this.deps.run(cmd, args);
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
+        if (isInstalled && command === addMarketplace) {
+          opts.logger(
+            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (exit code ${result.exitCode}) ${result.stderr}`,
+            "warn"
+          );
+          continue;
+        }
         throw new Error(
           `\`${cmd} ${args.join(" ")}\` exited with code ${result.exitCode}` +
             (result.stderr ? `: ${result.stderr}` : "")
