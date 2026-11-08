@@ -461,6 +461,32 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     assert.equal(result.outputs.resizedToReference, undefined);
   });
 
+  // The automatic recording a default run adds (ADR 01177) is an archive, so
+  // it doesn't cost the default run the resize; an authored one beside it still
+  // does.
+  it("resizes while only a defaulted automatic recording is running", async function () {
+    const file = await reference(1000, 700);
+    const driver = browserDriver({ sizeTarget: defaultTarget });
+    driver.state.recordings = [{ synthetic: true, defaulted: true }];
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "autorec", screenshot: file },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.outputs.resizedToReference.to, { width: 1000, height: 700 });
+
+    const authored = browserDriver({ sizeTarget: defaultTarget });
+    authored.state.recordings = [{ synthetic: true, defaulted: true }, {}];
+    const blocked = await saveScreenshot({
+      config,
+      step: { stepId: "autorec2", screenshot: { path: file, maxVariation: 1 } },
+      driver: authored,
+    });
+    assert.deepEqual(authored.calls, []);
+    assert.equal(blocked.outputs.resizedToReference, undefined);
+  });
+
   it("doesn't resize a recording checkpoint (it would show in the video)", async function () {
     const file = await reference(1000, 700);
     const driver = browserDriver({ sizeTarget: defaultTarget });

@@ -97,6 +97,10 @@ Chosen option: **A**.
   Xvfb display, so the window is invisible. With only `DISPLAY`, the window opens on that display.
 - **Concurrency.** Only an explicit `autoRecord: true` opts the run into overlapping ffmpeg captures on a shared
   display (ADR 00175). A defaulted recording keeps the safe serial display.
+- **Screenshots against a reference.** `saveScreenshot` doesn't resize the window to a reference's size while a
+  recording runs, since the resize would show in the video (ADR 01144). A defaulted automatic recording is an
+  archive, so it doesn't block that resize. Otherwise every default run would compare at the wrong size. Any other
+  recording still does.
 - **UI auto screenshots.** After each step, the runner resolves the surface the step drove, the same way the
   handler did (`autoScreenshotSurface`), and captures it through `saveScreenshot`. Only a step whose handler
   resolves surfaces, or that names a `surface`, follows the active surface. Any other step captures the browser
