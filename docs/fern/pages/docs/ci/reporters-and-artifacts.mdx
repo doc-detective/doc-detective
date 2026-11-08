@@ -32,7 +32,7 @@ On GitLab, point the test summary at the `junit.xml` file:
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
   script:
-    - doc-detective --input ./docs --reporters terminal junit --output-dir ./reports
+    - doc-detective --input ./docs --reporters terminal,junit --output-dir ./reports
   artifacts:
     reports:
       junit: reports/junit.xml
@@ -41,7 +41,7 @@ doc-tests:
 On GitHub Actions, append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
-- run: doc-detective --input ./docs --reporters terminal markdown --output-dir ./reports
+- run: doc-detective --input ./docs --reporters terminal,markdown --output-dir ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
@@ -49,7 +49,7 @@ On GitHub Actions, append the Markdown summary to the job summary:
 Select reporters on the command line:
 
 ```bash
-doc-detective --input api.spec.json --reporters terminal html
+doc-detective --input api.spec.json --reporters terminal,html
 ```
 
 Or set them in your config file so every run uses the same combination:

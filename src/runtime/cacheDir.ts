@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { packageRoot } from "./heavyDeps.js";
 
 export interface InstalledNpmPackage {
   installedVersion: string;
@@ -97,9 +96,20 @@ export function userConfigDir({
   return path.join(home, ".config", "doc-detective");
 }
 
+// The cache a CLI run resolved, with `--cache-dir` over DOC_DETECTIVE_CACHE_DIR
+// over config (ADR 01165). Held in process, not written to the environment,
+// so steps' child processes never inherit it. Nothing resets it: it lasts for
+// the process, so code that runs more than once in one process sets it again
+// each time, or clears it with `setRunCacheDir(undefined)`, as the tests do.
+let runCacheDir: string | undefined;
+export function setRunCacheDir(dir: string | undefined) {
+  runCacheDir = dir;
+}
+
 /**
- * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > defaultCacheRoot(). The directory is created if missing — every
+ * Resolve the cache root, honoring the run's resolved cacheDir >
+ * DOC_DETECTIVE_CACHE_DIR > config.cacheDir > defaultCacheRoot(), so every
+ * lookup in a run agrees. The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.
@@ -113,6 +123,7 @@ export function getCacheDir(ctx: CacheDirContext = {}): string {
   // whitespace-only values, preventing the surprise of creating a "   "
   // directory relative to the cwd.
   const resolved =
+    trimOrUndefined(runCacheDir) ??
     trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
     trimOrUndefined(ctx.cacheDir) ??
     defaultCacheRoot();
@@ -174,48 +185,10 @@ export function getRuntimeDir(ctx: CacheDirContext = {}): string {
   return path.join(getCacheDir(ctx), "runtime");
 }
 
+// Always `<cacheDir>/browsers`. 5.0 dropped the 4.x `./browser-snapshots/`
+// fallback (ADR 01165): a legacy folder gets one fresh download into the cache.
 export function getBrowsersDir(ctx: CacheDirContext = {}): string {
-  // Respect explicit cacheDir / env-var overrides first — those callers know
-  // exactly where they want browsers to live. Apply the same trim-and-
-  // ignore-whitespace rule as getCacheDir so a whitespace-only override
-  // doesn't bypass the legacy `./browser-snapshots/` probe.
-  const fromEnv = trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR);
-  const fromCfg = trimOrUndefined(ctx.cacheDir);
-  if (fromEnv || fromCfg) {
-    return path.join(getCacheDir(ctx), "browsers");
-  }
-  // No override — honor the legacy `./browser-snapshots/` directory if one
-  // exists from a prior install. The old postinstall ran the browser
-  // download from the package root (it `chdir`'d there before calling
-  // `path.resolve('browser-snapshots')`), so we have to look in BOTH
-  // places: the user's current cwd (covers same-project dev loops) and
-  // the shim's install root (covers global installs invoked from
-  // anywhere). First hit wins; the tmpdir cache is only used when neither
-  // legacy location exists.
-  for (const candidate of legacyBrowserSnapshotCandidates()) {
-    // existsSync also accepts regular files / symlinks-to-files; treating
-    // those as a legacy snapshot dir would route the browser install
-    // and read paths at something that can't hold a buildId tree.
-    // Restrict acceptance to actual directories. statSync throws when
-    // the candidate is missing/unreadable — the catch falls through to
-    // the next candidate (and ultimately to the tmpdir cache).
-    try {
-      if (fs.statSync(candidate).isDirectory()) return candidate;
-    } catch {
-      // candidate missing or inaccessible; skip
-    }
-  }
   return path.join(getCacheDir(ctx), "browsers");
-}
-
-function legacyBrowserSnapshotCandidates(): string[] {
-  const out = [path.resolve("browser-snapshots")];
-  // The shim's package root, where the legacy postinstall would have
-  // written `browser-snapshots/`.
-  const shimRoot = packageRoot();
-  const fromShim = shimRoot && path.join(shimRoot, "browser-snapshots");
-  if (fromShim && fromShim !== out[0]) out.push(fromShim);
-  return out;
 }
 
 export function getInstalledRecordPath(ctx: CacheDirContext = {}): string {

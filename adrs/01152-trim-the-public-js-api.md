@@ -68,3 +68,21 @@ public.
 
 - Good: gives notice.
 - Bad: schedules a breaking change in a future major, which is what this release is trying to avoid.
+
+## Amendment (2026-11-07): what `runTests` returns, prints, and reads
+
+[ADR 01166](01166-one-separator-per-list-flag.md) settles three more parts of the contract:
+
+| Before | After |
+|---|---|
+| `runTests` returns `null` when no tests are found | It returns a `report_v3` with `specs: []` and a zero `summary` |
+| `runTests({dryRun: true})` prints the plan **and** returns it | It returns the plan and prints nothing. The CLI prints it |
+| `runTests` reads `DOC_DETECTIVE` | It reads only the `config` passed in, plus process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` |
+| The docs mention `registerReporter()` | Removed, because it isn't exported. `config.reporters` is a CLI setting |
+| An internal `outputResults` in `core/utils` | Deleted, because nothing called it |
+
+One return type for a run, and a library that leaves stdout alone. `null` meant callers had to check for it
+before reading `summary`. The CLI already maps an empty report to exit `2`.
+
+Confirmation: `test/api-contract.test.js` covers the empty report, a silent dry run, and a config that ignores
+the environment. `test/dryRun.test.js` asserts the dry run writes nothing to stdout.

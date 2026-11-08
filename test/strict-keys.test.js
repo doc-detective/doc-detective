@@ -6,7 +6,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
-import { summarizeSpecErrors } from "../dist/core/utils.js";
+import { summarizeSchemaErrors } from "../dist/core/utils.js";
+import { validate } from "../dist/common/src/index.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(ROOT, "bin", "doc-detective.js");
@@ -58,6 +59,21 @@ describe("unknown keys through the CLI", function () {
     expect(r.stderr).to.include("Did you mean runOn?");
   });
 
+  it("suggests a key inside an action", function () {
+    write("a.spec.json", { tests: [{ steps: [{ runShell: { comand: "echo hi" } }] }] });
+    const r = run(["-i", "a.spec.json"]);
+    expect(r.status, r.stderr).to.equal(2);
+    expect(r.stderr).to.include("tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?");
+  });
+
+  it("lists the allowed values, without the other branches' type errors", function () {
+    write("a.spec.json", { tests: [{ steps: [{ click: { selector: "#go", button: "middle-ish" } }] }] });
+    const r = run(["-i", "a.spec.json"]);
+    expect(r.status, r.stderr).to.equal(2);
+    expect(r.stderr).to.include('must be one of left, right, middle (got "middle-ish").');
+    expect(r.stderr).to.not.include("click: must be string");
+  });
+
   it("skips that spec and runs the rest with --no-exit-on-fail", function () {
     write("bad.spec.json", { tests: [{ steps: [{ ...echo, asertions: [] }] }] });
     write("good.spec.json", { tests: [{ steps: [echo] }] });
@@ -97,6 +113,16 @@ describe("unknown keys through the CLI", function () {
     const r = run(["-i", "a.spec.json", "--json"]);
     expect(r.status, r.stderr).to.equal(0);
     expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+  });
+
+  it("names a long invalid inline step by a short prefix, not the whole step", function () {
+    const long = "x".repeat(200);
+    write("a.md", `<!-- step {"runShell":"echo ${long}","asertions":[]} -->\n`);
+    const r = run(["-i", "a.md"]);
+    expect(r.status, r.stderr).to.equal(2);
+    const note = r.stderr.split("\n").find((line) => line.endsWith("Did you mean assertions?"));
+    expect(note).to.match(/^\{"runShell":"echo x+…: unknown key 'asertions'\./);
+    expect(note).to.not.include(long);
   });
 
   it("suggests a step key for an unknown key in an inline step", function () {
@@ -153,63 +179,55 @@ describe("unknown keys through the CLI", function () {
   });
 });
 
-describe("summarizeSpecErrors with unknown keys", function () {
-  const additional = (place, key) =>
-    `${place} must NOT have additional properties ({"additionalProperty":"${key}"})`;
+describe("summarizeSchemaErrors with unknown keys", function () {
+  const summarize = (object, schemaKey = "spec_v3") =>
+    summarizeSchemaErrors(
+      validate({ schemaKey, object, addDefaults: false, structuredErrors: true }).errorObjects,
+      object,
+      schemaKey
+    );
+  const spec = (step) => ({ tests: [{ steps: [step] }] });
 
   it("names an unknown step key and the nearest real one", function () {
-    const object = { tests: [{ steps: [{ goTo: "x", asertions: [] }] }] };
-    expect(summarizeSpecErrors(additional("/tests/0/steps/0", "asertions"), object)).to.equal(
+    expect(summarize(spec({ goTo: "https://example.com", asertions: [] }))).to.equal(
       "tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?"
     );
   });
 
   it("calls it an unknown action when the step has no action", function () {
-    const errors = [
-      additional("/tests/0/steps/0", "goto"),
-      "/tests/0/steps/0 must have required property 'goTo' ({\"missingProperty\":\"goTo\"})",
-      "/tests/0/steps/0 must have required property 'find' ({\"missingProperty\":\"find\"})",
-    ].join(", ");
-    expect(summarizeSpecErrors(errors, { tests: [{ steps: [{ goto: "x" }] }] })).to.equal(
-      "tests[0].steps[0]: unknown action 'goto'. Did you mean goTo?"
-    );
+    expect(summarize(spec({ goto: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goto'. Did you mean goTo?");
   });
 
   it("doesn't mistake assertions for an action", function () {
-    const errors =
-      "/tests/0/steps/0 must have required property 'goTo' ({\"missingProperty\":\"goTo\"})";
-    const object = { tests: [{ steps: [{ stepId: "s", assertions: [] }] }] };
-    expect(summarizeSpecErrors(errors, object)).to.equal(
-      "tests[0].steps[0]: no action, such as goTo."
+    expect(summarize(spec({ stepId: "s", assertions: [] }))).to.equal(
+      "tests[0].steps[0]: no action, such as checkLink, click, find."
     );
   });
 
   it("suggests step keys for a step validated on its own", function () {
-    expect(summarizeSpecErrors(additional("", "asertions"), { goTo: "x", asertions: [] }, "step_v3")).to.equal(
+    expect(summarize({ goTo: "https://example.com", asertions: [] }, "step_v3")).to.equal(
       "unknown key 'asertions'. Did you mean assertions?"
     );
   });
 
   it("doesn't call a real action unknown when only its value is wrong", function () {
-    const errors = [
-      "/tests/0/steps/0 must have required property 'find' ({\"missingProperty\":\"find\"})",
-      "/tests/0/steps/0/goTo must be object ({\"type\":\"object\"})",
-    ].join(", ");
-    const summary = summarizeSpecErrors(errors, { tests: [{ steps: [{ goTo: 1 }] }] });
+    const summary = summarize(spec({ goTo: [] }));
     expect(summary).to.not.include("unknown action");
-    expect(summary).to.include("tests[0].steps[0].goTo: must be object");
+    expect(summary).to.include("tests[0].steps[0].goTo: must be");
   });
 
   it("names an unknown spec key", function () {
-    expect(summarizeSpecErrors(additional("", "runon"), { runon: [] })).to.equal(
+    expect(summarize({ runon: [], tests: [{ steps: [{ runShell: "echo hi" }] }] })).to.equal(
       "unknown key 'runon'. Did you mean runOn?"
     );
   });
 
-  it("names an unknown key in an action without a suggestion", function () {
-    const object = { tests: [{ steps: [{ click: { typo: 1 } }] }] };
-    expect(summarizeSpecErrors(additional("/tests/0/steps/0/click", "typo"), object)).to.equal(
-      "tests[0].steps[0].click: unknown key 'typo'."
+  it("names an unknown key in an action, and suggests only a close one", function () {
+    expect(summarize(spec({ click: { selector: "#go", nope: 1 } }))).to.equal(
+      "tests[0].steps[0].click: unknown key 'nope'."
+    );
+    expect(summarize(spec({ click: { selector: "#go", buton: "left" } }))).to.equal(
+      "tests[0].steps[0].click: unknown key 'buton'. Did you mean button?"
     );
   });
 });

@@ -299,7 +299,8 @@ describe("Advanced ordering under concurrentRunners", function () {
         ],
       });
       const result = await runTests({ input: [core], logLevel: "error" });
-      assert.equal(result, null);
+      // runTests returns an empty report, not null, when nothing runs (ADR 01166).
+      assert.deepEqual(result.specs, []);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

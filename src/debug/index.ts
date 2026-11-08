@@ -936,7 +936,7 @@ function renderConfigSection(cfg: ConfigData, configError: Error | null): Sectio
   const lines: string[] = [];
   if (configError) {
     lines.push("  === CONFIG INVALID ===");
-    lines.push(`  ${configError.message}`);
+    lines.push(...configError.message.split("\n").map((line) => `  ${line}`));
     lines.push("");
     lines.push("  Best-effort raw config (validation failed):");
   } else {

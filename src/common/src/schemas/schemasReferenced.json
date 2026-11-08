@@ -7391,7 +7391,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "terminal",
+              "json",
+              "html",
+              "runFolder",
+              "junit",
+              "markdown"
+            ]
           },
           "default": [
             "terminal",
@@ -15448,7 +15455,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "terminal",
+              "json",
+              "html",
+              "runFolder",
+              "junit",
+              "markdown"
+            ]
           }
         },
         "specFilter": {

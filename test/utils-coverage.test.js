@@ -722,12 +722,17 @@ describe("utils.ts coverage", function () {
     });
 
     it("exits(2) when the API config is missing required fields", async function () {
-      captureConsole(sandbox);
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({ url: "http://x" });
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
       assert.equal(exitStub.firstCall.args[0], 2);
+      // One line per missing key, in the schema-error format.
+      assert.match(
+        output.log,
+        /Invalid DOC_DETECTIVE_API:\nmissing required key 'accountId'\.\nmissing required key 'token'\.\nmissing required key 'contextIds'\./
+      );
     });
 
     it("exits(2) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
@@ -739,7 +744,7 @@ describe("utils.ts coverage", function () {
     });
 
     it("exits(2) when the fetched resolvedTests fail schema validation", async function () {
-      captureConsole(sandbox);
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
         url: "http://api.test",
@@ -753,6 +758,9 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
       assert.ok(axios.get.calledOnce);
       assert.ok(axios.get.firstCall.args[0].endsWith("/resolved-tests"));
+      // The same formatter as config and spec errors, not AJV's raw string.
+      assert.match(output.log, /Invalid resolved tests from DOC_DETECTIVE_API:\nmissing required key 'specs'\./);
+      assert.doesNotMatch(output.log, /must have required property/);
     });
 
     it("exits(2) when axios rejects (network error)", async function () {
@@ -767,6 +775,25 @@ describe("utils.ts coverage", function () {
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
+    });
+
+    it("deep-merges DOC_DETECTIVE_CONFIG into the fetched config, as setConfig does", async function () {
+      captureConsole(sandbox);
+      process.env.DOC_DETECTIVE_API = JSON.stringify({
+        accountId: "a",
+        url: "http://api.test",
+        token: "tok",
+        contextIds: ["c1"],
+      });
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ telemetry: { send: false } });
+      sandbox.stub(axios, "get").resolves({
+        data: {
+          config: { telemetry: { send: true, userId: "x" } },
+          specs: [{ tests: [{ contexts: [{ steps: [{ wait: 5 }] }] }] }],
+        },
+      });
+      const out = await getResolvedTestsFromEnv();
+      assert.deepEqual(out.resolvedTests.config.telemetry, { send: false, userId: "x" });
     });
   });
 
@@ -794,7 +821,7 @@ describe("utils.ts coverage", function () {
           logLevel: "debug",
           allowUnsafe: true,
           dryRun: true,
-          reporters: ["json", "html"],
+          reporters: "json, html",
           test: "a, b ,",
           spec: "s1",
           hints: false,
@@ -802,7 +829,7 @@ describe("utils.ts coverage", function () {
           autoScreenshot: true,
           autoRecord: false,
           cacheDir: "mycache",
-          browserFallback: "OFF",
+          browserFallback: "off",
           concurrentRunners: "4",
         },
       });
@@ -816,47 +843,26 @@ describe("utils.ts coverage", function () {
       assert.equal(cfg.autoUpdate, false);
       assert.equal(cfg.autoScreenshot, true);
       assert.equal(cfg.autoRecord, false);
-      assert.equal(cfg.cacheDir, "mycache");
-      assert.equal(cfg.browserFallback, "off"); // normalized lower-case
+      assert.equal(cfg.cacheDir, path.resolve("mycache"));
+      assert.equal(cfg.browserFallback, "off");
       assert.equal(cfg.concurrentRunners, 4);
     });
 
-    it("accepts a single (non-array) reporters value", async function () {
+    it("accepts a single reporters value", async function () {
       const cfg = await setConfig({ args: { reporters: "terminal" } });
       assert.deepEqual(cfg.reporters, ["terminal"]);
     });
 
-    it("selects CPU-count mode for the bare/true concurrentRunners flag", async function () {
-      const cfgEmpty = await setConfig({ args: { concurrentRunners: "" } });
-      assert.equal(cfgEmpty.concurrentRunners, true);
+    it("selects CPU-count mode for auto and true concurrentRunners", async function () {
+      const cfgAuto = await setConfig({ args: { concurrentRunners: "auto" } });
+      assert.equal(cfgAuto.concurrentRunners, true);
       const cfgTrue = await setConfig({ args: { concurrentRunners: "true" } });
       assert.equal(cfgTrue.concurrentRunners, true);
     });
 
-    it("ignores an invalid browserFallback and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { browserFallback: "bogus" } });
-      assert.equal(cfg.browserFallback, "auto");
-      assert.ok(cap.log.includes("Ignoring invalid --browser-fallback"));
-    });
-
-    it("overrides the config shell from --shell (normalized lower-case)", async function () {
-      const cfg = await setConfig({ args: { shell: "CMD" } });
+    it("overrides the config shell from --shell", async function () {
+      const cfg = await setConfig({ args: { shell: "cmd" } });
       assert.equal(cfg.shell, "cmd");
-    });
-
-    it("ignores an invalid --shell and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { shell: "zsh" } });
-      assert.equal(cfg.shell, "bash");
-      assert.ok(cap.log.includes("Ignoring invalid --shell"));
-    });
-
-    it("ignores an invalid concurrentRunners and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { concurrentRunners: "xyz" } });
-      assert.equal(cfg.concurrentRunners, 1);
-      assert.ok(cap.log.includes("Ignoring invalid --concurrent-runners"));
     });
 
     it("resolves a comma-separated input list to absolute paths, leaving URLs alone", async function () {
@@ -884,7 +890,7 @@ describe("utils.ts coverage", function () {
 
     it("throws when DOC_DETECTIVE_CONFIG fails schema validation", async function () {
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: 12345 });
-      await assert.rejects(setConfig({ args: {} }), /Invalid config from DOC_DETECTIVE_CONFIG/);
+      await assert.rejects(setConfig({ args: {} }), /Invalid config in DOC_DETECTIVE_CONFIG:\nlogLevel: must be one of/);
     });
 
     it("throws a clear error when the config file path cannot be read", async function () {

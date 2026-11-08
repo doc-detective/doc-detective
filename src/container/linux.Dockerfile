@@ -2,15 +2,23 @@
 FROM node:24-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
-# Set environment container to trigger container-based behaviors. The cache
-# dir is pinned to /opt/doc-detective so the pre-warm step at image build
-# time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
-# because the image is the authoritative version-bump signal — image
-# releases bump doc-detective, not runtime self-update.
+# The cache dir is pinned to /opt/doc-detective so the pre-warm step at image
+# build time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
+# because the image is the authoritative version-bump signal — image releases
+# bump doc-detective, not runtime self-update.
+#
+# The image's own defaults live in a user config, the lowest config layer, so
+# any project config, environment variable, or flag overrides them (ADR 01165).
+# XDG_CONFIG_HOME is pinned so the file is still found when a CI system moves
+# HOME, as GitHub `container:` jobs do. The only default: the container is the
+# sandbox, so steps marked unsafe run.
 ENV DEBIAN_FRONTEND=noninteractive \
-    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}' \
+    XDG_CONFIG_HOME=/etc/doc-detective-xdg \
     DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective \
     DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
+
+RUN mkdir -p /etc/doc-detective-xdg/doc-detective \
+    && echo '{"allowUnsafeSteps": true}' > /etc/doc-detective-xdg/doc-detective/config.json
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \

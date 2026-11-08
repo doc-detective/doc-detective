@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { isDebugRequested } from "../envFlag.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -385,12 +386,12 @@ export interface BrowserDeps {
 // recoverable situations (channel-resolve timeouts, prune failures, etc.)
 // that callers shouldn't see when they don't inject a logger. Mirrors
 // the loader.ts / installer.ts pattern: opt back in with
-// DOC_DETECTIVE_RUNTIME_DEBUG=1 for diagnostics. The CLI/test-runner
+// DOC_DETECTIVE_DEBUG=1 for diagnostics. The CLI/test-runner
 // flow wires its own logger that respects config.logLevel, so this only
 // governs the bare programmatic path.
-const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
+// Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
-  if (level === "debug" && !RUNTIME_DEBUG) return;
+  if (level === "debug" && !isDebugRequested()) return;
   if (level === "error") console.error(msg);
   else console.log(msg);
 };
@@ -559,7 +560,7 @@ async function ensureBrowserInstalledImpl(
     );
     logger(
       `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${existing.latestKnownVersion}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warn"
+      "warning"
     );
     return { path, version: existing.installedVersion, outdated: true };
   }
@@ -611,7 +612,7 @@ async function ensureBrowserInstalledImpl(
     writeInstalledRecord(record, ctx);
     logger(
       `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${latest}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warn"
+      "warning"
     );
     const path = await locateExecutable(
       browsersModule,
@@ -656,7 +657,7 @@ async function ensureBrowserInstalledImpl(
     if (!verify.ok) {
       logger(
         `Installed ${name} ${latest} failed validation (${verify.error}); reinstalling once.`,
-        "warn"
+        "warning"
       );
       try {
         await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
@@ -1012,7 +1013,7 @@ async function ensureGeckodriver(
     if (!verify.ok) {
       logger(
         `Downloaded geckodriver failed validation (${verify.error}); re-downloading once.`,
-        "warn"
+        "warning"
       );
       try {
         if (binaryPath && fs.statSync(binaryPath).isFile()) {
