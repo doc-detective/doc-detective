@@ -11,7 +11,7 @@ Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
 - A directory where you can create a `.spec.json` file.
-- A visible display, or, on Linux and in CI, the `ffmpeg` engine's Xvfb virtual display. Automatic recording uses the [`ffmpeg` engine](/docs/test-docs/record-video-guide#choose-a-recording-engine), which needs a display to capture (see [Docker and headless](/docs/ci/docker-and-headless)).
+- A headed context. Automatic recording uses the [`ffmpeg` engine](/docs/test-docs/record-video-guide#choose-a-recording-engine), which captures the screen, and a headless browser draws nothing there. On a Linux host with no display, install Xvfb to give a headed context a virtual display (see [Docker and headless](/docs/ci/docker-and-headless)).
 
 The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
@@ -53,7 +53,7 @@ For where the artifacts land, see [Automatic recordings](/docs/actions/record#au
 ## Verify it works
 
 - An automatic recording saves per driver-based context, on a stable path in the per-run artifact tree.
-- A headless run with no display skips the automatic recording. Run headed, or on Linux use the `ffmpeg` engine's Xvfb virtual display. See [Docker and headless](/docs/ci/docker-and-headless).
+- A headless context skips the automatic recording. Run headed, and on a Linux host with no display install Xvfb. See [Docker and headless](/docs/ci/docker-and-headless).
 - On Windows and macOS, Doc Detective warns when a run records concurrently, because the recordings share the same physical display and overlap. See [Two concurrent recordings overlap on Windows or macOS](/docs/test-docs/record-video-guide#two-concurrent-recordings-overlap-on-windows-or-macos).
 
 ## What's next

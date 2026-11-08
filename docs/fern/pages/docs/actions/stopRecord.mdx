@@ -81,7 +81,7 @@ This example starts recording, performs an action, and then stops the recording.
 }
 ```
 
-{/* step {"stepId":"stoprecord-record","description":"Start recording, directed at a gitignored output folder (on this headless docs-test runner, with no virtual display, the record step SKIPS rather than fails)","record":"./.dd-output/session_video.mp4"} */}
+{/* step {"stepId":"stoprecord-record","description":"Start recording, directed at a gitignored output folder (this context names no browser, so it runs headless Chrome and records the tab with the browser engine)","record":"./.dd-output/session_video.mp4"} */}
 {/* step {"stepId":"stoprecord-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"stoprecord-stop","description":"Stop the recording","stopRecord":true} */}
 {/* test end */}
