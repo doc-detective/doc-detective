@@ -563,6 +563,7 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
             return { stdout: installedList, stderr: "", exitCode: 0 };
           }
           const key = args[1] === "marketplace" ? `marketplace ${args[2]}` : args[1];
+          if (fail[key]?.throws) throw fail[key].throws;
           return fail[key] ? { stdout: "", stderr: "", ...fail[key], exitCode: 1 } : { stdout: "", stderr: "", exitCode: 0 };
         },
         existsSync: () => false,
@@ -582,6 +583,31 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
         logged.some((m) => /Couldn't re-add/.test(m) && /source mismatch on stdout/.test(m)),
         `expected the stdout in the warning; got ${JSON.stringify(logged)}`
       );
+    });
+
+    it("ends the warning with the exit code when the re-add prints nothing", async function () {
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": {} });
+      await adapter.install(opts);
+      const warning = logged.find((m) => /Couldn't re-add/.test(m));
+      assert.ok(warning, `expected a re-add warning; got ${JSON.stringify(logged)}`);
+      assert.match(warning, /\(exit code 1\)$/);
+    });
+
+    it("warns and continues when the re-add's spawn throws", async function () {
+      const enoent = Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" });
+      const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": { throws: enoent } });
+      const report = await adapter.install(opts);
+      assert.equal(report.action, "updated");
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /spawn claude ENOENT/.test(m)),
+        `expected the spawn error in the warning; got ${JSON.stringify(logged)}`
+      );
+    });
+
+    it("still throws when a later step's spawn throws", async function () {
+      const boom = new Error("spawn failed for plugin update");
+      const { adapter, opts } = makeFailingAdapter({ "marketplace add": { stderr: "x" }, update: { throws: boom } });
+      await assert.rejects(adapter.install(opts), /spawn failed for plugin update/);
     });
 
     for (const [label, fail, failing] of [

@@ -199,12 +199,21 @@ export class CopilotCliAdapter implements AgentAdapter {
       };
     }
 
+    const warnSkipped = (detail: string) =>
+      opts.logger(
+        `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${detail})`,
+        "warn"
+      );
     for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       let result: RunResult;
       try {
         result = await this.deps.run(cmd, args);
       } catch (err) {
+        if (bestEffort) {
+          warnSkipped(String(err));
+          continue;
+        }
         // ENOENT from safeSpawn = binary missing. Surface an actionable
         // install hint rather than the raw spawn error.
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
@@ -224,10 +233,7 @@ export class CopilotCliAdapter implements AgentAdapter {
         const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
         const msg = output || `exit code ${result.exitCode}`;
         if (bestEffort) {
-          opts.logger(
-            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${msg})`,
-            "warn"
-          );
+          warnSkipped(msg);
           continue;
         }
         if (/auth|login|token|unauthori[sz]ed/i.test(msg)) {

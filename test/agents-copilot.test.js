@@ -214,6 +214,42 @@ describe("CopilotCliAdapter.install()", function () {
     assert.ok(logged.some((m) => /marketplace already exists/.test(m)), "should log the re-add failure");
   });
 
+  describe("when a spawn throws on the update path", function () {
+    const enoent = () => Object.assign(new Error("spawn copilot ENOENT"), { code: "ENOENT" });
+    function makeThrowingAdapter(throwsOn) {
+      const calls = [];
+      const logged = [];
+      const adapter = new CopilotCliAdapter({
+        run: async (cmd, args) => {
+          calls.push([cmd, ...args]);
+          if (throwsOn(args)) throw enoent();
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+        existsSync: (p) => p === PLUGIN_JSON_PATH,
+        readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+        homedir: () => "/home/test",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      return { adapter, calls, logged, opts: baseOpts({ logger: (m) => logged.push(m) }) };
+    }
+
+    it("warns and continues when the best-effort re-add throws ENOENT", async function () {
+      const { adapter, calls, logged, opts } = makeThrowingAdapter((args) => args[1] === "marketplace");
+      const report = await adapter.install(opts);
+      assert.deepEqual(calls.map((c) => c.slice(2, 4).join(" ")), ["marketplace add", "update doc-detective@doc-detective"]);
+      assert.equal(report.action, "updated");
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /ENOENT/.test(m)),
+        `expected the spawn error in the warning; got ${JSON.stringify(logged)}`
+      );
+    });
+
+    it("still gives the not-installed hint when `plugin update` throws ENOENT", async function () {
+      const { adapter, opts } = makeThrowingAdapter((args) => args[1] === "update");
+      await assert.rejects(adapter.install(opts), /not installed or not on PATH/);
+    });
+  });
+
   // Only the marketplace re-add is best effort: `plugin update` failing still
   // throws, whether the re-add before it succeeded or failed.
   for (const reAddFails of [false, true]) {

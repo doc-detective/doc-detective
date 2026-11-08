@@ -474,16 +474,26 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       };
     }
 
+    const warnSkipped = (detail: string) =>
+      opts.logger(
+        `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${detail})`,
+        "warn"
+      );
     for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
-      const result = await this.deps.run(cmd, args);
+      let result: RunResult;
+      try {
+        result = await this.deps.run(cmd, args);
+      } catch (err) {
+        if (!bestEffort) throw err;
+        warnSkipped(String(err));
+        continue;
+      }
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
         if (bestEffort) {
-          const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
-          opts.logger(
-            `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (exit code ${result.exitCode}) ${output}`,
-            "warn"
+          warnSkipped(
+            [result.stderr, result.stdout].filter(Boolean).join("\n") || `exit code ${result.exitCode}`
           );
           continue;
         }
