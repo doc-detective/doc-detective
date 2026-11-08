@@ -1075,23 +1075,18 @@ function runFolderSrc(p) {
   return MEDIA_BASE ? MEDIA_BASE + "/" + s : s;
 }
 
-// A context's automatic recording (its ~autorecord step), as a src for the
-// player at the top of the context, and its steps without the synthetic start
-// and stop. A recording that didn't save keeps its steps in the list, so the
-// reason shows. Array.prototype.find is fine here: collectMedia already needs
-// ES2015.
+// A context's automatic recording, as a src for the player at the top of the
+// context, and its steps without the synthetic start and stop. The runner
+// marks those two (__autoRecord, __autoRecordStop), as the summary reads them.
+// A recording that didn't save keeps its steps in the list, so the reason
+// shows. Array.prototype.find is fine here: collectMedia already needs ES2015.
 function autoRecording(ctx) {
   var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
   var start = all.find(function(item) {
-    return /~autorecord$/.test(String(item.step.stepId || "")) && item.step.record && item.step.record.path;
+    return item.step.__autoRecord === true && item.step.record && item.step.record.path;
   });
   if (!start || start.step.result !== "PASS") return { video: null, steps: all };
-  var target = String(start.step.record.path).split("\\\\").join("/");
-  var stop = all.find(function(item) {
-    var s = item.step;
-    return typeof s.stopRecord !== "undefined" && s.outputs &&
-      String(s.outputs.recordingPath || "").split("\\\\").join("/") === target;
-  });
+  var stop = all.find(function(item) { return item.step.__autoRecordStop === true; });
   if (stop && stop.step.result !== "PASS") return { video: null, steps: all };
   return {
     video: runFolderSrc(start.step.record.path),
@@ -1117,7 +1112,8 @@ function collectMedia(step) {
     media.push({ kind: "video", path: outs.recordingPath });
   }
   // The automatic screenshot, relative to runDir; reads the field's future
-  // name (autoScreenshotPath) too.
+  // name (autoScreenshotPath) too. The runner writes only autoScreenshot today,
+  // so it wins when both are set.
   var auto = step.autoScreenshot || step.autoScreenshotPath;
   if (typeof auto === "string" && auto) {
     media.push({ kind: "image", path: runFolderSrc(auto), label: "Automatic" });
