@@ -65,6 +65,28 @@ Codex, OpenCode, Gemini CLI, and Qwen Code install from that ref. The up-to-date
 
 Claude Code and Copilot CLI add agent-tools as a plugin marketplace without a ref, so they install from the agent-tools default branch.
 
+#### Pin a Gemini CLI or Qwen Code install made before Doc Detective 5
+
+A Gemini CLI or Qwen Code install made before Doc Detective 5 recorded no agent-tools ref. It keeps updating from the agent-tools default branch, and `install agents --force` doesn't change that.
+
+To pin it, uninstall the extension, then install it again with Doc Detective 5. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. Neither CLI documents what an uninstall keeps.
+
 ### `install runtime`
 
 Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.

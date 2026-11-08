@@ -247,6 +247,28 @@ doc-detective --concurrent-runners auto
 doc-detective install agents --agent claude --scope project --yes
 ```
 
+## Gemini CLI and Qwen Code agent installs
+
+**What changed:** `install agents` pins the agent-tools ref that matches Doc Detective 5. A Gemini CLI or Qwen Code install made with Doc Detective 4 recorded no ref. It keeps updating from the agent-tools default branch, even with `install agents --force`.
+
+**What to do:** Uninstall the extension, then install it again. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. See [Pin a Gemini CLI or Qwen Code install made before Doc Detective 5](/reference/reference/cli/install#pin-a-gemini-cli-or-qwen-code-install-made-before-doc-detective-5).
+
 ## `--silent` on `install`
 
 **What changed:** `install` subcommands reject `--silent`.
