@@ -609,9 +609,11 @@ describe("checkLink timeout", function () {
       return request.call(this, cfg);
     };
     try {
+      // The handler takes the effective step's object form (ADR 01167), and
+      // its validate() call fills the schema's timeout default.
       const result = await checkLink({
         config: {},
-        step: { checkLink: `http://localhost:${serverPort}/200` },
+        step: { checkLink: { url: `http://localhost:${serverPort}/200` } },
       });
       assert.equal(result.status, "PASS", result.description);
     } finally {

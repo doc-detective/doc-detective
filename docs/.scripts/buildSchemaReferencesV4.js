@@ -192,6 +192,35 @@ function extractObjectSchemas(schema, parentSchemaId = "", currentPath = "") {
   return extractedSchemas;
 }
 
+// The pages whose defaults validation fills (ADR 01167). It mirrors
+// applyDefaults in src/common/src/normalize/helpers.ts: each action's object
+// branches and the plain nested objects under them, but nothing under another
+// anyOf. Plus config's root, where Ajv fills them. Step-level keys and anything
+// reached through a union, such as OpenAPI options, don't get the line.
+const defaultedPages = new Set([schemas.config_v3.title]);
+(function collectDefaultedPages() {
+  const step = schemas.step_v3;
+  const actions = Object.keys(step.properties).filter(
+    (key) => !(key in step.components.schemas.common.properties)
+  );
+  const visit = (node) => {
+    if (node.title) defaultedPages.add(node.title);
+    const effective = getEffectiveProperties(node);
+    for (const prop of Object.values(effective ? effective.properties : {})) {
+      if (prop.type === "object" && !prop.required && !prop.anyOf) visit(prop);
+    }
+  };
+  // The same branches applyDefaults reads: a root union's object branches, a
+  // root object (dragAndDrop), or the `object` component (click's allOf root).
+  for (const action of actions) {
+    const schema = schemas[`${action}_v3`];
+    const branches = schema.anyOf || (schema.properties ? [schema] : [schema.components?.schemas?.object]);
+    for (const branch of branches) {
+      if (branch?.properties || branch?.allOf) visit(branch);
+    }
+  }
+})();
+
 // Function to generate markdown for a schema
 function generateSchemaMarkdown(schemaId, schema) {
   const title = schema.title || schemaId;
@@ -237,15 +266,18 @@ function generateSchemaMarkdown(schemaId, schema) {
   }
 
   // Fields
-  const fields = [
-    "## Fields",
-    "",
-    "Field | Type | Description | Default",
-    ":-- | :-- | :-- | :--",
-  ];
+  const fields = ["## Fields", ""];
 
   // Process fields (merged across allOf branches)
   const effectiveFields = getEffectiveProperties(schema);
+  // validate() fills these defaults, so results show them too (ADR 01167).
+  if (
+    defaultedPages.has(schemaId) &&
+    Object.values(effectiveFields.properties).some((prop) => prop.default !== undefined)
+  ) {
+    fields.push("Validation applies the defaults shown here.", "");
+  }
+  fields.push("Field | Type | Description | Default", ":-- | :-- | :-- | :--");
   if (effectiveFields) {
     const parentForRequired = { required: effectiveFields.required };
     for (const [propName, propSchema] of Object.entries(
@@ -530,13 +562,17 @@ function getTypeString(schema) {
       return getTypeString(options[0]);
     }
 
-    // Multiple options
+    // Multiple options. Any option with a list of types lists each type on its
+    // own line, on purpose for every schema, not only stopRecord's
+    // `["boolean", "null"]`. It prints bare type names, so it suits primitive
+    // types only. A list that mixes in "object" or "array" would lose that
+    // branch's constraints here: give it its own option instead.
     return (
       "one of:<br/>" +
       options
-        .map((option) => {
-          return `- ${getTypeString(option)}`;
-        })
+        .flatMap((option) =>
+          Array.isArray(option.type) ? option.type.map((type) => `- ${type}`) : [`- ${getTypeString(option)}`]
+        )
         .join("<br/>")
     );
   }

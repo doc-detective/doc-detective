@@ -212,7 +212,7 @@ Load environment variables from an `.env` file, where the path is the match.
 
 #### `saveCookie`
 
-Save a browser cookie by name to a default location.
+Save a browser cookie, where the match is a cookie name or a `.txt` path. A name saves the cookie to the environment variable of the same name. A `.txt` path saves the cookie named for the file to that file in [`outputDir`](/reference/schemas/config), which defaults to the directory you run Doc Detective from. For example, `session.txt` saves the `session` cookie.
 
 ```json
 { "saveCookie": "$1" }
@@ -220,7 +220,7 @@ Save a browser cookie by name to a default location.
 
 #### `loadCookie`
 
-Load a browser cookie by name from a default location.
+Load a browser cookie, where the match is a cookie name or a `.txt` path. A name loads the cookie from the environment variable of the same name. A `.txt` path loads the cookie named for the file from that file in [`outputDir`](/reference/schemas/config), which defaults to the directory you run Doc Detective from. For example, `session.txt` loads the `session` cookie.
 
 ```json
 { "loadCookie": "$1" }

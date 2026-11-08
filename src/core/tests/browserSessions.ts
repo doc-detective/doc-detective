@@ -36,21 +36,12 @@ export type { BrowserOpenOverrides };
 // its engine), never a foreign one — otherwise `surface: "<engine>"` (which
 // prefers an exact name match) would resolve a differently-engined session
 // named after that keyword instead of a browser of that engine.
-const ENGINE_KEYWORDS = new Set([
-  "chrome",
-  "firefox",
-  "safari",
-  "webkit",
-  "edge",
-]);
+const ENGINE_KEYWORDS = new Set(["chrome", "firefox", "safari", "webkit"]);
 
-// context_v3 transforms edge → chrome before the runner sees it, so engine
-// comparisons must treat them as the same engine or `surface: "edge"` would
-// never match an edge context. (The raw engine name is still what gets
-// stamped on `driver.state.engine` and stored on the session entry.)
+// Engine names compare case-insensitively. No engine is an alias for another
+// (ADR 01172).
 function normalizeEngine(engine: string): string {
-  const e = String(engine).toLowerCase();
-  return e === "edge" ? "chrome" : e;
+  return String(engine).toLowerCase();
 }
 
 // A session name that is a reserved engine keyword must match the session's
@@ -73,11 +64,7 @@ function engineKeywordNameConflict(
 
 export interface BrowserSessionEntry {
   name: string;
-  // Lowercased engine as launched. openSession normalizes edge → chrome
-  // BEFORE registering (edge rides the chromedriver stack), so a browser
-  // surface opened as edge registers with engine "chrome". A session created
-  // through registerSession directly stores whatever engine it's handed
-  // (lowercased), so comparisons still route through normalizeEngine.
+  // Lowercased engine as launched.
   engine: string;
   driver: any;
   // Monotonic focus stamp: bumped whenever the session is activated. The
@@ -301,10 +288,9 @@ async function resolveSessionForRef(
 // can't drift. `overrides` carries the descriptor's launch knobs
 // (headless/size/driverOptions) through to the injected launcher.
 //
-// The engine is normalized HERE (edge -> chrome — edge is Chromium and rides
-// the chromedriver stack) so BOTH callers get a launchable engine and a
-// consistent default name: the launcher (`registry.open`), the registered
-// engine, and the name-defaults-to-engine key all use the normalized value.
+// The engine is lowercased HERE so both callers get the same default name:
+// the launcher (`registry.open`), the registered engine, and the
+// name-defaults-to-engine key all use the lowercased value.
 async function openSession(
   registry: BrowserSessionRegistry,
   {

@@ -611,11 +611,11 @@ export type OpenApi = {
    */
   mockResponse?: boolean;
   /**
-   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified.
+   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes.
    */
   statusCode?: number;
   /**
-   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.
+   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.
    */
   useExample?: "request" | "response" | "both" | "none";
   /**
@@ -624,6 +624,11 @@ export type OpenApi = {
   exampleKey?: string;
   headers?: OpenAPIRequestHeaders;
 };
+/**
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
+ */
+export type OpenAPIRequestHeaders = RequestHeadersObject | RequestHeadersString;
+export type RequestHeadersString = string;
 export type HerettoCMSIntegration = {
   [k: string]: unknown;
 } & {
@@ -767,6 +772,11 @@ export interface Config {
   /**
    * Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.
    */
+  beforeAll?: string | string[];
+  /**
+   * @deprecated
+   * Deprecated: use `beforeAll`.
+   */
   beforeAny?: string | string[];
   /**
    * Path(s) to test specifications to perform after those specified by `input`. Useful for cleaning up testing environments.
@@ -851,7 +861,7 @@ export interface Config {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
+   * How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. That route's `retry.limit` sets its count, and the step's `attempts` result field reports how many times it ran. Capped at `10` to prevent a runaway retry storm from a misconfiguration.
    */
   retries?: number;
 }
@@ -883,7 +893,7 @@ export interface Context {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
   /**
@@ -1034,20 +1044,6 @@ export interface DeviceDescriptor {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Statements to include tests and steps inside the content of the file, such as within Markdown.
@@ -1108,7 +1104,7 @@ export interface RunShellCommandDetailed {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the command in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -1124,7 +1120,7 @@ export interface RunShellCommandDetailed {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -1200,10 +1196,7 @@ export interface IntegrationsOptions {
 export interface OpenAPIDefinition {
   [k: string]: unknown;
 }
-/**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.
- */
-export interface OpenAPIRequestHeaders {
+export interface RequestHeadersObject {
   [k: string]: string;
 }
 export interface OpenAPIDescriptionTest {

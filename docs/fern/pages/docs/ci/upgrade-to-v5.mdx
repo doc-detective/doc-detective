@@ -105,6 +105,19 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 
 A command that can't start, for example because its `workingDirectory` doesn't exist, now says so instead of reporting exit code `-2`.
 
+## Routing actions that never ran
+
+**What changed:** A [routing entry](/docs/get-started/how-testing-works#routing-handlers) can only name an action Doc Detective performs at its scope. Version 4 accepted every action on both steps and tests, then ignored some and quietly downgraded others. These now make the spec invalid, and the run exits `2`:
+
+| Entry | Version 4 | Version 5 |
+|---|---|---|
+| `stop: "spec"` or `stop: "run"` on a step | Warned, then stopped only the current test. | The spec is invalid. |
+| `goToTest` on a step | Ignored. | The spec is invalid. |
+| `stop: "run"` on a test | Warned, then stopped only the current spec. | The spec is invalid. |
+| `retry` or `goToStep` on a test | Ignored. | The spec is invalid. |
+
+**What to do:** On a step, use `stop: "test"`. To skip a spec's remaining tests, move the handler to the test and use `stop: "spec"`. Remove step-level `goToTest` entries and test-level `retry` and `goToStep` entries, which never did anything. A `retry` in a step's `onSkip` stays valid. It re-runs a step whose action ran and reported SKIPPED, such as `wait: false`, and it's passed over for a step skipped before it ran.
+
 ## Test detection reads document structure
 
 **What changed:** Doc Detective parses each file before it detects tests, so it reads structure instead of matching raw text. With step detection on, a default config detects different steps:
@@ -163,6 +176,136 @@ A test without its own `testId` gets a new generated ID when its steps change.
 **What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
 
 **What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+
+## Results show the effective step
+
+**What changed:** Each step in the results shows the step that ran, in its object form with every default filled. Version 4 showed the step as you wrote it. For example, a step written as `{"goTo": "https://example.com"}` now appears in the results as:
+
+```json
+{
+  "goTo": {
+    "url": "https://example.com",
+    "params": {},
+    "timeout": 30000,
+    "waitUntil": { "networkIdleTime": 500, "domIdleTime": 1000 }
+  }
+}
+```
+
+Steps that skip, such as the ones after a failure, show it too. Step-level fields that you didn't set, such as `unsafe` or `variables`, stay out of the results. Step and test IDs don't change.
+
+Other shorthand appears in its full form too. For example, `"wait": true` appears as `"wait": 5000`, `"runShell": "npm test"` as an object with `command`, and `"closeSurface": "web"` as `["web"]`.
+
+**What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
+
+## `goTo` and `httpRequest` defaults
+
+**What changed:** Doc Detective fills these defaults the same way for every step, so some edge cases behave differently:
+
+- A `goTo` or `httpRequest` `timeout` below `1` makes the spec invalid, so the run exits `2`. Version 4 replaced `timeout: 0` with the default. A timeout is the most milliseconds to wait, and `0` meant "no limit" to some actions and "time out at once" to others.
+- An `httpRequest` step whose `openApi` sets its own `descriptionPath` validates the request and response against the OpenAPI schema, as the default `validateAgainstSchema: "both"` says. Version 4 skipped both checks unless you set `validateAgainstSchema`. A config integration keeps its own value.
+- An `httpRequest` step with `openApi` and no `request.body` no longer gets an empty `{}` body. This applies when your OpenAPI config adds no headers and the step uses no request example. Version 4 sent `{}`. Unless `validateAgainstSchema` is `response` or `none`, the step now checks the missing body against the operation's request schema. An operation whose schema expects an object then fails the step.
+
+**What to do:** Remove `timeout: 0`, or set the time you want. For an OpenAPI request that needs a body, set `request.body`, for example to `{}`. To skip the schema checks, set `validateAgainstSchema` to `none`.
+
+## URLs and request headers
+
+**What changed:** `goTo`, `checkLink`, and `httpRequest` accept the same three URL forms. A URL is absolute, a path that starts with `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A URL that only contains a variable, such as `"see $BASE_URL"`, makes the spec invalid, and so does a protocol-relative URL, such as `"//example.com"`. Version 4 accepted both on `goTo` and the first on `httpRequest`. `checkLink` now accepts `$BASE_URL/docs`, and an `httpRequest` path joins the `origin` from your config.
+
+Request headers on `checkLink`, `httpRequest`, and `openApi` take an object with string values, or a string with one `Name: value` header per line. A header value that's an object or an array makes the spec invalid.
+
+**What to do:** Start each URL with the variable, `http://`, `https://`, or `/`. Give each header a string value.
+
+## Cookie file locations
+
+**What changed:** A `saveCookie` or `loadCookie` object with a `path` and no `directory` reads and writes the file in `outputDir`, like the string form `"session.txt"`. Version 4 used the spec's folder. A spec that saves a cookie and a spec in another folder that loads it now use the same file.
+
+**What to do:** To keep a cookie file beside its spec, add `"directory": "."`.
+
+## Timeouts start at 1, and waits can't be negative
+
+**What changed:** A `timeout` that limits how long an operation runs must be `1` or more. That covers `runShell`, `runCode`, and opening a surface with `startSurface`. A locator's `timeout`, as in `find` or `click`, can still be `0`, which checks once without waiting. Every other duration and delay, such as `wait` and `waitUntil.delayMs`, must be `0` or more. A value out of range makes the spec invalid, and the run exits `2`:
+
+```text
+tests[0].steps[0].runShell.timeout: must be >= 1.
+```
+
+Version 4 accepted `"wait": -5` and moved on without waiting. It also accepted `"timeout": 0`, which meant the 60000-millisecond default in `runShell` and `runCode`, and other things elsewhere.
+
+**What to do:** Remove negative values. To use the default `timeout`, leave the key out instead of setting `0`.
+
+## No `edge` browser surface
+
+**What changed:** `startSurface` and `surface` don't accept `"browser": "edge"`. Version 4 opened Chrome for it, so a test that named Edge ran in Chrome. A spec that sets it is invalid, and the run exits `2`:
+
+```text
+tests[0].steps[0].startSurface.browser: must be one of chrome, firefox, safari, webkit (got "edge").
+```
+
+A plain `"surface": "edge"` now names a background process, not a browser.
+
+**What to do:** Use `"browser": "chrome"`.
+
+## Removed device fields
+
+**What changed:** A `device` descriptor, in `startSurface` or in a context, no longer has `orientation`, `udid`, or `provider`. They never did anything. A spec or config that sets one is invalid, and the run exits `2`.
+
+**What to do:** Delete those fields.
+
+## `click`, `find`, and other browser steps
+
+**What changed:** These browser steps make a spec invalid, so the run exits `2`:
+
+| Version 4 | Version 5 |
+|---|---|
+| `"click": true` or `"click": false` clicked the element whose text is "true" or "false", or failed the step in later 4.x releases. | Invalid. To click that text, quote it: `"click": "true"`. |
+| A `find.click` string other than `left`, `right`, or `middle`, such as `"click": "Submit"`, left-clicked. | Invalid. Use `true`, `false`, a button name, or `{ "button": "right" }`. A `click` action's string still names the element. |
+| A `find.click` object took any `click` field, such as `{ "selector": "#b" }` or `{ "button": "right", "timeout": 100 }`. A whole variable, such as `"click": "$BUTTON"`, also stood in for it. | Invalid. The object takes only `button` and `duration`. Put locators and `timeout` on `find` itself. Write the button name, or `true`, instead of a variable. |
+| A `find.type` with its own `selector`, `elementText`, or other locator ignored it. | Invalid. `find` already locates the element, so remove the locator from `type`. |
+| A negative `timeout` on `click`, on `find`, on a `dragAndDrop` source or target, or on an annotation target was accepted. So was a negative `type.inputDelay`. | Invalid. Use `0` or more. A `timeout` of `0` checks once. |
+
+Two behaviors changed too:
+
+- A `dragAndDrop` with `duration: 0` drags instantly. Version 4 replaced `0` with the 1000-millisecond default.
+- A `find` with `"click": false` finds without clicking. Earlier 4.x releases clicked anyway.
+
+The results show these steps' effective forms. A `find.click` appears as the click that ran, such as `{ "button": "left" }` for `true`. A `type` step's `keys` is always a list. A `swipe` direction appears as `{ "direction": "up", "distance": 0.5, "duration": 500 }`.
+
+**What to do:** Run your suite, then fix each step the error names. If a script reads `find.click` from the results, read `find.click.button`.
+
+## Where screenshots and recordings go
+
+**What changed:**
+
+| Version 4 | Version 5 |
+|---|---|
+| `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
+| A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
+| A step with `screenshot: true` or `record: true` and no `stepId`, such as one passed to the JavaScript `getRunner()` API, wrote `undefined.png` or `undefined.mp4`. | The step fails: ``Couldn't name the screenshot. Set `path`, or set the step's `stepId`.`` A recording says ``Couldn't name the recording.`` |
+| `screenshot: false` took a screenshot. | It skips the step. |
+| `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
+
+`outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder. So the first row matters in two cases:
+
+- You set `outputDir`.
+- You run with a config file in another folder, such as `--config sub/doc-detective.json`, and don't set `outputDir`. The screenshots and recordings move from the current folder to `sub/`.
+
+Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its full path. For example, `{"stepId": "home", "screenshot": true}` appears as `{"stepId": "home", "screenshot": {"path": "<outputDir>/home.png", "maxVariation": 0.05, "overwrite": "aboveVariation"}}`, with `<outputDir>` spelled out.
+
+**What to do:** If reference images from `screenshot: true` sit in the current folder and `outputDir` is elsewhere, move them to `outputDir`. You can also give the step a `path`. For a URL reference, collect the new screenshot from the run folder. Give `getRunner()` steps a `stepId` or a `path`.
+
+## Relative paths in a spec loaded from a URL
+
+**What changed:** A spec loaded from a URL (`--input https://…`) has no folder of its own. Version 4 resolved its relative paths against its temporary download, which the system deletes. So a sample's `screenshot: "example.png"` was lost. Version 5 resolves them against `outputDir`. That covers every path in the spec:
+
+- `screenshot` and `record` paths and directories
+- `loadVariables`, and a test's `before` and `after`
+- `workingDirectory`
+- the output `path` and `directory` of `httpRequest`, `runShell`, `runCode`, and `runBrowserScript`
+- `saveCookie` and `loadCookie` paths and directories
+- `openApi` `descriptionPath`
+
+**What to do:** Put the files a remote spec reads, such as a `loadVariables` file, in `outputDir`, or give the spec absolute paths.
 
 ## `--output` is a results file
 
@@ -234,6 +377,28 @@ doc-detective --concurrent-runners auto
 doc-detective install agents --agent claude --scope project --yes
 ```
 
+## Gemini CLI and Qwen Code agent installs
+
+**What changed:** `install agents` pins the agent-tools ref that matches Doc Detective 5. A Gemini CLI or Qwen Code install made with Doc Detective 4 recorded no ref. It keeps updating from the agent-tools default branch, even with `install agents --force`.
+
+**What to do:** Uninstall the extension, then install it again. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. See [Pin a Gemini CLI or Qwen Code install made before Doc Detective 5](/reference/reference/cli/install#pin-a-gemini-cli-or-qwen-code-install-made-before-doc-detective-5).
+
 ## `--silent` on `install`
 
 **What changed:** `install` subcommands reject `--silent`.
@@ -279,6 +444,14 @@ These still work, and each prints a warning on stderr. Replace them when you can
 | `runTests`, `runtests` | `run`, or no command |
 | `--logLevel` | `--log-level` |
 | `-e`, `--exit-on-fail` | Nothing. Failing the run is now the default, so you can delete the flag. |
+
+## Deprecated config keys
+
+These still work, and each prints a warning on stderr. Rename them when you can. A config that sets both the old and the new key exits `2`.
+
+| Deprecated | Replacement |
+|---|---|
+| `beforeAny` | `beforeAll` |
 
 ## GitHub Action
 

@@ -14,10 +14,25 @@
     "schemas": {
       "url": {
         "title": "HTTP request (simple)",
-        "type": "string",
-        "description": "URL for the HTTP request.",
-        "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
-        "transform": ["trim"]
+        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+        "$ref": "goTo_v3.schema.json#/components/schemas/url"
+      },
+      "requestHeaders": {
+        "title": "Request headers",
+        "description": "Headers to send with the request: an object of header names and string values, or a string with one `Name: value` header per line, such as `X-Api-Key: abc123\nAuthorization: Bearer token`. A line without a colon or a value is ignored.",
+        "anyOf": [
+          {
+            "title": "Request headers (object)",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          {
+            "title": "Request headers (string)",
+            "type": "string"
+          }
+        ]
       },
       "object": {
         "title": "HTTP request (detailed)",
@@ -33,7 +48,7 @@
         "additionalProperties": false,
         "properties": {
           "url": {
-            "$ref": "#/components/schemas/url"
+            "$ref": "goTo_v3.schema.json#/components/schemas/url"
           },
           "openApi": {
             "anyOf": [
@@ -63,15 +78,22 @@
             ]
           },
           "statusCodes": {
-            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.",
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "integer"
+            "description": "Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    }
+                  ]
                 }
-              ]
-            },
+              }
+            ],
             "default": [200, 201]
           },
           "method": {
@@ -83,30 +105,18 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Timeout for the HTTP request, in milliseconds.",
-            "default": 60000
+            "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+            "default": 60000,
+            "minimum": 1
           },
           "request": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
               "headers": {
-                "description": "Headers to include in the HTTP request.",
+                "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                 "default": {},
-                "anyOf": [
-                  {
-                    "title": "Request headers (object)",
-                    "description": "Headers to include in the HTTP request, in key/value format.",
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
-                  },
-                  {
-                    "title": "Request headers (string)",
-                    "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
-                    "type": "string"
-                  }
-                ]
+                "$ref": "#/components/schemas/requestHeaders"
               },
               "parameters": {
                 "description": "URL parameters to include in the HTTP request, in key/value format.",
@@ -148,7 +158,7 @@
             "additionalProperties": false,
             "properties": {
               "headers": {
-                "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                 "type": "object",
                 "additionalProperties": true,
                 "properties": {},
@@ -156,7 +166,7 @@
                 "title": "Response headers"
               },
               "body": {
-                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -176,8 +186,7 @@
                     "description": "String expected in the response.",
                     "type": "string"
                   }
-                ],
-                "default": {}
+                ]
               },
               "required": {
                 "type": "array",
@@ -197,11 +206,11 @@
           },
           "path": {
             "type": "string",
-            "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+            "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
           },
           "directory": {
             "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+            "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
           },
           "maxVariation": {
             "type": "number",
@@ -222,8 +231,16 @@
   },
   "examples": [
     "https://reqres.in/api/users",
+    "$API_URL/users",
     {
       "url": "https://reqres.in/api/users"
+    },
+    {
+      "url": "/api/users",
+      "statusCodes": 200,
+      "request": {
+        "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+      }
     },
     {
       "url": "https://reqres.in/api/users/2",

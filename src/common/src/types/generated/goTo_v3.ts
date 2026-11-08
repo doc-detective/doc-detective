@@ -6,7 +6,7 @@
 
 export type GoTo = GoToURLSimple | GoToURLDetailed;
 /**
- * Navigate to an HTTP or HTTPS URL. Can be a full URL or a path. If a path is provided, navigates relative to the current URL, if any.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple = string;
 /**
@@ -45,12 +45,9 @@ export type GoToURLDetailed = {
          */
         tab?: string;
       };
+  url: TargetURL;
   /**
-   * URL to navigate to. Can be a full URL or a path. If a path is provided and `origin` is specified, prepends `origin` to `url`. If a path is provided but `origin` isn't specified, attempts to navigate relative to the current URL, if any.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.
    */
   origin?: string;
   /**
@@ -60,7 +57,7 @@ export type GoToURLDetailed = {
     [k: string]: string;
   };
   /**
-   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails.
+   * Maximum time in milliseconds to wait for the page to be ready. If exceeded, the goTo action fails. At least 1.
    */
   timeout?: number;
   /**
@@ -119,7 +116,7 @@ export type GoToURLDetailed = {
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -144,12 +141,16 @@ export type ByIndex1 = number;
  * Name assigned when the window/tab was opened (goTo `newTab`/`newWindow`). The integer branch is listed first because Ajv validates with coerceTypes — string-first would coerce integer indexes into name strings.
  */
 export type ByName1 = string;
+/**
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ */
+export type TargetURL = string;
 
 export interface BrowserSurface {
   /**
    * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */

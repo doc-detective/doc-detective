@@ -39,8 +39,7 @@
         "workingDirectory": {
           "type": "string",
           "minLength": 1,
-          "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-          "default": "."
+          "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
         },
         "env": {
           "type": "object",
@@ -111,23 +110,6 @@
                     "headless": {
                       "type": "boolean",
                       "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                    },
-                    "orientation": {
-                      "type": "string",
-                      "enum": [
-                        "portrait",
-                        "landscape"
-                      ],
-                      "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                    },
-                    "udid": {
-                      "type": "string",
-                      "minLength": 1,
-                      "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                    },
-                    "provider": {
-                      "type": "object",
-                      "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                     }
                   }
                 },
@@ -154,7 +136,7 @@
             "delayMs": {
               "type": "integer",
               "minimum": 0,
-              "description": "Fixed delay (ms)."
+              "description": "Wait at least this many milliseconds."
             },
             "find": {
               "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -250,7 +232,7 @@
         },
         "timeout": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "description": "Startup ceiling in milliseconds (launch + install + readiness).",
           "default": 60000
         }
@@ -270,10 +252,9 @@
             "chrome",
             "firefox",
             "safari",
-            "webkit",
-            "edge"
+            "webkit"
           ],
-          "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+          "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
         },
         "name": {
           "type": "string",
@@ -363,13 +344,12 @@
         },
         "workingDirectory": {
           "type": "string",
-          "default": ".",
-          "description": "Working directory for the process."
+          "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
         },
         "tty": {
           "default": false,
           "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
-          "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+          "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the normalizer applies the 120/30 defaults (ADR 01167).",
           "anyOf": [
             {
               "type": "boolean"
@@ -427,7 +407,7 @@
         },
         "timeout": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "default": 60000,
           "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
         }
@@ -475,8 +455,7 @@
               "workingDirectory": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-                "default": "."
+                "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
               },
               "env": {
                 "type": "object",
@@ -547,23 +526,6 @@
                           "headless": {
                             "type": "boolean",
                             "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                          },
-                          "orientation": {
-                            "type": "string",
-                            "enum": [
-                              "portrait",
-                              "landscape"
-                            ],
-                            "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                          },
-                          "udid": {
-                            "type": "string",
-                            "minLength": 1,
-                            "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                          },
-                          "provider": {
-                            "type": "object",
-                            "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                           }
                         }
                       },
@@ -590,7 +552,7 @@
                   "delayMs": {
                     "type": "integer",
                     "minimum": 0,
-                    "description": "Fixed delay (ms)."
+                    "description": "Wait at least this many milliseconds."
                   },
                   "find": {
                     "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -686,7 +648,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "description": "Startup ceiling in milliseconds (launch + install + readiness).",
                 "default": 60000
               }
@@ -706,10 +668,9 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ],
-                "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+                "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
               },
               "name": {
                 "type": "string",
@@ -799,13 +760,12 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "default": ".",
-                "description": "Working directory for the process."
+                "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
               },
               "tty": {
                 "default": false,
                 "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
-                "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+                "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the normalizer applies the 120/30 defaults (ADR 01167).",
                 "anyOf": [
                   {
                     "type": "boolean"
@@ -863,7 +823,7 @@
               },
               "timeout": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "default": 60000,
                 "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
               }
@@ -890,10 +850,9 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
-            "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one)."
+            "description": "Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback."
           },
           "name": {
             "type": "string",
@@ -983,13 +942,12 @@
           },
           "workingDirectory": {
             "type": "string",
-            "default": ".",
-            "description": "Working directory for the process."
+            "description": "Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead."
           },
           "tty": {
             "default": false,
             "description": "Run the process in a pseudo-terminal (PTY) instead of a pipe, so full-screen/interactive TUIs (those that check `isTTY`) render and accept keystrokes. `true` or `{}` uses a terminal 120 columns wide by 30 rows tall. An object with `cols` and `rows` sets the size, for TUIs whose layout depends on the width. Requires the PTY backend `@homebridge/node-pty-prebuilt-multiarch` to be installed (`npm install @homebridge/node-pty-prebuilt-multiarch`); it is not bundled, and if it is unavailable the descriptor is skipped. `stdout` and `stderr` are merged into one stream in PTY mode. PTY output includes raw ANSI escape sequences (colors, cursor movement); `waitUntil.stdio` patterns should target text that renders without interleaved control codes, or use a regex that tolerates them.",
-            "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the runtime applies the 120/30 defaults.",
+            "$comment": "Same shape as runShell_v3's background.tty. The boolean branch comes first so Ajv's coerceTypes keeps `\"true\"` a boolean. Ajv skips `default` inside `anyOf`, so the normalizer applies the 120/30 defaults (ADR 01167).",
             "anyOf": [
               {
                 "type": "boolean"
@@ -1047,7 +1005,7 @@
           },
           "timeout": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "default": 60000,
             "description": "Max time in milliseconds to wait for `waitUntil` before the descriptor fails."
           }
@@ -1118,8 +1076,7 @@
           "workingDirectory": {
             "type": "string",
             "minLength": 1,
-            "description": "Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.",
-            "default": "."
+            "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
           },
           "env": {
             "type": "object",
@@ -1190,23 +1147,6 @@
                       "headless": {
                         "type": "boolean",
                         "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-                      },
-                      "orientation": {
-                        "type": "string",
-                        "enum": [
-                          "portrait",
-                          "landscape"
-                        ],
-                        "description": "Initial orientation. Reserved; validated now, not yet implemented."
-                      },
-                      "udid": {
-                        "type": "string",
-                        "minLength": 1,
-                        "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-                      },
-                      "provider": {
-                        "type": "object",
-                        "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
                       }
                     }
                   },
@@ -1233,7 +1173,7 @@
               "delayMs": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Fixed delay (ms)."
+                "description": "Wait at least this many milliseconds."
               },
               "find": {
                 "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -1329,7 +1269,7 @@
           },
           "timeout": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "description": "Startup ceiling in milliseconds (launch + install + readiness).",
             "default": 60000
           }
@@ -1373,23 +1313,6 @@
           "headless": {
             "type": "boolean",
             "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-          },
-          "orientation": {
-            "type": "string",
-            "enum": [
-              "portrait",
-              "landscape"
-            ],
-            "description": "Initial orientation. Reserved; validated now, not yet implemented."
-          },
-          "udid": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-          },
-          "provider": {
-            "type": "object",
-            "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
           }
         }
       }

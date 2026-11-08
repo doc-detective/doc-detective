@@ -131,7 +131,7 @@
           "delayMs": {
             "type": "integer",
             "minimum": 0,
-            "description": "Fixed delay (ms)."
+            "description": "Wait at least this many milliseconds."
           },
           "find": {
             "$ref": "#/components/schemas/findElement",
@@ -153,7 +153,7 @@
           "delayMs": {
             "type": "integer",
             "minimum": 0,
-            "description": "Fixed delay (ms)."
+            "description": "Wait at least this many milliseconds."
           }
         }
       }
