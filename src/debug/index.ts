@@ -17,8 +17,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { getVersionData } from "../utils.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { getBrowserDiagnostics } from "../core/config.js";
 import { collectSystemInfo, type SystemInfo } from "./system.js";
 import { probeAllTools, type ToolResult } from "./tools.js";
@@ -308,40 +308,14 @@ function collectDocDetective(): DocDetectiveData {
 }
 
 // Resolve where the running doc-detective is loaded from. `loadedFrom` is
-// the package root (the first ancestor of this module with a package.json),
-// which differs between a project-local `node_modules` install, a global
-// install, and an `npx` cache dir. `entryPoint` is the script node ran.
+// the package root, which differs between a project-local `node_modules`
+// install, a global install, and an `npx` cache dir. `entryPoint` is the
+// script node ran.
 function resolveLoadedFrom(): { loadedFrom: string; entryPoint: string } {
-  const entryPoint = process.argv[1] || "<unknown>";
-  let loadedFrom = "<unknown>";
-  try {
-    let dir = path.dirname(fileURLToPath(import.meta.url));
-    for (let i = 0; i < 8; i++) {
-      if (fs.existsSync(path.join(dir, "package.json"))) {
-        loadedFrom = dir;
-        break;
-      }
-      const parent = path.dirname(dir);
-      /* c8 ignore start */
-      // The filesystem-root fixed point (dirname(root) === root) is only
-      // reached if none of the 8 ancestor levels above dist/debug/
-      // contains a package.json. This module always resolves from a real,
-      // several-levels-deep install location (this repo's own checkout,
-      // an npm/npx install, or a global install) whose 8-hop ancestor walk
-      // finds a package.json well before reaching a drive root —
-      // confirmed by test (an existsSync stub that always returns false
-      // exhausts the 8-iteration loop bound, not this break). Hitting the
-      // true root within 8 hops would need `import.meta.url` to resolve
-      // to a path within ~8 segments of the filesystem root, which isn't
-      // controllable without relocating the whole checkout.
-      if (parent === dir) break;
-      /* c8 ignore stop */
-      dir = parent;
-    }
-  } catch {
-    // Best-effort — diagnostics must never crash.
-  }
-  return { loadedFrom, entryPoint };
+  return {
+    loadedFrom: packageRoot() ?? "<unknown>",
+    entryPoint: process.argv[1] || "<unknown>",
+  };
 }
 
 async function collectBrowsers(config: any): Promise<BrowsersData> {

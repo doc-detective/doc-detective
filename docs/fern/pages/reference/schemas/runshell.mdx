@@ -152,3 +152,21 @@ runShell | one of:<br/>- string<br/>- object([Run shell command (detailed)](/ref
   }
 }
 ```
+
+```json
+{
+  "runShell": {
+    "command": "my-tui",
+    "background": {
+      "name": "tui",
+      "tty": {
+        "cols": 80,
+        "rows": 24
+      },
+      "waitUntil": {
+        "stdio": "/Ready/"
+      }
+    }
+  }
+}
+```

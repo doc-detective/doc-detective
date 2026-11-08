@@ -7,6 +7,7 @@
 // so no network request is made. telemetryNotice is a pure log call.
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import os from "node:os";
 import sinon from "sinon";
 import { PostHog } from "posthog-node";
@@ -15,6 +16,7 @@ import {
   sendTelemetry,
   awaitTelemetryFlush,
 } from "../dist/core/telem.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 
 const config = { logLevel: "silent" };
 
@@ -49,6 +51,12 @@ describe("telem coverage: sendTelemetry", function () {
     assert.equal(captureStub.called, false);
   });
 
+  it("still sends a runTests event when the results have no summary", function () {
+    sendTelemetry({ ...config }, "runTests", {});
+    assert.equal(captureStub.calledOnce, true);
+    assert.equal(captureStub.firstCall.args[0].event, "runTests");
+  });
+
   it("assembles + flattens a runTests summary and captures the event", function () {
     const results = {
       summary: {
@@ -69,6 +77,40 @@ describe("telem coverage: sendTelemetry", function () {
     // Assembled distribution defaults.
     assert.equal(event.properties.distribution, "doc-detective");
     assert.ok(event.properties.core_version);
+  });
+
+  it("replaces every space in a flattened summary key", function () {
+    const results = {
+      summary: {
+        "all spec runs": { "not run": 1, "by run kind": { "first try ok": 2 } },
+        "total wall clock": 3,
+      },
+    };
+    sendTelemetry({ ...config }, "runTests", results);
+    const { properties } = captureStub.firstCall.args[0];
+    assert.equal(properties.all_spec_runs_not_run, 1);
+    assert.equal(properties.all_spec_runs_by_run_kind_first_try_ok, 2);
+    assert.equal(properties.total_wall_clock, 3);
+  });
+
+  it("sends core_version and dist_version as unknown when its own package.json can't be found", function () {
+    // Make ownVersion() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    try {
+      sendTelemetry({ ...config }, "someCommand", {});
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+    const { properties } = captureStub.firstCall.args[0];
+    assert.equal(properties.core_version, "unknown");
+    assert.equal(properties.dist_version, "unknown");
   });
 
   it("honors DOC_DETECTIVE_META and falls back to an anonymous id for a non-runTests command", function () {

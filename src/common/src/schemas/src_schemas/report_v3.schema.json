@@ -12,8 +12,19 @@
     },
     "runId": {
       "type": "string",
-      "description": "Identifier for the run that produced this report, derived from the run's start timestamp. Matches the run's artifact folder name under `.doc-detective/runs/<runId>/`. System-populated.",
+      "description": "Opaque, sortable ID of the run folder. Read `startedAt` for the time. Matches the run's artifact folder name under `.doc-detective/runs/<runId>/`. System-populated.",
       "readOnly": true
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the run's execution phase started, as an ISO 8601 UTC timestamp with milliseconds, for example `2026-11-06T02:33:28.631Z`. The run ended at `startedAt` plus `durationMs`. System-populated.",
+      "readOnly": true
+    },
+    "environment": {
+      "description": "The host that ran Doc Detective: its platform, processor architecture, OS release, and the Doc Detective and Node.js versions. Compare it across runs to tell a product change from an environment change. The working directory isn't included. System-populated.",
+      "readOnly": true,
+      "$ref": "config_v3.schema.json#/components/schemas/environment"
     },
     "runDir": {
       "type": "string",
@@ -138,6 +149,15 @@
   },
   "examples": [
     {
+      "runId": "2026-11-06T02-33-28-631Z",
+      "startedAt": "2026-11-06T02:33:28.631Z",
+      "environment": {
+        "platform": "linux",
+        "arch": "x64",
+        "docDetectiveVersion": "5.0.0",
+        "nodeVersion": "24.15.0",
+        "osRelease": "6.8.0-1017-azure"
+      },
       "summary": {
         "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
         "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },

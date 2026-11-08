@@ -7,9 +7,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   loadProjectEnv,
@@ -1340,9 +1338,8 @@ function setMeta() {
 
   // Set meta
   const meta: any = parseMeta(process.env["DOC_DETECTIVE_META"]);
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion() ?? "unknown";
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1356,8 +1353,8 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    // A published package.json can lack either map, so default both.
+    const mainPackage: any = { dependencies: {}, devDependencies: {}, ...readShimPackageJson() };
     const versionData: any = {
       main: {
         "doc-detective": {

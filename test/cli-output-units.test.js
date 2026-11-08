@@ -115,6 +115,14 @@ describe("reportCrash", function () {
     expect(fs.readFileSync(path.join(dir, ".doc-detective", logs[0]), "utf8")).to.not.include("hunter2");
   });
 
+  it("names the version unknown when the caller's version is undefined", function () {
+    // src/cli.ts passes ownVersion(), which is undefined when doc-detective
+    // can't read its own package.json. The parameter default must still apply.
+    reportCrash(new Error("boom"), { dir, print: () => {}, version: undefined });
+    const logs = fs.readdirSync(path.join(dir, ".doc-detective"));
+    expect(fs.readFileSync(path.join(dir, ".doc-detective", logs[0]), "utf8")).to.match(/^doc-detective unknown\n/);
+  });
+
   it("still reports when the log can't be written", function () {
     const lines = [];
     reportCrash(new Error("boom"), { dir: path.join(dir, "nope\0"), print: (l) => lines.push(l), version: "5.0.0" });

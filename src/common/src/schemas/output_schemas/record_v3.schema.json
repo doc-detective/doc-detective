@@ -4,6 +4,12 @@
   "description": "Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]",
   "anyOf": [
     {
+      "type": "boolean",
+      "title": "Record (boolean)",
+      "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+      "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
+    },
+    {
       "title": "Record (simple)",
       "type": "string",
       "description": "File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.",
@@ -400,11 +406,6 @@
         }
       },
       "title": "Record (detailed)"
-    },
-    {
-      "type": "boolean",
-      "title": "Record (boolean)",
-      "description": "If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record."
     }
   ],
   "components": {
