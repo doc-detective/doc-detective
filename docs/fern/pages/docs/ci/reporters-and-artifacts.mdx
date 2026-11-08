@@ -60,6 +60,16 @@ Or set them in your config file so every run uses the same combination:
 }
 ```
 
+To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters, so the run prints no summary and archives no results in a run folder.
+
+Each name must match one of the six built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
+
+```text
+Error: Invalid config in .doc-detective.json:
+reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").
+See https://docs.doc-detective.com/reference/schemas/config
+```
+
 ## Step 2: Read the terminal summary
 
 The `terminal` reporter prints a summary on stdout, grouped by specs, tests, contexts, and steps. It lists any failures, then ends with a one-line verdict, such as `1 of 1 test passed`. When an empty input or a filter means no tests run, the verdict is `No tests ran`, and the CLI exits `2`. An empty run therefore never looks like a green run.
