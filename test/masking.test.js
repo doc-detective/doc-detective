@@ -307,6 +307,16 @@ describe("masking", function () {
       assert.deepEqual(maskedVariableNames(), ["API_TOKEN", "SESSION"]);
     });
 
+    it("lists every non-public name a shared value has, so the hint names each", function () {
+      registerEnvValue("API_KEY", "shared-token-1");
+      registerEnvValue("CI_TOKEN", "shared-token-1");
+      registerEnvValue("BASE_URL", "shared-token-1");
+      setPublicVariables(["BASE_URL"]);
+      assert.equal(maskString("shared-token-1"), "***API_KEY***");
+      assert.deepEqual(maskedVariableNames(), ["API_KEY", "CI_TOKEN"]);
+      assert.deepEqual(maskedHitNames(), ["API_KEY", "CI_TOKEN"]);
+    });
+
     it("records which names a mask was applied for", function () {
       registerEnvValues({ SESSION: "sess-value", API_TOKEN: "tok-12345" });
       maskString("sess-value");
