@@ -97,6 +97,34 @@ const cases = {
       }
     },
   },
+  // Both HTML copies show the automatic media: the run folder's
+  // testResults.html and the html reporter's copy in outputDir each point at
+  // every automatic screenshot and the context's MP4 through their
+  // REPORT_MEDIA_BASE.
+  "html-media": {
+    spec: uiSpec("hm", "chrome"),
+    args: ["-r", "html"],
+    check(report, check, dir) {
+      const flat = fs.readdirSync(dir).find((f) => /^testResults-.*\.html$/.test(f));
+      check(flat, "the html reporter wrote its copy");
+      const copies = [path.join(report.runDir, "testResults.html"), flat && path.join(dir, flat)].filter(Boolean);
+      const rec = autoRecord(report);
+      const media = [
+        ...authored(report).map((s) => s.autoScreenshot).filter(Boolean),
+        rec ? path.relative(report.runDir, rec.record.path).split(path.sep).join("/") : null,
+      ];
+      check(media.length === uiSteps.length + 1 && media.every(Boolean), "there are automatic screenshots and a recording");
+      for (const file of copies) {
+        const html = fs.readFileSync(file, "utf8");
+        const base = JSON.parse(/window\.REPORT_MEDIA_BASE = ("[^"]*");/.exec(html)?.[1] ?? "null");
+        check(typeof base === "string", `${path.basename(file)} sets REPORT_MEDIA_BASE`);
+        for (const rel of media.filter(Boolean)) {
+          const resolved = path.join(path.dirname(file), base ?? "", rel);
+          check(fs.existsSync(resolved), `${path.basename(file)} resolves ${rel}`);
+        }
+      }
+    },
+  },
   "spec-false": {
     spec: uiSpec("sf", "chrome", { autoScreenshot: false, autoRecord: false }),
     check(report, check) {
