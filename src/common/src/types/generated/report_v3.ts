@@ -117,11 +117,11 @@ export type Test = (
     [k: string]: unknown;
   };
   /**
-   * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this test. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoScreenshot?: boolean;
   /**
-   * If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults1;
@@ -12343,11 +12343,11 @@ export interface Specification {
   runOn?: Context[];
   openApi?: (OpenApi & OpenAPIDescriptionTest)[];
   /**
-   * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
+   * Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this spec's tests. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoScreenshot?: boolean;
   /**
-   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   * Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;

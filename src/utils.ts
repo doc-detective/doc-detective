@@ -1290,6 +1290,23 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
     );
   }
 
+  // The run folder holds the run's automatic screenshots and recordings, so
+  // its reporter runs whenever autoScreenshot or autoRecord is on at any level,
+  // even if `reporters` leaves it out (ADR 01177). runSpecs reserves the folder
+  // exactly then (runArchivesArtifacts), so the folder on disk is the signal.
+  if (
+    !activeReporters.includes("runFolderReporter") &&
+    typeof results?.runDir === "string" &&
+    fs.existsSync(results.runDir)
+  ) {
+    activeReporters = [...activeReporters, "runFolderReporter"];
+    log(
+      "Added the runFolder reporter because autoScreenshot or autoRecord is on.",
+      "debug",
+      config
+    );
+  }
+
   // Serialize the canonical results tree ONCE and share the string with the
   // JSON-writing reporters (json + runFolder) instead of each calling
   // JSON.stringify on the full tree independently. Only computed when a

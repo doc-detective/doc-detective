@@ -15,6 +15,7 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
   detectAllBlack,
+  recordingFailureCause,
 } from "./ffmpegRecorder.js";
 import {
   buildConditionContext,
@@ -32,11 +33,27 @@ export { stopRecording, saveBrowserRecording };
 
 // `deps` is a test seam for the pending-scale crop derivation (platform +
 // display probe); production callers omit it.
-async function stopRecording({
+async function stopRecording(args: Omit<Parameters<typeof endRecording>[0], "onSelected">) {
+  let handle: any;
+  const result = await endRecording({ ...args, onSelected: (h: any) => (handle = h) });
+  // A recording autoRecord added while unset never fails a test, at stop
+  // either: a save or transcode failure is SKIPPED, naming the off switch
+  // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL.
+  if (handle?.defaulted && result.status === "FAIL") {
+    result.status = "SKIPPED";
+    result.description = `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
+      result.description
+    )}. Set \`autoRecord: false\` to turn it off.`;
+  }
+  return result;
+}
+
+async function endRecording({
   config,
   step,
   driver,
   deps = {},
+  onSelected,
 }: {
   config: any;
   step: any;
@@ -45,6 +62,8 @@ async function stopRecording({
     platform?: string;
     detectDisplayPointSize?: () => Promise<{ w: number; h: number } | null>;
   };
+  // Called with the recording handle this stop chose.
+  onSelected?: (handle: any) => void;
 }) {
   let result: any = {
     status: "PASS",
@@ -106,6 +125,7 @@ async function stopRecording({
       }
     }
   }
+  onSelected?.(recording);
   if (!recording) {
     result.status = "SKIPPED";
     const target = stopRecordTargetName(stopRecord);

@@ -57,11 +57,11 @@ export type Test = {
     [k: string]: unknown;
   };
   /**
-   * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this test. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoScreenshot?: boolean;
   /**
-   * If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults;
