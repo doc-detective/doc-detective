@@ -16,6 +16,15 @@ For the full list of reporter and output options, see the [`config`](/reference/
 
 Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal` and `runFolder`. To choose a different combination, set the `reporters` option.
 
+The run folder holds the screenshots and recordings Doc Detective takes by default. So the `runFolder` reporter runs whenever [`autoScreenshot`](/docs/test-docs/automatic-screenshots) or [`autoRecord`](/docs/test-docs/automatic-recording) is on, even if `reporters` leaves it out:
+
+| `reporters` | `autoScreenshot` and `autoRecord` | Reporters that run |
+|---|---|---|
+| (default) | (unset) | `terminal`, `runFolder` |
+| `["junit"]` | (unset) | `junit`, `runFolder` |
+| `["junit"]` | both `false` | `junit` |
+| `["terminal"]` | a test sets `autoRecord: true` | `terminal`, `runFolder` |
+
 | Reporter | Output |
 |---|---|
 | `terminal` | A colored pass/fail/warning/skipped summary printed to stdout. Writes no files. |
@@ -60,7 +69,7 @@ Or set them in your config file so every run uses the same combination:
 }
 ```
 
-To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters, so the run prints no summary and archives no results in a run folder.
+To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters you choose, so the run prints no summary. While `autoScreenshot` or `autoRecord` is on, the run folder still archives the results. Set both to `false` to write nothing.
 
 Each name must match one of the six built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
 
@@ -216,6 +225,12 @@ The `html` reporter writes a self-contained HTML report you can open in a browse
 
 The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
 
+The report also shows the run's automatic screenshots and recordings. Each step's automatic screenshot appears in its media strip, labeled **Automatic**, after any screenshot the step took itself. Each context's automatic recording plays at the top of its section, labeled **Automatic recording**.
+
+<Note>
+The report embeds the results, not the media. Automatic screenshots and recordings load from the run folder, so keep the report beside the `.doc-detective/` folder when you move or share it. A report shared on its own shows the results without them.
+</Note>
+
 ## Step 5: Collect the run folder and artifacts
 
 The `runFolder` reporter archives each run into its own folder so you can attach it to a CI job or diff one run against another:
@@ -231,7 +246,13 @@ The `runFolder` reporter archives each run into its own folder so you can attach
             └── recordings/<contextId>.mp4
 ```
 
-The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too, named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. By default, every run captures a screenshot after each UI step and a video of each context. They land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too. It's named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+
+Run folders add up: Doc Detective keeps every one and never deletes them. Keep them out of commits by adding `.doc-detective/` to `.gitignore`, or your `outputDir` if you set one. Clear old ones out when you no longer need them. To stop writing screenshots and recordings, set `autoScreenshot` and `autoRecord` to `false`.
+
+```bash
+echo ".doc-detective/" >> .gitignore
+```
 
 ## Step 6: Fail CI when tests fail
 

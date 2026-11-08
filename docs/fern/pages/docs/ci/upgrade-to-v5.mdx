@@ -294,6 +294,43 @@ Results show each `screenshot`, `record`, and `stopRecord` step in its object fo
 
 **What to do:** If reference images from `screenshot: true` sit in the current folder and `outputDir` is elsewhere, move them to `outputDir`. You can also give the step a `path`. For a URL reference, collect the new screenshot from the run folder. Give `getRunner()` steps a `stepId` or a `path`.
 
+## Chrome by default, and headless Chrome records
+
+**What changed:**
+
+| Version 4 | Version 5 |
+|---|---|
+| A context that names no browser ran Firefox, then Chrome, then Safari, whichever was installed first. | It runs Chrome, then Firefox, then Safari. |
+| A `record` context that named no browser ran headed Chrome, and headless Chrome skipped recordings. | It runs headless Chrome, which records its tab with the `browser` engine, with no display. |
+
+Headless Firefox and Safari still skip recordings.
+
+**What to do:** To keep a context on Firefox, name `firefox` in its `runOn` entry. If you compare recordings or screenshots against ones taken in Firefox or in headed Chrome, refresh them. See [Recording engines](/docs/actions/record#recording-engines).
+
+## Screenshots and recordings by default
+
+**What changed:**
+
+| Version 4 | Version 5 |
+|---|---|
+| `autoScreenshot` unset took no screenshots. | It saves a screenshot after every step that drives a browser, a native app, or a device. |
+| `autoRecord` unset recorded nothing. | It records every context that drives a browser, a native app, or a device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. |
+| The `runFolder` reporter ran only when `reporters` listed it. | It also runs whenever `autoScreenshot` or `autoRecord` is on, so `-r junit` writes a run folder too. |
+| A host that couldn't record failed `record` steps. | Doc Detective checks the host once per run. An automatic recording it can't make is left out, with one warning. A `record` step, or `autoRecord: true`, is SKIPPED with the fix. |
+
+`true` and `false` mean what they did. `autoRecord: true` stays strict: a recording the host can't make is SKIPPED, and one that fails to start fails.
+
+**What to do:** To keep version 4's behavior, turn both off in your config:
+
+```json title=".doc-detective.json"
+{
+  "autoScreenshot": false,
+  "autoRecord": false
+}
+```
+
+Or pass `--no-auto-screenshot --no-auto-record` for one run. Add `.doc-detective/` to `.gitignore`, since every run now writes a run folder. See [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) and [Record video automatically](/docs/test-docs/automatic-recording).
+
 ## Relative paths in a spec loaded from a URL
 
 **What changed:** A spec loaded from a URL (`--input https://…`) has no folder of its own. Version 4 resolved its relative paths against its temporary download, which the system deletes. So a sample's `screenshot: "example.png"` was lost. Version 5 resolves them against `outputDir`. That covers every path in the spec:

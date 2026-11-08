@@ -7,6 +7,8 @@ import {
   combinationKey,
   warmUpDecision,
   contextRequirementsSkipMessage,
+  prepareContextSlot,
+  forcedHeadedMessage,
 } from "../dist/core/tests.js";
 import {
   GECKODRIVER_EXECUTABLE_ARGS,
@@ -366,19 +368,171 @@ describe("contextRequirementsSkipMessage", function () {
 describe("getDefaultBrowser", function () {
   it("returns the first available browser by preference order", function () {
     const runnerDetails = {
-      availableApps: [{ name: "chrome" }, { name: "firefox" }],
+      availableApps: [{ name: "firefox" }, { name: "chrome" }],
     };
     // getDefaultBrowser walks its browserNames preference list
-    // (["firefox", "chrome", "safari"] in src/core/tests.ts) and returns the
-    // first available, so firefox wins over chrome here.
+    // (["chrome", "firefox", "safari"] in src/core/tests.ts, ADR 01176) and
+    // returns the first available, so chrome wins over firefox here.
     assert.deepEqual(getDefaultBrowser({ runnerDetails }), {
-      name: "firefox",
+      name: "chrome",
     });
+  });
+
+  it("falls back to firefox, then safari, when chrome isn't available", function () {
+    assert.deepEqual(
+      getDefaultBrowser({
+        runnerDetails: { availableApps: [{ name: "safari" }, { name: "firefox" }] },
+      }),
+      { name: "firefox" }
+    );
+    assert.deepEqual(
+      getDefaultBrowser({ runnerDetails: { availableApps: [{ name: "safari" }] } }),
+      { name: "safari" }
+    );
   });
 
   it("returns an empty object when no supported browser is available", function () {
     const runnerDetails = { availableApps: [{ name: "node" }] };
     assert.deepEqual(getDefaultBrowser({ runnerDetails }), {});
+  });
+});
+
+// prepareContextSlot settles the default browser before the concurrency calc,
+// so a record step's engine resolves to what will run (ADR 01176).
+describe("prepareContextSlot default browser", function () {
+  const runnerDetails = {
+    availableApps: [{ name: "firefox" }, { name: "chrome" }],
+  };
+  const prepare = (context, config = {}) =>
+    prepareContextSlot({
+      config,
+      spec: {},
+      test: {},
+      context,
+      slot: 0,
+      usedContextIds: new Set(),
+      specGuardSkip: false,
+      testGuardSkip: false,
+      recordingNameConflict: null,
+      runnerDetails,
+      contexts: [],
+      onAutoRecord: () => {},
+    });
+
+  it("gives a record context with no browser headless chrome, not headed chrome", function () {
+    const context = { steps: [driverStep, { record: true }, { stopRecord: true }] };
+    const result = prepare(context);
+    assert.equal(result.kind, "job");
+    assert.deepEqual(context.browser, { name: "chrome" });
+  });
+
+  it("gives any browser context with no browser the default browser", function () {
+    const context = { steps: [driverStep] };
+    prepare(context);
+    assert.deepEqual(context.browser, { name: "chrome" });
+  });
+
+  it("keeps an authored browser", function () {
+    const context = {
+      browser: { name: "firefox", headless: true },
+      steps: [driverStep, { record: true }],
+    };
+    prepare(context);
+    assert.deepEqual(context.browser, { name: "firefox", headless: true });
+  });
+
+  it("leaves non-browser and mobile contexts without a browser", function () {
+    const shell = { steps: [nonDriverStep] };
+    prepare(shell);
+    assert.equal(shell.browser, undefined);
+    const mobile = { platform: "android", steps: [driverStep, { record: true }] };
+    prepare(mobile);
+    assert.equal(mobile.browser, undefined);
+  });
+});
+
+// ADR 01177, DA1a: autoRecord runs headless Firefox headed so ffmpeg can
+// record it, but only when the preflight says the host can capture.
+describe("prepareContextSlot forced headed", function () {
+  const runnerDetails = { availableApps: [{ name: "chrome" }, { name: "firefox" }] };
+  const prepare = (context, { config = {}, recordingPreflight } = {}) => {
+    const forced = [];
+    const result = prepareContextSlot({
+      config: { logLevel: "silent", ...config },
+      spec: {},
+      test: {},
+      context,
+      slot: 0,
+      usedContextIds: new Set(),
+      specGuardSkip: false,
+      testGuardSkip: false,
+      recordingNameConflict: null,
+      runnerDetails,
+      contexts: [],
+      onAutoRecord: () => {},
+      onForcedHeaded: () => forced.push(context.contextId),
+      recordingPreflight,
+    });
+    return { result, forced };
+  };
+  const passed = { ffmpeg: { ok: true } };
+  const failed = { ffmpeg: { ok: false, reason: "r", fix: "f" } };
+  const firefox = () => ({ browser: { name: "firefox", headless: true }, steps: [driverStep] });
+
+  it("runs headless Firefox headed when autoRecord is on and the preflight passed", function () {
+    for (const config of [{}, { autoRecord: true }]) {
+      const context = firefox();
+      const { forced } = prepare(context, { config, recordingPreflight: passed });
+      assert.equal(context.browser.headless, false, JSON.stringify(config));
+      assert.equal(forced.length, 1);
+      assert.equal(context.steps[0].record.engine, "ffmpeg");
+    }
+  });
+
+  it("keeps headless Firefox headless when the preflight failed", function () {
+    const context = firefox();
+    const { forced } = prepare(context, { recordingPreflight: failed });
+    assert.equal(context.browser.headless, true);
+    assert.equal(forced.length, 0);
+    // Unset: nothing to record.
+    assert.ok(!context.steps.some((s) => s.__autoRecord));
+  });
+
+  it("leaves headless Firefox alone when autoRecord is false", function () {
+    const context = firefox();
+    const { forced } = prepare(context, {
+      config: { autoRecord: false },
+      recordingPreflight: passed,
+    });
+    assert.equal(context.browser.headless, true);
+    assert.equal(forced.length, 0);
+  });
+
+  it("leaves headless Chrome alone: it records its tab", function () {
+    const context = { browser: { name: "chrome", headless: true }, steps: [driverStep] };
+    const { forced } = prepare(context, { recordingPreflight: passed });
+    assert.equal(context.browser.headless, true);
+    assert.equal(forced.length, 0);
+    assert.equal(context.steps[0].record.engine, "browser");
+  });
+
+  it("hands the preflight to the context for startRecording", function () {
+    const context = firefox();
+    prepare(context, { recordingPreflight: failed });
+    assert.deepEqual(context.__recordingPreflight, failed);
+  });
+});
+
+describe("forcedHeadedMessage", function () {
+  it("says how many headless Firefox contexts run headed", function () {
+    assert.equal(
+      forcedHeadedMessage(2),
+      "Running 2 headless Firefox contexts headed so autoRecord can record them. Set `autoRecord: false` to keep them headless."
+    );
+    assert.equal(
+      forcedHeadedMessage(1),
+      "Running 1 headless Firefox context headed so autoRecord can record it. Set `autoRecord: false` to keep it headless."
+    );
   });
 });
 
@@ -423,6 +577,46 @@ describe("getDriverCapabilities", function () {
       options,
     });
     assert.equal(caps.browserName, "chrome");
+  });
+
+  // Headless Chrome has no window to pick, so the browser engine captures the
+  // tab whose title matches (ADR 01176).
+  it("auto-selects the tab capture source by title when headless", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: true, captureSourceTitle: "RECORD_ME_1_ctx" },
+    });
+    const args = caps["goog:chromeOptions"].args;
+    assert.ok(
+      args.includes("--auto-select-tab-capture-source-by-title=RECORD_ME_1_ctx"),
+      args.join(" ")
+    );
+    assert.ok(args.includes("--headless"));
+  });
+
+  it("falls back to the shared tab capture title when none is given", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: true },
+    });
+    assert.ok(
+      caps["goog:chromeOptions"].args.includes(
+        "--auto-select-tab-capture-source-by-title=RECORD_ME"
+      )
+    );
+  });
+
+  it("leaves the tab capture flag off headed chrome", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: false, captureSourceTitle: "T" },
+    });
+    const args = caps["goog:chromeOptions"].args;
+    assert.ok(!args.some((a) => a.startsWith("--auto-select-tab-capture-source-by-title")));
+    assert.ok(args.includes("--auto-select-desktop-capture-source=T"));
   });
 
   it("keeps chrome on classic WebDriver with no BiDi socket", function () {

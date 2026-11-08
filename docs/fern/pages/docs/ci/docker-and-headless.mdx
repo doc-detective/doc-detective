@@ -31,9 +31,9 @@ The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its brow
 A headless environment has no display, which affects browser-driven tests:
 
 - **Browser tests** run headless automatically when no display is available. On Ubuntu CI runners, Chrome and Firefox contexts fall back to headless mode.
-- **Video recording** is the main thing that needs a display. The default browser recording engine captures the Chrome viewport and works headless; the `ffmpeg` engine captures the screen and needs a real or virtual display.
+- **Video recording** works headless in Chrome. A context that names no browser runs headless Chrome, and the `browser` recording engine records its tab with no display. The `ffmpeg` engine captures the screen, so it needs a headed context on a real or virtual display. Headless Firefox and Safari can't be recorded.
 
-Some tests record video with the `ffmpeg` engine on a headless runner. Run those on a macOS or Windows runner instead, where a display is available. For engine details, see [Record video](/docs/test-docs/record-video).
+To record Firefox, Safari, or a native app on a headless Linux runner, run the context headed on Xvfb. A macOS or Windows runner has a display already. For engine details, see [Record video](/docs/test-docs/record-video).
 
 ## Step 3: Warm runtime assets
 
@@ -111,9 +111,9 @@ On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCA
 
 ### A recording step is skipped or fails on a headless runner
 
-**Cause:** The `ffmpeg` recording engine needs a display, which a headless Linux runner doesn't have.
+**Cause:** The context is headless Firefox or Safari, or it uses the `ffmpeg` engine on a headless browser. A headless browser draws nothing on a display, so there's nothing to capture.
 
-**Solution:** Use the browser recording engine for headless captures, or move recording tests to a macOS or Windows runner. See [Record video](/docs/test-docs/record-video).
+**Solution:** Record in Chrome, which the `browser` engine records headless. Otherwise run the context headed: install Xvfb on a Linux runner, or move the test to a macOS or Windows runner. See [Record video](/docs/test-docs/record-video).
 
 ### Runs are slow because assets download every time
 

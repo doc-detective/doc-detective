@@ -136,7 +136,8 @@ describe("masking in a run", function () {
       return file;
     });
     try {
-      return await runTests({ input: files, logLevel: "silent", telemetry: { send: false }, ...config });
+      // No automatic recording, so a context's steps are the ones the spec wrote.
+      return await runTests({ input: files, logLevel: "silent", telemetry: { send: false }, autoRecord: false, ...config });
     } finally {
       for (const file of files) fs.rmSync(file, { force: true });
     }

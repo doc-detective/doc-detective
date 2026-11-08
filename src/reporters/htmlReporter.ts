@@ -44,7 +44,7 @@ export async function htmlReporter(
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const html = buildHtml(results);
+    const html = buildHtml(results, { htmlDir: path.dirname(outputFile) });
     fs.writeFileSync(outputFile, html);
     console.log(`See HTML report at ${outputFile}\n`);
     return outputFile;
@@ -54,12 +54,22 @@ export async function htmlReporter(
   }
 }
 
-export function buildHtml(results: any): string {
-  const reportJson = JSON.stringify(results, null, 2)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
+// `htmlDir` is the folder the page is written to. Automatic screenshots and
+// recordings live in the run folder (`results.runDir`), so the page gets the
+// path from itself to there (ADR 01177): "" for the run folder's own copy,
+// `.doc-detective/runs/<runId>` for the `html` reporter's copy in outputDir.
+export function buildHtml(results: any, { htmlDir }: { htmlDir?: string } = {}): string {
+  const safeJson = (value: any, space?: number) =>
+    JSON.stringify(value, null, space)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
+  const reportJson = safeJson(results, 2);
+  const mediaBase =
+    htmlDir && typeof results?.runDir === "string"
+      ? path.relative(htmlDir, results.runDir).split(path.sep).join("/")
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -76,6 +86,7 @@ ${CSS_CONTENT}
 <script id="dd-report-data" type="application/json">${reportJson}</script>
 <script>
 window.REPORT_DATA = JSON.parse(document.getElementById("dd-report-data").textContent);
+window.REPORT_MEDIA_BASE = ${safeJson(mediaBase)};
 </script>
 <script>
 ${JS_CONTENT}
@@ -665,7 +676,8 @@ main {
   background: var(--dd-paper);
   overflow: hidden;
 }
-.detail-panel .dp-head {
+.detail-panel .dp-head,
+.auto-recording .dp-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px; font-family: var(--font-mono); font-size: 11px;
   color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase;
@@ -748,6 +760,19 @@ main {
   background: var(--dd-green-bright); color: #07150C;
   letter-spacing: 0.05em;
 }
+.media-thumb .auto-flag {
+  /* Just above the .cap strip (6px padding twice, an 11px line, a 1px border); change both together. */
+  position: absolute; bottom: 34px; left: 6px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+  background: rgba(13,14,17,0.78); color: #E6E8EC;
+  letter-spacing: 0.05em;
+}
+.auto-recording { margin: 8px 16px 10px; }
+.auto-recording video {
+  display: block; width: 100%; max-width: 720px; max-height: 420px;
+  background: #000; border-radius: 6px;
+}
 
 /* Lightbox */
 .lightbox {
@@ -820,7 +845,8 @@ body.dark .step-detail { background: #0D0E11; border-color: #2A2D34; }
 body.dark .step-detail .result-note { background: #15171B; border-color: #2A2D34; }
 body.dark .step-detail.fail .result-note { background: #2a1414; border-color: #612323; }
 body.dark .step-detail.warn .result-note { background: #2a210a; border-color: #5a4510; }
-body.dark .detail-panel .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
+body.dark .detail-panel .dp-head,
+body.dark .auto-recording .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
 body.dark .detail-panel pre { color: #E6E8EC; }
 body.dark .search-input { background: #15171B; border-color: #3A3F47; color: #F1F3F6; }
 body.dark .search-input input { color: #F1F3F6; }
@@ -1037,6 +1063,47 @@ function countTree(spec) {
   return { tests: tests, contexts: contexts, steps: steps, stepCounts: sc };
 }
 
+// The path from this page to the run folder (buildHtml), where automatic
+// screenshots and recordings live.
+var MEDIA_BASE = typeof window.REPORT_MEDIA_BASE === "string" ? window.REPORT_MEDIA_BASE : "";
+
+// A run-folder file's src from this page: a path relative to the report's
+// runDir, or an absolute path inside it, gets MEDIA_BASE in front. Any other
+// absolute path stays as it is.
+// test/htmlReporter.test.js extracts this function, autoRecording, and
+// collectMedia by regex: keep each closing } at column 0, and start no other
+// line in them with }.
+function runFolderSrc(p) {
+  var s = String(p == null ? "" : p).split("\\\\").join("/");
+  var root = String(report.runDir || "").split("\\\\").join("/").replace(/\\/+$/, "");
+  if (root && s.indexOf(root + "/") === 0) s = s.slice(root.length + 1);
+  else if (/^(\\/|[A-Za-z]:\\/)/.test(s)) return p;
+  return MEDIA_BASE ? MEDIA_BASE + "/" + s : s;
+}
+
+// A context's automatic recording, as a src for the player at the top of the
+// context, and its steps without the synthetic start and stop. The runner
+// marks those two (__autoRecord, __autoRecordStop), as the summary reads them.
+// A recording that didn't save keeps its steps in the list, so the reason
+// shows. Array.prototype.find is fine here: collectMedia already needs ES2015.
+// Extracted by test/htmlReporter.test.js, like runFolderSrc.
+function autoRecording(ctx) {
+  var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
+  var start = all.find(function(item) {
+    return item.step.__autoRecord === true && item.step.record && item.step.record.path;
+  });
+  // No video: the synthetic start and stop stay listed, and their result
+  // descriptions say why the recording didn't save.
+  if (!start || start.step.result !== "PASS") return { video: null, steps: all };
+  var stop = all.find(function(item) { return item.step.__autoRecordStop === true; });
+  if (stop && stop.step.result !== "PASS") return { video: null, steps: all };
+  return {
+    video: runFolderSrc(start.step.record.path),
+    steps: all.filter(function(item) { return item !== start && item !== stop; })
+  };
+}
+
+// Extracted by test/htmlReporter.test.js, like runFolderSrc.
 function collectMedia(step) {
   var media = [];
   var outs = step.outputs || {};
@@ -1053,6 +1120,13 @@ function collectMedia(step) {
   // is a valid untargeted stop that still saves a video.
   if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
     media.push({ kind: "video", path: outs.recordingPath });
+  }
+  // The automatic screenshot, relative to runDir; reads the field's future
+  // name (autoScreenshotPath) too. The runner writes only autoScreenshot today,
+  // so it wins when both are set.
+  var auto = step.autoScreenshot || step.autoScreenshotPath;
+  if (typeof auto === "string" && auto) {
+    media.push({ kind: "image", path: runFolderSrc(auto), label: "Automatic" });
   }
   return media;
 }
@@ -1218,6 +1292,7 @@ function buildStepDetail(step) {
       mp += '<div class="media-thumb" data-media-path="' + escAttr(m.path || '') + '" data-media-kind="' + escAttr(m.kind) + '">' +
         '<span class="kind">' + (m.kind === "video" ? "MP4" : "PNG") + '</span>' +
         (m.changed ? '<span class="changed-flag">UPDATED</span>' : '') +
+        (m.label ? '<span class="auto-flag">' + esc(m.label) + '</span>' : '') +
         (m.kind === "video"
           ? '<video src="' + escAttr(m.path || '') + '" muted playsinline preload="metadata"></video>'
           : '<img src="' + escAttr(m.path || '') + '" alt="' + escAttr(m.path || '') + '" onerror="this.style.display=\\'none\\'"/>') +
@@ -1303,8 +1378,17 @@ function buildContext(ctx) {
     badge(ctx.result);
   block.appendChild(head);
 
-  var visibleSteps = (ctx.steps || [])
-    .map(function(s, i) { return { step: s, origIdx: i }; })
+  // The context's automatic recording plays above its steps, and its
+  // synthetic start and stop steps stay out of the list.
+  var auto = autoRecording(ctx);
+  if (auto.video) {
+    var rec = el("div", "auto-recording");
+    rec.innerHTML = '<div class="dp-head"><span>Automatic recording</span></div>' +
+      '<video src="' + escAttr(auto.video) + '" controls muted playsinline preload="metadata"></video>';
+    block.appendChild(rec);
+  }
+
+  var visibleSteps = auto.steps
     .filter(function(item) {
       var s = item.step;
       if (state.statusFilters.size && !state.statusFilters.has(s.result)) return false;

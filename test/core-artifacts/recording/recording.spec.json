@@ -55,6 +55,15 @@
             "name": "chrome",
             "headless": false
           }
+        },
+        {
+          "platforms": [
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
         }
       ],
       "steps": [
@@ -91,6 +100,15 @@
             "name": "chrome",
             "headless": false
           }
+        },
+        {
+          "platforms": [
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
         }
       ],
       "steps": [
@@ -116,7 +134,7 @@
     },
     {
       "testId": "recording-headless-skipped",
-      "description": "Recording should be skipped in headless mode.",
+      "description": "Recording should be skipped in headless Firefox. Headless Chrome records its tab instead; see headless-chrome.spec.json.",
       "runOn": [
         {
           "platforms": [
@@ -125,7 +143,7 @@
             "linux"
           ],
           "browsers": {
-            "name": "chrome",
+            "name": "firefox",
             "headless": true
           }
         }

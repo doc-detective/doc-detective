@@ -833,7 +833,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       const htmlFile = path.resolve(runDir, `${reportType}.html`);
       try {
         const { buildHtml } = await import("./reporters/htmlReporter.js");
-        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
+        fs.writeFileSync(htmlFile, buildHtml(persistedResults, { htmlDir: runDir }));
         log(`Run report: ${displayPath(htmlFile)}`, "info", config);
       } catch (htmlErr) {
         // Pass the error as a separate arg so its stack survives (string
@@ -1287,6 +1287,23 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
     // Convert any shorthand names to full reporter names
     activeReporters = activeReporters.map((reporter: any) =>
       typeof reporter === "string" ? reporterKey(reporter) : reporter
+    );
+  }
+
+  // The run folder holds the run's automatic screenshots and recordings, so
+  // its reporter runs whenever autoScreenshot or autoRecord is on at any level,
+  // even if `reporters` leaves it out (ADR 01177). runSpecs reserves the folder
+  // exactly then (runArchivesArtifacts), so the folder on disk is the signal.
+  if (
+    !activeReporters.includes("runFolderReporter") &&
+    typeof results?.runDir === "string" &&
+    fs.existsSync(results.runDir)
+  ) {
+    activeReporters = [...activeReporters, "runFolderReporter"];
+    log(
+      "Added the runFolder reporter because autoScreenshot or autoRecord is on.",
+      "debug",
+      config
     );
   }
 

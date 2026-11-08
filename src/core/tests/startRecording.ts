@@ -18,6 +18,8 @@ import {
   parseCaptureFrameSize,
   getFfmpegPath,
   detectMacScreenIndex,
+  preflightKey,
+  recordingFailureCause,
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
@@ -37,6 +39,13 @@ import { RECORDER_SETTLE_MS } from "./timing.js";
 
 export { startRecording };
 
+// How a headless browser's name reads in a message. Safari has no headless
+// mode, so it never needs one.
+const BROWSER_DISPLAY_NAMES: Record<string, string> = {
+  chrome: "Chrome",
+  firefox: "Firefox",
+};
+
 // `recordingHost` is where this context's recordings are tracked: the browser
 // driver's state when one exists, or the app session's recordingHost in
 // app-only contexts. It is ONLY a state holder — `driver` remains the browser
@@ -45,7 +54,36 @@ export { startRecording };
 // `appSession` resolves app-surface record targets (phase A7). `deps` is a
 // test seam for the ffmpeg spawn path (same pattern as startAppSurface's
 // serverDeps); production callers omit it.
-async function startRecording({
+async function startRecording(args: Parameters<typeof beginRecording>[0]) {
+  const result = await beginRecording(args);
+  if (!args.step?.__autoRecordDefaulted) return result;
+  // A recording autoRecord added while unset never fails a test: a start
+  // failure after a passing preflight is SKIPPED, naming the off switch
+  // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL. The handle
+  // remembers, so stopping it can't FAIL either (stopRecording).
+  if (result.status === "FAIL") {
+    result.status = "SKIPPED";
+    result.description = `Skipped: couldn't start the automatic recording: ${recordingFailureCause(
+      result.description
+    )}. Set \`autoRecord: false\` to turn it off.`;
+  } else if (result.recording) {
+    result.recording.defaulted = true;
+  }
+  return result;
+}
+
+// The skip for a recording whose engine failed the run's preflight
+// (ADR 01177, DA4), or null when it passed or never ran. Android device
+// recordings answer to no check (preflightKey).
+function preflightSkip(context: any, engine: string): string | null {
+  const key = preflightKey(engine, context?.platform);
+  const check = key ? context?.__recordingPreflight?.[key] : undefined;
+  return check && check.ok === false
+    ? `Skipped: ${check.reason}. To record, ${check.fix}, and rerun.`
+    : null;
+}
+
+async function beginRecording({
   config,
   context,
   step,
@@ -71,8 +109,11 @@ async function startRecording({
   };
 
   // Validate step payload
-  // `__autoRecord` is the runner's own marker, and step_v3 rejects unknown keys.
-  const { __autoRecord: _autoRecord, ...authoredStep } = step;
+  // `__autoRecord` and `__autoRecordDefaulted` are the runner's own markers,
+  // and step_v3 rejects unknown keys.
+  const authoredStep = Object.fromEntries(
+    Object.entries(step).filter(([key]) => !key.startsWith("__"))
+  );
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
@@ -226,9 +267,8 @@ async function startRecording({
     return result;
   }
 
-  // Resolve which engine to use. The context's browser is already coerced by
-  // the runner (headed Chrome preferred when nothing was specified), so this
-  // is a pure read.
+  // Resolve which engine to use. The runner already gave a context that names
+  // no browser the default one, so this is a pure read.
   let plan = resolveRecordPlan({ step, context });
 
   const mobileTarget = isMobileTargetPlatform(context?.platform);
@@ -265,6 +305,12 @@ async function startRecording({
   // ffmpeg display mutex. The video arrives base64 on stopRecordingScreen;
   // stopRecording writes/transcodes it to the target path.
   if (plan.name === "device") {
+    const skipped = preflightSkip(context, "device");
+    if (skipped) {
+      result.status = "SKIPPED";
+      result.description = skipped;
+      return result;
+    }
     // Recording driver: the targeted app surface's driver, the device browser
     // session (mobile web), the ACTIVE app surface's session (omit surface =>
     // act on the active surface — with several devices open, "first device
@@ -352,15 +398,17 @@ async function startRecording({
     plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
   }
 
+  const skipped = preflightSkip(context, plan.name);
+  if (skipped) {
+    result.status = "SKIPPED";
+    result.description = skipped;
+    return result;
+  }
+
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +
     // MediaRecorder. Concurrency-safe — each context auto-selects its own
-    // window by a unique title. Requires headed Chrome.
-    if (context.browser?.headless) {
-      return phantomRecordingResult(
-        `Recording isn't supported in headless mode with the browser engine. Use the ffmpeg engine to record headless.`
-      );
-    }
+    // window (headed) or tab (headless, ADR 01176) by a unique title.
     if (context.browser?.name !== "chrome") {
       result.status = "SKIPPED";
       result.description = `The browser recording engine requires Chrome. Use the ffmpeg engine for '${context.browser?.name}'.`;
@@ -373,8 +421,8 @@ async function startRecording({
       fs.mkdirSync(downloadDir, { recursive: true });
     }
     const downloadPath = path.join(downloadDir, `${baseName}.webm`);
-    // Remove any stale download from a previous crashed run — otherwise Chrome
-    // saves as "<name> (1).webm" and stopRecording waits on the wrong path.
+    // Remove any stale copy from a previous crashed run. stopRecording writes
+    // the recording here before transcoding it.
     if (fs.existsSync(downloadPath)) {
       try {
         fs.unlinkSync(downloadPath);
@@ -386,8 +434,16 @@ async function startRecording({
     // Get document title
     const documentTitle = await driver.getTitle();
     const originalTab = await driver.getWindowHandle();
+    // Tab capture defaults to 800x600, so ask for the viewport's size in device
+    // pixels. Without an answer, getDisplayMedia picks its own size.
+    const readViewport = () => ({
+      width: Math.round(window.innerWidth * window.devicePixelRatio),
+      height: Math.round(window.innerHeight * window.devicePixelRatio),
+    });
+    const viewportSize = await driver.execute(readViewport).catch(() => undefined);
     // Set document title to the per-context capture title so the launch flag
-    // --auto-select-desktop-capture-source picks exactly this window.
+    // --auto-select-desktop-capture-source (headed) or
+    // --auto-select-tab-capture-source-by-title (headless) picks this tab.
     await driver.execute((title: any) => (document.title = title), captureTitle);
     // Instantiate cursor
     await instantiateCursor(driver, { position: "center" });
@@ -408,7 +464,7 @@ async function startRecording({
     // Start recording. An `async` function runs through Execute Async Script
     // (webdriverio 10 removed executeAsync); the promise settles once the
     // recorder starts, while the capture keeps running in the page.
-    const recorderStarted = await driver.execute(async (baseName: any) => new Promise((resolve: any) => {
+    const recorderStarted = await driver.execute(async (size: any) => new Promise((resolve: any) => {
       let doneCalled = false;
       const safeDone = (value: boolean) => {
         if (!doneCalled) {
@@ -420,6 +476,9 @@ async function startRecording({
       const displayMediaOptions = {
         video: {
           displaySurface: "browser",
+          ...(size?.width && size?.height
+            ? { width: { ideal: size.width }, height: { ideal: size.height } }
+            : {}),
         },
         audio: {
           suppressLocalAudioPlayback: false,
@@ -441,7 +500,7 @@ async function startRecording({
           return null;
         }
       }
-      async function captureAndDownload() {
+      async function captureAndRecord() {
         try {
           stream = await startCapture(displayMediaOptions);
           if (!stream) {
@@ -470,21 +529,11 @@ async function startRecording({
 
         await stopped;
 
-        const blob = new Blob(data, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = url;
-        a.download = `${baseName}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        }, 100);
+        // stopRecording copies this out of the page (saveBrowserRecording).
+        (window as any).__ddRecording = new Blob(data, { type: "video/webm" });
       }
-      captureAndDownload();
-    }), baseName);
+      captureAndRecord();
+    }), viewportSize);
 
     // Handle recording failure
     if (!recorderStarted) {
@@ -526,15 +575,28 @@ async function startRecording({
   // window/viewport targets capture the full display and are cropped during
   // stopRecording's transcode.
 
-  // A headless browser has no on-screen content to capture. ffmpeg headless
-  // recording is only meaningful against a virtual display (Linux Xvfb),
-  // threaded in as context.__display. Without one, skip — matching the
-  // long-standing "recording isn't supported headless" behavior. An
+  // A headless browser has no on-screen content to capture, not even on a
+  // virtual display (Linux Xvfb, threaded in as context.__display): it never
+  // draws a window there, so the capture would be blank (ADR 01176). An
   // app-targeted recording captures a native window, which exists (headed)
   // regardless of any browser's headless mode, so the guard doesn't apply.
-  if (!appRef && context.browser?.headless && !context.__display) {
+  // A browser launches headless unless `headless` is false (runContext), so an
+  // omitted `headless` counts. Safari has no headless mode.
+  const name = String(context.browser?.name ?? "").toLowerCase();
+  const headless =
+    Boolean(context.browser?.name) &&
+    context.browser.headless !== false &&
+    name !== "safari" &&
+    name !== "webkit";
+  if (!appRef && headless) {
+    const browser = BROWSER_DISPLAY_NAMES[name] ?? "browser";
+    // Headless Chrome lands here only with an explicit `engine: "ffmpeg"`.
+    const alternative =
+      name === "chrome"
+        ? "use the `browser` engine, which records headless Chrome"
+        : "use Chrome, which records headless";
     return phantomRecordingResult(
-      `Recording isn't supported in headless mode without a virtual display (Xvfb).`
+      `Skipped: a headless ${browser} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or ${alternative}.`
     );
   }
 

@@ -827,11 +827,11 @@ export type Test = (
     [k: string]: unknown;
   };
   /**
-   * If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this test. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoScreenshot?: boolean;
   /**
-   * If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level.
+   * Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults2;
@@ -4487,7 +4487,7 @@ export type Condition77 = string | [string, ...string[]];
  */
 export type Record1 = RecordBoolean | RecordSimple | RecordDetailed;
 /**
- * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 /**
@@ -4535,7 +4535,7 @@ export type ByIndex21 = number;
  */
 export type ByName21 = string;
 /**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.
  */
 export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
 /**
@@ -10423,7 +10423,7 @@ export type Condition203 = string | [string, ...string[]];
  */
 export type Record3 = RecordBoolean1 | RecordSimple1 | RecordDetailed1;
 /**
- * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean1 = boolean;
 /**
@@ -10471,7 +10471,7 @@ export type ByIndex57 = number;
  */
 export type ByName57 = string;
 /**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.
  */
 export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
 /**
@@ -13038,12 +13038,12 @@ export interface Config {
    */
   dryRun?: boolean;
   /**
-   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
+   * Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
-   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
+   * Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.
    */
   autoRecord?: boolean;
   /**
@@ -13853,11 +13853,11 @@ export interface Specification {
   runOn?: Context1[];
   openApi?: (OpenApi1 & OpenAPIDescriptionTest1)[];
   /**
-   * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
+   * Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this spec's tests. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoScreenshot?: boolean;
   /**
-   * If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level.
+   * Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out.
    */
   autoRecord?: boolean;
   annotationDefaults?: AnnotationDefaults1;

@@ -1116,11 +1116,11 @@
               },
               "autoScreenshot": {
                 "type": "boolean",
-                "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
+                "description": "Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this spec's tests. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
               },
               "autoRecord": {
                 "type": "boolean",
-                "description": "If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level."
+                "description": "Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
               },
               "annotationDefaults": {
                 "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
@@ -1765,11 +1765,11 @@
                         },
                         "autoScreenshot": {
                           "type": "boolean",
-                          "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
+                          "description": "Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this test. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
                         },
                         "autoRecord": {
                           "type": "boolean",
-                          "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
+                          "description": "Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
                         },
                         "annotationDefaults": {
                           "description": "Default visual theme for annotations in this test. Overrides `annotationDefaults` set at the spec or config level. When unset, defers to the spec level, then the config level.",
@@ -37899,7 +37899,7 @@
                                           {
                                             "type": "boolean",
                                             "title": "Record (boolean)",
-                                            "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+                                            "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
                                             "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
                                           },
                                           {
@@ -38169,7 +38169,7 @@
                                               },
                                               "engine": {
                                                 "title": "Recording engine",
-                                                "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                                "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                                 "anyOf": [
                                                   {
                                                     "title": "Recording engine (simple)",
@@ -38570,7 +38570,7 @@
                                                 },
                                                 "engine": {
                                                   "title": "Recording engine",
-                                                  "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                                  "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                                   "anyOf": [
                                                     {
                                                       "title": "Recording engine (simple)",
@@ -38703,7 +38703,7 @@
                                             },
                                             "engine": {
                                               "title": "Recording engine",
-                                              "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                              "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                               "anyOf": [
                                                 {
                                                   "title": "Recording engine (simple)",
@@ -89935,7 +89935,7 @@
                                                 {
                                                   "type": "boolean",
                                                   "title": "Record (boolean)",
-                                                  "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+                                                  "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
                                                   "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
                                                 },
                                                 {
@@ -90205,7 +90205,7 @@
                                                     },
                                                     "engine": {
                                                       "title": "Recording engine",
-                                                      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                                      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                                       "anyOf": [
                                                         {
                                                           "title": "Recording engine (simple)",
@@ -90606,7 +90606,7 @@
                                                       },
                                                       "engine": {
                                                         "title": "Recording engine",
-                                                        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                                        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                                         "anyOf": [
                                                           {
                                                             "title": "Recording engine (simple)",
@@ -90739,7 +90739,7 @@
                                                   },
                                                   "engine": {
                                                     "title": "Recording engine",
-                                                    "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                                    "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                                     "anyOf": [
                                                       {
                                                         "title": "Recording engine (simple)",

@@ -696,8 +696,7 @@ function inspectStep(step: any, data: WalkData): void {
     }
   }
   // Auto screenshots land in a separate result field (a relative path string),
-  // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't
-  // fire when spec/test-level autoScreenshot already produced images.
+  // not `step.screenshot`. Tracked separately from authored screenshots.
   if (typeof step.autoScreenshot === "string" && step.autoScreenshot.length > 0) {
     data.producedAutoScreenshots = true;
   }
@@ -960,7 +959,6 @@ export function detectOutputDirGitignored(
 ): boolean {
   try {
     if (typeof outputDir !== "string" || outputDir.length === 0) return false;
-    if (outputDir === "." || outputDir === "./") return false;
     const found = readGitignore(cwd);
     if (found === null) return false;
     // `setConfig()` resolves `args.output` to an absolute path, so the
@@ -978,6 +976,11 @@ export function detectOutputDirGitignored(
     // matcher (which expects gitignore-style patterns) works on
     // Windows-resolved absolute paths too.
     candidate = candidate.replace(/\\/g, "/");
+    // An output dir of `.` (the repo root) can't be ignored itself; its
+    // run folders land in `.doc-detective/`, so that's what has to be covered.
+    if (candidate === "" || candidate === "." || candidate === "./") {
+      candidate = ".doc-detective";
+    }
     return gitignoreCovers(found.text, candidate);
   } catch {
     return false;
