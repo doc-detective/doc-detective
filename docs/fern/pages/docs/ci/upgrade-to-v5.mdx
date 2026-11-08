@@ -245,7 +245,7 @@ npx doc-detective@5 install agents --scope project
 npx doc-detective@5 install agents --scope global
 ```
 
-Each command prompts you to choose which agents to update. To skip the prompts, such as in a script, add `--yes`. It also needs `--scope`, plus an `--agent` flag for each agent you installed. Run one command per scope:
+Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes`, which requires `--scope` and an `--agent` flag for each agent you installed. Run one command per scope:
 
 ```bash
 npx doc-detective@5 install agents --agent claude --scope project --yes
