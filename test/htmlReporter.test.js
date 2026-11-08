@@ -258,3 +258,86 @@ describe("HTML Reporter", function () {
     expect(result).to.match(/\.html$/);
   });
 });
+
+// Automatic screenshots and recordings in the report (ADR 01177). The page's
+// own functions are pulled from its script, with `report` and `MEDIA_BASE`
+// supplied: MEDIA_BASE is the path from the HTML file to the run folder.
+describe("HTML Reporter automatic media", function () {
+  let tmpDir;
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-html-auto-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  async function pageFunctions(report, mediaBase) {
+    const outputFile = path.join(tmpDir, "fns.html");
+    await outputResults({ autoScreenshot: false, autoRecord: false }, outputFile, sampleResults, { reporters: ["html"] });
+    const html = fs.readFileSync(outputFile, "utf-8");
+    const fn = (name) => new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`).exec(html)?.[0];
+    const source = ["runFolderSrc", "collectMedia", "autoRecording"].map(fn);
+    expect(source.every(Boolean), "the page defines the media functions").to.equal(true);
+    return new Function("report", "MEDIA_BASE", `${source.join("\n")}; return { collectMedia, autoRecording };`)(
+      report,
+      mediaBase
+    );
+  }
+
+  const runDir = "/out/.doc-detective/runs/r1";
+  const shot = "specs/s/tests/t/contexts/c/screenshots/01-goTo-open.png";
+
+  it("adds a step's automatic screenshot after its authored one, labeled Automatic", async function () {
+    const { collectMedia } = await pageFunctions({ runDir }, ".doc-detective/runs/r1");
+    const media = collectMedia({ screenshot: { path: "/x/authored.png" }, autoScreenshot: shot });
+    expect(media).to.deep.equal([
+      { kind: "image", path: "/x/authored.png", changed: undefined },
+      { kind: "image", path: `.doc-detective/runs/r1/${shot}`, label: "Automatic" },
+    ]);
+    // The field's future name reads the same way.
+    expect(collectMedia({ autoScreenshotPath: shot })[0].path).to.equal(`.doc-detective/runs/r1/${shot}`);
+  });
+
+  it("shows the context's automatic recording once and leaves its synthetic steps out", async function () {
+    const { autoRecording } = await pageFunctions({ runDir }, "");
+    const video = `${runDir}/specs/s/tests/t/contexts/c/recordings/c.mp4`;
+    const start = { stepId: "t~autorecord", record: { path: video }, result: "PASS" };
+    const open = { stepId: "open", goTo: { url: "http://x" }, result: "PASS" };
+    const stop = { stepId: "uuid", stopRecord: true, outputs: { recordingPath: video }, result: "PASS" };
+    const auto = autoRecording({ steps: [start, open, stop] });
+    expect(auto.video).to.equal("specs/s/tests/t/contexts/c/recordings/c.mp4");
+    expect(auto.steps.map((item) => item.step)).to.deep.equal([open]);
+    expect(auto.steps[0].origIdx).to.equal(1);
+  });
+
+  it("keeps a recording that didn't save in the step list", async function () {
+    const { autoRecording } = await pageFunctions({ runDir }, "");
+    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "SKIPPED" };
+    const auto = autoRecording({ steps: [start] });
+    expect(auto.video).to.equal(null);
+    expect(auto.steps.map((item) => item.step)).to.deep.equal([start]);
+  });
+
+  it("renders a run with no automatic media as before", async function () {
+    const { collectMedia, autoRecording } = await pageFunctions({ runDir }, "x");
+    const step = { stepId: "s", goTo: { url: "http://x" } };
+    expect(collectMedia(step)).to.deep.equal([]);
+    const auto = autoRecording({ steps: [step] });
+    expect(auto.video).to.equal(null);
+    expect(auto.steps).to.deep.equal([{ step, origIdx: 0 }]);
+  });
+
+  it("points both HTML copies at the run folder", async function () {
+    const run = path.join(tmpDir, ".doc-detective", "runs", "20260612-130000");
+    fs.mkdirSync(run, { recursive: true });
+    const results = { ...sampleResults, runId: "20260612-130000", runDir: run };
+    const written = await outputResults({ outputDir: tmpDir }, tmpDir, results, {
+      reporters: ["html", "runFolder"],
+      command: "runTests",
+    });
+    const flat = fs.readFileSync(written.find((f) => String(f).endsWith(".html")), "utf-8");
+    expect(flat).to.include('window.REPORT_MEDIA_BASE = ".doc-detective/runs/20260612-130000";');
+    const inRunFolder = fs.readFileSync(path.join(run, "testResults.html"), "utf-8");
+    expect(inRunFolder).to.include('window.REPORT_MEDIA_BASE = "";');
+  });
+});
