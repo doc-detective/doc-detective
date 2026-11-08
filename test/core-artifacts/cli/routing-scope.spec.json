@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-routing-scope';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});const e={runShell:'echo hi'};const w=(n,o)=>fs.writeFileSync(d+'/'+n+'.spec.json',JSON.stringify(o));const step=h=>({tests:[{steps:[{...e,onFail:[h]}]}]});const test=h=>({tests:[{steps:[e],onFail:[h]}]});w('step-stop-spec',step({stop:'spec'}));w('step-stop-run',step({stop:'run'}));w('step-goToTest',step({goToTest:'t'}));w('step-onSkip-retry',{tests:[{steps:[e,{wait:false,onSkip:[{retry:{limit:1}}]}]}]});w('test-stop-run',test({stop:'run'}));w('test-retry',test({retry:{limit:1}}));w('test-goToStep',test({goToStep:'s'}));w('test-stop-spec',{tests:[{steps:[e],onPass:[{stop:'spec'}]},{steps:[e]}]});\"",
+            "command": "node test/core-artifacts/cli/routing-scope-specs.cjs",
             "workingDirectory": "../../.."
           }
         }
