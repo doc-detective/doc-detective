@@ -329,6 +329,7 @@ branches.
   one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
 - Open or update every PR in the stack with `gh stack submit --open`. Each PR targets the branch below it.
 - When the trunk or a lower layer moves, run `gh stack sync` or `gh stack rebase`, not a manual rebase.
+  `gh stack rebase` only updates local branches, so follow it with `gh stack push` to publish them.
 - Merge bottom-up with `gh stack merge <pr> --merge`. It merges every PR up to and including `<pr>`, all or
   nothing. Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
 - A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See

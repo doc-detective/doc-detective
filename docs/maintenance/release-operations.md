@@ -51,8 +51,14 @@ realities around them.
   branch is checked out in another worktree; the remote branch still gets deleted.
 - **An approving comment from the maintainer counts as approval.** A PR comment that approves it is enough
   to merge, with no formal review needed. Agents carry their PRs through approval and merge. On `main`,
-  merge a single PR with `gh pr merge <n> --merge --admin` once its checks are green and the comment is
-  there. Bot comments, such as CodeRabbit's or the Claude review's, never count as approval.
+  merge a single PR with `gh pr merge <n> --merge --admin --delete-branch` once the comment is there.
+  `--admin` bypasses every rule in the ruleset, not just the approval. So before each use, confirm with
+  `gh pr checks <n> --json name,state`:
+  - each of the five required contexts above has reported and passed, since a green list can hide one
+    that never reported;
+  - CodeQL (the `code_quality` rule) passed.
+
+  Bot comments, such as CodeRabbit's or the Claude review's, never count as approval.
 - Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
   layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
   `feat/v5-rc`, which has no ruleset, merges once its checks are green and an approving comment is there.
