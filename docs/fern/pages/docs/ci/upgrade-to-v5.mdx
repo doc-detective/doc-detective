@@ -401,6 +401,26 @@ An explicit `"reporters": []` now means no reporters, so a run writes no run fol
 doc-detective install agents --agent claude --scope project --yes
 ```
 
+## Agent tools
+
+**What changed:** [Agent tools](/ai/ai-agents/overview) installed for version 4 don't handle the new exit codes and flags. When a test fails, they can treat the non-zero exit as a broken runner and retry with another runner instead of reading the results. They also pass a folder to `--output`, but `--output` now takes the path of a results file.
+
+**What to do:** After you upgrade, update your agent tools. These commands use `npx doc-detective@5` so that a version 4 install still on your PATH can't reinstall the version 4 tools. Run the command once for each scope you installed them in, `project` for this project or `global` for your user:
+
+```bash
+npx doc-detective@5 install agents --scope project
+npx doc-detective@5 install agents --scope global
+```
+
+Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes`, which requires `--scope` and an `--agent` flag for each agent you installed. Run one command per scope:
+
+```bash
+npx doc-detective@5 install agents --agent claude --scope project --yes
+npx doc-detective@5 install agents --agent claude --scope global --yes
+```
+
+If you installed them through your agent's own plugin or extension manager, update them there. See the guide for [your agent](/ai/ai-agents/overview). For Gemini CLI or Qwen Code, see [Gemini CLI and Qwen Code agent installs](#gemini-cli-and-qwen-code-agent-installs).
+
 ## Gemini CLI and Qwen Code agent installs
 
 **What changed:** `install agents` pins the agent-tools ref that matches Doc Detective 5. A Gemini CLI or Qwen Code install made with Doc Detective 4 recorded no ref. It keeps updating from the agent-tools default branch, even with `install agents --force`.
@@ -411,14 +431,14 @@ For Gemini CLI:
 
 ```bash
 gemini extensions uninstall doc-detective
-doc-detective install agents --agent gemini --scope global --yes
+npx doc-detective@5 install agents --agent gemini --scope global --yes
 ```
 
 For Qwen Code:
 
 ```bash
 qwen extensions uninstall doc-detective
-doc-detective install agents --agent qwen --scope global --yes
+npx doc-detective@5 install agents --agent qwen --scope global --yes
 ```
 
 Uninstalling may reset the extension's own settings.
