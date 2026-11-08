@@ -42,6 +42,7 @@ export {
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
+  startFreeXvfb,
   XVFB_SCREEN_SIZE,
   detectX11ScreenSize,
   isRecordingActive,
@@ -1335,6 +1336,38 @@ async function checkSystemBinary(name: string): Promise<boolean> {
 // server-start and capture paths agree.
 function xvfbDisplay(index: number): string {
   return `:${99 + index}`;
+}
+
+// Start Xvfb on the runner's display, or the next free one. Another Doc
+// Detective run on the host (a parallel CI job, or a run inside a run) may
+// already hold it: Xvfb then exits early, so move on, skipping the displays
+// this run already took. Anything else is a real failure and rethrows.
+async function startFreeXvfb({
+  index,
+  taken,
+  start = startXvfb,
+  attempts = 20,
+}: {
+  index: number;
+  taken: Set<string>;
+  start?: (display: string) => Promise<any>;
+  attempts?: number;
+}): Promise<{ display: string; proc: any }> {
+  let lastError: any;
+  for (let n = 99 + index, tries = 0; tries < attempts; n++) {
+    const display = `:${n}`;
+    if (taken.has(display)) continue;
+    tries++;
+    try {
+      const proc = await start(display);
+      taken.add(display);
+      return { display, proc };
+    } catch (error: any) {
+      if (!/exited early/.test(String(error?.message))) throw error;
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 // Start an Xvfb virtual framebuffer on `display` and resolve once its X socket
