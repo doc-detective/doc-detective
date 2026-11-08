@@ -70,15 +70,15 @@ Chosen option: **A**.
   page doesn't finish the recording within 20 seconds, the step fails with `Couldn't save the recording: the
   browser didn't finish it within 20 seconds.` That replaces `Recording download timed out.`
 - An ffmpeg recording of a headless browser is SKIPPED even when the context has a virtual display (Xvfb). A
-  headless browser doesn't draw on that display, so the video would be blank. So the old message, `Recording
-  isn't supported in headless mode without a virtual display (Xvfb).`, which pointed at Xvfb as the fix, is
+  headless browser doesn't draw on that display, so the video would be blank. The old message, `Recording
+  isn't supported in headless mode without a virtual display (Xvfb).`, pointed at Xvfb as the fix. It's
   replaced everywhere by one that names the browser and the fixes that work: `Skipped: a headless <browser>
   can't be screen-recorded. Set the context's \`headless\` to \`false\`, or use Chrome, which records headless.`
   `<browser>` is the display name, Chrome or Firefox. A context launches headless unless `headless` is `false`, so
   an omitted `headless` counts as headless here too. Safari has no headless mode, so it's never skipped this way.
-- A failed copy of the browser recording closes the recorder tab and restores focus all the same, removes any
-  partial file, and says why: the browser didn't finish within 20 seconds, recorded no video, sent too few bytes,
-  or the copy itself failed.
+- A failed copy of the browser recording still closes the recorder tab, restores focus, and removes any partial
+  file. Its message names the cause: the browser didn't finish within 20 seconds, recorded no video, or sent too
+  few bytes, or the copy failed.
 
 ### Checks made while deciding
 
@@ -86,15 +86,15 @@ Chosen option: **A**.
   a `goTo` all record. The track reports `displaySurface: "browser"` from a `web-contents-media-stream` source.
   Without the size constraints the track is 800x600. With them it's the viewport's size.
 - **Chrome's download of the recording.** The recorder used to save its blob with an anchor-click download into the
-  per-context download folder. In headless Chrome that download never landed for about a third of recordings, on
-  Windows, though the blob was complete in the page (instrumented: the recorder had stopped, and the blob held
-  45–87 KB). Keeping the blob URL alive didn't help. A fixture already noted the same timeout headed, for a
+  per-context download folder. In headless Chrome on Windows, that download never landed for about a third of
+  recordings. Yet the blob was complete in the page: instrumentation showed the recorder had stopped, and the blob
+  held 45–87 KB. Keeping the blob URL alive didn't help. A fixture already noted the same timeout headed, for a
   recording that starts before the first navigation. Copying the blob through WebDriver passed 28 of 28 such
   recordings, before and after cross-origin navigations, headless.
-- **Chrome's tab-sharing bar.** While a tab is captured, Chrome shows its sharing bar on that tab, headed or headless,
-  which shortens the page's viewport by about 58 px. A 1024x640 viewport records as 1024x582. When the first
-  encoded frame predates the bar, the transcode scales the shorter frames to the first frame's size, so a video can
-  come out at the full viewport height, slightly stretched. Headed recordings already behaved this way. Fixtures
+- **Chrome's tab-sharing bar.** While a tab is captured, Chrome shows its sharing bar on that tab, headed or headless.
+  The bar shortens the page's viewport by about 58 px. A 1024x640 viewport records as 1024x582. When the first
+  encoded frame predates the bar, the transcode scales the shorter frames to the first frame's size. A video can
+  then come out at the full viewport height, slightly stretched. Headed recordings already behaved this way. Fixtures
   assert the viewport's width and a height no taller than the viewport, not an exact height.
 - **Headed Chrome with both flags (DB4).** Headed Chrome already captures a tab: with
   `--auto-select-desktop-capture-source` alone the source is a `web-contents-media-stream`, not a window. With both
@@ -119,20 +119,20 @@ Chosen option: **A**.
 
 ### Confirmation
 
-- `test/ffmpeg-recorder.test.js`: `resolveRecordPlan` resolves headless Chrome to `browser`; `jobIsFfmpegRecording`
-  is false for a headless Chrome browser-engine recording, and true for a second overlapping one; the routed
-  over-approximation counts headless Chrome; `coerceRecordContextBrowser` is no longer exported.
-- `test/context-resolution.test.js`: `getDriverCapabilities` adds the tab flag headless and leaves it off headed;
-  `getDefaultBrowser` puts Chrome first, then Firefox, then Safari; `prepareContextSlot` gives a `record` context
+- `test/ffmpeg-recorder.test.js`: `resolveRecordPlan` resolves headless Chrome to `browser`. `jobIsFfmpegRecording`
+  is false for a headless Chrome browser-engine recording, and true for a second overlapping one. The routed
+  over-approximation counts headless Chrome. `coerceRecordContextBrowser` is no longer exported.
+- `test/context-resolution.test.js`: `getDriverCapabilities` adds the tab flag headless and leaves it off headed.
+  `getDefaultBrowser` puts Chrome first, then Firefox, then Safari. `prepareContextSlot` gives a `record` context
   with no browser `{ name: "chrome" }`, headless, and leaves non-browser and mobile contexts alone.
 - `test/browser-fallback.test.js`: fallbacks follow Chrome, Firefox, Safari.
 - `test/recording-screenshot-coverage.test.js`: the browser engine on headless Chrome starts a `MediaRecorder`
-  recording and passes the viewport size to the recorder; an ffmpeg recording of a headless browser with a virtual
-  display is SKIPPED; `saveBrowserRecording` writes the page's recording chunk by chunk, and a recording the page
+  recording and passes the viewport size to the recorder. An ffmpeg recording of a headless browser with a virtual
+  display is SKIPPED. `saveBrowserRecording` writes the page's recording chunk by chunk. A recording the page
   never finishes fails the `stopRecord` step with the 20-second message.
-- Fixture `test/core-artifacts/recording/headless-chrome.spec.json`: the auto engine, the explicit browser engine,
-  and a recording across a navigation on headless Chrome PASS on Windows, macOS, and Linux; headed Chrome PASSes on
-  Windows and macOS; headless Firefox is SKIPPED everywhere. The browser-engine permutations in
+- Fixture `test/core-artifacts/recording/headless-chrome.spec.json`. On headless Chrome, the auto engine, the
+  explicit browser engine, and a recording across a navigation PASS on Windows, macOS, and Linux. Headed Chrome
+  PASSes on Windows and macOS. Headless Firefox is SKIPPED everywhere. The browser-engine permutations in
   `recording.spec.json` and `recording-permutations.spec.json` also run on Linux headless Chrome now.
 
 ## Pros and Cons of the Options
