@@ -5,9 +5,12 @@ import { requireYaml } from "./lazyYaml.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
 // An error's message as a trailing sentence: " <text>." keeping its own final
-// `.`, `!` or `?`. Nothing for an empty message, so the line ends at one period.
-const cause = (text?: string) =>
-  !text ? "" : ` ${/[.!?]$/.test(text) ? text : `${text}.`}`;
+// `.`, `!` or `?`. Nothing for an empty or blank message, so the line ends at
+// one period.
+const cause = (text?: string) => {
+  const trimmed = text?.trim();
+  return !trimmed ? "" : ` ${/[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`}`;
+};
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
