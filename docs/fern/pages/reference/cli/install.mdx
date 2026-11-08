@@ -69,7 +69,9 @@ Claude Code and Copilot CLI add agent-tools as a plugin marketplace without a re
 
 A Gemini CLI or Qwen Code install made before Doc Detective 5 recorded no agent-tools ref. It keeps updating from the agent-tools default branch, and `install agents --force` doesn't change that.
 
-To pin it, uninstall the extension, then install it again with Doc Detective 5. For Gemini CLI:
+To pin it, uninstall the extension, then install it again with Doc Detective 5. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
 
 ```bash
 gemini extensions uninstall doc-detective
