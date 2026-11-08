@@ -714,8 +714,10 @@ async function typeKeys({
     });
   }
 
-  // A field that receives a secret shows dots from here on (ADR 01178). A
-  // page that rejects the style doesn't fail the step.
+  // A field that receives a secret shows dots from here on (ADR 01178). The
+  // focused element is the one that receives the keys: the element criteria
+  // clicked it above, and without criteria `driver.keys` types into whatever
+  // is focused. A page that rejects the style doesn't fail the step.
   try {
     await hideTypedSecret(driver, step.type.keys);
   } catch (error: any) {
