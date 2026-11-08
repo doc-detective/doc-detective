@@ -1078,6 +1078,38 @@ describe("startRecording: guards + browser engine", function () {
     assert.deepEqual(driver.recorderArgs[0], { width: 1024, height: 640 });
   });
 
+  // Chrome's tab-sharing bar takes ~57px off a captured tab. With recordings
+  // on by default, that would shrink every screenshot, so the window grows
+  // back to the session's viewport once the capture starts (ADR 01176). An
+  // authored window size is the window's, so it's left alone.
+  it("grows the window back to the session's viewport once the capture starts", async function () {
+    for (const [sizeTarget, expected] of [
+      [{ kind: "default", width: 1200, height: 800 }, { width: 1200, height: 800 }],
+      [{ kind: "window", width: 1216, height: 939 }, { width: 1200, height: 743 }],
+    ]) {
+      const driver = browserDriver({ recorderStarted: true });
+      const win = { width: 1216, height: 939 };
+      let viewport = { width: 1200, height: 743 }; // the sharing bar is up
+      driver.state = { sizeTarget, sizeTargetHandle: "orig-handle" };
+      driver.getWindowSize = async () => ({ ...win });
+      driver.setWindowSize = async (width, height) => {
+        viewport = { width: viewport.width + width - win.width, height: viewport.height + height - win.height };
+        Object.assign(win, { width, height });
+      };
+      const execute = driver.execute.bind(driver);
+      driver.execute = async (fn, ...args) =>
+        typeof fn === "string" && fn.includes("innerHeight") ? { ...viewport } : execute(fn, ...args);
+      const result = await startRecording({
+        config,
+        context: { browser: { name: "chrome", headless: true }, contextId: "ctx-bar" },
+        step: { stepId: "bar", record: { path: path.join(tmpDir, "bar.mp4") } },
+        driver,
+      });
+      assert.equal(result.status, "PASS", sizeTarget.kind);
+      assert.deepEqual(viewport, expected, sizeTarget.kind);
+    }
+  });
+
   it("browser engine removes a stale download from a prior crashed run", async function () {
     const contextId = `ctx-stale-${Date.now()}`;
     const baseName = "brstale";
@@ -1437,5 +1469,49 @@ describe("stopRecording: a browser recording copy that throws", function () {
     assert.equal(closed, 1);
     assert.equal(switched[switched.length - 1], "content-tab");
     assert.equal(recordings.length, 0);
+  });
+
+  // Once the capture stops, Chrome's sharing bar goes and the viewport grows
+  // by its height, so the window shrinks back to the session's viewport.
+  it("shrinks the window back to the session's viewport once the capture stops", async function () {
+    const win = { width: 1216, height: 996 };
+    let viewport = { width: 1200, height: 857 }; // the sharing bar is gone
+    let calls = 0;
+    const driver = {
+      state: {
+        recordings: [
+          {
+            type: "MediaRecorder",
+            tab: "rec-tab",
+            downloadPath: path.join(os.tmpdir(), `bar-${Date.now()}.webm`),
+            targetPath: path.join(os.tmpdir(), "bar.mp4"),
+          },
+        ],
+        sizeTarget: { kind: "viewport", width: 1200, height: 800 },
+        sizeTargetHandle: "content-tab",
+      },
+      async switchToWindow() {},
+      async execute(fn) {
+        if (typeof fn === "string" && fn.includes("innerHeight")) return { ...viewport };
+        if (++calls === 1) return true; // the recorder exists
+        throw new Error("chrome not reachable");
+      },
+      async getWindowHandle() {
+        return "content-tab";
+      },
+      async getWindowHandles() {
+        return ["rec-tab", "content-tab"];
+      },
+      async closeWindow() {},
+      async getWindowSize() {
+        return { ...win };
+      },
+      async setWindowSize(width, height) {
+        viewport = { width: viewport.width + width - win.width, height: viewport.height + height - win.height };
+        Object.assign(win, { width, height });
+      },
+    };
+    await stopRecording({ config: {}, step: { stopRecord: true }, driver });
+    assert.deepEqual(viewport, { width: 1200, height: 800 });
   });
 });
