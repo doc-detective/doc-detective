@@ -30,6 +30,7 @@ import {
   detectMacScreenIndex,
   detectX11ScreenSize,
   startXvfb,
+  startFreeXvfb,
 } from "../dist/core/tests/ffmpegRecorder.js";
 
 describe("ffmpegRecorder", function () {
@@ -1034,6 +1035,50 @@ describe("ffmpegRecorder", function () {
       expect(xvfbDisplay(0)).to.equal(":99");
       expect(xvfbDisplay(1)).to.equal(":100");
       expect(xvfbDisplay(0)).to.not.equal(xvfbDisplay(1));
+    });
+  });
+
+  // Another Doc Detective run on the host (a parallel CI job, or a run inside
+  // a run) may already hold :99. Xvfb exits early on a taken display, so the
+  // runner moves on to the next free one instead of failing the run.
+  describe("startFreeXvfb", function () {
+    const busy = (...displays) => async (display) => {
+      if (displays.includes(display)) throw new Error(`Xvfb exited early on ${display} (code 1)`);
+      return { display };
+    };
+
+    it("starts on the runner's own display when it's free", async function () {
+      expect(await startFreeXvfb({ index: 1, taken: new Set(), start: busy() })).to.deep.equal({
+        display: ":100",
+        proc: { display: ":100" },
+      });
+    });
+
+    it("moves past displays another process holds and ones this run took", async function () {
+      const taken = new Set([":100"]);
+      const started = await startFreeXvfb({ index: 0, taken, start: busy(":99", ":101") });
+      expect(started.display).to.equal(":102");
+      expect([...taken]).to.include(":102");
+    });
+
+    it("rethrows anything but a taken display, and gives up after its attempts", async function () {
+      const missing = async () => {
+        throw new Error("spawn Xvfb ENOENT");
+      };
+      let error;
+      try {
+        await startFreeXvfb({ index: 0, taken: new Set(), start: missing });
+      } catch (e) {
+        error = e;
+      }
+      expect(error?.message).to.equal("spawn Xvfb ENOENT");
+      error = undefined;
+      try {
+        await startFreeXvfb({ index: 0, taken: new Set(), start: busy(":99", ":100"), attempts: 2 });
+      } catch (e) {
+        error = e;
+      }
+      expect(error?.message).to.equal("Xvfb exited early on :100 (code 1)");
     });
   });
 

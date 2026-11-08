@@ -96,7 +96,9 @@ Chosen option: **A**.
   headless.` (With one context, the line is singular.) On Linux with Xvfb installed, the context's Appium server owns an
   Xvfb display, so the window is invisible. With only `DISPLAY`, the window opens on that display.
 - **Concurrency.** Only an explicit `autoRecord: true` opts the run into overlapping ffmpeg captures on a shared
-  display (ADR 00175). A defaulted recording keeps the safe serial display.
+  display (ADR 00175). A defaulted recording keeps the safe serial display. With recordings on by default, two
+  runs on one Linux host both start Xvfb more often. So a run's Xvfb displays start at `:99` and skip any display
+  another process holds (`startFreeXvfb`), rather than failing the run.
 - **Screenshots against a reference.** `saveScreenshot` doesn't resize the window to a reference's size while a
   recording runs, since the resize would show in the video (ADR 01144). A defaulted automatic recording is an
   archive, so it doesn't block that resize. Otherwise every default run would compare at the wrong size. Any other
