@@ -4061,7 +4061,8 @@ function buildAutoRecordStep({
 
 // Whether a desktop context runs on this host: it names no platform, or the
 // host's. Mobile contexts run against a device from any host, and other
-// desktop platforms are SKIPPED by runContext.
+// desktop platforms are SKIPPED by runContext. With no known host platform it
+// says yes, so the preflight may check an engine a SKIPPED context needed.
 function runsOnHost(context: any, runnerDetails: any): boolean {
   const host = runnerDetails?.environment?.platform;
   return (
@@ -4235,15 +4236,10 @@ async function installAutoScreenshotPackages({
 
 // The synthetic autoRecord start (`<testId>~autorecord`) and its end-of-context
 // stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so an
-// autoRecord run doesn't count the synthetic steps (ADR 01177). Matched by ID
-// and action, so an authored `record` step whose stepId ends in `~autorecord`
-// would be left out too.
+// autoRecord run doesn't count the synthetic steps (ADR 01177). The runner's
+// markers decide, so an authored step with a stepId like theirs still counts.
 function isSyntheticAutoRecordStep(step: any): boolean {
-  const id = String(step?.stepId ?? "");
-  return (
-    (id.endsWith("~autorecord") && step?.record !== undefined) ||
-    (id.endsWith("~autorecord~stop") && step?.stopRecord !== undefined)
-  );
+  return Boolean(step?.__autoRecord || step?.__autoRecordStop);
 }
 
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
@@ -5972,8 +5968,8 @@ async function stopAllRecordings({
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
   while (driver.state.recordings.length > 0 && guard-- > 0) {
-    // The automatic recording's stop is `<testId>~autorecord~stop`, so the
-    // summary can leave it out (isSyntheticAutoRecordStep, ADR 01177).
+    // The automatic recording's stop is `<testId>~autorecord~stop`, marked so
+    // the summary can leave it out (isSyntheticAutoRecordStep, ADR 01177).
     const next = selectRecordingToStop(driver.state.recordings, true, {
       includeSynthetic: true,
     });
@@ -5983,6 +5979,8 @@ async function stopAllRecordings({
       description: "Stopping recording",
       stepId: next?.syntheticStepId ? `${next.syntheticStepId}~stop` : randomUUID(),
     };
+    // On the report entry only: step_v3 rejects unknown keys on the step.
+    const reportMarker = next?.synthetic ? { __autoRecordStop: true } : {};
     // These sweep steps really execute, so they carry a measured duration
     // rather than the Phase-3 zero default. Timed in both the success and the
     // failure path, so a stop that hangs before throwing still shows its cost.
@@ -6005,6 +6003,7 @@ async function stopAllRecordings({
         maskDeep({
           ...stopRecordStep,
           ...stepResult,
+          ...reportMarker,
           startedAt: new Date(stopStart).toISOString(),
           durationMs: Date.now() - stopStart,
         })
@@ -6017,6 +6016,7 @@ async function stopAllRecordings({
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
+          ...reportMarker,
           result: "FAIL",
           resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
           startedAt: new Date(stopStart).toISOString(),
