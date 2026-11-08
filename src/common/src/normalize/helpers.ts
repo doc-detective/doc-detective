@@ -89,7 +89,8 @@ function plainDefaults(node: any, prefix = ""): [string, any][] {
 }
 
 // Each action's plain defaults, read once. The bundled schemas never change at
-// run time, and no test edits them, so nothing needs to clear this.
+// run time, and no test edits an existing one: probe tests add schemas under
+// names of their own. So nothing needs to clear this.
 const cache = new Map<string, [string, any][]>();
 
 /**
