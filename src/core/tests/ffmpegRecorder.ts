@@ -107,7 +107,10 @@ interface RecordingProbes {
 }
 
 // ffmpeg arguments that capture one frame and throw it away: the recorder's
-// own input arguments (buildCaptureArgs), with a null output.
+// own input arguments (buildCaptureArgs), with a null output. buildCaptureArgs
+// ends with `-pix_fmt yuv420p <output>` on every platform it supports (it
+// throws on the rest), so the input arguments are everything before
+// `-pix_fmt`; the frameProbeArgs test pins that for each platform.
 function frameProbeArgs({
   platform,
   displayEnv,

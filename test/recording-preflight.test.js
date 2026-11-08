@@ -192,5 +192,11 @@ describe("frameProbeArgs", function () {
       "-y", "-f", "x11grab", "-framerate", "1", "-i", ":5",
       "-frames:v", "1", "-f", "null", "-",
     ]);
+    // macOS's preflight doesn't capture a frame, but the input still splits
+    // cleanly at -pix_fmt, so a future probe there would too.
+    expect(frameProbeArgs({ platform: "darwin" })).to.deep.equal([
+      "-y", "-f", "avfoundation", "-framerate", "1", "-i", "0:none",
+      "-frames:v", "1", "-f", "null", "-",
+    ]);
   });
 });
