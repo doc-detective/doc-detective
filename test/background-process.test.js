@@ -427,7 +427,8 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
   for (const [label, options, expected] of [
     ["defaults to 120x30", undefined, "120x30"],
     ["takes cols/rows from options", { cols: 80, rows: 24 }, "80x24"],
-    ["defaults the missing dimension", { cols: 200 }, "200x30"],
+    ["defaults the missing rows", { cols: 200 }, "200x30"],
+    ["defaults the missing cols", { rows: 10 }, "120x10"],
   ]) {
     it(`sizes the PTY: ${label}`, async function () {
       if (!ptyAvailable) this.skip();
