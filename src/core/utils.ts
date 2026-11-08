@@ -1201,7 +1201,8 @@ function schemasAt(parts: string[], root: string | object): any[] {
   };
   // then/else count with the combiners on purpose: suggesting a key a branch
   // allows beats missing it, and nearestCommand's threshold keeps a distant
-  // key from being suggested.
+  // key from being suggested. A key a node doesn't define reads as undefined,
+  // and expand returns [] for it.
   const expand = (node: any): any[] =>
     node && typeof node === "object"
       ? [
@@ -1271,6 +1272,9 @@ function shortJson(value: unknown): string {
 
 // A required error from one branch of an anyOf or oneOf, or from an allOf in
 // such a branch. summarizeSchemaErrors groups these into one choice.
+// Unanchored, so it matches the innermost anyOf or oneOf: a nested
+// `anyOf/0/oneOf/1/required` groups under that oneOf, and the outer anyOf's
+// other branches print their own lines.
 const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
 
 // Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
@@ -1422,6 +1426,8 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     // Every message is set: errorObjects filled a missing one with the keyword.
     for (const message of new Set(others.map((error) => error.message))) lines.push(`${prefix}${message}.`);
     // A type error only matters when nothing else here says what's wrong.
+    // params.type is a string or an array: flatMap flattens an array and keeps
+    // a bare string as one entry, so both shapes give type names.
     const types = [...new Set(of("type").flatMap((error) => error.params.type))];
     const said = lines.length > before;
     if (types.length && !said) lines.push(`${prefix}must be ${orList(types)}${got}`);

@@ -229,6 +229,8 @@ function readLegacyEnvConfig() {
 // a config file's folder, or the working directory for the environment and
 // flags (ADR 01165). `path.join` keeps a trailing separator, so `output: "x/"`
 // still reads as a folder. Returns a copy; the input is left as it was.
+// Other path keys, such as `outputDir`, still resolve in resolvePaths, as
+// before; one rule for all of them is later work (ADR 01165, R6).
 function anchorPaths(config: any, base: string) {
   const anchored = { ...config };
   for (const key of ["output", "cacheDir"]) {
