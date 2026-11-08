@@ -3357,7 +3357,14 @@ describe("Screenshots hide secret values", function () {
         ],
       })
     );
-    const result = await runTests({ input: specPath, logLevel: "silent", telemetry: { send: false }, ...config });
+    // No automatic recording, so the steps are the ones this test wrote.
+    const result = await runTests({
+      input: specPath,
+      logLevel: "silent",
+      telemetry: { send: false },
+      autoRecord: false,
+      ...config,
+    });
     const steps = result.specs[0].tests[0].contexts[0].steps;
     assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"], JSON.stringify(steps));
     return shot;
