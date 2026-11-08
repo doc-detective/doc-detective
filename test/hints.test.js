@@ -1122,12 +1122,26 @@ describe("hints/context", function () {
       expect(gitignoreCovers("# dist\n!dist\n", "dist")).to.equal(false);
     });
 
-    it("returns false when output is the cwd or absent", function () {
+    it("returns false when output is the cwd or absent and nothing is ignored", function () {
       const root = makeTmpDir();
       try {
         expect(detectOutputDirGitignored(root, ".")).to.equal(false);
         expect(detectOutputDirGitignored(root, "")).to.equal(false);
         expect(detectOutputDirGitignored(root, undefined)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    // ADR 01177: with outputDir ".", the run folders land in .doc-detective/,
+    // so that's what .gitignore has to cover.
+    it("checks .doc-detective/ when output is the cwd", function () {
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, ".gitignore"), ".doc-detective/\n");
+        expect(detectOutputDirGitignored(root, ".")).to.equal(true);
+        expect(detectOutputDirGitignored(root, "./")).to.equal(true);
+        expect(detectOutputDirGitignored(root, root)).to.equal(true);
       } finally {
         rmTmpDir(root);
       }
@@ -2223,7 +2237,7 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
+  it("gitignoreOutputDir: fires when the output isn't ignored, including .doc-detective/ for '.'", function () {
     const h = findHint("gitignoreOutputDir");
     expect(
       h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: false }))
@@ -2233,7 +2247,18 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
     expect(
       h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: false }))
+    ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: true }))
     ).to.equal(false);
+    expect(h.markdown).to.include('echo ".doc-detective/" >> .gitignore');
+  });
+
+  // ADR 01177: screenshots and recordings are on by default, so there's no
+  // feature to discover.
+  it("drops the enableAutoScreenshot and enableAutoRecord hints", function () {
+    expect(HINTS.find((h) => h.id === "enableAutoScreenshot")).to.equal(undefined);
+    expect(HINTS.find((h) => h.id === "enableAutoRecord")).to.equal(undefined);
   });
 
   it("installAgents: fires when ANY present agent lacks the adapter (over-promote)", function () {
@@ -2397,119 +2422,6 @@ describe("hints/hints (registry)", function () {
   });
 
   // ----- feature discovery (priority 40) -----
-
-  it("enableAutoScreenshot: fires for browser runs with no screenshots and autoScreenshot off", function () {
-    const h = findHint("enableAutoScreenshot");
-    expect(h.priority).to.equal(40);
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: no browser contexts in the run.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          producedScreenshots: false,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: the run already produced screenshots.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: autoScreenshot is already enabled.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          config: { autoScreenshot: true },
-        })
-      )
-    ).to.equal(false);
-    // Negative: auto screenshots were produced (spec/test-level enable, where
-    // config.autoScreenshot is unset but images still landed this run).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          producedAutoScreenshots: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-  });
-
-  it("enableAutoRecord: fires for browser runs with no recordings and autoRecord off", function () {
-    const h = findHint("enableAutoRecord");
-    expect(h.priority).to.equal(40);
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: no browser contexts and no app surfaces in the run.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Positive: an app-only run (startSurface, no browser) — autoRecord
-    // covers app and device contexts too (phase A7).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          usedStepTypes: new Set(["startSurface", "find"]),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: the run already produced a recording (incl. an autoRecord one,
-    // which lands as a real record step → producedRecordings true).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: autoRecord is already enabled.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: false,
-          config: { autoRecord: true },
-        })
-      )
-    ).to.equal(false);
-  });
 
   it("useAnnotateStepForRecordings: fires for recorders who aren't annotating yet", function () {
     const h = findHint("useAnnotateStepForRecordings");
