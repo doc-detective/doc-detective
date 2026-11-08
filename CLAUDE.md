@@ -312,9 +312,15 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 
 ## Pull requests (required)
 
-Open your PRs and carry them through approval and merge. An approving PR comment from the maintainer counts as
-approval, and the PR is then ready to merge. Bot comments never count. For how to merge past the `main`
-ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
+Open your PRs and carry them through approval and merge.
+
+- **Earn the Claude review's approval.** Approval means an `APPROVED` review from the Claude review bot
+  (`claude[bot]`) on the PR's current head commit, or the maintainer's own approval.
+- **Get there by fixing.** Fix its findings, plus CodeRabbit's valid ones, and push. The bot reviews again
+  after each push.
+- **Other bots don't count,** including CodeRabbit.
+
+For how to merge past the `main` ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
 
 ### Stacked pull requests
 
