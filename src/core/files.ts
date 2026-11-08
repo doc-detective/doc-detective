@@ -74,7 +74,14 @@ async function readFile({
     }
   }
 
-  return parseFileContent(content, fileURLOrPath);
+  return parseFileContent(content, fileURLOrPath, { throwOnError });
+}
+
+// Where a file is, for messages: its redacted URL, or its absolute path.
+function locationOf(fileURLOrPath: string): string {
+  return /^https?:\/\//i.test(fileURLOrPath)
+    ? redactUrlForOutput(fileURLOrPath)
+    : path.resolve(fileURLOrPath);
 }
 
 /**
@@ -82,24 +89,42 @@ async function readFile({
  *
  * @param {any} content - The raw content, or a remote JSON body axios already parsed.
  * @param {string} fileURLOrPath - The URL or path the content came from.
+ * @param {Object} [options] - Options object
+ * @param {boolean} [options.throwOnError=false] - Throw a parse failure, naming its cause, instead of warning and returning the content.
  * @returns {Object|string} Parsed object for JSON or YAML files, the content otherwise.
  */
-function parseFileContent(content: any, fileURLOrPath: string) {
+function parseFileContent(
+  content: any,
+  fileURLOrPath: string,
+  { throwOnError = false }: { throwOnError?: boolean } = {}
+) {
+  // Already parsed, as axios does for a JSON response.
+  if (typeof content !== "string") return content;
   const ext = fileURLOrPath.split(".").pop()?.toLowerCase();
+  // A parse failure: a warning and the content, or with throwOnError, an
+  // Error. A YAML error's first line is its cause; a code frame follows.
+  const failed = (format: string, error: any) => {
+    if (throwOnError) {
+      const cause = String(error.message).split("\n")[0].replace(/:$/, "");
+      throw new Error(
+        `Couldn't read ${locationOf(fileURLOrPath)}: it isn't valid ${format} (${cause}).`
+      );
+    }
+    log({}, "warning", `Failed to parse ${format}: ${error.message}`);
+    return content;
+  };
 
   if (ext === "json") {
     try {
       return JSON.parse(content);
     } catch (error: any) {
-      log({}, "warning", `Failed to parse JSON: ${error.message}`);
-      return content;
+      return failed("JSON", error);
     }
   } else if (ext === "yaml" || ext === "yml") {
     try {
       return requireYaml().parse(content);
     } catch (error: any) {
-      log({}, "warning", `Failed to parse YAML: ${error.message}`);
-      return content;
+      return failed("YAML", error);
     }
   } else {
     return content;
@@ -324,4 +349,4 @@ async function resolvePaths({
   return object;
 }
 
-export { readFile, parseFileContent, resolvePaths };
+export { readFile, parseFileContent, locationOf, resolvePaths };

@@ -1,4 +1,3 @@
-import { resolve as resolvePath } from "node:path";
 import {
   replaceEnvs,
   localUrlPolicy,
@@ -8,7 +7,7 @@ import {
   FETCH_TEXT_DEFAULTS,
   redactUrlForOutput,
 } from "./utils.js";
-import { readFile, parseFileContent } from "./files.js";
+import { readFile, parseFileContent, locationOf } from "./files.js";
 import type { FileInfo } from "@apidevtools/json-schema-ref-parser";
 
 // `json-schema-faker` and `@apidevtools/json-schema-ref-parser` are heavy and
@@ -79,27 +78,27 @@ async function loadDescription(descriptionPath: string = "") {
     } catch {
       // Not JSON: parse by extension below.
     }
-    // Already parsed as JSON: don't parse it again by extension.
-    definition = typeof content === "string" ? parseFileContent(text, descriptionPath) : content;
+    // Content already parsed as JSON comes back as is. A parse failure throws
+    // one message, naming the cause.
+    definition = parseFileContent(content, descriptionPath, { throwOnError: true });
     if (root.reachedPublic) lastPublic = docName(descriptionPath, root.url);
   } else {
     // A local path, or in allow mode a remote root through readFile's plain
     // axios. Allow mode turns the guard off, its 50 MB cap and 30 s timeout
-    // included. A read failure throws its own message, naming the cause.
+    // included. A read or parse failure throws one message, naming the cause.
     definition = await readFile({ fileURLOrPath: descriptionPath, throwOnError: true });
   }
   // Only an object, not an array, is a description. Empty YAML parses to
-  // null; empty JSON and text that isn't JSON or YAML stay strings, which the
-  // ref parser would read as a path.
+  // null; text that isn't JSON or YAML stays a string, which the ref parser
+  // would read as a path.
   if (
     typeof definition !== "object" ||
     definition === null ||
     Array.isArray(definition)
   ) {
-    const location = /^https?:\/\//i.test(descriptionPath)
-      ? redactUrlForOutput(descriptionPath)
-      : resolvePath(descriptionPath);
-    throw new Error(`Couldn't read ${location}: it's empty or isn't a JSON or YAML object.`);
+    throw new Error(
+      `Couldn't read ${locationOf(descriptionPath)}: it's empty or isn't a JSON or YAML object.`
+    );
   }
   // Every $ref refusal, before connecting or at connect time. It's a
   // UrlGuardError, the type getGuarded unwraps from axios's connect-error

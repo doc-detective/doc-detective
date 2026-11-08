@@ -200,6 +200,7 @@ describe("local URL guard (ADR 01162)", function () {
       "/schema.json": () => json({ type: "object", properties: { id: { type: "integer" } } }),
       "/plain.json": () => json({ type: "string" }),
       "/empty.yaml": () => text(""),
+      "/broken.json": () => text("{ not json"),
       "/schema.yaml": () => text("type: object\nproperties:\n  id:\n    type: integer\n"),
       "/openapi.yaml": () => text(openApiYaml(secret())),
       "/openapi.json": () =>
@@ -743,16 +744,35 @@ describe("local URL guard (ADR 01162)", function () {
     });
   });
 
-  it("loads a remote .json description without a parse warning", async function () {
-    const calls = [];
-    for (const method of ["warn", "log", "error"]) {
-      sinon.stub(console, method).callsFake((...args) => calls.push(args.join(" ")));
+  it("fails an invalid remote JSON description with one message, naming its URL", async function () {
+    const logged = sinon.stub(console, "log");
+    let detail;
+    try {
+      JSON.parse("{ not json");
+    } catch (error) {
+      detail = error.message;
     }
-    const definition = await loadDescription(`http://127.0.0.1:${port}/openapi.json`);
-    sinon.restore();
-    assert.equal(definition.openapi, "3.0.0");
-    assert.deepEqual(calls.filter((line) => /Failed to parse/.test(line)), []);
+    await assert.rejects(() => loadDescription(`http://127.0.0.1:${port}/broken.json`), {
+      message: `Couldn't read http://127.0.0.1:${port}/broken.json: it isn't valid JSON (${detail}).`,
+    });
+    sinon.assert.notCalled(logged);
   });
+
+  // In allow mode the root goes through readFile, whose axios has already
+  // parsed a JSON body.
+  for (const allow of [undefined, "1"]) {
+    it(`loads a remote .json description without a parse warning (${ALLOW}=${allow})`, async function () {
+      if (allow) process.env[ALLOW] = allow;
+      const calls = [];
+      for (const method of ["warn", "log", "error"]) {
+        sinon.stub(console, method).callsFake((...args) => calls.push(args.join(" ")));
+      }
+      const definition = await loadDescription(`http://127.0.0.1:${port}/openapi.json`);
+      sinon.restore();
+      assert.equal(definition.openapi, "3.0.0");
+      assert.deepEqual(calls.filter((line) => /Failed to parse/.test(line)), []);
+    });
+  }
 
   it("resolves a YAML $ref", async function () {
     const file = path.join(tmpDir, "openapi-yaml-ref.yaml");
