@@ -208,8 +208,17 @@ fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, "case.spec.json"), JSON.stringify(c.spec, null, 2));
 
+// Each run clears its temp folder as it starts (cleanTemp), and this nested
+// run shares a host with the fixture job's own recordings and the other
+// cases. A temp folder of its own keeps it from deleting their in-progress
+// recordings.
+const tmp = path.join(dir, "tmp");
+fs.mkdirSync(tmp, { recursive: true });
 const env = {
   ...process.env,
+  TMPDIR: tmp,
+  TEMP: tmp,
+  TMP: tmp,
   DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
   DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
 };
