@@ -1067,6 +1067,9 @@ var MEDIA_BASE = typeof window.REPORT_MEDIA_BASE === "string" ? window.REPORT_ME
 // A run-folder file's src from this page: a path relative to the report's
 // runDir, or an absolute path inside it, gets MEDIA_BASE in front. Any other
 // absolute path stays as it is.
+// test/htmlReporter.test.js extracts this function, autoRecording, and
+// collectMedia by regex: keep each closing } at column 0, and start no other
+// line in them with }.
 function runFolderSrc(p) {
   var s = String(p == null ? "" : p).split("\\\\").join("/");
   var root = String(report.runDir || "").split("\\\\").join("/").replace(/\\/+$/, "");
@@ -1080,11 +1083,14 @@ function runFolderSrc(p) {
 // marks those two (__autoRecord, __autoRecordStop), as the summary reads them.
 // A recording that didn't save keeps its steps in the list, so the reason
 // shows. Array.prototype.find is fine here: collectMedia already needs ES2015.
+// Extracted by test/htmlReporter.test.js, like runFolderSrc.
 function autoRecording(ctx) {
   var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
   var start = all.find(function(item) {
     return item.step.__autoRecord === true && item.step.record && item.step.record.path;
   });
+  // No video: the synthetic start and stop stay listed, and their result
+  // descriptions say why the recording didn't save.
   if (!start || start.step.result !== "PASS") return { video: null, steps: all };
   var stop = all.find(function(item) { return item.step.__autoRecordStop === true; });
   if (stop && stop.step.result !== "PASS") return { video: null, steps: all };
@@ -1094,6 +1100,7 @@ function autoRecording(ctx) {
   };
 }
 
+// Extracted by test/htmlReporter.test.js, like runFolderSrc.
 function collectMedia(step) {
   var media = [];
   var outs = step.outputs || {};
