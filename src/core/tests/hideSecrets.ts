@@ -98,6 +98,8 @@ async function hideTypedSecret(driver: any, keys: string[]): Promise<void> {
 // there's no later chance to hide it.
 async function blurSecretsForCapture(driver: any): Promise<() => Promise<void>> {
   const secrets = secretValuesForCapture();
+  // Only browser captures call this, and every browser session has `execute`.
+  // App and device captures never reach it; the docs say they aren't blurred.
   if (secrets.length === 0 || typeof driver?.execute !== "function") return async () => {};
   try {
     const candidates = await driver.execute(collectCaptureCandidates);

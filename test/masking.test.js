@@ -14,6 +14,7 @@ import {
   looksSecret,
   noteVariableReference,
   registerExport,
+  beginRunMasking,
   resetMasking,
 } from "../dist/core/masking.js";
 
@@ -291,6 +292,13 @@ describe("masking", function () {
   });
 
   describe("variables exports", function () {
+    it("forgets an earlier run's references when a run begins", function () {
+      noteVariableReference("SESSION_ID");
+      beginRunMasking();
+      registerExport("SESSION_ID", "sess-12345");
+      assert.equal(maskString("sess-12345"), "sess-12345");
+    });
+
     it("registers an export the run references as $NAME, or whose name looks secret", function () {
       noteVariableReference("SESSION_ID");
       registerExport("SESSION_ID", "sess-12345");
