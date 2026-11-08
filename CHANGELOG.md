@@ -1,3 +1,15 @@
+# [5.0.0-v5-rc.9](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.8...v5.0.0-v5-rc.9) (2026-11-08)
+
+
+### Bug Fixes
+
+* **reporters:** label HTML report steps from common's stepActions ([83b517c](https://github.com/doc-detective/doc-detective/commit/83b517c72ca536895770eb1a6074ca1619ddb7ec))
+
+
+### Features
+
+* **common:** export stepActions and publish per-schema files ([b647ea4](https://github.com/doc-detective/doc-detective/commit/b647ea44d11737301552d2b343645137d8fabf58))
+
 # [5.0.0-v5-rc.8](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.7...v5.0.0-v5-rc.8) (2026-11-07)
 
 
