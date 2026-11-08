@@ -234,6 +234,18 @@ doc-detective --concurrent-runners auto
 doc-detective install agents --agent claude --scope project --yes
 ```
 
+## Agent tools
+
+**What changed:** [Agent tools](/ai/ai-agents/overview) installed for version 4 don't handle the new exit codes and flags. When a test fails, they can treat the non-zero exit as a broken runner and retry with another runner instead of reading the results. They also pass a folder to `--output`, which now names a results file.
+
+**What to do:** After you upgrade, update your agent tools. Run the command once for each scope you installed them in, project or user-global:
+
+```bash
+npx doc-detective@5 install agents
+```
+
+If you installed them through your agent's own plugin or extension manager, update them there. See the guide for [your agent](/ai/ai-agents/overview).
+
 ## `--silent` on `install`
 
 **What changed:** `install` subcommands reject `--silent`.
