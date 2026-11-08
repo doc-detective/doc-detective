@@ -71,6 +71,18 @@ describe("autoScreenshotSurface", function () {
     );
   });
 
+  // Mobile web: the device browser is the context's browser session, driven
+  // through Appium, with no app session.
+  it("captures the device browser in a mobile web context", function () {
+    for (const step of [{ goTo: "https://example.com" }, { click: "Sign in" }, { find: "Welcome" }]) {
+      assert.deepEqual(
+        autoScreenshotSurface({ step, driver: { capabilities: { platformName: "Android", browserName: "chrome" } } }),
+        { kind: "browser", surface: undefined },
+        JSON.stringify(step)
+      );
+    }
+  });
+
   it("takes no shot for a step that drives no UI", function () {
     for (const step of [
       { runShell: "echo hi" },

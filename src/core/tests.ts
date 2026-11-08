@@ -1198,6 +1198,16 @@ function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
   return browser;
 }
 
+// A context's browser as prepareContextSlot settles it: its own, or the
+// default when it drives a desktop browser. plannedRecordingEngines reads the
+// same answer before any context is prepared (ADR 01177).
+function contextBrowser(context: any, runnerDetails: any) {
+  if (context?.browser) return context.browser;
+  return isBrowserRequired({ test: context }) && !isMobileTargetPlatform(context?.platform)
+    ? getDefaultBrowser({ runnerDetails })
+    : undefined;
+}
+
 // `webkit` is the runtime alias for Safari (context resolution rewrites it),
 // while getAvailableApps reports the engine as `safari`. Normalize so the two
 // names compare and dedupe as one engine.
@@ -3859,13 +3869,8 @@ function prepareContextSlot({
   // concurrency calc, so a record step's engine resolves to what will run:
   // headless Chrome records its tab with no display (ADR 01176). runContext
   // applies the same default.
-  if (
-    !context.browser &&
-    isBrowserRequired({ test: context }) &&
-    !isMobileTargetPlatform(context.platform)
-  ) {
-    context.browser = getDefaultBrowser({ runnerDetails });
-  }
+  const browser = contextBrowser(context, runnerDetails);
+  if (browser) context.browser = browser;
   // autoRecord (on unless `false`): prepend a synthetic full-context recording
   // step (even when the author also has explicit record steps — overlapping
   // is intended). Done before the concurrency calc so a synthetic ffmpeg
@@ -4078,8 +4083,8 @@ function forcedHeadedMessage(count: number): string {
 // so the recording preflight can run once (ADR 01177, DA3): each authored
 // `record` step's engine, plus autoRecord's per context. `unset` holds the
 // engines contexts with autoRecord unset would use, for the one warning a
-// failed check prints. Mirrors prepareContextSlot's default browser, without
-// writing it.
+// failed check prints. It reads each context's browser through contextBrowser,
+// as prepareContextSlot does, without writing it.
 function plannedRecordingEngines({
   config,
   specs,
@@ -4095,15 +4100,7 @@ function plannedRecordingEngines({
     for (const test of spec?.tests ?? []) {
       for (const raw of test?.contexts ?? []) {
         if (!runsOnHost(raw, runnerDetails)) continue;
-        const context = {
-          ...raw,
-          browser:
-            raw?.browser ??
-            (isBrowserRequired({ test: raw }) &&
-            !isMobileTargetPlatform(raw?.platform)
-              ? getDefaultBrowser({ runnerDetails })
-              : undefined),
-        };
+        const context = { ...raw, browser: contextBrowser(raw, runnerDetails) };
         for (const step of Array.isArray(context.steps) ? context.steps : []) {
           if (step?.__autoRecord || !step?.record) continue;
           const key = preflightKey(resolveRecordPlan({ step, context }).name, context.platform);
@@ -4237,8 +4234,10 @@ async function installAutoScreenshotPackages({
 }
 
 // The synthetic autoRecord start (`<testId>~autorecord`) and its end-of-context
-// stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so a
-// default run doesn't count two extra steps per context (ADR 01177).
+// stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so an
+// autoRecord run doesn't count the synthetic steps (ADR 01177). Matched by ID
+// and action, so an authored `record` step whose stepId ends in `~autorecord`
+// would be left out too.
 function isSyntheticAutoRecordStep(step: any): boolean {
   const id = String(step?.stepId ?? "");
   return (
