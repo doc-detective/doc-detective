@@ -137,9 +137,10 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(path.basename(spec.contentPath), "core.json");
       const steps = spec.tests[0].contexts[0].steps;
       assert.equal(steps.length, 2);
-      // Report shows core.json starting with setup.json's steps.
-      assert.equal(steps[0].runShell, "echo setup-step");
-      assert.equal(steps[1].runShell, "echo main-step");
+      // Report shows core.json starting with setup.json's steps, in their
+      // effective form (ADR 01167).
+      assert.equal(steps[0].runShell.command, "echo setup-step");
+      assert.equal(steps[1].runShell.command, "echo main-step");
       assert.equal(spec.tests[0].result, "PASS");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -169,7 +170,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(steps[0].result, "FAIL");
       assert.equal(steps[1].result, "SKIPPED");
       // The cleanup step is hard-routed: it runs despite the prior failure.
-      assert.equal(steps[2].runShell, "echo cleanup-ran");
+      assert.equal(steps[2].runShell.command, "echo cleanup-ran");
       assert.equal(steps[2].result, "PASS");
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -197,7 +198,7 @@ describe("Advanced ordering under concurrentRunners", function () {
       assert.equal(steps.length, 3);
       assert.equal(steps[0].result, "PASS"); // main step
       assert.equal(steps[1].result, "FAIL"); // first cleanup step
-      assert.equal(steps[2].runShell, "echo cleanup2-done");
+      assert.equal(steps[2].runShell.command, "echo cleanup2-done");
       assert.equal(steps[2].result, "PASS"); // second cleanup step still ran
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });

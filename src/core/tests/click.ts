@@ -18,21 +18,16 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step (ADR 01167): an object click has its defaults filled.
+  // A boolean click is invalid in 5.0 (ADR 01175), so validation above has
+  // already failed it with a hint to quote the text.
   step = isValidStep.object;
-
-  // A boolean names no element. Coercion used to turn it into the text
-  // "true" or "false" and click whatever matched (ADR 01161).
-  if (typeof step.click === "boolean") {
-    result.status = "FAIL";
-    result.description = `\`click\` needs an element, not ${step.click}. To click an element whose text is "${step.click}", quote it: "click": "${step.click}".`;
-    return result;
-  }
   let findStep: any;
 
+  // A string searches by any identifier, so it's find's string (ADR 01175).
   if (typeof step.click === "string") {
     findStep = { find: step.click };
-  } else if (typeof step.click === "object") {
+  } else {
     // `button` and `duration` describe the click itself, not the element
     // search — destructure them out so the find gets only element criteria,
     // and put them under the click sub-effect.
@@ -40,10 +35,7 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
     findStep = {
       find: {
         ...findCriteria,
-        click: {
-          button: button || "left",
-          ...(duration !== undefined && { duration }),
-        },
+        click: { button, ...(duration !== undefined && { duration }) },
       },
     };
   }

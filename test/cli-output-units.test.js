@@ -110,6 +110,23 @@ describe("summarizeSchemaErrors", function () {
     );
   });
 
+  // A schema's own errorMessage stays whole, commas and parentheses included
+  // (ADR 01175).
+  for (const [step, line] of [
+    [
+      { click: true },
+      'tests[0].steps[0].click: must be string or object (got true). To click an element whose text is "true", quote it: "click": "true".',
+    ],
+    [
+      { find: { selector: "#a", type: { keys: "x", selector: "#b" } } },
+      "tests[0].steps[0].find.type: must not set `selector` (`find` already locates the element).",
+    ],
+  ]) {
+    it(`keeps the schema's message for ${JSON.stringify(step)}`, function () {
+      expect(summarize(spec(step)).split("\n")).to.include(line);
+    });
+  }
+
   it("lists the allowed values, and drops the other branches' type errors", function () {
     expect(summarize(spec({ click: { selector: "#go", button: "middle-ish" } }))).to.equal(
       'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").'

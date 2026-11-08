@@ -53,22 +53,8 @@ async function runShell({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: shorthand expanded and defaults filled (ADR 01167).
   step = isValidStep.object;
-  // Resolve to object
-  if (typeof step.runShell === "string") {
-    step.runShell = { command: step.runShell };
-  }
-  // Set default values
-  step.runShell = {
-    ...step.runShell,
-    exitCodes: step.runShell.exitCodes || [0],
-    args: step.runShell.args || [],
-    workingDirectory: step.runShell.workingDirectory || ".",
-    maxVariation: step.runShell.maxVariation || 0,
-    overwrite: step.runShell.overwrite || "aboveVariation",
-    timeout: step.runShell.timeout || 60000,
-  };
 
   // Resolve which shell runs the command: step `shell` > config `shell` >
   // `bash`. Resolution can fail — Windows-only shells off Windows, or Git

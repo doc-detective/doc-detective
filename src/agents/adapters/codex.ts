@@ -10,7 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
-import { fetchAgentToolsZip } from "../fetcher.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl, fetchAgentToolsZip } from "../fetcher.js";
 import { requireYaml } from "../../core/lazyYaml.js";
 
 export interface RunResult {
@@ -34,8 +34,7 @@ export interface CodexDeps {
 }
 
 const CANONICAL_SKILL = "doc-detective-init";
-const LATEST_SKILL_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/skills/doc-detective-init/SKILL.md";
+const LATEST_SKILL_URL = agentToolsRawUrl("skills/doc-detective-init/SKILL.md");
 
 export function defaultCodexDeps(): CodexDeps {
   return {
@@ -205,7 +204,7 @@ export class CodexAdapter implements AgentAdapter {
       };
     }
 
-    const fetched = await this.deps.fetchZip("main");
+    const fetched = await this.deps.fetchZip(AGENT_TOOLS_REF);
     try {
       const sourceSkills = path.join(fetched.tempDir, "skills");
       if (!this.deps.existsSync(sourceSkills)) {

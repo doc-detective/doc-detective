@@ -49,6 +49,7 @@
             },
             "inputDelay": {
               "type": "number",
+              "minimum": 0,
               "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
               "default": 100
             },
@@ -65,7 +66,7 @@
                   "transform": [
                     "trim"
                   ],
-                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                  "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                 },
                 {
                   "title": "Process surface",
@@ -100,8 +101,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ],
                       "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                     },
@@ -297,7 +297,7 @@
                     "transform": [
                       "trim"
                     ],
-                    "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                    "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                   },
                   "byEngineName": {
                     "title": "Surface (by browser engine)",
@@ -306,8 +306,7 @@
                       "chrome",
                       "firefox",
                       "safari",
-                      "webkit",
-                      "edge"
+                      "webkit"
                     ],
                     "transform": [
                       "trim"
@@ -347,8 +346,7 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
                         "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                       },
@@ -690,7 +688,7 @@
                     "delayMs": {
                       "type": "integer",
                       "minimum": 0,
-                      "description": "Fixed delay (ms)."
+                      "description": "Wait at least this many milliseconds."
                     }
                   }
                 },
@@ -811,7 +809,7 @@
                     "delayMs": {
                       "type": "integer",
                       "minimum": 0,
-                      "description": "Fixed delay (ms)."
+                      "description": "Wait at least this many milliseconds."
                     },
                     "find": {
                       "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -911,7 +909,7 @@
               "type": "integer",
               "minimum": 0,
               "default": 5000,
-              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
             },
             "selector": {
               "type": "string",
@@ -1066,7 +1064,7 @@
                   "delayMs": {
                     "type": "integer",
                     "minimum": 0,
-                    "description": "Fixed delay (ms)."
+                    "description": "Wait at least this many milliseconds."
                   }
                 }
               }
@@ -1229,7 +1227,7 @@
                   "delayMs": {
                     "type": "integer",
                     "minimum": 0,
-                    "description": "Fixed delay (ms)."
+                    "description": "Wait at least this many milliseconds."
                   },
                   "find": {
                     "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -1340,8 +1338,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ]
               }
             }
@@ -1510,6 +1507,7 @@
               },
               "inputDelay": {
                 "type": "number",
+                "minimum": 0,
                 "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
                 "default": 100
               },
@@ -1526,7 +1524,7 @@
                     "transform": [
                       "trim"
                     ],
-                    "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                    "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                   },
                   {
                     "title": "Process surface",
@@ -1561,8 +1559,7 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
                         "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                       },
@@ -1758,7 +1755,7 @@
                       "transform": [
                         "trim"
                       ],
-                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+                      "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
                     },
                     "byEngineName": {
                       "title": "Surface (by browser engine)",
@@ -1767,8 +1764,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ],
                       "transform": [
                         "trim"
@@ -1808,8 +1804,7 @@
                             "chrome",
                             "firefox",
                             "safari",
-                            "webkit",
-                            "edge"
+                            "webkit"
                           ],
                           "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                         },
@@ -2151,7 +2146,7 @@
                       "delayMs": {
                         "type": "integer",
                         "minimum": 0,
-                        "description": "Fixed delay (ms)."
+                        "description": "Wait at least this many milliseconds."
                       }
                     }
                   },
@@ -2272,7 +2267,7 @@
                       "delayMs": {
                         "type": "integer",
                         "minimum": 0,
-                        "description": "Fixed delay (ms)."
+                        "description": "Wait at least this many milliseconds."
                       },
                       "find": {
                         "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -2372,7 +2367,7 @@
                 "type": "integer",
                 "minimum": 0,
                 "default": 5000,
-                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys."
+                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
               },
               "selector": {
                 "type": "string",
@@ -2527,7 +2522,7 @@
                     "delayMs": {
                       "type": "integer",
                       "minimum": 0,
-                      "description": "Fixed delay (ms)."
+                      "description": "Wait at least this many milliseconds."
                     }
                   }
                 }
@@ -2690,7 +2685,7 @@
                     "delayMs": {
                       "type": "integer",
                       "minimum": 0,
-                      "description": "Fixed delay (ms)."
+                      "description": "Wait at least this many milliseconds."
                     },
                     "find": {
                       "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
@@ -2801,8 +2796,7 @@
                     "chrome",
                     "firefox",
                     "safari",
-                    "webkit",
-                    "edge"
+                    "webkit"
                   ]
                 }
               }

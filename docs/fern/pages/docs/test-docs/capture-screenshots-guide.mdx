@@ -42,7 +42,9 @@ Set `screenshot: true` to capture the full viewport with default settings:
 {/* step {"stepId":"capture-guide-boolean-shot","description":"Capture the full viewport, directed at a gitignored output folder instead of the default path","screenshot":{"path":"guide_boolean.png","directory":"./.dd-output"}} */}
 {/* test end */}
 
-To choose where the image lands, pass a file path as a string:
+Doc Detective saves the image as `<stepId>.png` in [`outputDir`](/reference/schemas/config). `outputDir` defaults to your config file's folder, or to the current folder when you run without a config file. The [GitHub Action](/docs/ci/github-action#find-reports-and-the-run-folder) sets `outputDir` to the runner's temporary directory instead. Set the step's `stepId` to choose the filename. Without one, Doc Detective derives an ID from the test and the step, which stays the same until you change the step.
+
+To choose where the image lands, pass a file path as a string. A relative path resolves against the spec file, or against the current folder when [`relativePathBase`](/reference/schemas/config) is `cwd`:
 
 ```json
 {

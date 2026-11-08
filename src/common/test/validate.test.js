@@ -519,6 +519,19 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should accept a recording extension in any case", function () {
+        for (const record of ["Demo.MP4", "demo.WebM", "demo.Gif", { path: "Demo.MP4" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { record } });
+          expect(result.valid, `${JSON.stringify(record)} -> ${result.errors}`).to.be.true;
+        }
+      });
+
+      it("should reject a recording extension it can't write", function () {
+        for (const record of ["demo.mov", { path: "demo.MOV" }]) {
+          expect(validate({ schemaKey: "step_v3", object: { record } }).valid, JSON.stringify(record)).to.be.false;
+        }
+      });
+
       it("should validate a record step with verify guards", function () {
         for (const verify of [
           {},
@@ -1082,7 +1095,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.runBrowserScript).to.equal(
+        // The effective step expands the shorthand (ADR 01167).
+        expect(result.object.runBrowserScript.script).to.equal(
           "return document.title;"
         );
       });
@@ -1225,7 +1239,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.swipe).to.equal("left");
+        // The effective step expands the shorthand (ADR 01175).
+        expect(result.object.swipe).to.deep.equal({ direction: "left", distance: 0.5, duration: 500 });
       });
 
       it("should validate the directional object form with distance, duration, and an app surface", function () {
@@ -1455,6 +1470,123 @@ import { schemas } from "../dist/index.js";
           expect(validPath(path), `expected invalid: ${path}`).to.be.false;
         }
       });
+    });
+
+    // ADR 01174: one URL pattern and one request-header shape.
+    describe("URLs, request headers, and status codes", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      it("accepts the same three URL forms on goTo, checkLink, and httpRequest", function () {
+        for (const url of ["https://example.com", "http://localhost:8092/x", "/docs", "$BASE", "$BASE/x"]) {
+          for (const object of [
+            { goTo: url },
+            { goTo: { url } },
+            { checkLink: url },
+            { checkLink: { url } },
+            { httpRequest: url },
+            { httpRequest: { url } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+
+      it("rejects a URL that only contains a variable, or a protocol-relative one", function () {
+        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com", "//example.com"]) {
+          for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+          }
+        }
+      });
+
+      it("accepts request headers as an object of strings or as lines of text", function () {
+        for (const headers of [{ "X-Key": "abc" }, "X-Key: abc\nAuthorization: Bearer x"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", headers } },
+            { httpRequest: { url: "https://x.com", request: { headers } } },
+            { httpRequest: { openApi: { operationId: "getUsers", headers } } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+          const openApi = validate({ schemaKey: "openApi_v3", object: { descriptionPath: "x.yaml", headers } });
+          expect(openApi.valid, openApi.errors).to.be.true;
+        }
+      });
+
+      it("rejects a request header whose value is an object", function () {
+        for (const object of [
+          { checkLink: { url: "https://x.com", headers: { a: {} } } },
+          { httpRequest: { url: "https://x.com", request: { headers: { a: {} } } } },
+          { httpRequest: { openApi: { operationId: "getUsers", headers: { a: {} } } } },
+        ]) {
+          expect(step(object).valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+        }
+      });
+
+      // ADR 01171: a timeout is at least 1 ms, because 0 meant "no limit" to one
+      // action and "time out at once" to another.
+      it("rejects a goTo or httpRequest timeout below 1 ms", function () {
+        for (const timeout of [0, -1]) {
+          for (const object of [
+            { goTo: { url: "https://x.com", timeout } },
+            { httpRequest: { url: "https://x.com", timeout } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          }
+        }
+        expect(step({ goTo: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+        expect(step({ httpRequest: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+      });
+
+      it("accepts a single status code or a list on checkLink and httpRequest", function () {
+        for (const statusCodes of [200, [200, 404], "200"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", statusCodes } },
+            { httpRequest: { url: "https://x.com", statusCodes } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+    });
+
+    // ADR 01174: every cookie string the schema accepts expands to a valid
+    // { name, path } or { name, variable }.
+    describe("cookie string shorthand", function () {
+      for (const action of ["saveCookie", "loadCookie"]) {
+        it(`${action} accepts cookie names and .txt paths`, function () {
+          for (const value of ["session", "__Secure-next-auth.session-token", "1P_JAR", "session.txt", "./dir/a.b.txt", "..txt"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${value}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects an empty path or directory`, function () {
+          for (const value of [
+            { name: "s", path: "" },
+            { name: "s", path: "  " },
+            { name: "s", path: "c.txt", directory: "" },
+            { name: "s", path: "c.txt", directory: " " },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          }
+        });
+
+        it(`${action} rejects a string with no valid object form`, function () {
+          for (const value of ["dir/session", ".txt", "dir/.txt", "session/"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${value}`).to.be.false;
+          }
+        });
+      }
     });
 
     describe("annotations", function () {
@@ -2038,7 +2170,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.object.type).to.be.an("object");
-        expect(result.object.type.keys).to.equal("Hello");
+        // The effective step lists the keys (ADR 01175).
+        expect(result.object.type.keys).to.deep.equal(["Hello"]);
         expect(result.object.type.inputDelay).to.equal(100);
       });
     });
@@ -2487,28 +2620,101 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
-    // value meant for a later one (`false` → "false", `true` → 1). Each case
-    // is [authored step, path to the value, expected validated value]. ADR 01161.
-    describe("authored scalar types survive coercion", function () {
+    // ADR 01175: version 5 tightens the browser actions.
+    describe("browser action bounds", function () {
+      const check = (object) => validate({ schemaKey: "step_v3", object });
+
+      for (const value of [true, false]) {
+        it(`rejects click: ${value} and says how to click that text`, function () {
+          const result = validate({ schemaKey: "step_v3", object: { click: value }, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/click").map((error) => error.message)).to.deep.equal([
+            `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`,
+          ]);
+        });
+      }
+
+      it('keeps click: "true" as the text of the element to click', function () {
+        const result = check({ click: "true" });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.click).to.equal("true");
+      });
+
+      for (const click of [true, false, "left", "right", "middle", { button: "right" }, { duration: 800 }]) {
+        it(`accepts find.click: ${JSON.stringify(click)}`, function () {
+          const result = check({ find: { selector: "#a", click } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      // Version 4 took the whole click_v3 object here. Now the object only says
+      // how to click, and a whole variable can't stand in for it.
+      for (const click of [{ selector: "#b" }, { button: "right", timeout: 100 }, "$BTN"]) {
+        it(`rejects find.click: ${JSON.stringify(click)}`, function () {
+          expect(check({ find: { selector: "#a", click } }).valid).to.be.false;
+        });
+      }
+
+      it("rejects a find.click string that isn't a button", function () {
+        const result = check({ find: { selector: "#a", click: "Submit" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('/find/click must be equal to one of the allowed values ({"allowedValues":["left","right","middle"]})');
+      });
+
+      for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria"]) {
+        it(`rejects find.type with its own ${locator}, and names it`, function () {
+          const value = locator === "elementAttribute" ? { a: "b" } : "x";
+          const object = { find: { selector: "#a", type: { keys: "x", [locator]: value } } };
+          const result = validate({ schemaKey: "step_v3", object, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/find/type").map((error) => error.message)).to.deep.equal([
+            `must not set \`${locator}\` (\`find\` already locates the element)`,
+          ]);
+        });
+      }
+
+      it("accepts find.type without a locator", function () {
+        expect(check({ find: { selector: "#a", type: { keys: "x" } } }).valid).to.be.true;
+      });
+
+      for (const [name, step] of [
+        ["click.timeout", { click: { selector: "#a", timeout: -1 } }],
+        ["find.timeout", { find: { selector: "#a", timeout: -1 } }],
+        ["type.inputDelay", { type: { keys: "a", inputDelay: -10 } }],
+        ["dragAndDrop.source.timeout", { dragAndDrop: { source: { selector: "#a", timeout: -1 }, target: "b" } }],
+        ["annotate target timeout", { annotate: { add: [{ outline: { selector: "#a", timeout: -1 } }] } }],
+      ]) {
+        it(`rejects a negative ${name}`, function () {
+          const result = check(step);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      // Ajv runs with coerceTypes, and in a union the first branch with a `type`
+      // rewrites values meant for later ones (ADR 01161).
       const attr = (value) => ({ "data-x": value });
-      const cases = [
+      // Each case is [authored step, path to the value, expected validated value].
+      // #816's rows for `click: true`/`false` moved to the rejections above, and a
+      // clicking find.click is its button in the effective step (ADR 01175).
+      for (const [step, keys, expected] of [
         [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
-        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
-        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
-        [{ click: false }, ["click"], false],
-        [{ click: true }, ["click"], true],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], { button: "left" }],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], { button: "right" }],
         [{ click: "true" }, ["click"], "true"],
         [{ click: "false" }, ["click"], "false"],
-        [{ wait: true }, ["wait"], true],
+        // A true that survives coercion becomes the effective step's 5000. A
+        // true coerced to 1 would stay 1.
+        [{ wait: true }, ["wait"], 5000],
         [{ wait: false }, ["wait"], false],
         [{ wait: 1 }, ["wait"], 1],
         [{ wait: 0 }, ["wait"], 0],
         [{ wait: "5000" }, ["wait"], 5000],
-        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "true" }, ["wait"], 5000],
         [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
         [{ record: false }, ["record"], false],
-        [{ record: "true" }, ["record"], true],
+        // "true" becomes `true`, which the effective step expands to its named file (ADR 01173).
+        [{ stepId: "s", record: "true" }, ["record", "path"], "s.mp4"],
         [{ screenshot: false }, ["screenshot"], false],
         [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
         [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
@@ -2516,15 +2722,15 @@ import { schemas } from "../dist/index.js";
         [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
         [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
         [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ type: { keys: "a", elementAttribute: attr(true) } }, ["type", "elementAttribute", "data-x"], true],
+        [{ dragAndDrop: { source: { elementAttribute: attr("true") }, target: "b" } }, ["dragAndDrop", "source", "elementAttribute", "data-x"], "true"],
         [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
         [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
-      ];
-      for (const [step, keys, expected] of cases) {
+      ]) {
         it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
-          const result = validate({ schemaKey: "step_v3", object: step });
+          const result = check(step);
           expect(result.valid, result.errors).to.be.true;
-          const actual = keys.reduce((value, key) => value[key], result.object);
-          expect(actual).to.equal(expected);
+          expect(keys.reduce((value, key) => value[key], result.object)).to.deep.equal(expected);
         });
       }
     });
@@ -4614,6 +4820,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.be.a("string");
       });
 
+      // The effective step fills the 120x30 size around what's authored (ADR 01167).
       for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
         it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
           const result = validate({
@@ -4623,7 +4830,7 @@ import { schemas } from "../dist/index.js";
             },
           });
           expect(result.valid, result.errors).to.be.true;
-          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+          expect(result.object.runShell.background.tty).to.deep.equal({ cols: 120, rows: 30, ...tty });
         });
       }
 
@@ -5272,7 +5479,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a device string reference and the reserved device fields", function () {
+      it("should validate a device string reference", function () {
         const byRef = validate({
           schemaKey: "step_v3",
           object: {
@@ -5280,25 +5487,25 @@ import { schemas } from "../dist/index.js";
           },
         });
         expect(byRef.valid).to.be.true;
-
-        const reserved = validate({
-          schemaKey: "step_v3",
-          object: {
-            startSurface: {
-              app: "com.example.myapp",
-              device: {
-                platform: "ios",
-                name: "iPhone 15",
-                orientation: "landscape",
-                udid: "00008110-001234567890ABCD",
-                provider: { browserstack: { app: "bs://abc123" } },
-              },
-            },
-          },
-        });
-        expect(reserved.valid).to.be.true;
-        expect(reserved.errors).to.equal("");
       });
+
+      // The unimplemented orientation, udid, and provider fields are gone (5.0).
+      for (const [key, value] of [
+        ["orientation", "landscape"],
+        ["udid", "00008110-001234567890ABCD"],
+        ["provider", { browserstack: { app: "bs://abc123" } }],
+      ]) {
+        it(`should reject the removed device field ${key}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              startSurface: { app: "com.example.myapp", device: { platform: "ios", name: "iPhone 15", [key]: value } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
 
       it("should reject a startSurface without app", function () {
         const result = validate({
@@ -6145,6 +6352,77 @@ import { schemas } from "../dist/index.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+    });
+
+    // ADR 01171: durations can't be negative. ADR 01172: no browser aliases.
+    describe("process and surface tightening (5.0)", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      // Durations and delays start at 0, which means "don't wait".
+      for (const [name, object] of [
+        ["a negative wait", { wait: -5 }],
+        ["a negative waitUntil.delayMs", { runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: -1 } } } }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      it("accepts a wait and a delayMs of 0", function () {
+        expect(step({ wait: 0 }).valid).to.be.true;
+        expect(step({ runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: 0 } } } }).valid).to.be.true;
+      });
+
+      // Timeouts start at 1: 0 meant "at once" in some actions and "no limit" in others.
+      for (const timeout of [0, -1]) {
+        for (const [name, object] of [
+          ["runShell", { runShell: { command: "echo", timeout } }],
+          ["runCode", { runCode: { language: "js", code: "1", timeout } }],
+          ["a startSurface process", { startSurface: { process: "x", name: "p", timeout } }],
+          ["a startSurface app", { startSurface: { app: "notepad", timeout } }],
+        ]) {
+          it(`rejects a ${name} timeout of ${timeout}`, function () {
+            const result = step(object);
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          });
+        }
+      }
+
+      for (const [name, object] of [
+        ["runShell", { runShell: { command: "echo", timeout: 1 } }],
+        ["runCode", { runCode: { language: "js", code: "1", timeout: 1 } }],
+        ["a startSurface process", { startSurface: { process: "x", name: "p", timeout: 1 } }],
+        ["a startSurface app", { startSurface: { app: "notepad", timeout: 1 } }],
+      ]) {
+        it(`accepts a ${name} timeout of 1`, function () {
+          expect(step(object).valid).to.be.true;
+        });
+      }
+
+      it("keeps wait: true and wait: 1 as authored when not normalizing", function () {
+        expect(validate({ schemaKey: "step_v3", object: { wait: true }, addDefaults: false }).object.wait).to.equal(true);
+        expect(validate({ schemaKey: "step_v3", object: { wait: 1 }, addDefaults: false }).object.wait).to.equal(1);
+      });
+
+      for (const [name, object] of [
+        ["a startSurface browser", { startSurface: { browser: "edge" } }],
+        ["a startSurface browser in an array", { startSurface: [{ browser: "edge", name: "corp" }] }],
+        ["a browser surface object", { click: { selector: "#a", surface: { browser: "edge" } } }],
+        ["a browser-only surface keyword", { runBrowserScript: { script: "1", surface: "edge" } }],
+      ]) {
+        it(`rejects edge as ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include('"allowedValues":["chrome","firefox","safari","webkit"]');
+        });
+      }
+
+      it("treats a bare 'edge' surface as a process name", function () {
+        expect(step({ closeSurface: "edge" }).valid).to.be.true;
       });
     });
   });

@@ -12,17 +12,19 @@ Recording works with concurrent test runners (`concurrentRunners` > 1). The `bro
 
 You can specify the recording action in several ways:
 
-- **Boolean Shorthand:** Set `record: true` to start recording with default settings (usually saved as `record_<timestamp>.mp4` in the output directory).
-- **String Shorthand:** Provide a file path directly as the value for the `record` key (for example, `record: "test_session.webm"`). This starts recording to the specified path. Supported extensions are `.mp4`, `.webm`, and `.gif`.
+- **Boolean Shorthand:** Set `record: true` to start recording with default settings, saved as `<stepId>.mp4` in `outputDir`. Set `record: false` to skip the step.
+- **String Shorthand:** Provide a file path directly as the value for the `record` key (for example, `record: "test_session.webm"`). This starts recording to the specified path. A relative path resolves against the spec file. Supported extensions are `.mp4`, `.webm`, and `.gif`, in any case, so `Demo.MP4` works.
 - **Object Format:** Use an object for more control over the output file:
-  - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
-  - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
+  - `path`: (Optional) The file path where the recording will be saved. Can include directories. A relative path resolves against `directory` if set, else against the spec file. If omitted, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.
+  - `directory`: (Optional) The directory where the recording will be saved. A relative directory resolves against the spec file. With no spec file, such as a step passed to the JavaScript `getRunner()` API, it resolves against `outputDir`.
   - `overwrite`: (Optional) Set to the string `"true"` to overwrite an existing file at the target path. Defaults to `"false"`.
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
   - `surface`: (Optional) The surface to record. For browsers, a session, window, or tab reference, for example `{ "browser": "chrome", "tab": "demo" }`; omit to record the active tab. The recorder's own internal tab is never addressable by window/tab selectors. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows). For native apps, the object form `{ "app": "<surface name>" }` records that app, cropped to its window by default. See [Recording app surfaces](#recording-app-surfaces).
 
 **Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
+
+**Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
 ## Recording engines
 
@@ -246,7 +248,7 @@ Here are a few ways you might use the `record` and `stopRecord` actions:
 
 ### Basic recording (boolean shorthand)
 
-Starts recording to a default path like `output/record_1745032062266.mp4` and stops later.
+Starts recording to `<stepId>.mp4` in `outputDir` and stops later.
 
 {/* test {"testId":"record-boolean-shorthand","detectSteps":false} */}
 

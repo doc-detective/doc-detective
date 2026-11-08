@@ -406,23 +406,6 @@
             "headless": {
               "type": "boolean",
               "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-            },
-            "orientation": {
-              "type": "string",
-              "enum": [
-                "portrait",
-                "landscape"
-              ],
-              "description": "Initial orientation. Reserved; validated now, not yet implemented."
-            },
-            "udid": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-            },
-            "provider": {
-              "type": "object",
-              "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
             }
           }
         }

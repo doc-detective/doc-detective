@@ -61,7 +61,46 @@ When `validate()` is called:
 - `coerceTypes: true` - Auto-converts strings to numbers, etc. Inside an `anyOf`, Ajv coerces into the
   first branch that can take the value, so `anyOf: [{ type: "string" }, { const: true }]` turns `true` into
   `"true"`. List the untyped `const: true` branch first, as `selectorAttributes` in `config_v3` does.
-- `useDefaults: true` - Applies default values from schema
+- `useDefaults: true` - Applies schema defaults, but only outside unions. Ajv skips defaults under
+  `anyOf`/`oneOf`, so it applies none inside a step: `step_v3` is a `oneOf`, and every action root is an
+  `anyOf` of shorthand and object. Step defaults come from the normalization pass below.
+
+**Step normalization ([ADR 01167](../../adrs/01167-validate-returns-the-effective-step.md)):**
+after the schema check passes, `validate()` normalizes every step in a `step_v3`, `test_v3`, or `spec_v3`
+object on its own clone, never the caller's. A test's resolved `contexts`, configs (including markup
+templates), and reports aren't walked.
+- `addDefaults: true` (the default) returns the effective object. `addDefaults: false` returns the caller's
+  object unchanged when it's valid, except that a v2 object comes back upgraded to v3, not normalized.
+  `transformToSchemaKey`'s own validation calls use `validateObject(..., false)` for the same reason: IDs are
+  hashed from what detection gets back.
+- Normalization runs in both modes, so validity doesn't depend on `addDefaults`. A `NormalizeError` makes the
+  object invalid, with its message as `errors`. With `structuredErrors`, it's one `errorObjects` entry with the
+  keyword `normalize` at the error's path.
+- Each action has one normalizer, `src/normalize/<action>.ts`, registered in `src/normalize/index.ts`. Edit
+  only your action's file. In order, it expands shorthand to the object form, renames deprecated aliases with
+  `renameAliases`, canonicalizes scalars, and applies defaults. Plain defaults come from the schema's object
+  branch via `applyDefaults`. Conditional ones are coded, often as `applyDefaults`'s `skip` list.
+- A normalizer gets the action's value, its path, `literal`, and the step, which it only reads. It's idempotent
+  and pure: it `structuredClone`s an object value before it changes anything, since `applyDefaults` fills nested
+  objects in place. The parametrized purity test in `test/normalize.test.js` needs a sample for each action. It
+  never touches `$VAR` or `$$` values, paths, config, or runtime state. The one path it writes is a capture's
+  default file name, `<stepId>.png` or `<stepId>.mp4`. The runner then places it under `outputDir`
+  ([ADR 01173](../../adrs/01173-capture-paths-default-under-outputdir.md)). Step-level `unsafe`, `breakpoint`,
+  `outputs`, and `variables` stay as authored.
+- A normalizer gets a value from `validate()`'s own clone, never the caller's object, so it may change that value
+  in place and return it. The runner's literal pass after substitution also works on the object `validate()`
+  returned.
+- A whole-variable action value (`isWholeVariable`, such as `"goTo": "$URL"`) never reaches its normalizer.
+  `validate()` leaves it as authored, because the variable can hold the whole action, even an object. The runner
+  normalizes it after `$VAR` substitution with `normalize(..., { literal: true })`, which treats a variable left
+  unset as text. A `$VAR` inside an object field or inside a longer string still normalizes around it.
+- When you move an action, delete its handler's shorthand and default handling. Add its minimal step to the
+  parity test in `test/normalize.test.js`, and lower `CEILING` in the root `test/shorthand-ratchet.test.js`.
+  An action without a `components.schemas.object`, like `startSurface`'s descriptors, lists
+  `[component, minimal step]` pairs there. Defaults inside a nested object with required keys, like
+  `background.tty`, are conditional, so the parity test skips them and the normalizer codes them.
+- A plain default the handler never applied is a wrong default. Remove it from the schema, as
+  `httpRequest.response.body` did.
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
@@ -319,7 +358,7 @@ of the listed types. So make the first branches non-coercing
   value kind, so list the usual one first.
 - **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
   with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
-  `click_v3` does this.
+  `click_v3` did this on 4.x. Version 5 rejects a boolean `click` with the `allOf` guard below.
 - **A plain `type: boolean` first is fine** when no later branch accepts `"true"`, `"false"`,
   `0`, or `1`, such as a string branch with a file-extension `pattern` (`record_v3`,
   `screenshot_v3`).
@@ -329,10 +368,20 @@ Say why in a `$comment` on the branch. The ratchet in `test/schema.test.js` fail
 includes a `type: boolean` branch ahead of a string branch with no `pattern`, `enum`, or `const`. Pair a
 schema change with a `validate.test.js` case that checks the validated value, not only validity.
 
-Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
-consumer's validated objects. Keep shared schemas default-free unless every consumer wants the
-default (this is why `waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its
-own).
+Also, a shared/`$ref`'d schema's `default:` values reach every consumer. Outside unions, Ajv's
+`useDefaults: true` injects them. Inside a step, `applyDefaults` reads them from the action's object
+branch. Keep shared schemas default-free unless every consumer wants the default (this is why
+`waitUntil_v3` carries no defaults while goTo's inline waitUntil keeps its own).
+
+Sometimes a value that a later branch would coerce must be rejected, such as a boolean `click`. Make
+the root an `allOf`. Its first member is a `not: {enum: [true, false]}` guard, and its second is the
+union. `allOf` checks its members in order, so the guard sees the authored value. Give the guard an
+ajv-errors `errorMessage` that says how to fix it. In that member, `${0}` renders the authored
+value, JSON-encoded. A guard beside the union instead renders after `anyOf` has coerced the value, so
+`${0}` shows `"true"`, not `true`
+([ADR 01175](../../adrs/01175-reject-boolean-click-and-constrain-find-click.md)). Leave the
+trailing period off an `errorMessage`: the error summary adds it, and `src/core/utils.ts` keeps
+`errorMessage` text whole.
 
 ### Selector match spans
 

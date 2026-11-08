@@ -13,6 +13,7 @@ import {
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
 import { browserDownloadDir } from "../dist/core/tests/ffmpegRecorder.js";
+import { useEffectiveStep, placeCapturePaths } from "../dist/core/tests.js";
 
 const require = createRequire(import.meta.url);
 
@@ -274,9 +275,13 @@ describeIfSharp("saveScreenshot: extra branches", function () {
   it("screenshot.directory (no path) resolves <stepId>.png under that directory", async function () {
     const subdir = path.join(tmpDir, "shots");
     const buf = await makePngBuffer(16, 16);
+    // The runner names the file and places it in `directory` (ADR 01173).
+    const step = { stepId: "dirshot", screenshot: { directory: subdir } };
+    useEffectiveStep(step);
+    placeCapturePaths(step, config);
     const result = await saveScreenshot({
       config,
-      step: { stepId: "dirshot", screenshot: { directory: subdir } },
+      step,
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "PASS");
@@ -807,20 +812,21 @@ describe("startRecording: guards + browser engine", function () {
     assert.match(result.description, /without a virtual display/);
   });
 
-  it("record.directory resolves the default path under that directory (headless ffmpeg SKIP)", async function () {
+  it("creates the target's folder (headless ffmpeg SKIP)", async function () {
+    // The runner places `<stepId>.mp4` in `directory` before the handler runs
+    // (ADR 01173), so the handler gets the full path.
     const subdir = path.join(tmpDir, "nested", "vids");
     const result = await startRecording({
       config,
       context: { browser: { name: "firefox", headless: true } },
       step: {
         stepId: "dirrec",
-        record: { directory: subdir },
+        record: { path: path.join(subdir, "dirrec.mp4") },
       },
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
     assert.match(result.description, /without a virtual display/);
-    // The directory was created as a side effect of the path resolution + mkdir.
     assert.ok(fs.existsSync(subdir));
   });
 

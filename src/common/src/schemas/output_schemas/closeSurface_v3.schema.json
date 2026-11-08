@@ -16,7 +16,7 @@
           "transform": [
             "trim"
           ],
-          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+          "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
         },
         {
           "title": "Process surface",
@@ -51,8 +51,7 @@
                 "chrome",
                 "firefox",
                 "safari",
-                "webkit",
-                "edge"
+                "webkit"
               ],
               "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
             },
@@ -248,7 +247,7 @@
             "transform": [
               "trim"
             ],
-            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
           },
           "byEngineName": {
             "title": "Surface (by browser engine)",
@@ -257,8 +256,7 @@
               "chrome",
               "firefox",
               "safari",
-              "webkit",
-              "edge"
+              "webkit"
             ],
             "transform": [
               "trim"
@@ -298,8 +296,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ],
                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
               },
@@ -640,7 +637,7 @@
             "transform": [
               "trim"
             ],
-            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+            "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
           },
           {
             "title": "Process surface",
@@ -675,8 +672,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ],
                 "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
               },
@@ -872,7 +868,7 @@
               "transform": [
                 "trim"
               ],
-              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
+              "description": "Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ \"browser\": …, \"window\": …, \"tab\": … }) — a plain string is never a window/tab name."
             },
             "byEngineName": {
               "title": "Surface (by browser engine)",
@@ -881,8 +877,7 @@
                 "chrome",
                 "firefox",
                 "safari",
-                "webkit",
-                "edge"
+                "webkit"
               ],
               "transform": [
                 "trim"
@@ -922,8 +917,7 @@
                     "chrome",
                     "firefox",
                     "safari",
-                    "webkit",
-                    "edge"
+                    "webkit"
                   ],
                   "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                 },

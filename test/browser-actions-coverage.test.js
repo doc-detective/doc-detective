@@ -369,6 +369,23 @@ describe("dragAndDrop action (coverage)", function () {
     };
   }
 
+  // The effective step fills the 1000 ms default and keeps an authored 0,
+  // which `duration || 1000` used to replace (ADR 01175).
+  for (const [duration, expected] of [[undefined, 1000], [0, 0], [250, 250]]) {
+    it(`drags with duration ${expected} when the step sets ${duration}`, async () => {
+      const durations = [];
+      const element = makeElement({ moving: true, dragImpl: async (_, options) => durations.push(options.duration) });
+      const driver = makeDriver({ candidates: [element] });
+      const result = await dragAndDropElement({
+        config,
+        step: { dragAndDrop: { source: { selector: "#a" }, target: { selector: "#b" }, duration } },
+        driver,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.deepEqual(durations, [expected]);
+    });
+  }
+
   it("object source/target: WebDriver.io drag reports change → PASS via WDIO path", async () => {
     // Source location changes between initial and final reads → sourceChanged
     // true → WebDriver.io branch (no HTML5 fallback).

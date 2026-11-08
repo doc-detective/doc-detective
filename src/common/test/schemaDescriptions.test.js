@@ -21,10 +21,9 @@ function futureDescriptions(node, at, out) {
 }
 
 describe("schema descriptions", function () {
-  // Skipped until the N-Process chunk removes startSurface_v3's reserved device
-  // fields ("Reserved; validated now, not yet implemented."). N-Process enables it.
-  it.skip("never describe future or unimplemented behavior", function () {
-    const hits = fs.readdirSync(dir)
+  it("never describe future or unimplemented behavior", function () {
+    const hits = fs
+      .readdirSync(dir)
       .filter((f) => f.endsWith(".json"))
       .flatMap((f) => futureDescriptions(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), f, []));
     expect(hits).to.deep.equal([]);

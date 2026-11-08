@@ -197,7 +197,7 @@ export interface ElementFindingFields {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -252,7 +252,7 @@ export interface ElementFindingFields1 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -307,7 +307,7 @@ export interface ElementFindingFields2 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -362,7 +362,7 @@ export interface ElementFindingFields3 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -417,7 +417,7 @@ export interface ElementFindingFields4 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -472,7 +472,7 @@ export interface ElementFindingFields5 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }

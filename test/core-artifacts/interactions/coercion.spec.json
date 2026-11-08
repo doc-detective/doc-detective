@@ -1,6 +1,6 @@
 {
   "specId": "coercion",
-  "description": "Authored booleans, numbers, and strings keep their types through validation (ADR 01161). Before, coercion turned `find.click: false` into the string \"false\" (so it clicked), and `elementAttribute` `true`/`false` into value matches on \"true\"/\"false\". The rejected top-level `click: true`/`click: false` forms FAIL by design, so test/findElement.test.js asserts them instead.",
+  "description": "Authored booleans, numbers, and strings keep their types through validation (ADR 01161). Before, coercion turned `find.click: false` into the string \"false\" (so it clicked), and `elementAttribute` `true`/`false` into value matches on \"true\"/\"false\". Version 5 rejects the top-level `click: true`/`click: false` forms at validation (ADR 01175), so cli/browser-tightening.spec.json asserts their exit 2 instead.",
   "tests": [
     {
       "testId": "coercion-permutations",
