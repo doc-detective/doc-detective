@@ -199,14 +199,14 @@ export function addRunOptions(command: Command): Command {
     command,
     BEHAVIOR_GROUP,
     "--auto-screenshot",
-    "Capture a screenshot after each browser step",
+    "Capture a screenshot after each UI step [on]",
     "--no-auto-screenshot"
   );
   addBooleanPair(
     command,
     BEHAVIOR_GROUP,
     "--auto-record",
-    "Record a video of each browser context",
+    "Record a video of each context that drives a UI [on]",
     "--no-auto-record"
   );
   command

@@ -813,6 +813,122 @@ describe("startRecording: guards + browser engine", function () {
     }
   });
 
+  // ADR 01177, DA4: a failed preflight check SKIPs every recording it
+  // applies to, authored or automatic, with the fix named.
+  it("SKIPs a recording whose engine failed the preflight", async function () {
+    const target = path.join(tmpDir, "preflight.mp4");
+    const result = await startRecording({
+      config,
+      context: {
+        browser: { name: "firefox", headless: false },
+        __recordingPreflight: {
+          ffmpeg: { ok: false, reason: "there's no display to capture", fix: "install Xvfb or set DISPLAY" },
+        },
+      },
+      step: { stepId: "x", record: { path: target, engine: "ffmpeg" } },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.equal(
+      result.description,
+      "Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, and rerun."
+    );
+  });
+
+  it("SKIPs an iOS device recording on a failed device check, but not an Android one", async function () {
+    const __recordingPreflight = { device: { ok: false, reason: "ffmpeg isn't available (x)", fix: "run y" } };
+    const ios = await startRecording({
+      config,
+      context: { platform: "ios", __recordingPreflight },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "ios.mp4") } },
+      driver: undefined,
+    });
+    assert.equal(ios.status, "SKIPPED");
+    assert.equal(ios.description, "Skipped: ffmpeg isn't available (x). To record, run y, and rerun.");
+    const android = await startRecording({
+      config,
+      context: { platform: "android", __recordingPreflight },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "android.mp4") } },
+      driver: undefined,
+    });
+    assert.equal(android.status, "PASS");
+    assert.match(android.description, /Device recording pending/);
+  });
+
+  it("records when only another engine failed the preflight", async function () {
+    const target = path.join(tmpDir, "preflight-other.mp4");
+    const result = await startRecording({
+      config,
+      context: {
+        browser: { name: "chrome", headless: true },
+        contextId: "ctx-pf",
+        __recordingPreflight: { ffmpeg: { ok: false, reason: "r", fix: "f" } },
+      },
+      step: { stepId: "x", record: { path: target } },
+      driver: browserDriver({ recorderStarted: true }),
+    });
+    assert.equal(result.status, "PASS");
+  });
+
+  // A recording autoRecord added on its own (unset) never fails a test: a
+  // start failure after a passing preflight is SKIPPED with the off switch.
+  it("turns a defaulted automatic recording's start failure into SKIPPED", async function () {
+    const target = path.join(tmpDir, "defaulted.mp4");
+    const step = {
+      stepId: "t~autorecord",
+      record: { path: target, engine: "ffmpeg", overwrite: "true" },
+      __autoRecord: true,
+      __autoRecordDefaulted: true,
+    };
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "firefox", headless: false } },
+      step,
+      driver: {},
+      deps: {
+        getFfmpegPath: async () => {
+          throw new Error("no ffmpeg here");
+        },
+      },
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /^Skipped: couldn't start the automatic recording: .*no ffmpeg here/);
+    assert.match(result.description, /\. Set `autoRecord: false` to turn it off\.$/);
+  });
+
+  // The handle remembers it was defaulted, so stopping it can't FAIL either.
+  it("marks a defaulted automatic recording's handle", async function () {
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "chrome", headless: true }, contextId: "ctx-d" },
+      step: {
+        stepId: "t~autorecord",
+        record: { path: path.join(tmpDir, "defaulted-handle.mp4"), engine: "browser" },
+        __autoRecord: true,
+        __autoRecordDefaulted: true,
+      },
+      driver: browserDriver({ recorderStarted: true }),
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.recording.defaulted, true);
+  });
+
+  it("still FAILs a strict automatic recording's start failure", async function () {
+    const target = path.join(tmpDir, "strict.mp4");
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "firefox", headless: false } },
+      step: { stepId: "t~autorecord", record: { path: target, engine: "ffmpeg" }, __autoRecord: true },
+      driver: {},
+      deps: {
+        getFfmpegPath: async () => {
+          throw new Error("no ffmpeg here");
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+  });
+
   // A headless browser draws nothing on an Xvfb display, so an ffmpeg capture
   // of it would be blank (ADR 01176).
   it("ffmpeg engine on a headless browser with a virtual display -> SKIPPED", async function () {
@@ -1108,6 +1224,47 @@ describe("stopRecording: guards + MediaRecorder", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /recorder object doesn't exist/);
     // Handle dropped so a retry doesn't loop.
+    assert.equal(recordings.length, 0);
+  });
+
+  // A recording autoRecord added while unset never fails a test, at stop
+  // either (ADR 01177). An explicit one still FAILs (the test below).
+  it("a defaulted automatic recording that can't be saved -> SKIPPED with the off switch", async function () {
+    const recordings = [
+      {
+        type: "MediaRecorder",
+        tab: "rec-tab",
+        downloadPath: path.join(os.tmpdir(), `never-defaulted-${Date.now()}.webm`),
+        targetPath: path.join(os.tmpdir(), "out.mp4"),
+        synthetic: true,
+        defaulted: true,
+      },
+    ];
+    let calls = 0;
+    const driver = {
+      state: { recordings },
+      async switchToWindow() {},
+      async execute() {
+        return ++calls === 1 ? true : -1;
+      },
+      async getWindowHandle() {
+        return "content-tab";
+      },
+      async getWindowHandles() {
+        return ["rec-tab", "content-tab"];
+      },
+      async closeWindow() {},
+    };
+    const result = await stopRecording({
+      config,
+      step: { stopRecord: true, __stopAny: true },
+      driver,
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.equal(
+      result.description,
+      "Skipped: couldn't save the automatic recording: the browser didn't finish it within 20 seconds. Set `autoRecord: false` to turn it off."
+    );
     assert.equal(recordings.length, 0);
   });
 
