@@ -316,9 +316,9 @@ Open your PRs and carry them through approval and merge.
 
 - **Earn the Claude review's approval.** Approval means an `APPROVED` review from the Claude review bot
   (`claude[bot]`) on the PR's current head commit, or the maintainer's own approval.
-- **Get there by fixing.** Fix its findings, plus CodeRabbit's valid ones, and push. The bot reviews again
-  after each push.
-- **Other bots don't count,** including CodeRabbit.
+- **Get there by fixing.** Fix its findings and push. The bot reviews again after each push.
+- **Other bots don't count,** including CodeRabbit. Still fix CodeRabbit's valid findings, though. They're
+  often real bugs, even when its verdict doesn't gate the merge.
 
 For how to merge past the `main` ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
 

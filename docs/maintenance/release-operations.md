@@ -66,6 +66,9 @@ realities around them.
     the CodeQL and Code Quality ones apart by `workflow`.
 - **An approval covers only the commit it reviewed.** Any push, including a `gh stack` rebase, moves the head.
   The bot then reviews again, and the PR needs a fresh `APPROVED` review on the new head before it merges.
+  - Rebases get no exception, on purpose. The bot reviews every push on its own, so the strict rule costs
+    only a wait.
+  - It also means nobody has to judge whether a rebase changed the PR's diff.
 - Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
   layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
   `feat/v5-rc` has no ruleset to enforce approval. It merges once every layer being merged has green checks
