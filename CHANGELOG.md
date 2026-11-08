@@ -1,3 +1,101 @@
+# [5.0.0-v5-rc.11](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.10...v5.0.0-v5-rc.11) (2026-11-08)
+
+
+* feat(capture)!: hide environment variable values in browser screenshots and recordings ([f2a0dc9](https://github.com/doc-detective/doc-detective/commit/f2a0dc967f3ff695f654fd908d9bbc1ff511b493))
+* feat(output)!: mask environment variable values in logs, reports, and results ([8c10dae](https://github.com/doc-detective/doc-detective/commit/8c10daead5c4f7b6757e882feec9e407c1f1056c))
+* feat(output)!: mask environment variable values in saved step output ([88d43db](https://github.com/doc-detective/doc-detective/commit/88d43dba8109b6d88e1f3f8c2c5cf95b949e3327))
+
+
+### Bug Fixes
+
+* **capture:** fail a screenshot closed when the page won't run the blur ([5a2f72f](https://github.com/doc-detective/doc-detective/commit/5a2f72fad144b715b6dad42ba8200767cb9d2b4c))
+* **cli:** answer help and version despite conflicting local-URL switches ([bce1cb6](https://github.com/doc-detective/doc-detective/commit/bce1cb6fa5b627448be5581f7ee46ef6e1726e2f))
+* **cli:** don't suggest --no-exit-on-fail to an --exit-on-fail user on an empty run ([8fa3c82](https://github.com/doc-detective/doc-detective/commit/8fa3c823d14cf390a02ba6f687e79d4972e379eb))
+* **cli:** don't warn in hosted runner logs, and list --silent for status ([d02051b](https://github.com/doc-detective/doc-detective/commit/d02051b7d24b2d43d336a40f9526ea62393c59f7))
+* **cli:** lead the --output folder warning with what to do ([c751bac](https://github.com/doc-detective/doc-detective/commit/c751bac7439c746622987337244894d3bf8d2bd3))
+* **cli:** print unknown for --version when the version can't be found ([b221fce](https://github.com/doc-detective/doc-detective/commit/b221fce2c0e585fd05eadd8a7749ab0089214854))
+* **cli:** read a v-prefixed major in the self-update check, and fail closed ([b957193](https://github.com/doc-detective/doc-detective/commit/b9571935e5a64359ad3e383aabb052532d547368))
+* **cli:** read install --silent from raw arguments, and type removed bin names ([31dcadf](https://github.com/doc-detective/doc-detective/commit/31dcadf909b776fa81c68d1ad1f4fc585c068063))
+* **cli:** refuse conflicting local-URL switches for every command ([90984ec](https://github.com/doc-detective/doc-detective/commit/90984ecb914d51c6e0f8128b1b9186bd12476794))
+* **cli:** send self-update warnings to stderr by default ([da5fa6a](https://github.com/doc-detective/doc-detective/commit/da5fa6aa60d1b5471ff37df09c6eb254ec4ca23f))
+* **cli:** show the new-major notice at warning level, and clarify two upgrade warnings ([4d193cb](https://github.com/doc-detective/doc-detective/commit/4d193cb16f204dbb8474c537ab7a8e2164510c6c))
+* **cli:** warn on stderr about what 5.0 changes or removes ([50fc518](https://github.com/doc-detective/doc-detective/commit/50fc5186c4743a7daff8859d445bfb853b32bb7e))
+* **config:** accept every Node os.arch() value for environment.arch ([3738423](https://github.com/doc-detective/doc-detective/commit/3738423edfeb282f32ceff51787759814d7fc60b))
+* **config:** use Node's os.arch() values for environment.arch ([a0dd40d](https://github.com/doc-detective/doc-detective/commit/a0dd40dfab045df8cbc61f9c64e7214e9701be21))
+* **core:** end readFile's warning at one period when the cause is empty ([466ee02](https://github.com/doc-detective/doc-detective/commit/466ee02eb0ca8d644296f16fc71993e0c3c7eb4e))
+* **core:** end readFile's warnings with a period ([934ac14](https://github.com/doc-detective/doc-detective/commit/934ac1463619c47d9c68805f38ee6e48d585c4bb))
+* **core:** give readFile's warnings one form, "Couldn't read <x>: <reason>." ([deb0896](https://github.com/doc-detective/doc-detective/commit/deb08969c7540c478cdbe748fc6ad5ca28fdaa31))
+* **core:** look a guarded hop's host up once per hop ([f3066f3](https://github.com/doc-detective/doc-detective/commit/f3066f3b0ced7f07556ab15740005ec992c3c253))
+* **core:** mark guard refusals with UrlGuardError ([fae7ecf](https://github.com/doc-detective/doc-detective/commit/fae7ecfda4706eca4fa7c821dac8d8afe7f315d1))
+* **core:** print readFile warnings through log() ([6ba2b7a](https://github.com/doc-detective/doc-detective/commit/6ba2b7a6edcaeada7d8a0cc4a25439142eaafe23))
+* **core:** read a remote file's extension from its URL path, not its query ([2bb7709](https://github.com/doc-detective/doc-detective/commit/2bb7709f8fb2d57810da8487fee54c6818d8b278))
+* **core:** report conflicting local-URL switches as is on screenshot steps ([7dcabae](https://github.com/doc-detective/doc-detective/commit/7dcabae1f222b0574102211505374566e0342c04))
+* **core:** report the redirect limit before a missing Location header ([a54f2cd](https://github.com/doc-detective/doc-detective/commit/a54f2cd03012c25e1ef18acad855c031b9d314a6))
+* **core:** treat a blank error message as no cause in readFile warnings ([6309375](https://github.com/doc-detective/doc-detective/commit/63093756551dc4f95e8f299bfe933ee866275bb7))
+* **docs:** add a preview page for the 5.0 upgrade ([83a2c5b](https://github.com/doc-detective/doc-detective/commit/83a2c5bdddeb8cecf26d331867cd1e10d51894be))
+* handle an unknown own version in the update check and verified-by ([b194859](https://github.com/doc-detective/doc-detective/commit/b194859489a67a6848d7e56ec1df762500ac5e18))
+* **heretto:** upload only when an integration sets uploadOnChange to true ([0c051db](https://github.com/doc-detective/doc-detective/commit/0c051db53d7a64b75a815ee39a1136e766e0a285))
+* **heretto:** word the upload skip reason like other skips ([1a6d0cb](https://github.com/doc-detective/doc-detective/commit/1a6d0cb25a343a8986157af14b7e55356cce9b13))
+* **hints:** point the addConfigFile $schema at this repo's config schema ([39ad66e](https://github.com/doc-detective/doc-detective/commit/39ad66ed50f7a8fae87e004e286139430c8b0950))
+* **httpRequest:** accept a single integer for statusCodes ([f180d03](https://github.com/doc-detective/doc-detective/commit/f180d03266d96f9f261a407bbc62884dfc7fbc16))
+* **integrations:** keep details in uploadResults when the upload throws ([3dbcd2d](https://github.com/doc-detective/doc-detective/commit/3dbcd2df0dcfc702eafc38cac0a20cfaa6d96fc7))
+* **integrations:** log the uploadOnChange skip with its Skipped reason ([4b31662](https://github.com/doc-detective/doc-detective/commit/4b3166247e83b6c08680ac3b4c500217d3d34a16))
+* **integrations:** start uploads when any integration sets uploadOnChange ([f5d287a](https://github.com/doc-detective/doc-detective/commit/f5d287a39c50bad1f37b44a177b921cd29bfe6df))
+* **integrations:** word the upload skip warnings in the message style ([6a45f7c](https://github.com/doc-detective/doc-detective/commit/6a45f7c2335ba2f555214bfb8cfe678b7660f67a))
+* **openapi:** fail a missing description with one message naming the cause ([786c1d1](https://github.com/doc-detective/doc-detective/commit/786c1d1d674c4e8ca54123880d9930615f50ebf0))
+* **openapi:** fail an invalid description with one message naming the parse error ([cab81e9](https://github.com/doc-detective/doc-detective/commit/cab81e9389d4cd4c18aafc92a5bfa37e64af331e))
+* **openapi:** make $ref refusals UrlGuardErrors ([ed65056](https://github.com/doc-detective/doc-detective/commit/ed65056f8dd71ed10eff6eac810fead5cdb23a18))
+* **openapi:** name a description that can't be read ([50ddb8c](https://github.com/doc-detective/doc-detective/commit/50ddb8cc5df1b0265d8df13ae8188b84f3b13cfd))
+* **openapi:** name a redirected document by the URL that was given ([c80a637](https://github.com/doc-detective/doc-detective/commit/c80a637626f182f583ed0efd0ebc10373594f16b))
+* **openapi:** name the $ref and document when its host doesn't resolve ([1554810](https://github.com/doc-detective/doc-detective/commit/155481090d8d63bfe2caf5617a2bcfda2661fc7d))
+* **openapi:** name the address in connect-time $ref refusals ([d652c66](https://github.com/doc-detective/doc-detective/commit/d652c661f9b33472e9ae6481b82c33593a9ec7e0))
+* **openapi:** name the address in pre-connect $ref refusals ([ea74889](https://github.com/doc-detective/doc-detective/commit/ea748899919e4b32dd15072d94611ff4558d4a00))
+* **openapi:** redact local-file $refs in refusals and type getGuarded options ([a6e2fbc](https://github.com/doc-detective/doc-detective/commit/a6e2fbc6f80cbc8af955c7eb332dd44dd85898be))
+* **openapi:** refuse a description that isn't an object ([793c540](https://github.com/doc-detective/doc-detective/commit/793c540f50b23e4c73848d978c31b5f10ada0281))
+* **openapi:** reject an array description as not an object ([a230bd7](https://github.com/doc-detective/doc-detective/commit/a230bd7d4a8d9086e4a2ea51e34d338c7b1982c8))
+* **openapi:** stop the spurious JSON parse warning on remote .json roots ([19f5c67](https://github.com/doc-detective/doc-detective/commit/19f5c678f49dc665b93f7c2e383d9885098e261b))
+* **openapi:** word a $ref's refused redirect as a $ref refusal ([a8a3c3c](https://github.com/doc-detective/doc-detective/commit/a8a3c3c633621bab8b06295eb3cbc7e63a99a8ee))
+* **output:** mask the URL encoding that also escapes ~, and document masking's edges ([3ef6585](https://github.com/doc-detective/doc-detective/commit/3ef6585bed84b068c618f2c499e9b33dcf9ca0f5))
+* **output:** name every variable that shares a masked value ([c9236f5](https://github.com/doc-detective/doc-detective/commit/c9236f57578b63fcb520bb9030ac68d6c8bcd79c))
+* **output:** start each run with no noted references, and keep Basic auth's mask on the secret ([ed86c07](https://github.com/doc-detective/doc-detective/commit/ed86c071718c845cd243a03c8d242cf0cf0bea52))
+* **release:** accept any case of ALLOW_MAJOR_RELEASE, and fail on missing arguments ([b4ae936](https://github.com/doc-detective/doc-detective/commit/b4ae936bd33932073a4495ef4dfa8d4d804e4c0c))
+* **schemas:** accept any $schema URL on spec, test, step, context, and config ([ffffc7e](https://github.com/doc-detective/doc-detective/commit/ffffc7ead1dab2b08dadf115665914285e3ef492))
+* **security:** allow local URLs by default and block public-to-private hops ([ff35aa1](https://github.com/doc-detective/doc-detective/commit/ff35aa1d5a487fa46e5bc4d691e27c092ed91477))
+* **security:** block private $refs reached through a public document ([dfa0e5c](https://github.com/doc-detective/doc-detective/commit/dfa0e5c147c2ff0395e5784b04e137adcb6e13d2))
+* **security:** classify 6to4, IPv4-translated, and site-local IPv6 ([606019c](https://github.com/doc-detective/doc-detective/commit/606019c97bb15a73b688d99a35dc2dbea44f6c02))
+* **security:** classify all embedded-IPv4 and link-local IPv6 forms ([523d010](https://github.com/doc-detective/doc-detective/commit/523d010c91ffe2f03a94afac3f4548e1da287194))
+* **security:** don't refuse a private proxy at connect time ([ae49bef](https://github.com/doc-detective/doc-detective/commit/ae49bef802f386d79b5513b0aa8553aabfc8aeb1))
+* **security:** fail closed on OpenAPI $refs once a public document is read ([7758eb5](https://github.com/doc-detective/doc-detective/commit/7758eb521e2b9126c38b15104683204dddcff32e))
+* **security:** guard the OpenAPI root fetch and classify every hop ([f9a0bab](https://github.com/doc-detective/doc-detective/commit/f9a0bab2499597430c826adc91c886fdc3f635cb))
+* **security:** refuse local file $refs from a public OpenAPI document ([88541c0](https://github.com/doc-detective/doc-detective/commit/88541c08aa045215ce9fe9b6f7e8ff3469568ecd))
+* **security:** refuse private addresses at connect time on guarded hops ([39411e9](https://github.com/doc-detective/doc-detective/commit/39411e952036aeaea9a2ff76f66af6489819686b))
+* **security:** refuse redirects to non-HTTP schemes, fix path-ref tests on POSIX ([611d308](https://github.com/doc-detective/doc-detective/commit/611d3083939ef5d59875a2cf7616039be9b9a420))
+* **security:** stop double-prefixing guard messages on screenshot steps ([b7e9429](https://github.com/doc-detective/doc-detective/commit/b7e942999656f342552c55166d8079fd2302eeb6))
+* **telemetry:** replace every space in flattened summary keys ([607b135](https://github.com/doc-detective/doc-detective/commit/607b135c2af4e0b2329b6978d930e7e8c3a94af8))
+* **telemetry:** send core_version as unknown when its own version can't be read ([67f4557](https://github.com/doc-detective/doc-detective/commit/67f455729b3fbeed22d76e7e1b1ccf1f1498f340))
+* **update:** keep auto-update within the current major ([8499e33](https://github.com/doc-detective/doc-detective/commit/8499e33fa3d0932b62a9e8ea6c84cd319de24f0e))
+* **upgrade:** document per-process dedupe, and tidy two rows ([29b78b0](https://github.com/doc-detective/doc-detective/commit/29b78b09ebdcd0ba2bc8bfc747bedbdef4938868))
+* **upgrade:** keep spec checks from failing runs, and tighten their messages ([1f0dbd3](https://github.com/doc-detective/doc-detective/commit/1f0dbd3a3d7755a601415cd3ab81eff7bf72d261))
+* **upgrade:** paste-ready --test and --spec fix, and no checkLink timeout row ([8144365](https://github.com/doc-detective/doc-detective/commit/81443657076b356c989988fe8f7fed26346eeb71))
+* **upgrade:** skip the official images and drop the beforeAny row ([4ca62d7](https://github.com/doc-detective/doc-detective/commit/4ca62d7ca19bf218c3fd78e4bdae212d61276fc7))
+* **upgrade:** tell boolean-click users they can drop the step ([6173a84](https://github.com/doc-detective/doc-detective/commit/6173a84d7f9d559266ae17d235584fe3f05ac2ba))
+* **upgrade:** warn 4.x users about more 5.0 changes ([ec7bf3b](https://github.com/doc-detective/doc-detective/commit/ec7bf3bc6b645ab6c74fe6f0eb815b6f6609d8a5))
+* **upgrade:** warn on a repeated flag only with two or more values ([a0342d4](https://github.com/doc-detective/doc-detective/commit/a0342d49e59aadd7e05b577d7efcc49aa3f5874d))
+* **upgrade:** warn on an empty DOC_DETECTIVE_AUTOINSTALL ([59b9955](https://github.com/doc-detective/doc-detective/commit/59b99551ddcbef46e84531e8985888668b635b8a))
+
+
+### BREAKING CHANGES
+
+* a field that receives a typed secret shows dots, and browser screenshots blur elements that show a secret, so reference images that showed one will differ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* files a step saves through path hold ***NAME*** in place of secret values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* values of environment variables a run uses appear as ***NAME*** in logs, reports, and results. List variables that aren't secret in publicVariables on the config, a spec, or a test.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.10](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.9...v5.0.0-v5-rc.10) (2026-11-08)
 
 
