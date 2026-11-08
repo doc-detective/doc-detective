@@ -624,11 +624,7 @@ async function resolveTestRouting(args: {
       return { action: "stop", scope: entry.stop };
     }
     if (typeof entry.goToTest === "string" && entry.goToTest.trim() !== "") {
-      // Return the trimmed id so `goToTest: "cleanup "` matches the test
-      // `cleanup` rather than failing as an unknown target on whitespace.
-      // The schema's `\S` pattern rules out whitespace-only ids, so the trim
-      // never empties it. A testId that itself ends in whitespace can't be a
-      // target, a trade made for the common case, as with goToStep.
+      // Trimmed for the same reasons as goToStep in resolveStepRouting.
       return { action: "goToTest", testId: entry.goToTest.trim() };
     }
   }

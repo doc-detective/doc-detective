@@ -227,6 +227,30 @@ describe("Advanced ordering under concurrentRunners", function () {
     }
   });
 
+  // The runtime only writes exact phase names, so matching is exact. Anything
+  // else, a differently cased alias or a prototype key, runs as main.
+  it("runs a spec with an unknown or differently cased phase as main", async () => {
+    const dir = mkTempDir();
+    try {
+      const log = path.join(dir, "order.log");
+      const spec = (specId, phase) => ({
+        specId,
+        _phase: phase,
+        tests: [{ testId: specId, contexts: [{ contextId: specId, steps: [appendStep(dir, log, specId)] }] }],
+      });
+      await runSpecs({
+        resolvedTests: {
+          config: { logLevel: "silent", telemetry: { send: false }, environment: getEnvironment(), concurrentRunners: 1 },
+          specs: [spec("upper", "BEFOREANY"), spec("proto", "__proto__"), spec("setup", "beforeAll")],
+        },
+      });
+      const tokens = fs.readFileSync(log, "utf8").split("\n").filter(Boolean);
+      assert.deepEqual(tokens, ["setup", "upper", "proto"]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("internal markers (_phase / _fromAfter) never leak into the report", async () => {
     const dir = mkTempDir();
     try {

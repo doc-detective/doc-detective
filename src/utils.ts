@@ -199,6 +199,8 @@ async function getConfigFromEnv() {
         `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
       );
     }
+    // Re-throw the rest on purpose: the shape error, the validation error, and
+    // renameDeprecatedConfigKeys' both-set error. Don't swallow them here.
     throw error;
   }
   return envConfig;

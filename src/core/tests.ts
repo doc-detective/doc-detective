@@ -2226,6 +2226,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
     // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw. A plan
     // resolved before ADR 01169 still says "beforeAny", which is "beforeAll".
+    // Matching is exact, since the runtime only writes these names: any other
+    // value, a differently cased "BEFOREANY" included, runs as "main".
     const phaseOf = (spec: any) => {
       const phase = spec?._phase === "beforeAny" ? "beforeAll" : spec?._phase;
       return PHASES.includes(phase) ? phase : "main";
