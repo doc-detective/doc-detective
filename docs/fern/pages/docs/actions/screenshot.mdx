@@ -364,26 +364,21 @@ Numbers the fields of a form and redacts an email address, all as part of the ca
 
 ## Automatic screenshots
 
-To capture a screenshot after every browser-based step, use the `autoScreenshot` option. This is useful for:
+By default, Doc Detective saves a screenshot after every step that drives a browser, a native app, or a device. App and device steps capture the app or device screen. This is useful for:
 
 - Building a visual record of test runs
 - Detecting UI regressions by comparing screenshots between runs
 - Debugging failures by inspecting the state at each step
 
-Enable at the config, spec, or test level (test overrides spec, which overrides config):
+To turn it off, set `autoScreenshot` to `false` at the config, spec, or test level (test overrides spec, which overrides config), or pass `--no-auto-screenshot`:
 
 ```json
 {
-  "autoScreenshot": true,
-  "output": "./test-results"
+  "autoScreenshot": false
 }
 ```
 
-Or use the CLI flag:
-
-```bash
-doc-detective --auto-screenshot
-```
+For more, see [Capture screenshots automatically](/docs/test-docs/automatic-screenshots).
 
 Doc Detective saves auto screenshots under `<outputDir>/.doc-detective/runs/<runId>/`, nested in the REST-style resource tree. The path structure uses stable IDs derived from file paths and content hashes:
 
