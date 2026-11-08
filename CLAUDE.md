@@ -314,8 +314,10 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 
 Open your PRs and carry them through approval and merge.
 
-- **Earn the Claude review's approval.** Approval means an `APPROVED` review from the Claude review bot
-  (`claude[bot]`) on the PR's current head commit, or the maintainer's own approval.
+- **Earn the Claude review's approval.** Approval means a review from the Claude review bot (`claude[bot]`)
+  on the PR's current head commit, either `APPROVED` or `COMMENTED` with nothing marked blocking. The
+  maintainer's own approval also counts. A `CHANGES_REQUESTED` review, or a comment that marks a finding
+  blocking, never counts.
 - **Get there by fixing.** Fix its findings and push. The bot reviews again after each push.
 - **Other bots don't count,** including CodeRabbit. Still fix CodeRabbit's valid findings, though. They're
   often real bugs, even when its verdict doesn't gate the merge.
