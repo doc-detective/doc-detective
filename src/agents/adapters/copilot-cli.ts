@@ -27,6 +27,7 @@ export interface CopilotCliDeps {
 }
 
 const MARKETPLACE_NAME = "doc-detective";
+const MARKETPLACE_REPO = "doc-detective/agent-tools";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
 const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
@@ -173,7 +174,7 @@ export class CopilotCliAdapter implements AgentAdapter {
     type Cmd = [string, ...string[]];
     // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
     const addMarketplace: Cmd = [
-      "copilot", "plugin", "marketplace", "add", `doc-detective/agent-tools#${AGENT_TOOLS_REF}`,
+      "copilot", "plugin", "marketplace", "add", `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
     ];
     const commands: Cmd[] = isInstalled
       ? [
@@ -221,6 +222,8 @@ export class CopilotCliAdapter implements AgentAdapter {
         // a generic "exited with code 1" instead.
         const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
         const msg = output || `exit code ${result.exitCode}`;
+        // Identity, not value, comparison: `commands` holds this same
+        // `addMarketplace` array, so `===` picks out the best-effort re-add.
         if (isInstalled && command === addMarketplace) {
           opts.logger(
             `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${msg})`,

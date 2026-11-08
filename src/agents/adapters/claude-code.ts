@@ -485,6 +485,8 @@ export class ClaudeCodeAdapter implements AgentAdapter {
       const result = await this.deps.run(cmd, args);
       if (result.stdout) opts.logger(result.stdout, "debug");
       if (result.exitCode !== 0) {
+        // Identity, not value, comparison: `commands` holds this same
+        // `addMarketplace` array, so `===` picks out the best-effort re-add.
         if (isInstalled && command === addMarketplace) {
           opts.logger(
             `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (exit code ${result.exitCode}) ${result.stderr}`,
