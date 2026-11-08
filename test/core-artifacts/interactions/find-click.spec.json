@@ -1,0 +1,140 @@
+{
+  "specId": "find-click",
+  "description": "Each find.click form clicks the way it says (ADR 01175): false finds without clicking, true and \"left\" left-click, \"right\" and \"middle\" use that button, and the object form takes a button. A dragAndDrop duration of 0 is kept and drags. The rejected forms, such as \"click\": \"Submit\", exit 2 and live in cli/browser-tightening.spec.json.",
+  "tests": [
+    {
+      "testId": "find-click-permutations",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/find-click.html"
+        },
+        {
+          "stepId": "find-click-false",
+          "description": "click: false finds the element without clicking it.",
+          "find": {
+            "selector": "#counter",
+            "click": false
+          }
+        },
+        {
+          "stepId": "assert-find-click-false-no-click",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "0",
+              "data-right": "0",
+              "data-middle": "0"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-true",
+          "find": {
+            "selector": "#counter",
+            "click": true
+          }
+        },
+        {
+          "stepId": "assert-find-click-true-left-click",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "1"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-left",
+          "find": {
+            "selector": "#counter",
+            "click": "left"
+          }
+        },
+        {
+          "stepId": "assert-find-click-left",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "2"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-right",
+          "find": {
+            "selector": "#counter",
+            "click": "right"
+          }
+        },
+        {
+          "stepId": "assert-find-click-right",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "2",
+              "data-right": "1"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-middle",
+          "find": {
+            "selector": "#counter",
+            "click": "middle"
+          }
+        },
+        {
+          "stepId": "assert-find-click-middle",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "2",
+              "data-middle": "1"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-object-button",
+          "find": {
+            "selector": "#counter",
+            "click": {
+              "button": "right"
+            }
+          }
+        },
+        {
+          "stepId": "assert-find-click-object-button",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-right": "2"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "drag-and-drop-duration-zero",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/drag-drop-test.html"
+        },
+        {
+          "stepId": "drag-duration-zero",
+          "description": "duration: 0 is kept, not replaced by the 1000 ms default.",
+          "dragAndDrop": {
+            "source": ".draggable[data-widget='chart']",
+            "target": ".drop-zone[data-drop='zone2']",
+            "duration": 0
+          }
+        },
+        {
+          "stepId": "assert-drag-duration-zero-dropped",
+          "find": {
+            "selector": ".drop-zone[data-drop='zone2'] .dropped-item"
+          }
+        }
+      ]
+    }
+  ]
+}

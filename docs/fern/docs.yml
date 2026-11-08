@@ -229,9 +229,6 @@ navigation:
               - page: Generate requests from OpenAPI
                 path: pages/docs/test-code/generate-tests-from-openapi.mdx
                 slug: generate-tests-from-openapi
-              - page: Integrations
-                path: pages/docs/get-started/integrations.mdx
-                slug: integrations
           - section: Formats & surfaces
             skip-slug: true
             contents:
@@ -275,6 +272,9 @@ navigation:
           - page: GitHub Action
             path: pages/docs/ci/github-action.mdx
             slug: github-action
+          - page: AI issue mentions
+            path: pages/docs/ci/issue-mentions.mdx
+            slug: issue-mentions
           - page: Set up your test environment
             path: pages/tutorials/set-up-your-test-environment.mdx
             slug: set-up-environment
@@ -459,7 +459,7 @@ redirects:
   - source: /docs/test-code/http-and-api
     destination: /docs/test-docs/http-and-api
   - source: /docs/test-code/integrations
-    destination: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
   # Input formats → Test your docs (explicit; Fern redirects match literal paths)
   - source: /docs/input-formats/overview
     destination: /docs/test-docs/input-formats/overview
@@ -482,7 +482,11 @@ redirects:
   - source: /docs/get-started/ci
     destination: /docs/ci/github-action
   - source: /docs/get-started/integrations
-    destination: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
+  # The Action's AI @mention page moved from "Test your docs" to CI (Action v2
+  # renamed its `integrations` input to `issue_mentions`)
+  - source: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
   - source: /docs/get-started/self-healing
     destination: /ai/ai-agents/self-healing
   - source: /docs/get-started/resources

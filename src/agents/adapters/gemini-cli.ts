@@ -10,6 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -27,8 +28,7 @@ export interface GeminiCliDeps {
 
 const EXTENSION_NAME = "doc-detective";
 const GIT_SOURCE = "https://github.com/doc-detective/agent-tools.git";
-const LATEST_MANIFEST_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/gemini-extension.json";
+const LATEST_MANIFEST_URL = agentToolsRawUrl("gemini-extension.json");
 
 export function defaultGeminiCliDeps(): GeminiCliDeps {
   return {
@@ -180,11 +180,16 @@ export class GeminiCliAdapter implements AgentAdapter {
     }
 
     type Cmd = [string, ...string[]];
+    // `extensions update` takes no `--ref`. It replays the ref recorded at
+    // install, so a pinned install stays on AGENT_TOOLS_REF (ADR 01164). Docs:
+    // https://github.com/google-gemini/gemini-cli/blob/main/docs/extensions/releasing.md
+    // An install made before the pin recorded no ref and follows the default branch.
     const commands: Cmd[] = isInstalled
       ? [["gemini", "extensions", "update", EXTENSION_NAME]]
       : [
           [
             "gemini", "extensions", "install", GIT_SOURCE,
+            "--ref", AGENT_TOOLS_REF,
             "--auto-update", "--consent", "--skip-settings",
           ],
         ];

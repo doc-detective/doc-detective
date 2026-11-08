@@ -1,3 +1,27 @@
+# [5.0.0-v5-rc.9](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.8...v5.0.0-v5-rc.9) (2026-11-08)
+
+
+### Bug Fixes
+
+* **reporters:** label HTML report steps from common's stepActions ([83b517c](https://github.com/doc-detective/doc-detective/commit/83b517c72ca536895770eb1a6074ca1619ddb7ec))
+
+
+### Features
+
+* **common:** export stepActions and publish per-schema files ([b647ea4](https://github.com/doc-detective/doc-detective/commit/b647ea44d11737301552d2b343645137d8fabf58))
+
+# [5.0.0-v5-rc.8](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.7...v5.0.0-v5-rc.8) (2026-11-07)
+
+
+### Bug Fixes
+
+* **core:** leave the caller's config unchanged in setConfig ([fdffe23](https://github.com/doc-detective/doc-detective/commit/fdffe23cec18423f8e73dad16103859e39b1b4c6))
+
+
+### Features
+
+* **runner:** report nothing_tested and interrupted outcomes ([4b830ae](https://github.com/doc-detective/doc-detective/commit/4b830ae864370d723606c7263d3dafba01339a7f))
+
 # [5.0.0-v5-rc.7](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.6...v5.0.0-v5-rc.7) (2026-11-06)
 
 
@@ -207,6 +231,13 @@ commander's wording, and `--dryRun`-style spellings no longer parse, except
 `--logLevel`.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+## [4.41.6](https://github.com/doc-detective/doc-detective/compare/v4.41.5...v4.41.6) (2026-11-05)
+
+
+### Bug Fixes
+
+* **hints:** link hints and README to live docs pages ([957e201](https://github.com/doc-detective/doc-detective/commit/957e201ac47fddf83c180f49ffb6dc18c290e9ac))
 
 ## [4.41.5](https://github.com/doc-detective/doc-detective/compare/v4.41.4...v4.41.5) (2026-10-31)
 

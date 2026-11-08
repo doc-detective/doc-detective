@@ -24,7 +24,7 @@ The `saveCookie` action supports multiple formats:
 
 ### String format
 
-Save a cookie by name to a default location:
+A cookie name saves that cookie to the environment variable of the same name. A path ending in `.txt` saves the cookie named for the file, `session_token` here, to that path in `outputDir`:
 
 ```json title="Save to environment variable"
 {
@@ -59,9 +59,9 @@ Save a cookie with detailed configuration:
 |-------|------|-------------|---------|
 | `name` | string | **Required.** Name of the specific cookie to save. | |
 | `variable` | string | Environment variable name to store the cookie as JSON string. Can't be used with `path`. | |
-| `path` | string | File path to save the cookie, relative to directory. Uses Netscape cookie format. Can't be used with `variable`. | |
-| `directory` | string | Directory to save the cookie file. If not specified, uses output directory. | |
-| `overwrite` | string | Whether to overwrite existing cookie file. Options: `"true"`, `"false"`. | `"false"` |
+| `path` | string | File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted. Can't be used with `variable`. | |
+| `directory` | string | Directory to save the cookie file in. A relative directory resolves against the spec file. | `outputDir` |
+| `overwrite` | boolean | Whether to overwrite an existing cookie file. | `false` |
 | `domain` | string | Specific domain to filter the cookie by (optional). | |
 
 ## Examples

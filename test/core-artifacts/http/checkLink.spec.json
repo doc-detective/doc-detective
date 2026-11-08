@@ -33,6 +33,25 @@
           }
         }
       ]
+    },
+    {
+      "testId": "checkLink_timeout",
+      "description": "Per-attempt timeout: the default and a set value both PASS against a responsive server.",
+      "steps": [
+        {
+          "description": "No timeout: each attempt gets the 10000 ms default.",
+          "checkLink": {
+            "url": "http://localhost:8092/enhanced-elements.html"
+          }
+        },
+        {
+          "description": "timeout set: each attempt gets 5000 ms.",
+          "checkLink": {
+            "url": "http://localhost:8092/enhanced-elements.html",
+            "timeout": 5000
+          }
+        }
+      ]
     }
   ]
 }

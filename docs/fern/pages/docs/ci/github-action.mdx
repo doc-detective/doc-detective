@@ -47,8 +47,8 @@ By default, the action runs from the repository root and uses the config file Do
 |---|---|---|
 | `version` | `5` | Doc Detective version to run, as a version number, a range such as `^5`, or an npm tag such as `latest`. Action `@v2` expects version 5 or later. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
-| `config` | None | Path to a configuration file. |
-| `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+| `config` | None | Path to a configuration file, relative to `working_directory`. |
+| `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. With an empty `version`, the action always passes the `--output-dir` flag. Version 4 rejects that flag, so the local build must be version 5 or later.
@@ -113,7 +113,7 @@ You must allow GitHub Actions to create pull requests for the repository. Go to 
 | Input | Default | Description |
 |---|---|---|
 | `create_pr_on_change` | `false` | Open a pull request if any files change during the run. |
-| `pr_branch` | `doc-detective-{DATE}` | Branch name for the pull request. |
+| `pr_branch` | `doc-detective-<timestamp>` | Branch name for the pull request. `<timestamp>` is the time in milliseconds since the Unix epoch. |
 | `pr_title` | `Doc Detective Changes` | Pull request title. |
 | `pr_body` | See README | Pull request body. `$RUN_URL` inserts the workflow run URL. |
 | `pr_labels` | `doc-detective` | Comma-separated labels. |
@@ -124,7 +124,7 @@ A created pull request means files changed, not that tests passed or failed. Rev
 
 ## Step 5: File an issue when tests fail
 
-When a run has failing tests, the action can open a GitHub issue to track the failure and mention an AI integration to investigate it. To enable this, set `create_issue_on_fail` to `true` and grant the job permission to write issues:
+When a run has failing tests, the action can open a GitHub issue to track the failure and mention an AI assistant to investigate it. To enable this, set `create_issue_on_fail` to `true` and grant the job permission to write issues:
 
 ```yaml
 name: doc-detective
@@ -142,22 +142,26 @@ jobs:
         with:
           create_issue_on_fail: true
           issue_title: Doc Detective found documentation issues
-          integrations: claude
+          issue_mentions: claude
 ```
 
 | Input | Default | Description |
 |---|---|---|
 | `create_issue_on_fail` | `false` | Open an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the prompt text. |
+| `issue_body` | `A Doc Detective run ($RUN_URL) failed with the following results:$RESULTS` | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
-| `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
-| `prompt` | See README | Prompt text passed to integrations. |
+| `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
+| `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
 
-GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `prompt` leave no room for results, the action logs an error and doesn't create the issue.
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
-The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations).
+The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions).
+
+<Note>
+GitHub Action `@v2` renames `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work, but the action logs a deprecation warning. Setting both an old and a new name fails the job before tests run.
+</Note>
 
 ## Step 6: Use the results in later steps
 

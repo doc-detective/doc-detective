@@ -33,7 +33,9 @@
 //    otherwise-infinite freeze into a bounded, observable outcome.
 
 import fs from "node:fs";
+import path from "node:path";
 import { Worker } from "node:worker_threads";
+import { packageRoot } from "../runtime/heavyDeps.js";
 
 /** Default wall-clock budget for the ConPTY probe. A healthy allocation
  * returns in well under a second; 15s is generous headroom that still bounds
@@ -59,9 +61,13 @@ export interface ProbeWorkerLike {
 }
 
 function defaultCreateWorker(data: { ptyModulePath: string }): ProbeWorkerLike {
-  // ptyProbeWorker.js sits next to this module in dist/core/.
-  const url = new URL("./ptyProbeWorker.js", import.meta.url);
-  return new Worker(url, { workerData: data });
+  // The worker is built to dist/core/. Resolve it from the package root, not
+  // this module's URL: the dist/index.cjs bundle sits one level shallower.
+  // probePtyAllocation reports a throw here as inconclusive, with this message.
+  const root = packageRoot();
+  if (!root) throw new Error("doc-detective's package root not found, so the probe worker can't be located");
+  const worker = path.join(root, "dist", "core", "ptyProbeWorker.js");
+  return new Worker(worker, { workerData: data });
 }
 
 /**

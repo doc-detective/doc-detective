@@ -397,11 +397,11 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.match(res.message, /goTo/);
   });
 
-  it("treats edge as chrome for the engine check (context transform parity)", async function () {
+  it("doesn't treat edge as chrome for the engine check (ADR 01172)", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
     const res = await resolveWindowTarget(driver, parseSurfaceRef({ browser: "edge" }));
-    assert.equal(res.ok, true);
+    assert.equal(res.ok, false);
   });
 
   it("skips the engine check when the driver has no engine stashed", async function () {

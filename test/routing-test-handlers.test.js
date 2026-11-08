@@ -7,8 +7,8 @@ import {
 // Test-level routing handlers: onPass/onFail/onWarning/onSkip on a TEST. Each is
 // an array of routing entries ({ if?, <action> }); the FIRST entry whose `if`
 // matches wins (no `if` => always matches). PR-A acts on `continue` and `stop`
-// at TEST scope; `goToTest` is deferred (returns the status default), and
-// `retry`/`goToStep` are not applicable at test scope (fall through to default).
+// at TEST scope, plus `goToTest`. The test schema rejects `retry`, `goToStep`,
+// and `stop: "run"` (ADR 01168).
 // Defaults reproduce today's flat-pool behavior: FAIL -> stop(test) which is a
 // no-op at test scope (the test already finished), so a FAILing test with no
 // handler does NOT stop its siblings — byte-identical to the non-routed path.
@@ -61,16 +61,6 @@ describe("routing: resolveTestRouting", function () {
         context: ctx,
       }),
       { action: "stop", scope: "spec" }
-    );
-  });
-  it("onPass [{stop:'run'}] -> stop run", async function () {
-    assert.deepEqual(
-      await resolveTestRouting({
-        status: "PASS",
-        test: { onPass: [{ stop: "run" }] },
-        context: ctx,
-      }),
-      { action: "stop", scope: "run" }
     );
   });
   it("onPass [{stop:'test'}] -> stop test", async function () {
@@ -162,26 +152,6 @@ describe("routing: resolveTestRouting", function () {
         context: ctx,
       }),
       { action: "goToTest", testId: "x" }
-    );
-  });
-  it("retry at test scope -> not applicable, falls to default", async function () {
-    assert.deepEqual(
-      await resolveTestRouting({
-        status: "FAIL",
-        test: { onFail: [{ retry: { limit: 2 } }] },
-        context: ctx,
-      }),
-      { action: "stop", scope: "test" }
-    );
-  });
-  it("goToStep at test scope -> not applicable, falls to default", async function () {
-    assert.deepEqual(
-      await resolveTestRouting({
-        status: "FAIL",
-        test: { onFail: [{ goToStep: "x" }] },
-        context: ctx,
-      }),
-      { action: "stop", scope: "test" }
     );
   });
 });

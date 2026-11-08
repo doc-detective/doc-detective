@@ -23,7 +23,7 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "javascript",
-    "code": "console.log('Hello, ${process.env.USER}!');"
+    "code": "console.log(`Hello, ${require('os').userInfo().username}!`);"
   }
 }
 ```
@@ -41,12 +41,12 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "bash",
-    "code": "docker run hello-world",
+    "code": "echo \"Hello from Bash!\"",
     "timeout": 20000,
     "exitCodes": [
       0
     ],
-    "stdio": "Hello from Docker!"
+    "stdio": "Hello from Bash!"
   }
 }
 ```
@@ -55,7 +55,7 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "javascript",
-    "code": "return false",
+    "code": "process.exit(1);",
     "exitCodes": [
       1
     ]
@@ -67,8 +67,7 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "python",
-    "code": "print('Hello from Python')",
-    "workingDirectory": ".",
+    "code": "print('Hello from Python!')",
     "exitCodes": [
       0
     ],

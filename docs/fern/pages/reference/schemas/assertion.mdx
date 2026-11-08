@@ -19,8 +19,8 @@ Field | Type | Description | Default
 statement | string | Required. Human-readable articulation of the check, e.g. `exitCode in [0]`.<br/><br/>Minimum length: 1. Pattern: `\S` | —
 source | string | Required. Who defined the assertion: `implicit` (runner-defined) or `custom` (user-defined).<br/><br/>Accepted values: `implicit`, `custom` | —
 result | string | Required. Outcome of evaluating the assertion.<br/><br/>Accepted values: `PASS`, `FAIL`, `WARNING`, `SKIPPED` | —
-expected | array,boolean,integer,null,number,object,string | Optional. The value (or values) the assertion expected. Optional. | —
-actual | array,boolean,integer,null,number,object,string | Optional. The value actually observed. Optional. | —
+expected | array or boolean or integer or null or number or object or string | Optional. The value (or values) the assertion expected. Optional. | —
+actual | array or boolean or integer or null or number or object or string | Optional. The value actually observed. Optional. | —
 description | string | Optional. Human-readable explanation of the outcome. Optional. | —
 
 ## Examples

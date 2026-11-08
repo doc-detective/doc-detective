@@ -62,10 +62,43 @@ async function generateTypes() {
     throw new Error(`One or more schemas failed to generate TypeScript types: ${failedFiles.join(", ")}`);
   }
 
+  const step = JSON.parse(await fs.readFile(path.join(schemasDir, "step_v3.schema.json"), "utf-8"));
+  await fs.writeFile(path.join(__dirname, "..", "src", "stepActions.ts"), renderStepActions(step));
+  console.log("  ✓ step_v3.schema.json → stepActions.ts");
+
   console.log("Type generation complete!");
 }
 
-module.exports = { checkGeneratorVersion };
+// Each step_v3 oneOf branch requires one action key, on the branch or in an allOf part.
+// Invariant: a branch's `required` lists only its action key. Step-level keys (stepId,
+// description, ...) live in the shared `common` part and are never required. If a step-level
+// key ever appears in `required`, the count exceeds 1 and this throws ("got [goTo, stepId]").
+// exports.test.js cross-checks the result against step_v3.properties minus the common keys.
+function renderStepActions(step) {
+  const keys = step.oneOf.map((branch, i) => {
+    const required = [branch, ...(branch.allOf ?? [])].flatMap((part) => part.required ?? []);
+    if (required.length !== 1) {
+      throw new Error(`step_v3 oneOf[${i}] must require exactly one action key, got [${required.join(", ")}]`);
+    }
+    return required[0];
+  });
+  const lines = [...new Set(keys)].sort().map((key) => `  ${JSON.stringify(key)},`);
+  return `/* eslint-disable */
+/**
+ * Auto-generated from step_v3.schema.json by scripts/generateTypes.cjs
+ * Do not edit manually
+ */
+
+/** Every step action key, sorted. A step carries exactly one. */
+export const stepActions = [
+${lines.join("\n")}
+] as const;
+
+export type StepAction = (typeof stepActions)[number];
+`;
+}
+
+module.exports = { checkGeneratorVersion, renderStepActions };
 
 if (require.main === module) {
   generateTypes().catch((error) => {

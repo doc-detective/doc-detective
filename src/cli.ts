@@ -21,9 +21,7 @@ import { runProgress } from "./core/progress.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
-import { createRequire } from "node:module";
-
-const cliRequire = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
 main(processArgv).catch((err) => {
@@ -36,7 +34,7 @@ main(processArgv).catch((err) => {
   // A mistake in a command gets its message. A bug gets a bug report. Reaching
   // here with one of these types means a defect in Doc Detective, not bad input.
   if (err instanceof TypeError || err instanceof ReferenceError || err instanceof RangeError) {
-    reportCrash(err, { version: cliRequire("../package.json").version });
+    reportCrash(err, { version: ownVersion() });
   } else {
     console.error(`Error: ${err?.message || err}`);
   }
@@ -152,7 +150,7 @@ async function runTestsHandler(args: any) {
       const mapped = level === "warn" ? "warning" : level;
       log(msg, mapped, config);
     };
-    const currentVersion: string = cliRequire("../package.json").version;
+    const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.

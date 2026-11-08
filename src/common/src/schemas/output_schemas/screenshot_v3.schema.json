@@ -4,9 +4,15 @@
   "description": "Takes a screenshot in PNG format.",
   "anyOf": [
     {
+      "type": "boolean",
+      "title": "Capture screenshot",
+      "description": "If `true`, captures a screenshot to `<stepId>.png` in `outputDir`. If `false`, doesn't capture a screenshot.",
+      "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the path branch's pattern needs a .png extension or a `$VAR`, so it never wanted \"true\" or \"false\"."
+    },
+    {
       "title": "Screenshot (simple)",
       "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-      "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+      "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.",
       "type": "string",
       "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
       "transform": [
@@ -30,8 +36,7 @@
                     "chrome",
                     "firefox",
                     "safari",
-                    "webkit",
-                    "edge"
+                    "webkit"
                   ],
                   "transform": [
                     "trim"
@@ -52,8 +57,7 @@
                         "chrome",
                         "firefox",
                         "safari",
-                        "webkit",
-                        "edge"
+                        "webkit"
                       ],
                       "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                     },
@@ -243,7 +247,7 @@
             "path": {
               "title": "Screenshot (simple)",
               "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-              "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+              "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.",
               "type": "string",
               "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
               "transform": [
@@ -358,16 +362,10 @@
                       "type": "object",
                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                       "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
+                        "type": [
+                          "boolean",
+                          "number",
+                          "string"
                         ]
                       }
                     },
@@ -479,19 +477,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -499,7 +491,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -661,19 +654,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -681,7 +668,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -843,19 +831,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -863,7 +845,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -1025,19 +1008,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -1045,7 +1022,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -1207,19 +1185,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -1227,7 +1199,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -1389,19 +1362,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -1409,7 +1376,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -1804,19 +1772,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -1824,7 +1786,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -1978,19 +1941,13 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  },
-                                  {
-                                    "type": "string"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               },
-                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                             },
                             "elementAria": {
                               "type": "string",
@@ -1998,7 +1955,8 @@
                             },
                             "timeout": {
                               "type": "integer",
-                              "description": "Max duration in milliseconds to wait for the element to exist.",
+                              "minimum": 0,
+                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                               "default": 5000,
                               "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                             }
@@ -2141,19 +2099,13 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              },
-                              {
-                                "type": "string"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           },
-                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                         },
                         "elementAria": {
                           "type": "string",
@@ -2161,7 +2113,8 @@
                         },
                         "timeout": {
                           "type": "integer",
-                          "description": "Max duration in milliseconds to wait for the element to exist.",
+                          "minimum": 0,
+                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                           "default": 5000,
                           "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                         }
@@ -2606,11 +2559,6 @@
         }
       ],
       "title": "Capture screenshot (detailed)"
-    },
-    {
-      "type": "boolean",
-      "title": "Capture screenshot",
-      "description": "If `true`, captures a screenshot. If `false`, doesn't capture a screenshot."
     }
   ],
   "components": {
@@ -2618,7 +2566,7 @@
       "path": {
         "title": "Screenshot (simple)",
         "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-        "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+        "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.",
         "type": "string",
         "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
         "transform": [
@@ -2642,8 +2590,7 @@
                       "chrome",
                       "firefox",
                       "safari",
-                      "webkit",
-                      "edge"
+                      "webkit"
                     ],
                     "transform": [
                       "trim"
@@ -2664,8 +2611,7 @@
                           "chrome",
                           "firefox",
                           "safari",
-                          "webkit",
-                          "edge"
+                          "webkit"
                         ],
                         "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                       },
@@ -2855,7 +2801,7 @@
               "path": {
                 "title": "Screenshot (simple)",
                 "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-                "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+                "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.",
                 "type": "string",
                 "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
                 "transform": [
@@ -2970,16 +2916,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -3091,19 +3031,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -3111,7 +3045,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -3273,19 +3208,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -3293,7 +3222,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -3455,19 +3385,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -3475,7 +3399,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -3637,19 +3562,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -3657,7 +3576,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -3819,19 +3739,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -3839,7 +3753,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -4001,19 +3916,13 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       },
-                                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                     },
                                     "elementAria": {
                                       "type": "string",
@@ -4021,7 +3930,8 @@
                                     },
                                     "timeout": {
                                       "type": "integer",
-                                      "description": "Max duration in milliseconds to wait for the element to exist.",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                       "default": 5000,
                                       "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                     }
@@ -4416,19 +4326,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -4436,7 +4340,8 @@
                                   },
                                   "timeout": {
                                     "type": "integer",
-                                    "description": "Max duration in milliseconds to wait for the element to exist.",
+                                    "minimum": 0,
+                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                     "default": 5000,
                                     "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                   }
@@ -4590,19 +4495,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -4610,7 +4509,8 @@
                               },
                               "timeout": {
                                 "type": "integer",
-                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                "minimum": 0,
+                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                 "default": 5000,
                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                               }
@@ -4753,19 +4653,13 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                },
-                                {
-                                  "type": "string"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             },
-                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                           },
                           "elementAria": {
                             "type": "string",
@@ -4773,7 +4667,8 @@
                           },
                           "timeout": {
                             "type": "integer",
-                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                            "minimum": 0,
+                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                             "default": 5000,
                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                           }
@@ -5233,8 +5128,7 @@
                   "chrome",
                   "firefox",
                   "safari",
-                  "webkit",
-                  "edge"
+                  "webkit"
                 ],
                 "transform": [
                   "trim"
@@ -5255,8 +5149,7 @@
                       "chrome",
                       "firefox",
                       "safari",
-                      "webkit",
-                      "edge"
+                      "webkit"
                     ],
                     "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                   },
@@ -5446,7 +5339,7 @@
           "path": {
             "title": "Screenshot (simple)",
             "$comment": "The pattern gates the target's EXTENSION, not its characters or location: any path ending in .png/.PNG is accepted, plus an http(s) URL to a PNG (optionally with a query string, for signed URLs) and a `$VAR` reference. It deliberately does not restrict the character set — an earlier pattern allowed any Windows absolute path but limited non-Windows paths to [A-Za-z0-9_./\\-], so ordinary macOS/Linux projects (a space, parentheses, '~', or non-ASCII anywhere in the path) failed validation, including for the absolute paths doc-detective synthesizes internally for autoScreenshot and recording checkpoints. That charset never bounded WHERE a screenshot could be written (traversal like ../../x.png always passed), so it only made non-Windows projects second-class. See ADR 01077.",
-            "description": "File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.",
+            "description": "File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.",
             "type": "string",
             "pattern": "^(?:https?:\\/\\/.+\\.(?:png|PNG)(?:\\?.*)?|.*\\.(?:png|PNG)|\\$[A-Za-z0-9_]+)$",
             "transform": [
@@ -5561,16 +5454,10 @@
                     "type": "object",
                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -5682,19 +5569,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -5702,7 +5583,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -5864,19 +5746,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -5884,7 +5760,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -6046,19 +5923,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -6066,7 +5937,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -6228,19 +6100,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -6248,7 +6114,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -6410,19 +6277,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -6430,7 +6291,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -6592,19 +6454,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -6612,7 +6468,8 @@
                                 },
                                 "timeout": {
                                   "type": "integer",
-                                  "description": "Max duration in milliseconds to wait for the element to exist.",
+                                  "minimum": 0,
+                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                   "default": 5000,
                                   "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                                 }
@@ -7007,19 +6864,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -7027,7 +6878,8 @@
                               },
                               "timeout": {
                                 "type": "integer",
-                                "description": "Max duration in milliseconds to wait for the element to exist.",
+                                "minimum": 0,
+                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                                 "default": 5000,
                                 "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                               }
@@ -7181,19 +7033,13 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                },
-                                {
-                                  "type": "string"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             },
-                            "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                           },
                           "elementAria": {
                             "type": "string",
@@ -7201,7 +7047,8 @@
                           },
                           "timeout": {
                             "type": "integer",
-                            "description": "Max duration in milliseconds to wait for the element to exist.",
+                            "minimum": 0,
+                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                             "default": 5000,
                             "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                           }
@@ -7344,19 +7191,13 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "string"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         },
-                        "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                        "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                       },
                       "elementAria": {
                         "type": "string",
@@ -7364,7 +7205,8 @@
                       },
                       "timeout": {
                         "type": "integer",
-                        "description": "Max duration in milliseconds to wait for the element to exist.",
+                        "minimum": 0,
+                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
                         "default": 5000,
                         "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
                       }
@@ -7860,16 +7702,10 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
+              "type": [
+                "boolean",
+                "number",
+                "string"
               ]
             }
           },
@@ -7941,6 +7777,7 @@
   },
   "examples": [
     true,
+    false,
     "image.png",
     "static/images/image.png",
     "/User/manny/projects/doc-detective/static/images/image.png",

@@ -127,18 +127,8 @@ async function runCode({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: defaults filled (ADR 01167).
   step = isValidStep.object;
-  // Set default values
-  step.runCode = {
-    ...step.runCode,
-    exitCodes: step.runCode.exitCodes || [0],
-    args: step.runCode.args || [],
-    workingDirectory: step.runCode.workingDirectory || ".",
-    maxVariation: step.runCode.maxVariation || 0,
-    overwrite: step.runCode.overwrite || "aboveVariation",
-    timeout: step.runCode.timeout || 60000,
-  };
 
   // Create temporary script file
   let scriptPath;

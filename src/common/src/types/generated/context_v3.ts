@@ -34,7 +34,7 @@ export interface Context {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.
+   * Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.
    */
   retries?: number;
   /**
@@ -58,6 +58,10 @@ export interface Browser {
    * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
    */
   explicit?: boolean;
+  /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
+   */
+  version?: string;
   /**
    * If `true`, runs the browser in headless mode.
    */
@@ -103,6 +107,10 @@ export interface Browser1 {
    * Set automatically during context resolution: `true` when the author explicitly requested this browser (as opposed to it being auto-selected as the default). The runner's cross-browser fallback uses it to decide whether substituting another engine reports `PASS` (auto-selected) or `WARNING` (explicitly pinned).
    */
   explicit?: boolean;
+  /**
+   * The browser version the session reported, for example `131.0.6778.85`. Present only in test results, for contexts that started a browser. System-populated: an authored value is dropped during context resolution.
+   */
+  version?: string;
   /**
    * If `true`, runs the browser in headless mode.
    */
@@ -177,18 +185,4 @@ export interface DeviceDescriptor {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }

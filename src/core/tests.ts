@@ -43,6 +43,7 @@ import {
   getRunOutputDir,
   runArchivesArtifacts,
   sanitizeFilesystemName,
+  hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
   classifyContextRetry,
@@ -50,8 +51,11 @@ import {
   applyBrowserSize,
   isViewportFloored,
   loadAxios,
+  sessionVersions,
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
+import { validate } from "../common/src/validate.js";
+import { normalize } from "../common/src/normalize/index.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -131,6 +135,7 @@ import {
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -213,9 +218,6 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Idle browser-pool Appium servers kept between runs in this process, only
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
@@ -247,6 +249,8 @@ export {
   runSpecs,
   runViaApi,
   getRunner,
+  useEffectiveStep,
+  placeCapturePaths,
   ensureChromeAvailable,
   ensureContextBrowserInstalled,
   combinationKey,
@@ -1364,6 +1368,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
         // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        startedAt: new Date().toISOString(),
+        environment: getEnvironment(),
         durationMs: 0,
         specs: [],
       };
@@ -1533,6 +1539,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      startedAt: new Date(runStart).toISOString(),
+      environment: getEnvironment(),
       durationMs: Date.now() - runStart,
       specs: [],
     };
@@ -1587,6 +1595,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const report: any = {
     runId,
     runDir,
+    // Run metadata (ADR 01163): when execution started and the host that ran
+    // it, so a consumer can tell product drift from environment drift.
+    startedAt: new Date(runStart).toISOString(),
+    environment: runnerDetails.environment,
     summary: {
       specs: {
         pass: 0,
@@ -2171,7 +2183,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
-    // sequential phases. Config-level `beforeAny` specs all finish before any
+    // sequential phases. Config-level `beforeAll` specs all finish before any
     // `main` test starts, and `afterAll` specs run only after every `main` test
     // finishes. Within a phase, jobs still run concurrently up to `limit`.
     // Warm-up / recording-concurrency / Appium-pool sizing above intentionally
@@ -2221,25 +2233,29 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       }
     };
 
-    const PHASES = ["beforeAny", "main", "afterAll"];
+    const PHASES = ["beforeAll", "main", "afterAll"];
+    // Constrain to the known set before indexing: a programmatic caller could
+    // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
+    // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw. A plan
+    // resolved before ADR 01169 still says "beforeAny", which is "beforeAll".
+    // Matching is exact, since the runtime only writes these names: any other
+    // value, a differently cased "BEFOREANY" included, runs as "main".
+    const phaseOf = (spec: any) => {
+      const phase = spec?._phase === "beforeAny" ? "beforeAll" : spec?._phase;
+      return PHASES.includes(phase) ? phase : "main";
+    };
     const jobsByPhase: { [phase: string]: any[] } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };
     for (const job of jobs) {
-      // Constrain to the known set before indexing: a programmatic caller could
-      // set `_phase` to a prototype key (e.g. "__proto__" / "toString") where
-      // jobsByPhase[phase] is truthy-but-not-an-array and .push would throw.
-      const phase = PHASES.includes(job.spec?._phase)
-        ? job.spec._phase
-        : "main";
-      jobsByPhase[phase].push(job);
+      jobsByPhase[phaseOf(job.spec)].push(job);
     }
     // Routed specs are conceptually main-phase work too, so bucket them by the
     // same `_phase` and run each phase's routed specs right after that phase's
     // flat jobs. This keeps #377's ordering guarantee intact under routing: all
-    // `beforeAny` work (flat + routed) finishes before any `main` test, and all
+    // `beforeAll` work (flat + routed) finishes before any `main` test, and all
     // `afterAll` work runs after every `main` test — a routed main spec can't
     // slip past the teardown. Within a phase, routed specs still run
     // sequentially AFTER the flat jobs (unchanged relative order), reusing the
@@ -2248,18 +2264,15 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // in order with test-level routing evaluated between them; the sequencer
     // only pushes onto the already-registered specReport — it never touches the
     // summary (Phase-3 below remains the sole tally site). With no
-    // beforeAny/afterAll specs (the common case) this is identical to running
+    // beforeAll/afterAll specs (the common case) this is identical to running
     // the main flat pool and then every routed spec.
     const routedByPhase: { [phase: string]: typeof routedSpecs } = {
-      beforeAny: [],
+      beforeAll: [],
       main: [],
       afterAll: [],
     };
     for (const entry of routedSpecs) {
-      const phase = PHASES.includes(entry.spec?._phase)
-        ? entry.spec._phase
-        : "main";
-      routedByPhase[phase].push(entry);
+      routedByPhase[phaseOf(entry.spec)].push(entry);
     }
     for (const phase of PHASES) {
       if (limit > 1) {
@@ -2474,7 +2487,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
  *     next test. This is the FAIL default, so a FAILing test with no handler
  *     does NOT stop its siblings — exactly like the flat pool.
  *   - `stop:spec`  -> stop the spec's remaining tests (recorded SKIPPED).
- *   - `stop:run`   -> deferred this phase: warn once per spec and treat as `spec`.
  *
  * goToTest jumps the cursor to the target test within this spec (first-occurrence
  * wins). An unknown target emits a FAIL marker and stops; a runaway cycle is
@@ -2531,11 +2543,9 @@ async function runRoutedSpec({
     runHasDisplayRecording: boolean;
   };
 }): Promise<void> {
-  // Set once a `stop:spec` (or deferred `stop:run`) decision halts the spec; the
-  // remaining tests are recorded SKIPPED with the stop reason and not executed.
+  // Set once a `stop:spec` decision halts the spec; the remaining tests are
+  // recorded SKIPPED with the stop reason and not executed.
   let stopRest = false;
-  // Warn only once per spec if a deferred `stop:run` is encountered.
-  let warnedRunStop = false;
   // Map testId -> first index within this spec, for `goToTest` jumps.
   // First-occurrence wins (testIds aren't guaranteed unique within a spec),
   // mirroring the step loop's `indexByStepId`.
@@ -2753,7 +2763,7 @@ async function runRoutedSpec({
     testReport.result = testResult;
     // Spec-guard skip SUBSUMES routing: a spec whose `if` was false never ran,
     // so its tests are SKIPPED with the spec-guard reason and their onSkip
-    // handlers must NOT change flow (no stopRest, no deferred stop:run warning).
+    // handlers must NOT change flow (no stopRest).
     // Only evaluate test-level routing for a reached spec.
     if (!specGuardSkip) {
       const decision = await resolveTestRouting({
@@ -2766,18 +2776,6 @@ async function runRoutedSpec({
 
       if (decision.action === "stop") {
         if (decision.scope === "spec") {
-          stopRest = true;
-        } else if (decision.scope === "run") {
-          // DEFER a true run-stop this phase: warn once PER SPEC (the flag is
-          // scoped to this runRoutedSpec call) and treat as spec.
-          if (!warnedRunStop) {
-            log(
-              config,
-              "warning",
-              `Test '${test.testId}': routing requested 'stop: run', which is not yet implemented at test scope — treating it as 'stop: spec' (stopping this spec's remaining tests).`
-            );
-            warnedRunStop = true;
-          }
           stopRest = true;
         }
         // scope === "test": no-op — the test already finished; continue to the
@@ -3819,9 +3817,9 @@ function resolveAutoScreenshot({
  * `stop` and `goToStep` are the meaningful decisions for a skipped step; the
  * caller applies them. `continue` is the no-op default, and `retry` is
  * meaningless for a step that never ran (there is nothing to re-run) — both
- * leave execution flowing. (An in-runner SKIPPED *result* from a step that DID
- * run — e.g. a no-op action — goes through the normal retry loop, where its
- * onSkip `retry` would re-run it.) `skipRetry` is passed so a `retry` entry is
+ * leave execution flowing. (A step whose action returned SKIPPED — e.g.
+ * `wait: false` — goes through the normal retry loop, where its onSkip `retry`
+ * re-runs it.) `skipRetry` is passed so a `retry` entry is
  * treated as a non-match and a later `goToStep`/`stop` entry can apply.
  */
 async function resolveStepSkipRouting(
@@ -3910,6 +3908,21 @@ function buildAutoRecordStep({
   };
 }
 
+// A context's `screenshots/` folder in the run folder, which creates the run
+// folder. Auto screenshots and URL-reference captures (ADR 01173) land here.
+function contextScreenshotsDir({ config, spec, test, context }: { config: any; spec: any; test: any; context: any }) {
+  return path.join(
+    getRunOutputDir(config),
+    "specs",
+    capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
+    "tests",
+    capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
+    "contexts",
+    capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
+    "screenshots"
+  );
+}
+
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
 // path follows the REST resource tree — stable IDs (spec/test/context) as
 // nested collections plus the step's order, action, and ID (e.g.
@@ -3939,20 +3952,7 @@ async function captureAutoScreenshot({
 }): Promise<string | null> {
   try {
     const runDir = getRunOutputDir(config);
-    const dir = path.join(
-      runDir,
-      "specs",
-      capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
-      "tests",
-      capPathSegment(
-        sanitizeFilesystemName(String(test.testId ?? ""), "test")
-      ),
-      "contexts",
-      capPathSegment(
-        sanitizeFilesystemName(String(context.contextId ?? ""), "context")
-      ),
-      "screenshots"
-    );
+    const dir = contextScreenshotsDir({ config, spec, test, context });
     const fileName = stepArtifactFileName({
       step,
       stepIndex,
@@ -4557,6 +4557,15 @@ async function runContext({
         engine: String(mobileWebBrowserName).toLowerCase(),
         driver,
       });
+      // Device browser versions, as far as the session reports them (ADR
+      // 01163); there's no desktop app entry to fall back on.
+      const versions = sessionVersions({ capabilities: driver?.capabilities });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
       /* c8 ignore stop */
     } else if (driverRequired) {
       // Check out a server for this context's lifetime — released in the
@@ -4755,6 +4764,20 @@ async function runContext({
         };
         clog("warning", fellBackNote);
       }
+      // The browser and driver that actually ran, for the report (ADR 01163).
+      // A copy, so the version never feeds back into the context's settings.
+      const versions = sessionVersions({
+        capabilities: driver?.capabilities,
+        app: availableApps.find(
+          (app: any) => app.name === normalizeBrowserName(startedName)
+        ),
+      });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
 
       // Multi-surface Phase 4 (ADR 01019): register the default session in the
       // context's session registry under its engine name, so it resolves like
@@ -4871,6 +4894,10 @@ async function runContext({
         step.stepId = stepId;
       }
       usedStepIds.add(step.stepId);
+      // After the ID, which hashes the authored step: steps that never run
+      // still report their effective form (ADR 01167).
+      useEffectiveStep(step);
+      placeCapturePaths(step, config);
     }
     // Map each stepId to its index for `goToStep` jumps (first occurrence wins,
     // so a duplicated stepId routes to the earliest one).
@@ -5083,6 +5110,7 @@ async function runContext({
           options: {
             openApiDefinitions: context.openApi || [],
             annotationTheme,
+            screenshotsDir: () => contextScreenshotsDir({ config, spec, test, context }),
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -5101,7 +5129,12 @@ async function runContext({
         // and `r` is the runStep result — neither may clobber the timing.
         // On retry the loop below discards this report wholesale, so the
         // surviving value is the FINAL attempt's, per ADR 01083.
-        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
+        return {
+          ...step,
+          ...r,
+          startedAt: new Date(stepStart).toISOString(),
+          durationMs: Date.now() - stepStart,
+        } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -5223,20 +5256,14 @@ async function runContext({
       pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
-      // `stop` halts the remaining steps in this context (`spec`/`run` scope —
-      // skipping later tests/specs — is deferred to the test-routing phase);
+      // `stop` halts the remaining steps in this context (the step schema
+      // allows only `stop: "test"`, ADR 01168);
       // `goToStep` jumps the cursor to the target step. flow != verdict: a
       // FAILed step routed `continue`/`goToStep` still leaves the test FAILed
       // via rollUpResults. EXCEPTION: a cleanup (`_fromAfter`) step never stops
       // execution — cleanup is best-effort and must not cascade-skip later
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
-        if (routingDecision.scope !== "test") {
-          clog(
-            "warning",
-            `Routing stop scope '${routingDecision.scope}' is not yet propagated beyond the current test; it currently behaves as 'test'. Later tests/specs are not skipped.`
-          );
-        }
         stepExecutionFailed = true;
         // Preserve the historical wording when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.
@@ -5501,6 +5528,7 @@ async function runContextWithRetries(
     const start = Date.now();
     const report = await runContextFn(a);
     if (report && typeof report === "object") {
+      report.startedAt = new Date(start).toISOString();
       report.durationMs = Date.now() - start;
     }
     return report;
@@ -5617,6 +5645,7 @@ async function stopAllRecordings({
       contextReport.steps.push({
         ...stopRecordStep,
         ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     } catch (error: any) {
@@ -5628,9 +5657,49 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     }
+  }
+}
+
+// Make a step its effective form, the one validate() returns: shorthand
+// expanded and defaults filled (ADR 01167). In place, so the report that spreads
+// this step echoes it and the runner's markers (`__autoRecord`, the hidden
+// `_fromAfter`) survive. An invalid step stays as it is; its handler says why.
+// validate() leaves a whole-variable action, such as `"goTo": "$NAV"`, as
+// authored, because the variable can hold the whole action object. After
+// substitution, `substituted` normalizes one that's left, an unset variable, as
+// text. That second, literal pass is on purpose. A variable that resolved was
+// normalized by the first pass, and every pass is idempotent, so the second
+// changes only an unset variable's text.
+function useEffectiveStep(step: any, { substituted = false } = {}) {
+  const authored = Object.fromEntries(Object.entries(step).filter(([key]) => !key.startsWith("__")));
+  const validation = validate({ schemaKey: "step_v3", object: authored });
+  if (!validation.valid) return;
+  if (substituted) normalize("step_v3", validation.object, { literal: true });
+  Object.assign(step, validation.object);
+}
+
+// Place a capture's relative path under its `directory`, else outputDir, in
+// place (ADR 01173). That's a file the normalizer named for its step, or a path
+// with no spec file behind it: a path written in a spec file is already
+// absolute. A URL stays. A path or directory with a `$VAR` in it waits: the
+// pass before substitution would bake the variable's name into an absolute
+// path that the pass after it then skips. One still unset after substitution
+// stays relative, and the handler reports it.
+function placeCapturePaths(step: any, config: any) {
+  for (const capture of [step.screenshot, step.record]) {
+    const file = capture?.path;
+    if (typeof file !== "string" || path.isAbsolute(file) || /^https?:\/\//i.test(file)) continue;
+    if (hasVariable(file) || hasVariable(capture.directory)) continue;
+    // A spec file's `directory` is already absolute (resolvePaths ran during
+    // detection), so path.resolve drops outputDir and the file goes in that
+    // directory. outputDir applies only when `directory` is unset or relative: a
+    // runner-named capture, or a getRunner() step. An unset `directory` is an
+    // empty segment, which path.resolve skips.
+    capture.path = path.resolve(config?.outputDir ?? ".", capture.directory ?? "", file);
   }
 }
 
@@ -5659,6 +5728,11 @@ async function runStep({
   let actionResult: any;
   // Load values from environment variables
   step = replaceEnvs(step);
+  // Not a redundant re-validation. validate() leaves a whole-variable value such
+  // as "goTo": "$URL" as authored, so this pass normalizes it now that it's
+  // substituted. It also normalizes the authored steps getRunner() callers pass.
+  useEffectiveStep(step, { substituted: true });
+  placeCapturePaths(step, config);
   if (typeof step.click !== "undefined") {
     actionResult = await clickElement({
       config: config,
@@ -5901,6 +5975,7 @@ async function runStep({
       processRegistry,
       surfaceTracker,
       annotationTheme: options?.annotationTheme,
+      screenshotsDir: options?.screenshotsDir,
     });
   } else if (typeof step.annotate !== "undefined") {
     actionResult = await annotate({
@@ -6081,7 +6156,10 @@ async function spawnAppiumServer(
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      // Appium finds its drivers through APPIUM_HOME and its own module paths,
+      // so cwd is incidental. An unknown package root (undefined) makes spawn
+      // use process.cwd(), which still runs; failing here would only add a failure.
+      cwd: packageRoot(),
       env,
     }
   );
@@ -6513,7 +6591,9 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      // As in spawnAppiumServer: cwd is incidental to Appium, so an unknown
+      // package root (undefined) lets spawn use process.cwd() rather than fail.
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)

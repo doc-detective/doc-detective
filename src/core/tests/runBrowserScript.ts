@@ -44,20 +44,8 @@ async function runBrowserScript({
     result.description = `Invalid step definition: ${isValidStep.errors}`;
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: shorthand expanded and defaults filled (ADR 01167).
   step = isValidStep.object;
-  // Resolve to object
-  if (typeof step.runBrowserScript === "string") {
-    step.runBrowserScript = { script: step.runBrowserScript };
-  }
-  // Set default values
-  step.runBrowserScript = {
-    ...step.runBrowserScript,
-    args: step.runBrowserScript.args || [],
-    maxVariation: step.runBrowserScript.maxVariation || 0,
-    overwrite: step.runBrowserScript.overwrite || "aboveVariation",
-    timeout: step.runBrowserScript.timeout || 60000,
-  };
 
   // A browser script is meaningless without a live page.
   if (!driver || typeof driver.execute !== "function") {

@@ -150,13 +150,16 @@ describe("browserSessions: registration", function () {
     );
   });
 
-  it("allows a session named after its own engine keyword (incl. edge≡chrome)", function () {
+  it("allows a session named after its own engine keyword", function () {
     const { registry } = stubRegistry();
     // Own engine keyword — the default-session case — is fine.
     registerSession(registry, { name: "chrome", engine: "chrome", driver: stubDriver() });
-    // edge normalizes to chrome, so an edge alias for a chrome session is allowed.
-    registerSession(registry, { name: "edge", engine: "chrome", driver: stubDriver() });
     assert.ok(lookupSessionByName(registry, "chrome"));
+  });
+
+  it("lets any session take the name edge, which isn't an engine keyword (ADR 01172)", function () {
+    const { registry } = stubRegistry();
+    registerSession(registry, { name: "edge", engine: "firefox", driver: stubDriver({ engine: "firefox" }) });
     assert.ok(lookupSessionByName(registry, "edge"));
   });
 });
@@ -185,26 +188,6 @@ describe("browserSessions: openSession (Phase 6 explicit opener)", function () {
     assert.equal(launches[0].engine, "firefox");
     assert.equal(launches[0].overrides.headless, true);
     assert.deepEqual(launches[0].overrides.size, { width: 800, height: 600 });
-  });
-
-  it("normalizes edge -> chrome for the launcher, the registered engine, and the default name", async function () {
-    const { openSession } = await import(
-      "../dist/core/tests/browserSessions.js"
-    );
-    const launches = [];
-    const registry = createSessionRegistry({
-      open: async (engine) => {
-        launches.push(engine);
-        return stubDriver({ engine });
-      },
-    });
-    const res = await openSession(registry, { engine: "edge" });
-    assert.equal(res.ok, true);
-    // Launcher receives the normalized engine (edge is Chromium)...
-    assert.deepEqual(launches, ["chrome"]);
-    // ...and the session registers/names as chrome (edge omitted a name).
-    assert.equal(res.name, "chrome");
-    assert.equal(lookupSessionByName(registry, "chrome").engine, "chrome");
   });
 
   it("defaults the session name to the engine keyword", async function () {
@@ -334,13 +317,8 @@ describe("browserSessions: resolveSessionForRef", function () {
     assert.equal(result.driver, shopper);
   });
 
-  it("treats edge as chrome for the engine fallback (context normalization)", async function () {
-    const { registry } = stubRegistry();
-    const chrome = stubDriver({ engine: "chrome" });
-    registerSession(registry, { name: "main", engine: "chrome", driver: chrome });
-    const result = await resolveSessionForRef(registry, parseSurfaceRef("edge"));
-    assert.equal(result.ok, true);
-    assert.equal(result.driver, chrome);
+  it("reads a bare edge as a process name, not a browser (ADR 01172)", function () {
+    assert.deepEqual(parseSurfaceRef("edge"), { kind: "process", name: "edge" });
   });
 
   it("fails an ambiguous engine reference naming the candidates", async function () {

@@ -822,6 +822,24 @@ describe("stopRecording: device (appium) handles", function () {
     assert.equal(host.state.recordings.length, 0);
   });
 
+  it("reads the target's extension in any case (.MP4)", async function () {
+    const payload = Buffer.from("fake-device-video");
+    const target = path.join(tmpDir, "Demo.MP4");
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => payload.toString("base64") },
+      targetPath: target,
+    };
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: hostWith([handle]),
+    });
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(fs.readFileSync(target), payload);
+    assert.equal(result.outputs.format, "mp4");
+  });
+
   it("reports probe-derived metadata outputs for a real mp4 target", async function () {
     const samplePath = path.join(tmpDir, "sample.mp4");
     await generateSampleMp4(samplePath);

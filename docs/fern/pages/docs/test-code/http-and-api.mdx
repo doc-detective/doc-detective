@@ -65,7 +65,7 @@ To use a method other than `GET`, or to send headers, query parameters, or a bod
 
 A request that returns a response isn't necessarily a request that returned the *right* response. Tighten the step with response expectations.
 
-- Set `statusCodes` to the codes you accept. The step fails if the response code isn't in the list. The default is `[200]`, so set it explicitly when you expect something else, such as `201` for a created resource.
+- Set `statusCodes` to one code or an array of codes. The step fails if the response code isn't one of them. The default is `[200, 201]`. A step that uses `openApi` and doesn't set `statusCodes` accepts the operation's `2xx` response codes instead. Set `statusCodes` when you expect another code, such as `204` for a deleted resource, or to accept only one code. The example below sets `[201]`, so a `200` fails the step.
 - Set `response.body` to assert specific values.
 - Set `response.required` to assert that fields exist without pinning their values. That suits timestamps, IDs, and tokens that change every run.
 
@@ -183,11 +183,11 @@ Each request that returned an acceptable status code and matched its response ex
 
 ## Troubleshooting
 
-### The step fails on a `201` (or other non-`200`) response
+### The step fails on a successful response other than `200` or `201`
 
-**Cause:** `statusCodes` defaults to `[200]`, so any other code fails the step even when the request succeeded.
+**Cause:** `statusCodes` defaults to `[200, 201]`, so any other code fails the step even when the request succeeded. A step that uses `openApi` and doesn't set `statusCodes` accepts the operation's `2xx` response codes instead.
 
-**Solution:** Set `statusCodes` to the codes your endpoint returns, such as `[201]` for a created resource.
+**Solution:** Set `statusCodes` to the codes your endpoint returns, such as `[204]` for a deleted resource.
 
 ### A response field changes every run and breaks the assertion
 
