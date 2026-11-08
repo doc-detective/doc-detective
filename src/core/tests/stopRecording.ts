@@ -909,6 +909,7 @@ async function saveBrowserRecording({
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, Buffer.alloc(0));
     for (let start = 0; start < size; start += chunkSize) {
+      const end = Math.min(start + chunkSize, size);
       const base64 = await driver.execute(
         async (from: number, to: number) =>
           new Promise<string>((resolve, reject) => {
@@ -918,9 +919,12 @@ async function saveBrowserRecording({
             reader.readAsDataURL((window as any).__ddRecording.slice(from, to));
           }),
         start,
-        Math.min(start + chunkSize, size)
+        end
       );
-      fs.appendFileSync(filePath, Buffer.from(String(base64), "base64"));
+      if (typeof base64 !== "string" || base64.length === 0) {
+        return fail(`the browser sent no data for bytes ${start} to ${end}`);
+      }
+      fs.appendFileSync(filePath, Buffer.from(base64, "base64"));
     }
     const written = fs.statSync(filePath).size;
     if (written !== size) return fail(`the browser sent ${written} of ${size} bytes`);

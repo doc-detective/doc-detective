@@ -79,8 +79,8 @@ Chosen option: **A**.
   instead. A context launches headless unless `headless` is `false`, so
   an omitted `headless` counts as headless here too. Safari has no headless mode, so it's never skipped this way.
 - A failed copy of the browser recording still closes the recorder tab, restores focus, and removes any partial
-  file. Its message names the cause: the browser didn't finish within 20 seconds, recorded no video, or sent too
-  few bytes, or the copy failed.
+  file. Its message names the cause. The browser didn't finish within 20 seconds, recorded no video, or sent an
+  empty chunk or too few bytes, or the copy failed.
 
 ### Checks made while deciding
 
