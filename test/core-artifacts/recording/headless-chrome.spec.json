@@ -1,6 +1,6 @@
 {
   "specId": "recording-headless-chrome",
-  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar shortens the page while a tab is captured, so the video is the viewport's width and up to the viewport's height, never tab capture's 800x600 default.",
+  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar shortens the page while a tab is captured, so the video is the viewport's width and up to the viewport's height, never tab capture's 800x600 default. Headless Chrome renders at a device pixel ratio of 1, so the viewport's CSS size is the video's pixel size; headed Chrome on a high-DPI screen records at device pixels, so its permutation asserts no size.",
   "tests": [
     {
       "testId": "headless-chrome-auto-engine",
@@ -159,7 +159,7 @@
     },
     {
       "testId": "headed-chrome-browser-engine",
-      "description": "Headed Chrome still records with the browser engine.",
+      "description": "Headed Chrome still records with the browser engine. Not on Linux, where the fixture jobs have no display for a headed browser.",
       "runOn": [
         {
           "platforms": [
