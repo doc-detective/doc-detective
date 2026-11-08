@@ -378,7 +378,7 @@ describe("Util tests", function () {
     const configOn = await setConfig({ configPath: null, args: argsOn });
     expect(configOn.autoUpdate).to.equal(true);
 
-    // Schema default is true; absent flag yields true via AJV useDefaults.
+    // No schema default: an absent flag leaves the key unset, which the runner treats as on.
     // CI sets DOC_DETECTIVE_SKIP_AUTO_UPDATE, which would turn it off (ADR 01165).
     const skip = process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE;
     delete process.env.DOC_DETECTIVE_SKIP_AUTO_UPDATE;
@@ -413,7 +413,7 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.exitOnFail).to.equal(false);
 
-    // Schema default is true; absent flag yields true via AJV useDefaults.
+    // No schema default: an absent flag leaves the key unset, which the runner treats as on.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.exitOnFail).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
@@ -453,7 +453,7 @@ describe("Util tests", function () {
     expect(absent.autoScreenshot).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-screenshot on config.autoScreenshot and applies schema default when absent", async function () {
+  it("setConfig stores --auto-screenshot on config.autoScreenshot and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -463,11 +463,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoScreenshot).to.equal(false);
 
-    // Schema default is true; absent flag yields true via AJV useDefaults.
+    // No schema default: an absent flag leaves the key unset, which the runner treats as on.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoScreenshot).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoScreenshot).to.equal(false);
+    expect(configAbsent.autoScreenshot).to.equal(undefined);
   });
 
   it("CLI parses --auto-record / --no-auto-record as boolean", function () {
@@ -481,7 +481,7 @@ describe("Util tests", function () {
     expect(absent.autoRecord).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+  it("setConfig stores --auto-record on config.autoRecord and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -491,11 +491,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoRecord).to.equal(false);
 
-    // Schema default is true; absent flag yields true via AJV useDefaults.
+    // No schema default: an absent flag leaves the key unset, which the runner treats as on.
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoRecord).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoRecord).to.equal(false);
+    expect(configAbsent.autoRecord).to.equal(undefined);
   });
 
   it("CLI parses --cache-dir as a string", function () {
