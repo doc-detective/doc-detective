@@ -81,7 +81,9 @@ function plainDefaults(node: any, prefix = ""): [string, any][] {
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
     const path = prefix + key;
     if ("default" in property) return [[path, property.default]];
-    if (property.type === "object" && !property.required && !property.anyOf) return plainDefaults(property, `${path}.`);
+    if (property.type === "object" && !property.required && !property.anyOf && !property.oneOf) {
+      return plainDefaults(property, `${path}.`);
+    }
     return [];
   });
 }

@@ -7,7 +7,7 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { validate, schemas } from "../dist/index.js";
 import { normalize, normalizers, NormalizeError } from "../dist/normalize/index.js";
-import { _resetWarnedForTest, isWholeVariable, passthrough, renameAliases } from "../dist/normalize/helpers.js";
+import { _resetWarnedForTest, applyDefaults, isWholeVariable, passthrough, renameAliases } from "../dist/normalize/helpers.js";
 
 const SRC_SCHEMAS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "schemas", "src_schemas");
 const effective = (object, schemaKey = "step_v3") => validate({ schemaKey, object });
@@ -627,6 +627,30 @@ describe("normalization", function () {
       expect(result.object).to.not.equal(object);
       expect(result.object.goTo).to.deep.equal(GO_TO);
     });
+  });
+
+  describe("plain defaults", function () {
+    // A probe action per case, so the rule is tested on a shape no real schema
+    // has yet. Each needs its own name: applyDefaults caches by action.
+    for (const union of ["anyOf", "oneOf"]) {
+      const probe = `${union}Probe`;
+      afterEach(function () {
+        delete schemas[`${probe}_v3`];
+      });
+
+      it(`leaves defaults in a nested object with a ${union} to the normalizer`, function () {
+        schemas[`${probe}_v3`] = {
+          properties: {
+            nested: {
+              type: "object",
+              [union]: [{ required: ["a"] }, { required: ["b"] }],
+              properties: { a: { type: "integer", default: 1 }, b: { type: "integer", default: 2 } },
+            },
+          },
+        };
+        expect(applyDefaults({}, probe)).to.deep.equal({});
+      });
+    }
   });
 
   describe("the registry", function () {
