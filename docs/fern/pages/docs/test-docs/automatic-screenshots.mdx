@@ -20,6 +20,8 @@ The steps in this guide work the same in every authoring style. Write them in a 
 
 Turn on `autoScreenshot` to build a visual record without adding a `screenshot` step to every part of a test. Doc Detective then captures a screenshot after every browser-driven step. Unlike video recording, screenshots (including `autoScreenshot`) capture fine in a headless or CI context, so this works on a headless runner. Automatic screenshots capture an image after every step but don't compare it against a reference. To gate on drift, add an explicit `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
 
+Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
 Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
 
 ```json title="config.json"

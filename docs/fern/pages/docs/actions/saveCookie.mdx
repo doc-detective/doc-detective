@@ -8,6 +8,8 @@ The `saveCookie` action saves a browser cookie to a file or environment variable
 
 Reload saved cookies with the [`loadCookie`](/docs/actions/loadcookie) action.
 
+A cookie file holds the real cookie value, because `loadCookie` reads it back. Unlike the output files that `runShell` and `httpRequest` save with `path`, it isn't masked. An authentication cookie works like a password. Add the cookie file's folder (`directory`, or `outputDir` by default) to `.gitignore`, and leave it out of uploaded CI artifacts. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 > For comprehensive options, see the [`saveCookie`](/reference/schemas/savecookie) reference.
 
 ## Use cases
