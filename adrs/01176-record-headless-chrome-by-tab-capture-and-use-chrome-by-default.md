@@ -98,12 +98,6 @@ Chosen option: **A**.
   encoded frame predates the bar, the transcode scales the shorter frames to the first frame's size. A video can
   then come out at the full viewport height, slightly stretched. Headed recordings already behaved this way. Fixtures
   assert the viewport's width and a height no taller than the viewport, not an exact height.
-- **The bar and screenshots (Chrome 157).** On Chrome 157 the bar also takes its height off the page that
-  screenshots capture. `saveScreenshot` doesn't resize to a reference while a recording runs. So a recorded
-  context's screenshots came out shorter than their references, and failed the aspect-ratio check. Once the capture
-  starts, and again once it stops, the runner now waits for the viewport to settle. It then resizes the window
-  back to the session's size (`restoreSessionViewport`), so screenshots keep that size while recording. An
-  authored `window` size is left alone, since it sizes the window, not the viewport.
 - **Headed Chrome with both flags (DB4).** Headed Chrome already captures a tab: with
   `--auto-select-desktop-capture-source` alone the source is a `web-contents-media-stream`, not a window. With both
   flags it records the same way on Windows. Whether the tab flag removes the need for macOS Screen Recording
@@ -123,8 +117,7 @@ Chosen option: **A**.
   upgrade guide says to name `firefox` to keep it.
 - Bad: a `record` context that named no browser used to run headed. It now runs headless, so a reference video or
   checkpoint taken headed can differ.
-- Neutral: Chrome's tab-sharing bar shows during a recording, as it already did headed. The runner grows the
-  window by the bar's height, so the viewport keeps the session's size.
+- Neutral: Chrome's tab-sharing bar shortens the viewport during a recording, as it already did headed.
 
 ### Confirmation
 
