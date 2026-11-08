@@ -7,7 +7,9 @@
 // so its files never run as fixtures themselves. It runs the real CLI there at
 // `-l debug` with `-o results.json`, then checks that each listed value is
 // absent from stdout, stderr, and the results file, and that each listed text
-// is present in the results file. Exits 1 on any mismatch.
+// is present in the results file. A case with `runs` runs the CLI that many
+// times and checks the last run; `saved` names files a step saved and the
+// content each must hold. Exits 1 on any mismatch.
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -117,6 +119,20 @@ const cases = {
     hidden: [ENCODED, encodeURIComponent(ENCODED), Buffer.from(`x${ENCODED}y`).toString("base64")],
     shown: ['"stdout": "***DD_FIXTURE_ENC_TOKEN***"'],
   },
+  "path-save-and-compare": {
+    // The first run saves masked output; the second compares masked against
+    // masked, so maxVariation 0 still passes.
+    files: {
+      "mask.spec.json": spec([
+        { runShell: { command: "echo saved $DD_FIXTURE_REF", path: "saved.txt", maxVariation: 0, overwrite: "false" } },
+      ]),
+    },
+    env: { DD_FIXTURE_REF: REF },
+    runs: 2,
+    hidden: [REF, '"result": "WARNING"'],
+    shown: ['"variation": 0'],
+    saved: { "saved.txt": "saved ***DD_FIXTURE_REF***" },
+  },
   "basic-auth-echo": {
     // The 8092 test server echoes the Authorization header as x-echo-authorization.
     files: {
@@ -156,12 +172,15 @@ const env = {
 for (const key of ["DOC_DETECTIVE_DEBUG", "DEBUG", "DOC_DETECTIVE"]) delete env[key];
 
 const args = [...(c.args ?? ["-i", "mask.spec.json"]), "-l", "debug", "-o", "results.json"];
-const run = spawnSync(process.execPath, [path.join(root, "bin", "doc-detective.js"), ...args], {
-  cwd: dir,
-  env,
-  encoding: "utf8",
-  timeout: 120_000,
-});
+let run;
+for (let i = 0; i < (c.runs ?? 1); i++) {
+  run = spawnSync(process.execPath, [path.join(root, "bin", "doc-detective.js"), ...args], {
+    cwd: dir,
+    env,
+    encoding: "utf8",
+    timeout: 120_000,
+  });
+}
 const fail = (message) => {
   console.error(`Case ${name}: ${message}`);
   console.error(`stderr: ${run.stderr}`);
@@ -177,4 +196,8 @@ for (const value of c.hidden) {
   }
 }
 for (const text of c.shown) if (!results.includes(text)) fail(`results.json doesn't include ${JSON.stringify(text)}.`);
+for (const [file, expected] of Object.entries(c.saved ?? {})) {
+  const content = fs.readFileSync(path.join(dir, file), "utf8");
+  if (content.trim() !== expected) fail(`${file} holds ${JSON.stringify(content)}, expected ${JSON.stringify(expected)}.`);
+}
 console.log(`Case ${name}: passed.`);

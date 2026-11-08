@@ -135,6 +135,18 @@
       ]
     },
     {
+      "testId": "path-save-and-compare",
+      "description": "A runShell path save holds ***NAME***, and a second run with maxVariation 0 compares masked against masked and passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs path-save-and-compare",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
       "testId": "basic-auth-echo",
       "description": "A Basic auth token the 8092 server echoes back is masked whole, though its password is too short for a base64 needle.",
       "steps": [
