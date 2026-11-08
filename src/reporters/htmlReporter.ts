@@ -676,7 +676,8 @@ main {
   background: var(--dd-paper);
   overflow: hidden;
 }
-.detail-panel .dp-head {
+.detail-panel .dp-head,
+.auto-recording .dp-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px; font-family: var(--font-mono); font-size: 11px;
   color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase;
@@ -760,6 +761,7 @@ main {
   letter-spacing: 0.05em;
 }
 .media-thumb .auto-flag {
+  /* Just above the .cap strip (6px padding twice, an 11px line, a 1px border); change both together. */
   position: absolute; bottom: 34px; left: 6px;
   font-family: var(--font-mono); font-size: 10px; font-weight: 700;
   padding: 2px 6px; border-radius: 3px;
@@ -843,7 +845,8 @@ body.dark .step-detail { background: #0D0E11; border-color: #2A2D34; }
 body.dark .step-detail .result-note { background: #15171B; border-color: #2A2D34; }
 body.dark .step-detail.fail .result-note { background: #2a1414; border-color: #612323; }
 body.dark .step-detail.warn .result-note { background: #2a210a; border-color: #5a4510; }
-body.dark .detail-panel .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
+body.dark .detail-panel .dp-head,
+body.dark .auto-recording .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
 body.dark .detail-panel pre { color: #E6E8EC; }
 body.dark .search-input { background: #15171B; border-color: #3A3F47; color: #F1F3F6; }
 body.dark .search-input input { color: #F1F3F6; }

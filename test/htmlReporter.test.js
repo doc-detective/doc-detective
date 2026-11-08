@@ -348,6 +348,16 @@ describe("HTML Reporter automatic media", function () {
     expect(auto.steps.map((item) => item.step)).to.deep.equal([start]);
   });
 
+  // The "Automatic recording" label is a panel head like the step panels',
+  // in both themes, not plain text.
+  it("styles the automatic recording's head like a panel head", async function () {
+    const outputFile = path.join(tmpDir, "css.html");
+    await outputResults({ autoScreenshot: false, autoRecord: false }, outputFile, sampleResults, { reporters: ["html"] });
+    const html = fs.readFileSync(outputFile, "utf-8");
+    expect(html).to.match(/\.detail-panel \.dp-head,\s*\.auto-recording \.dp-head \{/);
+    expect(html).to.match(/body\.dark \.detail-panel \.dp-head,\s*body\.dark \.auto-recording \.dp-head \{/);
+  });
+
   it("renders a run with no automatic media as before", async function () {
     const { collectMedia, autoRecording } = await pageFunctions({ runDir }, "x");
     const step = { stepId: "s", goTo: { url: "http://x" } };
