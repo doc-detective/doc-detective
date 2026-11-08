@@ -17,6 +17,8 @@ import {
   parseCaptureFrameSize,
   getFfmpegPath,
   detectMacScreenIndex,
+  preflightKey,
+  recordingFailureCause,
   detectX11ScreenSize,
 } from "./ffmpegRecorder.js";
 import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
@@ -51,7 +53,36 @@ const BROWSER_DISPLAY_NAMES: Record<string, string> = {
 // `appSession` resolves app-surface record targets (phase A7). `deps` is a
 // test seam for the ffmpeg spawn path (same pattern as startAppSurface's
 // serverDeps); production callers omit it.
-async function startRecording({
+async function startRecording(args: Parameters<typeof beginRecording>[0]) {
+  const result = await beginRecording(args);
+  if (!args.step?.__autoRecordDefaulted) return result;
+  // A recording autoRecord added while unset never fails a test: a start
+  // failure after a passing preflight is SKIPPED, naming the off switch
+  // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL. The handle
+  // remembers, so stopping it can't FAIL either (stopRecording).
+  if (result.status === "FAIL") {
+    result.status = "SKIPPED";
+    result.description = `Skipped: couldn't start the automatic recording: ${recordingFailureCause(
+      result.description
+    )}. Set \`autoRecord: false\` to turn it off.`;
+  } else if (result.recording) {
+    result.recording.defaulted = true;
+  }
+  return result;
+}
+
+// The skip for a recording whose engine failed the run's preflight
+// (ADR 01177, DA4), or null when it passed or never ran. Android device
+// recordings answer to no check (preflightKey).
+function preflightSkip(context: any, engine: string): string | null {
+  const key = preflightKey(engine, context?.platform);
+  const check = key ? context?.__recordingPreflight?.[key] : undefined;
+  return check && check.ok === false
+    ? `Skipped: ${check.reason}. To record, ${check.fix}, and rerun.`
+    : null;
+}
+
+async function beginRecording({
   config,
   context,
   step,
@@ -77,8 +108,11 @@ async function startRecording({
   };
 
   // Validate step payload
-  // `__autoRecord` is the runner's own marker, and step_v3 rejects unknown keys.
-  const { __autoRecord: _autoRecord, ...authoredStep } = step;
+  // `__autoRecord` and `__autoRecordDefaulted` are the runner's own markers,
+  // and step_v3 rejects unknown keys.
+  const authoredStep = Object.fromEntries(
+    Object.entries(step).filter(([key]) => !key.startsWith("__"))
+  );
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
@@ -270,6 +304,12 @@ async function startRecording({
   // ffmpeg display mutex. The video arrives base64 on stopRecordingScreen;
   // stopRecording writes/transcodes it to the target path.
   if (plan.name === "device") {
+    const skipped = preflightSkip(context, "device");
+    if (skipped) {
+      result.status = "SKIPPED";
+      result.description = skipped;
+      return result;
+    }
     // Recording driver: the targeted app surface's driver, the device browser
     // session (mobile web), the ACTIVE app surface's session (omit surface =>
     // act on the active surface — with several devices open, "first device
@@ -355,6 +395,13 @@ async function startRecording({
       "A browser-engine recording is already active in this context; recording this one with the ffmpeg engine (viewport target) instead, since only one browser-engine recording can run at a time."
     );
     plan = { name: "ffmpeg", target: "viewport", fps: plan.fps };
+  }
+
+  const skipped = preflightSkip(context, plan.name);
+  if (skipped) {
+    result.status = "SKIPPED";
+    result.description = skipped;
+    return result;
   }
 
   if (plan.name === "browser") {

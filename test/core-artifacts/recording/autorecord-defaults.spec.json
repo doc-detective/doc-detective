@@ -1,0 +1,71 @@
+{
+  "specId": "recording-autorecord-defaults",
+  "description": "The autoRecord default per context (ADR 01177). The group config sets autoRecord false (DA8), and a spec can't unset a key, so each test runs one case of cli/auto-capture.cjs: a nested doc-detective run with no auto-capture keys, in .tmp/fac/<case>/. Headed Chrome and Firefox record with ffmpeg where the host can capture, and a host that can't adds no step and still passes; headless Firefox runs headed where the host can capture; headless Chrome with an authored record keeps only the author's; false records nothing.",
+  "tests": [
+    {
+      "testId": "headed-chrome",
+      "description": "Unset in a headed Chrome context: an ffmpeg MP4 where the host can capture.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headed-chrome-record",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "headed-firefox",
+      "description": "Unset in a headed Firefox context: an ffmpeg MP4 where the host can capture.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headed-firefox-record",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "headless-firefox",
+      "description": "Unset in a headless Firefox context: run headed and recorded where the host can capture.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headless-firefox",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "headless-chrome-authored-record",
+      "description": "Headless Chrome with an authored record: one recording, the author's.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headless-chrome-authored-record",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "autorecord-false",
+      "description": "autoRecord false: no automatic recording.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs autorecord-false",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "specId": "recording-record-preflight",
+  "description": "The recording preflight (ADR 01177, DA4) on an authored ffmpeg record in a headed context. Where the host can capture the screen, it records and PASSes. Where it can't (no desktop session, no macOS Screen Recording permission, no display or Xvfb on Linux), the record step is SKIPPED with the fix, never FAILed. Both satisfy the fixture gate.",
+  "tests": [
+    {
+      "testId": "record-preflight-ffmpeg",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "record-preflight.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}

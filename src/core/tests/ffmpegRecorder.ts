@@ -49,7 +49,232 @@ export {
   stopRecordTargetName,
   selectRecordingToStop,
   detectRecordingNameConflict,
+  recordingPreflight,
+  planRecordingPreflight,
+  createRecordingProbes,
+  frameProbeArgs,
+  macScreenStatus,
+  preflightKey,
+  recordingFailureCause,
 };
+export type { RecordingPreflightResult, RecordingProbes };
+
+// A recording failure's cause, without its own "Couldn't … recording" lead or
+// final period, for a sentence that already says what failed: an automatic
+// recording's SKIP (ADR 01177).
+function recordingFailureCause(description: any): string {
+  const text = String(description ?? "").trim();
+  const cause = text
+    .replace(/^Couldn't [a-z]+ (?:the )?(?:\w+ )?recording[.:]?\s*/i, "")
+    .replace(/\.\s*$/, "");
+  return cause || text.replace(/\.\s*$/, "");
+}
+
+// The preflight entry a recording engine answers to in a context, or null for
+// none. Android records with adb and writes the MP4 itself, so a broken ffmpeg
+// mustn't drop its recordings; iOS encodes with ffmpeg on the Appium server.
+function preflightKey(engine: string, contextPlatform?: string): string | null {
+  return engine === "device" && contextPlatform === "android" ? null : engine;
+}
+
+// ---------------------------------------------------------------------------
+// Recording preflight (ADR 01177, DA3/DA4). Once per run, before any test,
+// check what the planned recordings need on this host. Every probe is
+// injected (RecordingProbes), like appSurfacePreflight's, so each platform's
+// branch is unit-testable anywhere. A failed check doesn't fail a test: an
+// automatic recording that's unset isn't added, and any other recording it
+// applies to is SKIPPED with the fix named.
+// ---------------------------------------------------------------------------
+
+type RecordingPreflightResult =
+  | { ok: true; xvfb?: boolean }
+  | { ok: false; reason: string; fix: string };
+
+type ProbeResult = { ok: boolean; cause?: string };
+
+interface RecordingProbes {
+  // The managed ffmpeg resolves and runs (`ffmpeg -version`).
+  ffmpegVersion: () => Promise<ProbeResult>;
+  // A one-frame capture with the recorder's own input arguments.
+  captureFrame: (platform: string, displayEnv?: string) => Promise<ProbeResult>;
+  // macOS Screen Recording permission; null is inconclusive.
+  macScreenRecording: () => Promise<boolean | null>;
+  // Whether ffmpeg's avfoundation device listing shows a screen: "unknown"
+  // when the listing timed out or couldn't run (macScreenStatus).
+  macScreen: () => Promise<"found" | "none" | "unknown">;
+  hasXvfb: () => Promise<boolean>;
+  display?: string;
+}
+
+// ffmpeg arguments that capture one frame and throw it away: the recorder's
+// own input arguments (buildCaptureArgs), with a null output.
+function frameProbeArgs({
+  platform,
+  displayEnv,
+}: {
+  platform: string;
+  displayEnv?: string;
+}): string[] {
+  const args = buildCaptureArgs({ platform, fps: 1, displayEnv, outputPath: "-" });
+  return [
+    ...args.slice(0, args.indexOf("-pix_fmt")),
+    "-frames:v",
+    "1",
+    "-f",
+    "null",
+    "-",
+  ];
+}
+
+const FFMPEG_FIX = "run `doc-detective install runtime @ffmpeg-installer/ffmpeg`";
+
+// The checks one recording engine needs on `platform` (a process.platform
+// value). `plan` is the engine: "ffmpeg" captures the screen, "browser"
+// transcodes Chrome's WebM, and "device" encodes on iOS. All three need the
+// managed ffmpeg; only "ffmpeg" needs a screen to capture.
+async function recordingPreflight({
+  platform,
+  plan,
+  deps,
+}: {
+  platform: string;
+  plan: string;
+  deps: RecordingProbes;
+}): Promise<RecordingPreflightResult> {
+  const ffmpeg = await deps.ffmpegVersion();
+  if (!ffmpeg.ok) {
+    return {
+      ok: false,
+      reason: `ffmpeg isn't available (${ffmpeg.cause ?? "unknown error"})`,
+      fix: FFMPEG_FIX,
+    };
+  }
+  if (plan !== "ffmpeg") return { ok: true };
+  if (platform === "win32") {
+    const frame = await deps.captureFrame(platform);
+    return frame.ok
+      ? { ok: true }
+      : {
+          ok: false,
+          reason: `ffmpeg can't capture the desktop (${frame.cause ?? "unknown error"})`,
+          fix: "run Doc Detective in a signed-in desktop session, not as a service",
+        };
+  }
+  if (platform === "darwin") {
+    if ((await deps.macScreenRecording()) === false) {
+      return {
+        ok: false,
+        reason:
+          "macOS hasn't given Screen Recording permission to the app that runs Doc Detective",
+        fix: "turn it on in System Settings → Privacy & Security → Screen Recording for your terminal, IDE, or CI runner",
+      };
+    }
+    // Only a completed listing with no screen fails: a timed-out or failed
+    // one is inconclusive, and startRecording falls back to screen 0.
+    if ((await deps.macScreen()) === "none") {
+      return {
+        ok: false,
+        reason: "ffmpeg can't see a screen to capture",
+        fix: "run in a signed-in desktop session",
+      };
+    }
+    return { ok: true };
+  }
+  if (platform === "linux") {
+    const xvfb = await deps.hasXvfb();
+    const display = deps.display
+      ? (await deps.captureFrame(platform, deps.display)).ok
+      : false;
+    return display || xvfb
+      ? { ok: true, xvfb }
+      : {
+          ok: false,
+          reason: "there's no display to capture",
+          fix: "install Xvfb or set DISPLAY",
+        };
+  }
+  return { ok: true };
+}
+
+// Run the preflight for every engine the run plans to record with, sharing
+// each probe across engines so it runs once. No engines, no probes.
+async function planRecordingPreflight({
+  platform,
+  plans,
+  deps,
+}: {
+  platform: string;
+  plans: Set<string>;
+  deps: RecordingProbes;
+}): Promise<Record<string, RecordingPreflightResult>> {
+  const once = <T>(fn: () => Promise<T>) => {
+    let p: Promise<T> | undefined;
+    return () => (p ??= fn());
+  };
+  const frames = new Map<string, Promise<ProbeResult>>();
+  const shared: RecordingProbes = {
+    ...deps,
+    ffmpegVersion: once(deps.ffmpegVersion),
+    captureFrame: (p, d) => {
+      const key = `${p}|${d ?? ""}`;
+      if (!frames.has(key)) frames.set(key, deps.captureFrame(p, d));
+      return frames.get(key)!;
+    },
+    macScreenRecording: once(deps.macScreenRecording),
+    macScreen: once(deps.macScreen),
+    hasXvfb: once(deps.hasXvfb),
+  };
+  const results: Record<string, RecordingPreflightResult> = {};
+  for (const plan of plans) {
+    results[plan] = await recordingPreflight({ platform, plan, deps: shared });
+  }
+  return results;
+}
+
+// The real probes. `macScreenRecording` comes from appSurface.ts (passed in
+// by the runner to keep this module free of that import).
+function createRecordingProbes({
+  cacheDir,
+  macScreenRecording,
+}: {
+  cacheDir?: string;
+  macScreenRecording: () => Promise<boolean | null>;
+}): RecordingProbes {
+  let ffmpegPath: Promise<string> | undefined;
+  const resolveFfmpeg = () => (ffmpegPath ??= getFfmpegPath({ cacheDir }));
+  const run = (args: string[], timeout: number) =>
+    resolveFfmpeg().then(
+      (bin) =>
+        new Promise<ProbeResult>((resolve) => {
+          execFile(bin, args, { timeout }, (error, _stdout, stderr) => {
+            if (!error) return resolve({ ok: true });
+            const lines = String(stderr || error.message)
+              .trim()
+              .split(/\r?\n/);
+            resolve({ ok: false, cause: lines[lines.length - 1] || String(error) });
+          });
+        })
+    );
+  return {
+    ffmpegVersion: () =>
+      run(["-version"], 10000).catch((error: any) => ({
+        ok: false,
+        cause: String(error?.message ?? error),
+      })),
+    captureFrame: (platform, displayEnv) =>
+      run(frameProbeArgs({ platform, displayEnv }), 15000).catch(
+        (error: any) => ({ ok: false, cause: String(error?.message ?? error) })
+      ),
+    macScreenRecording,
+    macScreen: () =>
+      resolveFfmpeg()
+        .then((bin) => listMacDevices(bin))
+        .then(macScreenStatus)
+        .catch(() => "unknown" as const),
+    hasXvfb: () => checkSystemBinary("Xvfb"),
+    display: process.env.DISPLAY,
+  };
+}
 
 // True when the driver has at least one in-progress recording. Recordings now
 // live in `driver.state.recordings` (an array of handles); this keeps the many
@@ -985,6 +1210,22 @@ function parseMacScreenIndex(listing: string): string | null {
 async function detectMacScreenIndex(
   ffmpegPath: string
 ): Promise<string | null> {
+  const listing = await listMacDevices(ffmpegPath);
+  return listing === null ? null : parseMacScreenIndex(listing);
+}
+
+// Whether a device listing shows a screen. "none" only when the listing
+// completed (it names the video devices) without one; a missing or failed
+// listing is "unknown" (ADR 01177).
+function macScreenStatus(listing: string | null): "found" | "none" | "unknown" {
+  if (listing === null) return "unknown";
+  if (parseMacScreenIndex(listing) !== null) return "found";
+  return /AVFoundation video devices/i.test(listing) ? "none" : "unknown";
+}
+
+// ffmpeg's avfoundation device listing (its stderr), or null when the list
+// run failed to spawn or didn't finish within 5 seconds.
+async function listMacDevices(ffmpegPath: string): Promise<string | null> {
   return new Promise((resolve) => {
     let out = "";
     let settled = false;
@@ -1015,7 +1256,7 @@ async function detectMacScreenIndex(
       });
       proc.on("error", () => done(null));
       // ffmpeg exits non-zero for a list-only invocation; parse regardless.
-      proc.on("close", () => done(parseMacScreenIndex(out)));
+      proc.on("close", () => done(out));
       // Bound the probe so a hung ffmpeg can't stall recording startup.
       setTimeout(() => done(null), 5000);
     } catch {
