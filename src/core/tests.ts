@@ -2390,6 +2390,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // keeps a future gap from surfacing as a cryptic undefined read.
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
+            // autoRecord's synthetic start and stop aren't counted.
             if (!isSyntheticAutoRecordStep(stepReport))
               report.summary.steps[stepReport.result.toLowerCase()]++;
             // Default here rather than at each construction site: this pass is
