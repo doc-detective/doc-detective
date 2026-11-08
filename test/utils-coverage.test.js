@@ -722,12 +722,17 @@ describe("utils.ts coverage", function () {
     });
 
     it("exits(2) when the API config is missing required fields", async function () {
-      captureConsole(sandbox);
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({ url: "http://x" });
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
       assert.equal(exitStub.firstCall.args[0], 2);
+      // One line per missing key, in the schema-error format.
+      assert.match(
+        output.log,
+        /Invalid DOC_DETECTIVE_API:\nmissing required key 'accountId'\.\nmissing required key 'token'\.\nmissing required key 'contextIds'\./
+      );
     });
 
     it("exits(2) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {

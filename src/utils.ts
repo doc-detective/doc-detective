@@ -85,10 +85,12 @@ async function getResolvedTestsFromEnv(config: any = {}) {
       apiFile ? fs.readFileSync(path.resolve(apiFile), "utf8") : (process.env.DOC_DETECTIVE_API as string)
     );
 
-    // Validate the structure: { accountId, url, token, contextIds }
-    if (!apiConfig.accountId || !apiConfig.url || !apiConfig.token || !apiConfig.contextIds) {
+    // The setting has no schema, so name each missing key the way a schema
+    // error would: one `missing required key` line apiece.
+    const missing = ["accountId", "url", "token", "contextIds"].filter((key) => !apiConfig[key]);
+    if (missing.length) {
       log(
-        "Invalid DOC_DETECTIVE_API: must contain 'accountId', 'url', 'token', and 'contextIds' properties",
+        `Invalid DOC_DETECTIVE_API:\n${missing.map((key) => `missing required key '${key}'.`).join("\n")}`,
         "error",
         config
       );
