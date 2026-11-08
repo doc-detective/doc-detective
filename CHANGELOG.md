@@ -1,3 +1,42 @@
+# [5.0.0-v5-rc.12](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.11...v5.0.0-v5-rc.12) (2026-11-08)
+
+
+* feat(capture)!: take screenshots and recordings by default ([77594b3](https://github.com/doc-detective/doc-detective/commit/77594b31dd4d886da63fb97e847ce7c899be05d0))
+* feat(record)!: record headless Chrome and use Chrome by default ([eee1a23](https://github.com/doc-detective/doc-detective/commit/eee1a23b784a06076ebc00183cb588ac65b6021c))
+
+
+### Bug Fixes
+
+* **capture:** count authored steps named like the automatic recording ([c0f7bc9](https://github.com/doc-detective/doc-detective/commit/c0f7bc96ca7ba08d8df6c9b74ab2ac0024c30618))
+* **hints:** lead the gitignore hint with the outputDir you set ([ee2bde7](https://github.com/doc-detective/doc-detective/commit/ee2bde754419b5ffea735d1694cbd5804c6cf78e))
+* **html:** find the automatic recording by the runner's markers ([ca0cdbf](https://github.com/doc-detective/doc-detective/commit/ca0cdbfa91e79e066a4f626eb7f8e9c425df92e7))
+* **html:** style the automatic recording's label as a panel head ([aba3e2f](https://github.com/doc-detective/doc-detective/commit/aba3e2f5e77e6887092164cf5cead4edb4745868))
+* **record:** keep the viewport's size while Chrome records a tab ([20a348d](https://github.com/doc-detective/doc-detective/commit/20a348d1dc29034847dfc8a0ce26e99e2e4c8af1))
+* **record:** name an empty chunk when saving a browser recording ([39e6771](https://github.com/doc-detective/doc-detective/commit/39e6771832aa1c77a60b8c0b7316630efa1e06dc))
+* **record:** point headless Chrome on ffmpeg at the browser engine ([7078851](https://github.com/doc-detective/doc-detective/commit/7078851498670c82681929b8923f27432ade93a5))
+* **record:** start Xvfb on a free display ([a9eaf10](https://github.com/doc-detective/doc-detective/commit/a9eaf100d6bf2f685403cb0174921032e44ca824))
+* **screenshot:** resize to a reference during the default recording ([a45ea4b](https://github.com/doc-detective/doc-detective/commit/a45ea4bd9fd73adf7a7fcdbb9abb0f210f9c940c))
+
+
+### Features
+
+* **html:** show automatic screenshots and recordings in the HTML report ([0b56afa](https://github.com/doc-detective/doc-detective/commit/0b56afae85961e46ef5d3555521959d2a939b5ef))
+
+
+### Reverts
+
+* **record:** leave the window alone while Chrome records a tab ([adfdc00](https://github.com/doc-detective/doc-detective/commit/adfdc005b97025d0876e0cb0be59c231e5d5fac4))
+
+
+### BREAKING CHANGES
+
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a context that names no browser uses Chrome before Firefox, and a record context with no browser now runs headless.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.11](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.10...v5.0.0-v5-rc.11) (2026-11-08)
 
 
