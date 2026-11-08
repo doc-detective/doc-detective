@@ -34,6 +34,8 @@ npx doc-detective install agents --agent qwen
 
 The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
 
+On an existing install, the command runs `qwen extensions update`, which keeps the ref the extension was first installed with. An extension installed before the Doc Detective 5 release candidate recorded no ref, so updates keep it on the agent-tools default branch. `--force` doesn't change the ref. To move it to `feat/v5-rc`, run `qwen extensions uninstall doc-detective`, then run `npx doc-detective install agents --agent qwen` again. Qwen Code doesn't document whether uninstalling keeps the extension's settings, so note them first.
+
 **OpenCode:**
 
 ```bash

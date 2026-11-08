@@ -22,6 +22,8 @@ npx doc-detective install agents --agent gemini
 
 This invokes `gemini extensions install ... --ref feat/v5-rc --auto-update --consent --skip-settings` under the hood. It installs the extension non-interactively and keeps it current on future Gemini CLI launches. During the Doc Detective 5 release candidate, the extension comes from the agent-tools `feat/v5-rc` branch, which holds the agent-tools changes for Doc Detective 5. That branch can change between installs until Doc Detective 5 reaches general availability. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
 
+On an existing install, the command runs `gemini extensions update`, which keeps the ref the extension was first installed with. An extension installed before the Doc Detective 5 release candidate recorded no ref, so updates keep it on the agent-tools default branch. `--force` doesn't change the ref. To move it to `feat/v5-rc`, run `gemini extensions uninstall doc-detective`, then run `npx doc-detective install agents --agent gemini` again. Gemini CLI doesn't document whether uninstalling keeps the extension's settings, so note them first.
+
 Useful flags:
 
 - `--yes`: non-interactive; skips all prompts.
