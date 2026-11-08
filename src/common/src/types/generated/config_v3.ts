@@ -715,9 +715,9 @@ export type HerettoCMSIntegrations = HerettoCMSIntegration[];
  */
 export interface Config {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json";
+  $schema?: string;
   /**
    * Identifier for the configuration.
    */
@@ -870,9 +870,9 @@ export interface Config {
  */
 export interface Context {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */
@@ -1259,9 +1259,10 @@ export interface EnvironmentDetails {
    */
   platform: "linux" | "mac" | "windows";
   /**
-   * The processor architecture of the system running Doc Detective.
+   * The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.
    */
-  arch?: "arm32" | "arm64" | "x32" | "x64";
+  arch?:
+    "arm" | "arm64" | "ia32" | "loong64" | "mips" | "mipsel" | "ppc" | "ppc64" | "riscv64" | "s390" | "s390x" | "x64";
   /**
    * The version of Doc Detective that ran, for example `4.42.0`.
    */

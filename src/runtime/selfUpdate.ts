@@ -25,7 +25,7 @@ export interface SelfUpdateDeps {
 // Read when a debug line is logged, not at import, so importing has no side effects.
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !isDebugRequested()) return;
-  if (level === "error") console.error(msg);
+  if (level === "error" || level === "warning") console.error(msg);
   else console.log(msg);
 };
 
@@ -99,8 +99,10 @@ function comparePrereleaseId(a: string, b: string): number {
   return 0;
 }
 
+// -1 when there's no major to read, which checkForUpdate treats as "skip".
 function majorOf(version: string): number {
-  return parseInt(version.split(".")[0], 10) || 0;
+  const major = /^v?(\d+)\./.exec(version.trim())?.[1];
+  return major === undefined ? -1 : Number(major);
 }
 
 export interface CheckResult {
@@ -109,8 +111,8 @@ export interface CheckResult {
 }
 
 /**
- * Hit the npm registry for the dist-tag.latest of `doc-detective`. Bounded
- * by a 3 s timeout. Any failure — network, parse, semver, anything —
+ * Hit the npm registry for the dist-tag.latest of `doc-detective`, never
+ * crossing a major version (ADR 01147). Bounded by a 3 s timeout. Any failure — network, parse, semver, anything —
  * yields { newer: false } and a debug-level log; we never let a registry
  * hiccup block the run.
  */
@@ -134,17 +136,24 @@ export async function checkForUpdate(
       logger("registry response missing dist-tags.latest; skipping self-update", "debug");
       return { latest: null, newer: false };
     }
-    if (majorOf(latest) > majorOf(currentVersion)) {
+    const currentMajor = majorOf(currentVersion);
+    const latestMajor = majorOf(latest);
+    // Fail closed: without both majors, an update could cross one.
+    if (currentMajor < 0 || latestMajor < 0) {
+      logger(`can't read a major version from '${currentVersion}' or '${latest}'; skipping self-update`, "debug");
+      return { latest: null, newer: false };
+    }
+    if (latestMajor > currentMajor) {
       // A new major has breaking changes, so moving to it is the user's call. Stay
       // current within this major through its maintenance tag, if it has one.
       logger(
-        `Doc Detective ${majorOf(latest)} is available. Upgrade when you're ready: npm i doc-detective@${majorOf(latest)}`,
-        "info"
+        `Doc Detective ${latestMajor} is available. Upgrade when you're ready: npm i doc-detective@${latestMajor}`,
+        "warning"
       );
-      const maintenance: string | undefined = tags[`release-${majorOf(currentVersion)}.x`];
+      const maintenance: unknown = tags[`release-${currentMajor}.x`];
       if (
         typeof maintenance === "string" &&
-        majorOf(maintenance) === majorOf(currentVersion) &&
+        majorOf(maintenance) === currentMajor &&
         compareVersions(maintenance, currentVersion) > 0
       ) {
         return { latest: maintenance, newer: true };

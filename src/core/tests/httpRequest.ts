@@ -157,10 +157,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
     // Set status code
     if (step.httpRequest.openApi.statusCode) {
-      step.httpRequest.statusCodes = [
-        step.httpRequest.openApi.statusCode,
-        ...(step.httpRequest.statusCodes || []),
-      ];
+      // concat accepts the scalar or array statusCodes shape.
+      step.httpRequest.statusCodes = [step.httpRequest.openApi.statusCode].concat(
+        step.httpRequest.statusCodes || []
+      );
     } else if (!step.httpRequest.statusCodes) {
       step.httpRequest.statusCodes = Object.keys(
         operation.definition.responses

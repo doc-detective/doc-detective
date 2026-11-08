@@ -125,6 +125,7 @@ src/container/test/artifacts/*.png
 # screenshot/recording specs; not curated baselines, regenerated per run)
 /screenshot-boolean.png
 test/core-artifacts/**/*.png
+test/server/public/screenshot-reference-local.png
 test/core-artifacts/**/*.webm
 test/core-artifacts/**/*.gif
 test/core-artifacts/**/*.MP4

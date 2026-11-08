@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
+import dnsCallback from "node:dns";
 import net from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
@@ -21,6 +22,7 @@ import {
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
 import { createRequire } from "node:module";
+import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
@@ -69,6 +71,24 @@ export function sessionVersions({
   return result;
 }
 
+// Fetch a file from a URL and save to a temp directory.
+// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
+// required for images and other non-text payloads. Binary fetches also apply
+// hard limits (timeout, max body size; getGuarded caps redirects) so a
+// misbehaving server can't stall or OOM the run.
+// Otherwise, non-JSON responses are stringified (text pass-through).
+// Returns `{ result: "error", message }` on failure.
+const FETCH_BINARY_DEFAULTS = {
+  responseType: "arraybuffer" as const,
+  timeout: 30_000,
+  maxContentLength: 50 * 1024 * 1024,
+  maxBodyLength: 50 * 1024 * 1024,
+};
+
+// The same limits for text bodies, such as OpenAPI descriptions and their
+// $refs. "text" also stops axios from parsing JSON on its own.
+const FETCH_TEXT_DEFAULTS = { ...FETCH_BINARY_DEFAULTS, responseType: "text" as const };
+
 export {
   deepMerge,
   loadEnvs,
@@ -102,7 +122,11 @@ export {
   isDeviceWebContext,
   computeSettleCeiling,
   redactUrlForOutput,
-  assertUrlHostIsPublic,
+  privateAddressOf,
+  localUrlPolicy,
+  getGuarded,
+  UrlGuardError,
+  FETCH_TEXT_DEFAULTS,
   sanitizeFilesystemName,
   hasVariable,
   compileFilter,
@@ -1665,21 +1689,6 @@ function cleanTemp() {
   }
 }
 
-// Fetch a file from a URL and save to a temp directory.
-// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
-// required for images and other non-text payloads. Binary fetches also apply
-// hard limits (timeout, max body size, max redirects) so a misbehaving server
-// can't stall or OOM the run.
-// Otherwise, non-JSON responses are stringified (text pass-through).
-// Returns `{ result: "error", message }` on failure.
-const FETCH_BINARY_DEFAULTS = {
-  responseType: "arraybuffer" as const,
-  timeout: 30_000,
-  maxContentLength: 50 * 1024 * 1024,
-  maxBodyLength: 50 * 1024 * 1024,
-  maxRedirects: 5,
-};
-
 /**
  * Whether a value holds a `$VAR` reference, whole or embedded. Any `$NAME` of
  * one or more letters, digits, or underscores counts, matching the schemas'
@@ -1766,57 +1775,85 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     return false;
   }
   if (net.isIPv6(ip)) {
-    const normalized = ip.toLowerCase();
-    if (normalized === "::1") return true;
-    if (normalized === "::") return true;
-    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
-    if (normalized.startsWith("fe80:")) return true; // link-local
-    if (normalized.startsWith("::ffff:")) {
-      // IPv4-mapped IPv6. The WHATWG URL parser normalizes the embedded v4 to
-      // hex (::ffff:10.0.0.1 → ::ffff:a00:1, and ::ffff:0.0.0.1 → ::ffff:0:1),
-      // so reconstruct the dotted v4 from the two hex groups and apply the v4
-      // ranges above; otherwise a mapped private address (e.g.
-      // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
-      const tail = normalized.slice("::ffff:".length);
-      // Defensive: a dotted-decimal tail (::ffff:10.0.0.1) is a valid IPv6
-      // literal but current callers pass URL-normalized hosts (always hex), so
-      // this path is unreachable in practice. Handle it anyway — fail CLOSED by
-      // classifying the embedded v4 rather than slipping past as "public".
-      /* c8 ignore start - URL normalization always yields the hex form below */
-      if (net.isIPv4(tail)) {
-        return isPrivateOrLoopbackAddress(tail);
-      }
-      /* c8 ignore stop */
-      // The genuine IPv4-mapped form the URL parser emits is two hex groups
-      // (::ffff:HHHH:LLLL = the embedded 32-bit v4); reconstruct and re-check.
-      const hexMatch = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
-      if (hexMatch) {
-        const hi = parseInt(hexMatch[1], 16);
-        const lo = parseInt(hexMatch[2], 16);
-        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-        return isPrivateOrLoopbackAddress(dotted);
-      }
-      // Any other ::ffff: form (e.g. ::ffff:1) is a normal IPv6 address, not an
-      // IPv4-mapped one, and matches none of the private prefixes above → public.
-      return false;
+    const g = ipv6Groups(ip);
+    const zero = (from: number, to: number) => g.slice(from, to).every((x) => x === 0);
+    // The IPv4 address in the low 32 bits, for forms that embed one.
+    const v4 = `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
+    if ((g[0] & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
+    if ((g[0] & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+    if ((g[0] & 0xffc0) === 0xfec0) return true; // site-local fec0::/10 (deprecated)
+    // 6to4 2002::/16 carries an IPv4 address in its second and third groups.
+    if (g[0] === 0x2002) {
+      return isPrivateOrLoopbackAddress(
+        `${g[1] >> 8}.${g[1] & 0xff}.${g[2] >> 8}.${g[2] & 0xff}`
+      );
+    }
+    // IPv4-translated ::ffff:0:a.b.c.d.
+    if (zero(0, 4) && g[4] === 0xffff && g[5] === 0) return isPrivateOrLoopbackAddress(v4);
+    // IPv4-compatible ::a.b.c.d (also covers :: and ::1, which embed 0.0.0.x).
+    if (zero(0, 6)) return isPrivateOrLoopbackAddress(v4);
+    // IPv4-mapped ::ffff:a.b.c.d. ADR 01010: the URL parser emits these as hex.
+    if (zero(0, 5) && g[5] === 0xffff) return isPrivateOrLoopbackAddress(v4);
+    // NAT64 64:ff9b::/96.
+    if (g[0] === 0x64 && g[1] === 0xff9b && zero(2, 6)) {
+      return isPrivateOrLoopbackAddress(v4);
     }
     return false;
   }
   return false;
 }
 
-// Reject URLs whose host resolves to a loopback/private IP, unless the
-// caller explicitly opts in (DOC_DETECTIVE_ALLOW_LOCAL_URLS=true). Tests
-// and trusted internal integrations set the env var; normal doc-spec input
-// does not, so an untrusted spec can't pivot through doc-detective to hit
-// cloud metadata or intranet services.
-//
-// Note: this is a best-effort check. DNS rebinding and TOCTOU races are
-// possible between resolution and connect; for true SSRF-grade isolation,
-// wire in an agent that validates the actual remote address at connect
-// time. This guard covers the common misuse cases.
-async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
-  if (envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS")) return;
+// The eight 16-bit groups of a valid IPv6 address. Expands `::`, reads a
+// dotted IPv4 tail (DNS answers aren't URL-normalized), and drops a zone id.
+// It doesn't validate: callers check net.isIPv6 first, or get NaN groups.
+function ipv6Groups(ip: string): number[] {
+  let text = ip.toLowerCase().split("%")[0];
+  const dotted = text.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(1).map(Number);
+    text =
+      text.slice(0, dotted.index) +
+      `${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups =
+    tail === undefined
+      ? left
+      : [...left, ...Array(8 - left.length - right.length).fill("0"), ...right];
+  return groups.map((group) => parseInt(group, 16));
+}
+
+// A guarded fetch's own error: a refusal, or conflicting switches. Its
+// message is complete, so callers report it as is.
+class UrlGuardError extends Error {}
+
+// What the guarded fetches (screenshot reference images, OpenAPI `$ref`s) may
+// reach (ADR 01162). Env only, so a repository's config can't loosen it.
+//   "hops"  (default) local URLs are fine; a public-to-private redirect or
+//           `$ref` is refused.
+//   "allow" DOC_DETECTIVE_ALLOW_LOCAL_URLS: no checks.
+//   "block" DOC_DETECTIVE_BLOCK_LOCAL_URLS: every private address is refused.
+function localUrlPolicy(): "hops" | "allow" | "block" {
+  const allow = envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS");
+  const block = envFlag("DOC_DETECTIVE_BLOCK_LOCAL_URLS");
+  if (allow && block) {
+    throw new UrlGuardError(
+      "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
+    );
+  }
+  return allow ? "allow" : block ? "block" : "hops";
+}
+
+// The private, loopback or link-local address a URL points at, or undefined
+// when it's public. A hostname counts as private when any of its addresses is,
+// or with `every`, only when all of them are. Names can resolve differently
+// at connect time; getGuarded checks again there.
+async function privateAddressOf(
+  fileURL: string,
+  { every = false }: { every?: boolean } = {}
+): Promise<string | undefined> {
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1833,34 +1870,186 @@ async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
   const host = parsed.hostname.replace(/^\[|\]$/g, "");
   // Direct IP literals: check immediately.
   if (net.isIP(host)) {
-    if (isPrivateOrLoopbackAddress(host)) {
-      throw new Error(
-        `Refusing to fetch private/loopback address (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-      );
-    }
-    return;
+    return isPrivateOrLoopbackAddress(host) ? host : undefined;
   }
   // Hostnames: resolve and check every answer (A + AAAA).
   const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost")) {
-    throw new Error(
-      `Refusing to fetch localhost (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-    );
+    return host;
   }
   let addresses: { address: string }[];
   try {
     addresses = await dns.lookup(host, { all: true });
   } catch (error) {
-    throw new Error(
-      `Couldn't resolve host ${host} for SSRF check: ${(error as Error).message}`
+    // `host` and `code` let callers word their own message.
+    throw Object.assign(
+      new Error(`Couldn't resolve host ${host}: ${(error as Error).message}`),
+      { host, code: (error as any).code ?? (error as Error).message }
     );
   }
-  for (const { address } of addresses) {
-    if (isPrivateOrLoopbackAddress(address)) {
-      throw new Error(
-        `Host ${host} resolves to a private/loopback address (${address}); refusing to fetch. Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+  const privates = addresses.filter(({ address }) => isPrivateOrLoopbackAddress(address));
+  const isPrivate = every ? privates.length === addresses.length : privates.length > 0;
+  return isPrivate ? privates[0]?.address : undefined;
+}
+
+function strictModeError(url: string): Error {
+  return new UrlGuardError(
+    `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+      "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+  );
+}
+
+function redirectError(from: string, address: string): Error {
+  return new UrlGuardError(
+    `Couldn't follow the redirect from ${redactUrlForOutput(from)}: it leads to ${address}, a private address, from a public one.\n` +
+      "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
+  );
+}
+
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+
+// A hostname as a lookup sees it: no IPv6 brackets, no trailing dot, any case.
+function hostKey(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+}
+
+// Whether an HTTP(S) proxy is configured in the environment, the variables
+// axios and Node read. Only then can a lookup be for a name other than the
+// request's own host. It doesn't read NO_PROXY, and needn't. A proxy-exempt
+// host connects directly, so the only lookup is its own, and that one counts.
+function proxyConfigured(): boolean {
+  return ["http_proxy", "https_proxy", "all_proxy"].some(
+    (key) => process.env[key] || process.env[key.toUpperCase()]
+  );
+}
+
+// GET for the guarded fetches. Follows up to 5 redirects by hand so each hop
+// is checked against localUrlPolicy(), both before it's requested and again
+// when it connects: a name can answer public to privateAddressOf() and private
+// to the connection (DNS rebinding). `refuseFirst`, from a caller whose
+// referrer is public, makes the first request refuse a private address too.
+// `refuseRedirect` builds the refusal of a public-to-private redirect, so a
+// caller can word it its own way.
+// Returns the body, the final URL, and whether any hop reached a public
+// address.
+async function getGuarded(
+  url: string,
+  // Binary by default (reference images); text callers pass FETCH_TEXT_DEFAULTS.
+  opts: AxiosRequestConfig = FETCH_BINARY_DEFAULTS,
+  refuseFirst?: (address: string) => Error,
+  refuseRedirect: (from: string, address: string) => Error = redirectError
+): Promise<{ data: any; url: string; reachedPublic: boolean }> {
+  const policy = localUrlPolicy();
+  const axios = await loadAxios();
+  const [{ default: http }, { default: https }] = await Promise.all([
+    import("node:http"),
+    import("node:https"),
+  ]);
+  let current = url;
+  let refuse = policy === "hops" ? refuseFirst : undefined;
+  let reachedPublic = false;
+  for (let hops = 0; ; hops++) {
+    if (policy === "block") {
+      // The pre-connect check. A second lookup fires at connect time through
+      // the agent's `lookup` below (ADR 01162).
+      if (await privateAddressOf(current)) throw strictModeError(current);
+      const hopUrl = current;
+      refuse = () => strictModeError(hopUrl);
+    }
+    // Fresh agents per request, so no pooled socket skips the lookup. It
+    // notes whether the connection resolved to a private address, and
+    // refuses one when `refuse` is set.
+    const seen: { resolved?: boolean; private?: string; public?: boolean } = {};
+    const refuseAtConnect = refuse;
+    const target = hostKey(new URL(current).hostname);
+    const lookup = (hostname: string, options: any, callback: any) => {
+      // With a proxy configured, a lookup of another name is the proxy's. It
+      // says nothing about the target, so it's neither refused nor counted;
+      // the pre-connect checks still apply (ADR 01162).
+      if (proxyConfigured() && hostKey(hostname) !== target) {
+        return dnsCallback.lookup(hostname, options, callback);
+      }
+      return dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
+        if (error) return callback(error, address, family);
+        const answers = Array.isArray(address) ? address : [{ address }];
+        seen.resolved = true;
+        seen.private = answers.find((a: any) => isPrivateOrLoopbackAddress(a.address))?.address;
+        seen.public = answers.some((a: any) => !isPrivateOrLoopbackAddress(a.address));
+        if (seen.private && refuseAtConnect) return callback(refuseAtConnect(seen.private));
+        callback(null, address, family);
+      });
+    };
+    const response = await axios.get(current, {
+      ...opts,
+      maxRedirects: 0,
+      httpAgent: new http.Agent({ lookup } as any),
+      httpsAgent: new https.Agent({ lookup } as any),
+      validateStatus: (status: number) =>
+        (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
+    }).catch((error: any) => {
+      // axios wraps a refusal at connect time; hand back the refusal itself.
+      throw error?.cause instanceof UrlGuardError ? error.cause : error;
+    });
+    // An IP literal skips the lookup, so classify it directly. A name the
+    // lookup never saw (a proxy) is public unless every address is private.
+    let hopPublic = seen.resolved
+      ? seen.public
+      : net.isIP(target)
+        ? !isPrivateOrLoopbackAddress(target)
+        : undefined;
+    // A fresh lookup of this hop's host, made at most once: a flapping
+    // resolver can't give the two checks below different answers. A failed
+    // lookup counts as public. `every: true` is deliberate: the host is
+    // private only when every address is, so in the `fromPublic` check a hop
+    // the connection saw as private still counts as public when the fresh
+    // lookup finds any public address. That's the guard failing closed.
+    // `fresh` resets every iteration, and `current` stays this hop's URL until
+    // `current = next` at the end of the loop.
+    let fresh: Promise<boolean> | undefined;
+    const freshPublic = () =>
+      (fresh ??= privateAddressOf(current, { every: true }).then((a) => !a, () => true));
+    if (hopPublic === undefined && policy !== "allow") hopPublic = await freshPublic();
+    if (hopPublic) reachedPublic = true;
+    if (!REDIRECT_STATUSES.includes(response.status)) {
+      return { data: response.data, url: current, reachedPublic };
+    }
+    const location = response.headers?.location;
+    // `hops` counts redirects followed, so at 5 a sixth redirect arrived and
+    // "more than 5" is accurate.
+    if (!location || hops >= 5) {
+      // Names the original URL on purpose: it's the one the spec named. When
+      // the limit and a missing Location both apply, the limit wins on purpose.
+      throw new UrlGuardError(
+        `Couldn't fetch ${redactUrlForOutput(url)}: ${
+          hops >= 5 ? "it needs more than 5 redirects" : `the ${response.status} redirect has no Location header`
+        }.`
       );
     }
+    const next = new URL(location, current).toString();
+    const scheme = new URL(next).protocol;
+    if (scheme !== "http:" && scheme !== "https:") {
+      throw new UrlGuardError(
+        `Couldn't fetch ${redactUrlForOutput(current)}: the redirect leads to an unsupported scheme (\`${scheme.slice(0, -1)}\`).`
+      );
+    }
+    if (policy === "hops") {
+      // Fail closed: the hop comes from a public origin unless both the
+      // connection and a fresh lookup say every address is private. Through a
+      // proxy the connection looked up the proxy, not this host, so the fresh
+      // lookup is the only signal.
+      // The two `every` values differ on purpose, and both fail closed. This
+      // hop is public when any address is; the target is refused when any is
+      // private.
+      const fromPublic = hopPublic || (await freshPublic());
+      refuse = undefined;
+      if (fromPublic) {
+        const address = await privateAddressOf(next);
+        if (address) throw refuseRedirect(current, address);
+        const from = current;
+        refuse = (connectAddress: string) => refuseRedirect(from, connectAddress);
+      }
+    }
+    current = next;
   }
 }
 
@@ -1869,16 +2058,11 @@ async function fetchFile(
   opts: { binary?: boolean } = {}
 ) {
   try {
-    if (opts.binary) {
-      // Only gate binary fetches for now — the text path is an internal
-      // loader used by the test-detection pipeline and pre-dates this
-      // change; expanding SSRF coverage there belongs in its own PR.
-      await assertUrlHostIsPublic(fileURL);
-    }
-    const response = await (await loadAxios()).get(
-      fileURL,
-      opts.binary ? FETCH_BINARY_DEFAULTS : undefined
-    );
+    // Binary fetches (screenshot reference images) are guarded. The text
+    // path loads operator-chosen input; not gated by design (ADR 01162).
+    const response = opts.binary
+      ? await getGuarded(fileURL)
+      : await (await loadAxios()).get(fileURL);
     let data: Buffer | string;
     if (opts.binary) {
       data = Buffer.from(response.data);

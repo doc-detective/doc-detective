@@ -188,7 +188,8 @@ Boolean variables are on for `1`, `true`, `yes`, or `on`, and off when unset, em
 | `DO_NOT_TRACK` | Any value | Unset | Sets `telemetry.send: false`. |
 | `DOC_DETECTIVE_NO_COLOR` | Boolean | Off | Turns off color, like `--no-color`. `NO_COLOR` and `FORCE_COLOR` keep their usual meaning. |
 | `DOC_DETECTIVE_NO_INPUT` | Boolean | Off | Never prompts, like `--no-input`. |
-| `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Boolean | Off | Lets a screenshot's reference image or an OpenAPI description load from a private or loopback address. |
+| `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Boolean | Off | Lets a public screenshot reference image or OpenAPI description redirect or refer to a private or loopback address. Local URLs work without it. Setting it with `DOC_DETECTIVE_BLOCK_LOCAL_URLS` exits `2`. See [Refuse local URLs on shared runners](/docs/ci/docker-and-headless#refuse-local-urls-on-shared-runners). |
+| `DOC_DETECTIVE_BLOCK_LOCAL_URLS` | Boolean | Off | Refuses every private and loopback address for screenshot reference images and OpenAPI `$ref`s, including direct ones. For shared runners. |
 | `DOC_DETECTIVE_REUSE_APPIUM` | Boolean | Off | Keeps the Appium server running after a run, so the next run with the same setup skips its startup. |
 | `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` | Boolean | Off | Skips an Android context instead of installing the Android toolchain on first use. |
 | `DOC_DETECTIVE_AUTOINSTALL` | Boolean | On | Off stops `npm install` from also installing browsers and runtime dependencies. |

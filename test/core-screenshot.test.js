@@ -292,17 +292,13 @@ describe("Screenshot with URL `path` (remote reference)", function () {
 
   let runsDirExistedBefore = false;
   let runsDirEntriesBefore = [];
-  const originalAllowLocalUrls = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
 
   // Seed the fixture by taking a real screenshot of the test page, then copy
   // it into the static-served dir so the URL and a subsequent local capture
-  // share dimensions / aspect ratio.
+  // share dimensions / aspect ratio. The reference URL is on localhost, which
+  // needs no setting (ADR 01162).
   before(async function () {
     this.timeout(300000);
-    // These tests drive URL fetches against http://localhost:8092, which the
-    // production SSRF guard blocks by default. Opt in for the duration of
-    // this suite and restore the prior value in `after`.
-    process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
     // Snapshot the current contents of .doc-detective/runs so teardown only
     // removes run folders this suite created, not pre-existing artifacts or
     // folders created by unrelated tests or developer work.
@@ -335,11 +331,6 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   });
 
   after(function () {
-    if (originalAllowLocalUrls === undefined) {
-      delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    } else {
-      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = originalAllowLocalUrls;
-    }
     if (fs.existsSync(referenceFixture)) fs.unlinkSync(referenceFixture);
     if (fs.existsSync(notAPngFixture)) fs.unlinkSync(notAPngFixture);
     if (fs.existsSync(tempDir)) {
@@ -601,10 +592,9 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     }
   });
 
-  it("rejects private/loopback URLs unless DOC_DETECTIVE_ALLOW_LOCAL_URLS is set", async function () {
-    // Temporarily un-opt-in so the default SSRF guard fires.
-    const saved = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("refuses a local reference URL under DOC_DETECTIVE_BLOCK_LOCAL_URLS", async function () {
+    const saved = process.env.DOC_DETECTIVE_BLOCK_LOCAL_URLS;
+    process.env.DOC_DETECTIVE_BLOCK_LOCAL_URLS = "1";
     const specPath = path.join(tempDir, "url-ssrf-spec.json");
     const spec = {
       tests: [
@@ -621,10 +611,14 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       const result = await runTests({ input: specPath, logLevel: "silent" });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.equal(step.result, "FAIL");
-      assert.match(step.resultDescription, /Couldn't fetch remote reference image/);
+      assert.match(
+        step.resultDescription,
+        /^Couldn't fetch http:\/\/localhost:8092\/url-reference-fixture\.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses\.\nHint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs\.$/
+      );
     } finally {
       if (fs.existsSync(specPath)) fs.unlinkSync(specPath);
-      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = saved;
+      if (saved === undefined) delete process.env.DOC_DETECTIVE_BLOCK_LOCAL_URLS;
+      else process.env.DOC_DETECTIVE_BLOCK_LOCAL_URLS = saved;
     }
   });
 

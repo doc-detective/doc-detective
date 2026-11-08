@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import dnsPromises from "node:dns/promises";
+import sinon from "sinon";
 import {
   clampCropRect,
   aspectRatiosMatch,
@@ -361,5 +363,66 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.match(result.description, /Couldn't decode PNG/);
     // Execution error -> no assertion records.
     assert.equal(result.assertions, undefined);
+  });
+});
+
+// A local-URL guard refusal already names the URL and the cause, so the step
+// reports it as is. Every other fetch failure gets the reference URL around
+// it, however it's worded.
+describeIfSharp("saveScreenshot remote reference failures", function () {
+  const BLOCK = "DOC_DETECTIVE_BLOCK_LOCAL_URLS";
+  const ALLOW = "DOC_DETECTIVE_ALLOW_LOCAL_URLS";
+  let saved;
+  beforeEach(function () {
+    saved = { [BLOCK]: process.env[BLOCK], [ALLOW]: process.env[ALLOW] };
+    process.env[BLOCK] = "1";
+    delete process.env[ALLOW];
+  });
+  afterEach(function () {
+    sinon.restore();
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  const shoot = (url) =>
+    saveScreenshot({
+      config: {},
+      step: { stepId: "r1", screenshot: { path: url } },
+      driver: fakeDriver(Buffer.alloc(0)),
+    });
+
+  it("reports a guard refusal without wrapping it", async function () {
+    const result = await shoot("http://127.0.0.1:9/ref.png");
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "Couldn't fetch http://127.0.0.1:9/ref.png: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n" +
+        "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+    );
+  });
+
+  it("reports conflicting local-URL switches without wrapping them", async function () {
+    process.env[ALLOW] = "1";
+    const result = await shoot("http://127.0.0.1:9/ref.png");
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
+    );
+  });
+
+  it("wraps a failure that doesn't name the URL, even one worded `Couldn't …`", async function () {
+    sinon
+      .stub(dnsPromises, "lookup")
+      .rejects(Object.assign(new Error("getaddrinfo ENOTFOUND gone.example.test"), { code: "ENOTFOUND" }));
+    const result = await shoot("http://gone.example.test/ref.png");
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "Couldn't fetch remote reference image (http://gone.example.test/ref.png): " +
+        "Couldn't resolve host gone.example.test: getaddrinfo ENOTFOUND gone.example.test"
+    );
   });
 });
