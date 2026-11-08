@@ -793,13 +793,17 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         structuredErrors: true,
       });
       if (!validation.valid) {
-        log(config, "warning", validation);
-        log(
-          config,
-          "warning",
-          `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
-        );
-        noteInvalidSpec(config, file, summarizeSchemaErrors(validation.errorObjects, content));
+        const summary = summarizeSchemaErrors(validation.errorObjects, content);
+        noteInvalidSpec(config, file, summary);
+        log(config, "debug", validation);
+        // In a strict run, the error that stops the run carries this instead.
+        if (!config._strictSpecs) {
+          log(
+            config,
+            "warning",
+            `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.\n${summary}`
+          );
+        }
         return null;
       }
       content = validation.object;

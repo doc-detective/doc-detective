@@ -601,6 +601,39 @@ describe("CLI contract", function () {
       expect(run(["-d", "-i", "invalid.spec.json"]).stderr).to.include("must have required property");
     });
 
+    describe("a spec that's invalid only after its before steps merge", function () {
+      // A contexts-only test gets its steps from `before`, and an empty
+      // `before` leaves it none, so the check after the merge fails.
+      const RAW = /errorObjects|instancePath/;
+      const SUMMARY = "tests[0].steps: must NOT have fewer than 1 items.";
+      beforeEach(function () {
+        fs.writeFileSync(path.join(cwd, "empty-setup.json"), JSON.stringify({ tests: [{ steps: [] }] }));
+        fs.writeFileSync(
+          path.join(cwd, "merged.spec.json"),
+          JSON.stringify({
+            tests: [{ before: "empty-setup.json", contexts: [{ steps: [{ runShell: "echo hi" }] }] }],
+          })
+        );
+      });
+
+      it("prints the summary, not the raw schema errors, in a strict run", function () {
+        const r = run(["-i", "merged.spec.json"]);
+        expect(r.status).to.equal(2);
+        expect(r.stderr).to.include(SUMMARY);
+        expect(r.stderr).to.not.match(RAW);
+      });
+
+      it("prints the summary with the skip warning, not the raw errors, with --no-exit-on-fail", function () {
+        const r = run(["-i", "merged.spec.json", "--no-exit-on-fail"]);
+        expect(r.stderr).to.match(/isn't a valid test specification\. Skipping\.\ntests\[0\]\.steps: must NOT have fewer than 1 items\./);
+        expect(r.stderr).to.not.match(RAW);
+      });
+
+      it("keeps the raw schema errors for -d", function () {
+        expect(run(["-d", "-i", "merged.spec.json", "--no-exit-on-fail"]).stderr).to.match(RAW);
+      });
+    });
+
     it("explains a config file that won't parse, once", function () {
       fs.writeFileSync(path.join(cwd, "bad.json"), "{ not json");
       const r = run(["-c", "bad.json"]);

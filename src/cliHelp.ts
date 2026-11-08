@@ -219,7 +219,9 @@ function distance(a: string, b: string): number {
 // applies to schema keys and to subcommand names (rewriteRootError) on purpose:
 // every command is 3+ letters, and a swap counts as one edit, so `rnu` → `run`.
 // A one-letter word only matches exactly (0 edits), so it never gets a guess,
-// and a two-letter word needs 0 edits too: `fo` doesn't suggest `foo`.
+// and a two-letter word needs 0 edits too: `fo` doesn't suggest `foo`. The
+// half-length rule is the tighter one up to 5 letters (1 edit at 3 or 4, 2 at
+// 5); from 6 letters on, the 3-edit cap is.
 export function nearestCommand(word: string, names: string[]): string | undefined {
   let best: string | undefined;
   let bestDistance = 3;
