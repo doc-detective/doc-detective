@@ -11,8 +11,8 @@ Amends [ADR 00173](00173-autoscreenshot-and-runfolder-reporter.md) and
 
 ## Context and Problem Statement
 
-`autoScreenshot` and `autoRecord` were off unless set. The evidence they produce, a screenshot after every step
-and a video of every context, is what people reach for after a failure, and by then the run is over. Most users
+`autoScreenshot` and `autoRecord` were off unless set. They produce a screenshot after every step and a video of
+every context. That evidence is what people reach for after a failure, and by then the run is over. Most users
 never found the keys.
 
 Turning them on by default raises its own questions:
@@ -100,17 +100,17 @@ Chosen option: **A**.
 - **UI auto screenshots.** After each step, the runner resolves the surface the step drove, the same way the
   handler did (`autoScreenshotSurface`), and captures it through `saveScreenshot`. Only a step whose handler
   resolves surfaces, or that names a `surface`, follows the active surface. Any other step captures the browser
-  when the context has one. App and device steps are
-  captured through their app driver, since Appium sessions answer `takeScreenshot` like browsers. A step that
-  resolves no browser or app (`runShell`, `httpRequest`, `wait`, a background process) gets no shot. The synthetic
-  recording steps get no shot and aren't counted, in the image numbering or in `summary.steps`, so the first
-  authored step's image is `01-…`.
-- **Runtime packages.** When a UI step runs, `inferRuntimeNeeds` adds ffmpeg unless `autoRecord` is `false`, and
-  sharp, pngjs, and pixelmatch unless `autoScreenshot` is `false`, so they install before the first test. When
-  only automatic screenshots need the image packages, they install separately, and a failure turns automatic
-  screenshots off for the run (a flag on the run's resolved config, which the runner reads): `Not taking automatic screenshots: couldn't install sharp (<cause>). Run
-  \`doc-detective install runtime sharp pngjs pixelmatch\`, or set \`autoScreenshot: false\`.`
-- **Flags.** `--[no-]auto-screenshot` and `--[no-]auto-record` stay, with the help text "Capture a screenshot
+  when the context has one. App and device steps are captured through their app driver, since Appium sessions
+  answer `takeScreenshot` like browsers. A step that resolves no browser or app (`runShell`, `httpRequest`,
+  `wait`, a background process) gets no shot. The synthetic recording steps get no shot and aren't counted, in
+  the image numbering or in `summary.steps`, so the first authored step's image is `01-…`.
+- **Runtime packages.** When a UI step runs, `inferRuntimeNeeds` adds ffmpeg unless `autoRecord` is `false`. It
+  also adds sharp, pngjs, and pixelmatch unless `autoScreenshot` is `false`. They then install before the first
+  test. When only automatic screenshots need the image packages, they install separately. A failure turns
+  automatic screenshots off for the run, through a flag on the run's resolved config, which the runner reads. It
+  warns: `Not taking automatic screenshots: couldn't install sharp (<cause>). Run \`doc-detective install runtime
+  sharp pngjs pixelmatch\`, or set \`autoScreenshot: false\`.`
+- **Flags.** `--[no-]auto-screenshot` and `--[no-]auto-record` stay. Their help text is "Capture a screenshot
   after each UI step [on]" and "Record a video of each context that drives a UI [on]". They set only the config
   level, so a spec's or test's `true` wins.
 - **Hints.** `enableAutoScreenshot` and `enableAutoRecord` are gone. `gitignoreOutputDir` now checks
@@ -132,17 +132,18 @@ Chosen option: **A**.
 
 - `src/common/test/validate.test.js`: `config_v3` leaves both keys unset.
 - `test/utils.test.js`: `setConfig` leaves both keys unset when no flag is given.
-- `test/run-artifacts.test.js`: `runArchivesArtifacts` treats unset as on; `outputResults` adds the `runFolder`
-  reporter when the run reserved its folder; the resolvers return `undefined`; `buildAutoRecordStep`'s engine
-  table, the defaulted tag, the preflight skip, Android device recordings needing no check, and synthetic steps left out of `summary.steps`.
-- `test/recording-preflight.test.js`: each failing check, an inconclusive macOS probe or device listing, the browser and device
-  engines needing only ffmpeg, the probes running once, and none when nothing records.
+- `test/run-artifacts.test.js`: `runArchivesArtifacts` treats unset as on. `outputResults` adds the `runFolder`
+  reporter when the run reserved its folder. The resolvers return `undefined`. `buildAutoRecordStep`'s engine
+  table, the defaulted tag, and the preflight skip. Android device recordings need no check. Synthetic steps stay
+  out of `summary.steps`.
+- `test/recording-preflight.test.js`: each failing check, and an inconclusive macOS probe or device listing. The
+  browser and device engines need only ffmpeg, the probes run once, and none run when nothing records.
 - `test/context-resolution.test.js`: headless Firefox runs headed only when the preflight passed and autoRecord
   isn't `false`; Chrome stays headless; the info line.
-- `test/recording-screenshot-coverage.test.js`: a failed preflight SKIPs a recording; a defaulted start or save failure is
-  SKIPPED, and a strict one still FAILs.
-- `test/auto-screenshot-surface.test.js`: an app step captures the app, an app-only context gets shots, a
-  browser-only step captures the browser whatever surface is active, `runShell` gets none, and a failed
+- `test/recording-screenshot-coverage.test.js`: a failed preflight SKIPs a recording; a defaulted start or save
+  failure is SKIPPED, and a strict one still FAILs.
+- `test/auto-screenshot-surface.test.js`: an app step captures the app, and an app-only context gets shots. A
+  browser-only step captures the browser whatever surface is active, and `runShell` gets none. A failed
   image-package install warns once and takes no automatic screenshots.
 - `test/runtime-infer-needs.test.js` and `test/hints.test.js`.
 - Fixtures: `cli/auto-capture-defaults.spec.json`, `recording/autorecord-defaults.spec.json`, and
