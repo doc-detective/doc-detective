@@ -1,7 +1,8 @@
 import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests, deepMerge } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests, deepMerge, replaceEnvs } from "./utils.js";
+import { beginRunMasking, looksSecret, maskDeep, maskedVariableNames, registerEnvValue, setPublicVariables } from "./masking.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
   telemetryAllowed,
@@ -84,6 +85,8 @@ async function runTests(config: any, options: any = {}) {
 async function runTestsAndReport(config: any, options: any) {
   let resolvedTests: any;
   let results: any;
+  // An earlier run's public list and hint names don't carry over (ADR 01178).
+  beginRunMasking();
 
   if (options.resolvedTests) {
     // TODO(ADR 01168): validate DOC_DETECTIVE_API payloads against the schema; API runs are post-v5.
@@ -176,6 +179,8 @@ async function runTestsAndReport(config: any, options: any) {
     }
   }
 
+  prepareMasking(resolvedTests, config);
+
   // Join the self-update check the CLI started concurrently with detection /
   // resolution (which execute no tests). If a newer version was found,
   // `options.updateJoin` re-execs the process here — BEFORE any test runs or
@@ -194,7 +199,7 @@ async function runTestsAndReport(config: any, options: any) {
         specs: resolvedTests.specs.length,
       });
     }
-    return resolvedTests;
+    return maskDeep(resolvedTests);
   }
 
   // Just-in-time install: inspect the resolved specs to learn which heavy
@@ -435,5 +440,28 @@ async function runTestsAndReport(config: any, options: any) {
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);
 
-  return results;
+  // Every reporter, `-o`, `--json`, and the JS API return read this (ADR 01178).
+  return maskDeep(results);
+}
+
+// Masking's run-start pass (ADR 01178), once the run's specs are resolved and
+// before anything they hold prints: the run's public names, every
+// secret-looking variable, and every `$NAME` the specs will substitute.
+function prepareMasking(resolvedTests: any, config: any) {
+  const lists = [resolvedTests.config?.publicVariables, config.publicVariables];
+  for (const spec of resolvedTests.specs ?? []) {
+    lists.push(spec.publicVariables);
+    for (const test of spec.tests ?? []) lists.push(test.publicVariables);
+  }
+  setPublicVariables(lists.flatMap((list) => (Array.isArray(list) ? list : [])));
+  for (const [name, value] of Object.entries(process.env)) {
+    if (looksSecret(name)) registerEnvValue(name, value);
+  }
+  // replaceEnvs registers each value it substitutes; the copy is thrown away.
+  replaceEnvs(JSON.parse(JSON.stringify(resolvedTests.specs ?? [])));
+  const names = maskedVariableNames();
+  if (names.length > 0) {
+    const noun = names.length === 1 ? "value of 1 variable" : `values of ${names.length} variables`;
+    log(config, "debug", `Masking the ${noun}: ${names.join(", ")}.`);
+  }
 }

@@ -128,6 +128,9 @@ function createServer(options = {}) {
       res.set("x-echo-path", req.path);
       // Reflects the X-Test request header, so a spec can assert a header it sent.
       if (req.headers["x-test"]) res.set("x-echo-test", req.headers["x-test"]);
+      // Reflects the Authorization header, so a masking fixture can check that a
+      // Basic token the server echoes back is masked (ADR 01178).
+      if (req.headers.authorization) res.set("x-echo-authorization", req.headers.authorization);
 
       console.log("Response:", { Body: modifiedResponse });
 

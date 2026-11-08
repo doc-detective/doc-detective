@@ -39,6 +39,8 @@ This lets tests continue executing while flagging output changes that exceed you
 
 > For comprehensive options, see the [`runShell`](/reference/schemas/runshell) reference.
 
+Reports show environment variable values in the command and its output as `***NAME***`, while `stdio` and `variables` see the real values. A command inherits the whole environment, so it can print a variable Doc Detective doesn't mask. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 ## Shell selection
 
 Commands run in `bash` on every platform by default. POSIX syntax such as quoting, pipes, `&&`, and `$()` therefore works identically on Windows, macOS, and Linux.

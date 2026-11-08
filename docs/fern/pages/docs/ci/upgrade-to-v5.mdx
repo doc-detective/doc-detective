@@ -461,6 +461,17 @@ Uninstalling may reset the extension's own settings.
 
 **What to do:** Check that your project's `.env` is safe to load on every run, or pass `--no-env-file`. If you relied on a `.env` overriding a shell variable, unset the shell variable.
 
+## Environment variable values are masked
+
+**What changed:** Logs, reports, results files, `--json`, the dry-run plan, and the GitHub Action's issues show environment variable values as `***NAME***`. That covers every variable a run substitutes as `$NAME` or loads from `.env`, `loadVariables`, or a credential file. It also covers any variable whose name contains `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, or `CREDENTIAL`. Values shorter than 4 characters aren't masked. Steps, assertions, and routing still use the real values.
+
+```text
+version 4  "command": "curl -H \"Authorization: Bearer correct-horse\" https://api.example.com/me"
+version 5  "command": "curl -H \"Authorization: Bearer ***API_TOKEN***\" ***BASE_URL***/me"
+```
+
+**What to do:** Check whether a script or a later job reads a value back from a report, such as a URL. If one does, list the variable in `publicVariables` on the config, a spec, or a test. `["*"]` keeps version 4's behavior. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 ## Cache location
 
 **What changed:** New installs cache browsers and runtime packages in `$XDG_CACHE_HOME/doc-detective`, or `~/.cache/doc-detective` if that isn't set. On Windows, they use `%LOCALAPPDATA%\doc-detective`. An existing `~/.doc-detective` keeps being used, so you don't download everything again.
@@ -514,6 +525,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
+- The results and the dry-run plan it returns show environment variable values as `***NAME***`. See [Environment variable values are masked](#environment-variable-values-are-masked).
 
 **What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`.
 

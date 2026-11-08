@@ -10,6 +10,8 @@ The `loadVariables` action loads environment variables from a specified `.env` f
 >
 > For comprehensive options, see the [`loadVariables`](/reference/schemas/loadvariables) reference.
 
+Logs and reports show every value a `.env` file loads as `***NAME***`, even if no step uses it. To show a value that isn't secret, list its name in `publicVariables`. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 ## Example
 
 Assuming a file named `secrets.env` exists in the same directory as the test file or at the specified path:

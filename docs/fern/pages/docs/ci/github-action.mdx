@@ -155,6 +155,8 @@ jobs:
 | `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
 | `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
 
+`$RESULTS` comes from the masked results, so environment variable values appear as `***NAME***`. GitHub masks secrets in logs but not in issue bodies, so this keeps them out of the issue. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$RESULTS` to fit and adds a link to the workflow run. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
 The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions).

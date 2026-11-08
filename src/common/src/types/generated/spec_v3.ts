@@ -87,6 +87,10 @@ export type Test = (
    */
   contentPath?: string;
   /**
+   * Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `["*"]` turns masking off.
+   */
+  publicVariables?: string[];
+  /**
    * Whether or not to detect steps in input files based on markup regex.
    */
   detectSteps?: boolean;
@@ -12202,6 +12206,10 @@ export interface Specification {
    * Path to the content that the specification is associated with.
    */
   contentPath?: string;
+  /**
+   * Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `["*"]` turns masking off.
+   */
+  publicVariables?: string[];
   if?: Condition;
   /**
    * Contexts to run the test in. Overrides contexts defined at the config and spec levels.

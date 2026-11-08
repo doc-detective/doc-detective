@@ -342,6 +342,8 @@ describe("CLI contract", function () {
           path.join(cwd, "effective.spec.json"),
           JSON.stringify({
             specId: "effective",
+            // The URL is substituted, so it'd be masked (ADR 01178); this test reads it back.
+            publicVariables: ["DD_CONTRACT_URL"],
             tests: [
               {
                 testId: "effective-t",
@@ -1125,6 +1127,70 @@ describe("CLI contract", function () {
       it("lets flags beat the environment", function () {
         expect(noise(["-l", "info"], { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevel: "error" }) })).to.match(/Running test specs/);
       });
+    });
+  });
+
+  // ADR 01178: environment variable values are masked in every output.
+  describe("masking", function () {
+    const SECRET = "mask-me-73519";
+    const DOTENV = "dotenv-only-84620";
+    const config = (extra = {}) => ({
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false, ...extra }),
+    });
+    beforeEach(function () {
+      fs.writeFileSync(path.join(cwd, ".env"), `DD_DOTENV_VALUE=${DOTENV}\n`);
+      writeSpec("mask.spec.json", {
+        runShell: 'echo $DD_MASK_VALUE && node -e "console.log(process.env.DD_DOTENV_VALUE)"',
+      });
+    });
+
+    it("keeps values out of -o, --json, and stderr at -l debug", function () {
+      const out = path.join(cwd, "results.json");
+      const debug = run(["-i", "mask.spec.json", "-l", "debug", "-o", out], { env: { DD_MASK_VALUE: SECRET } });
+      expect(debug.status, debug.stderr).to.equal(0);
+      const json = run(["-i", "mask.spec.json", "--json"], { env: { DD_MASK_VALUE: SECRET } });
+      expect(json.status, json.stderr).to.equal(0);
+      for (const text of [debug.stdout, debug.stderr, fs.readFileSync(out, "utf8"), json.stdout, json.stderr]) {
+        expect(text).to.not.include(SECRET);
+        expect(text).to.not.include(DOTENV);
+      }
+      expect(json.stdout).to.include("***DD_MASK_VALUE***").and.include("***DD_DOTENV_VALUE***");
+      expect(debug.stderr).to.match(/Masking the values of \d+ variables: [^\n]*DD_DOTENV_VALUE[^\n]*DD_MASK_VALUE/);
+    });
+
+    it("keeps values out of the dry-run plan", function () {
+      // The plan isn't substituted, so a value can only reach it written out.
+      writeSpec("plan.spec.json", { runShell: `echo ${DOTENV}` });
+      const result = run(["-i", "plan.spec.json", "--dry-run"]);
+      expect(result.status, result.stderr).to.equal(0);
+      expect(result.stdout).to.not.include(DOTENV);
+      expect(result.stdout).to.include("echo ***DD_DOTENV_VALUE***");
+    });
+
+    it("shows a variable publicVariables lists", function () {
+      const result = run(["-i", "mask.spec.json", "--json"], {
+        env: { DD_MASK_VALUE: SECRET, ...config({ publicVariables: ["DD_MASK_*"] }) },
+      });
+      expect(result.status, result.stderr).to.equal(0);
+      expect(result.stdout).to.include(SECRET).and.not.include(DOTENV);
+    });
+
+    it("exits 0 on an all-passing run when a secret's value is `pass`", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "DB_PASSWORD=pass\nNODE_ENV=test\n");
+      const result = run(["-i", "pass.spec.json", "--json"]);
+      expect(result.status, result.stderr).to.equal(0);
+      const report = JSON.parse(result.stdout);
+      expect(report.summary.specs.pass).to.equal(1);
+      // Keys stay; values that hold `pass` are masked.
+      expect(report.specs[0].tests[0]).to.have.property("testId", "***DB_PASSWORD***.spec.json-t");
+    });
+
+    it("rejects publicVariables that isn't a list", function () {
+      const result = run(["-i", "mask.spec.json"], { env: config({ publicVariables: "BASE_URL" }) });
+      expect(result.status).to.equal(2);
+      expect(result.stderr).to.include(
+        'Error: Invalid config in DOC_DETECTIVE_CONFIG:\npublicVariables: must be array (got "BASE_URL").'
+      );
     });
   });
 

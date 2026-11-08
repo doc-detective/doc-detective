@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { isSecretValue } from "./debug/redact.js";
 import { envFlag } from "./envFlag.js";
+import { maskString } from "./core/masking.js";
 import type { EventEmitter } from "node:events";
 
 const CODES = {
@@ -74,9 +75,10 @@ export function stopSpinner() {
 }
 
 // Write one diagnostic line to stderr. stdout is reserved for results.
+// Environment variable values are masked (ADR 01178).
 export function diag(line: string) {
   clearSpinner();
-  console.error(line);
+  console.error(maskString(line));
 }
 
 // A spinner on stderr for an interactive shell. Returns a stop function. Loaded
@@ -159,7 +161,7 @@ export function reportCrash(
     version = "unknown",
   }: { dir?: string; print?: (line: string) => void; version?: string } = {}
 ) {
-  const message = error?.message ?? String(error);
+  const message = maskString(error?.message ?? String(error));
   print(`Unexpected error: ${message}`);
   try {
     const file = path.join(dir, ".doc-detective", `crash-${Date.now()}.log`);
@@ -167,7 +169,7 @@ export function reportCrash(
     fs.writeFileSync(
       file,
       scrubSecrets(
-        `doc-detective ${version}\nnode ${process.version} on ${process.platform}\n\n${error?.stack ?? message}\n`
+        maskString(`doc-detective ${version}\nnode ${process.version} on ${process.platform}\n\n${error?.stack ?? message}\n`)
       )
     );
     print(`Details: ${displayPath(file)}`);

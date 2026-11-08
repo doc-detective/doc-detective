@@ -19,6 +19,7 @@ import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
 import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
+import { registerEnvFile, registerEnvValue } from "./core/masking.js";
 
 export {
   loadProjectEnv,
@@ -350,6 +351,7 @@ function readCredentialFiles(config: any) {
     if (!owner?.[fileKey]) return;
     try {
       owner[valueKey] = fs.readFileSync(path.resolve(owner[fileKey]), "utf8").trim();
+      registerEnvValue(valueKey, owner[valueKey]);
     } catch (error: any) {
       throw new Error(`Could not read ${fileKey} at ${owner[fileKey]}: ${error.message}`);
     }
@@ -368,7 +370,8 @@ async function loadProjectEnv(args: any) {
   const file = path.resolve(".env");
   if (!fs.existsSync(file)) return;
   const { default: dotenv } = await import("dotenv");
-  dotenv.config({ path: file, override: false, quiet: true });
+  const { parsed } = dotenv.config({ path: file, override: false, quiet: true });
+  registerEnvFile(parsed);
 }
 
 // The project config: `--config` when given, resolved to an absolute path so a

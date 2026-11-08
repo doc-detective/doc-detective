@@ -1,3 +1,5 @@
+import { diag } from "../../cliOutput.js";
+
 export { findElementBySelectorAndText, findElementByShorthand, findElementByCriteria, setElementOutputs };
 
 // Set element outputs
@@ -747,7 +749,8 @@ async function findElementByCriteria({
         };
       }
     } catch (error) {
-      console.error("Error finding elements:", error);
+      // Through diag, which masks secret values (ADR 01178).
+      diag(`Error finding elements: ${(error as any)?.message ?? error}`);
     }
 
     // No matching elements found. Return now if the budget is spent, so

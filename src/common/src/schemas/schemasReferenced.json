@@ -2478,6 +2478,14 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
         "detectSteps": {
           "type": "boolean",
           "default": true
@@ -7123,6 +7131,9 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
+        },
         "if": {
           "$ref": "routing_v3.schema.json#/components/schemas/condition"
         },
@@ -7431,6 +7442,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -10657,6 +10671,14 @@
         },
         "contentPath": {
           "type": "string"
+        },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
         },
         "detectSteps": {
           "type": "boolean"
@@ -15199,6 +15221,9 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
+        },
         "if": {
           "$ref": "routing_v3.nodefaults.schema.json#/components/schemas/condition"
         },
@@ -15493,6 +15518,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.nodefaults.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
