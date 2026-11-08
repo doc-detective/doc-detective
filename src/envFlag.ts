@@ -56,7 +56,7 @@ export function envFlag(name: string, env: NodeJS.ProcessEnv = process.env): boo
   const value = (env[name] ?? "").trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(value)) return true;
   if (["", "0", "false", "no", "off"].includes(value)) return false;
-  warnOnce(name, `Ignoring ${name}=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`);
+  warnOnce(name, `Ignoring \`${name}\`=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`);
   return false;
 }
 

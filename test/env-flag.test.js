@@ -43,7 +43,7 @@ describe("envFlag", function () {
     expect(envFlag("DOC_DETECTIVE_REUSE_APPIUM", env)).to.equal(false);
     expect(envFlag("DOC_DETECTIVE_REUSE_APPIUM", env)).to.equal(false);
     expect(printed).to.deep.equal([
-      'Ignoring DOC_DETECTIVE_REUSE_APPIUM="maybe". Use 1, true, yes, or on, or 0, false, no, or off.',
+      'Ignoring `DOC_DETECTIVE_REUSE_APPIUM`="maybe". Use 1, true, yes, or on, or 0, false, no, or off.',
     ]);
   });
 

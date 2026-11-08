@@ -216,7 +216,7 @@ function envFlag(name, env = process.env) {
   if (value && !warnedFlags.has(name)) {
     warnedFlags.add(name);
     console.error(
-      `Warning: Ignoring ${name}=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`
+      `Warning: Ignoring \`${name}\`=${JSON.stringify(env[name])}. Use 1, true, yes, or on, or 0, false, no, or off.`
     );
   }
   return undefined;

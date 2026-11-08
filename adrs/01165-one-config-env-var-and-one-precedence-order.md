@@ -88,7 +88,7 @@ Chosen option: **A**, with the order below.
   overrides. A re-exec'd process never checks for updates again.
 - **`envFlag()`** reads every `DOC_DETECTIVE_*` boolean. On: `1`, `true`, `yes`, or `on`. Off: unset, empty,
   or `0`, `false`, `no`, or `off`. Trimmed and case-insensitive. Anything else counts as off and warns once:
-  `Warning: Ignoring DOC_DETECTIVE_REUSE_APPIUM="maybe". Use 1, true, yes, or on, or 0, false, no, or off.`
+  ``Warning: Ignoring `DOC_DETECTIVE_REUSE_APPIUM`="maybe". Use 1, true, yes, or on, or 0, false, no, or off.``
   `NO_COLOR`, `FORCE_COLOR`, `DO_NOT_TRACK`, and `TERM` keep their own conventions. The postinstall script
   keeps a copy, because it runs without `dist`.
 - **Renamed variables.** Names stay as they are, except `DOC_DETECTIVE_RUNTIME_DEBUG`, a deprecated alias of

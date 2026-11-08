@@ -982,7 +982,7 @@ describe("CLI contract", function () {
     it("keeps an env warning raised at startup, before setConfig", function () {
       // applyColorFlags reads DOC_DETECTIVE_NO_COLOR before any config exists.
       const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_NO_COLOR: "maybe" } });
-      expect(r.stdout + r.stderr).to.include('Ignoring DOC_DETECTIVE_NO_COLOR="maybe".');
+      expect(r.stdout + r.stderr).to.include('Ignoring `DOC_DETECTIVE_NO_COLOR`="maybe".');
     });
 
     it("exits 2 from install on an invalid project config", function () {

@@ -43,7 +43,7 @@ describe("scripts/postinstall runtime auto-install helpers", function () {
         console.error = original;
       }
       expect(printed).to.deep.equal([
-        'Warning: Ignoring DOC_DETECTIVE_AUTOINSTALL="anything". Use 1, true, yes, or on, or 0, false, no, or off.',
+        'Warning: Ignoring `DOC_DETECTIVE_AUTOINSTALL`="anything". Use 1, true, yes, or on, or 0, false, no, or off.',
       ]);
     });
   });

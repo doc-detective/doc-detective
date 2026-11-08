@@ -248,8 +248,8 @@ function configFileBase(config: any, file: string) {
 
 // `--output` and config `output` name the results file (ADR 01146). Fail on a
 // folder rather than guessing, so nobody loses results to a misread path.
-function resolveResultsFile(output: string, base = process.cwd()): string {
-  const resolved = path.resolve(base, output);
+function resolveResultsFile(output: string): string {
+  const resolved = path.resolve(output);
   let isFolder = /[\\/]$/.test(output);
   try {
     isFolder = isFolder || fs.statSync(resolved).isDirectory();
@@ -442,7 +442,8 @@ async function setConfig({
 
   // Accept coerced and defaulted values
   config = validation.object;
-  // Set default values
+  // Set default values. `fileTypes` needs none here: validate() fills it from
+  // the config_v3 default.
   config = {
     ...config,
     input: config.input || ".",

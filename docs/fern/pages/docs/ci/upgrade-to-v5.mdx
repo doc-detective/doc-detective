@@ -311,7 +311,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 **What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value counts as off and prints a warning. So `DOC_DETECTIVE_SKIP_AGENT_PROMPT=maybe`, which used to skip the prompt, no longer does. See [Environment variables](/reference/cli#environment-variables).
 
-**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, exits `2`.
+**What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, makes the CLI exit `2`.
 
 ## Telemetry notice
 
