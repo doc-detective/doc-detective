@@ -1,0 +1,260 @@
+{
+  "specId": "recording-headless-chrome",
+  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar shortens the page while a tab is captured, so the video is the viewport's width and up to the viewport's height, never tab capture's 800x600 default.",
+  "tests": [
+    {
+      "testId": "headless-chrome-auto-engine",
+      "description": "A record with no engine on headless Chrome records the tab with the browser engine, at the viewport's size.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true,
+            "viewport": {
+              "width": 1024,
+              "height": 640
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headless-chrome-auto.mp4",
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "notBlack": true
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "HC_AUTO_PATH": "$$recordingPath",
+            "HC_AUTO_FORMAT": "$$format",
+            "HC_AUTO_WIDTH": "$$width",
+            "HC_AUTO_HEIGHT": "$$height"
+          }
+        },
+        {
+          "description": "Assert an MP4 at the viewport's width, and no taller than the viewport.",
+          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_AUTO_WIDTH), h=Number(e.HC_AUTO_HEIGHT); const ok = e.HC_AUTO_FORMAT === 'mp4' && require('fs').existsSync(e.HC_AUTO_PATH) && Math.abs(w-1024) <= 2 && h >= 500 && h <= 642; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "headless-chrome-browser-engine",
+      "description": "An explicit browser engine on headless Chrome records the tab.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true,
+            "viewport": {
+              "width": 1024,
+              "height": 640
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headless-chrome-browser.webm",
+            "engine": "browser",
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "notBlack": true
+            }
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "headless-chrome-across-navigation",
+      "description": "A headless Chrome recording keeps capturing the tab across a goTo navigation.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true,
+            "viewport": {
+              "width": 1024,
+              "height": 640
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headless-chrome-navigation.mp4",
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 2,
+              "notBlack": true
+            }
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "goTo": "http://localhost:8092/drag-drop-test.html"
+        },
+        {
+          "find": {
+            "selector": "body",
+            "timeout": 5000
+          }
+        },
+        {
+          "wait": 1200
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "headed-chrome-browser-engine",
+      "description": "Headed Chrome still records with the browser engine.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": false
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headed-chrome-browser.mp4",
+            "overwrite": "true",
+            "verify": {
+              "minDuration": 0.5,
+              "notBlack": true
+            }
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "headless-firefox-skipped",
+      "description": "Headless Firefox can't be recorded: the record and stopRecord steps are SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "headless-firefox.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "firefox-headless-omitted-skipped",
+      "description": "Firefox with `headless` left out launches headless, so its record and stopRecord steps are SKIPPED too.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "record": {
+            "path": "firefox-headless-omitted.mp4",
+            "engine": "ffmpeg",
+            "overwrite": "true"
+          }
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}

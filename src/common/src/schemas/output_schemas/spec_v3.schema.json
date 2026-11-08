@@ -37675,7 +37675,7 @@
                                 {
                                   "type": "boolean",
                                   "title": "Record (boolean)",
-                                  "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+                                  "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
                                   "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
                                 },
                                 {
@@ -37945,7 +37945,7 @@
                                     },
                                     "engine": {
                                       "title": "Recording engine",
-                                      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                      "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                       "anyOf": [
                                         {
                                           "title": "Recording engine (simple)",
@@ -38346,7 +38346,7 @@
                                       },
                                       "engine": {
                                         "title": "Recording engine",
-                                        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                        "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                         "anyOf": [
                                           {
                                             "title": "Recording engine (simple)",
@@ -38479,7 +38479,7 @@
                                   },
                                   "engine": {
                                     "title": "Recording engine",
-                                    "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                    "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                     "anyOf": [
                                       {
                                         "title": "Recording engine (simple)",
@@ -89711,7 +89711,7 @@
                                       {
                                         "type": "boolean",
                                         "title": "Record (boolean)",
-                                        "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
+                                        "description": "If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.",
                                         "$comment": "Boolean first (AJV coerceTypes, ADR 01161). Safe as a plain `type`: the string branch's pattern needs a file extension, so it never wanted \"true\" or \"false\"."
                                       },
                                       {
@@ -89981,7 +89981,7 @@
                                           },
                                           "engine": {
                                             "title": "Recording engine",
-                                            "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                            "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                             "anyOf": [
                                               {
                                                 "title": "Recording engine (simple)",
@@ -90382,7 +90382,7 @@
                                             },
                                             "engine": {
                                               "title": "Recording engine",
-                                              "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                              "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                               "anyOf": [
                                                 {
                                                   "title": "Recording engine (simple)",
@@ -90515,7 +90515,7 @@
                                         },
                                         "engine": {
                                           "title": "Recording engine",
-                                          "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.",
+                                          "description": "Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.",
                                           "anyOf": [
                                             {
                                               "title": "Recording engine (simple)",

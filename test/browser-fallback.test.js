@@ -135,6 +135,29 @@ describe("buildFallbackCandidates", function () {
     );
   });
 
+  // Fallbacks follow the default-browser order: Chrome, then Firefox, then
+  // Safari (ADR 01176).
+  it("orders fallbacks chrome, then firefox, then safari", function () {
+    assert.deepEqual(
+      buildFallbackCandidates({
+        requestedName: "webkit",
+        explicit: false,
+        policy: "auto",
+        availableApps: apps("safari", "firefox", "chrome"),
+      }),
+      ["webkit", "chrome", "firefox"]
+    );
+    assert.deepEqual(
+      buildFallbackCandidates({
+        requestedName: "edge",
+        explicit: false,
+        policy: "auto",
+        availableApps: apps("safari", "firefox", "chrome"),
+      }),
+      ["chrome", "firefox", "safari"]
+    );
+  });
+
   it("returns an empty list when nothing is available", function () {
     assert.deepEqual(
       buildFallbackCandidates({

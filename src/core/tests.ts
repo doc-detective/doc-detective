@@ -77,7 +77,6 @@ import { stopRecording } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
   browserDownloadDir,
-  coerceRecordContextBrowser,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   jobExclusiveResources,
@@ -272,6 +271,7 @@ export {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
+  prepareContextSlot,
   specIsRouted,
   killTree,
   appiumServerCache,
@@ -500,7 +500,16 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             options.captureSourceTitle || "RECORD_ME"
           }`
         );
-        if (options.headless) args.push("--headless", "--disable-gpu");
+        if (options.headless) {
+          args.push("--headless", "--disable-gpu");
+          // Headless Chrome has no window to capture, so the browser engine
+          // records the tab with the same title instead (ADR 01176).
+          args.push(
+            `--auto-select-tab-capture-source-by-title=${
+              options.captureSourceTitle || "RECORD_ME"
+            }`
+          );
+        }
         if (process.platform === "linux") {
           args.push("--no-sandbox");
           // Chrome writes shared memory to /dev/shm, which is only ~64MB on
@@ -1160,10 +1169,13 @@ async function iosContextPreflight({
   /* c8 ignore stop */
 }
 
+// The browser a context gets when it names none, and the order fallbacks try
+// (ADR 01176). Chrome leads because headless Chrome can record its tab.
+const DEFAULT_BROWSER_ORDER = ["chrome", "firefox", "safari"];
+
 function getDefaultBrowser({ runnerDetails }: { runnerDetails: any }) {
   let browser: any = {};
-  const browserNames = ["firefox", "chrome", "safari"];
-  for (const name of browserNames) {
+  for (const name of DEFAULT_BROWSER_ORDER) {
     if (runnerDetails.availableApps.find((app: any) => app.name === name)) {
       browser = { name };
       break;
@@ -1222,7 +1234,7 @@ function buildFallbackCandidates({
   const fallbackAllowed =
     policy === "auto" || (policy === "explicit" && !explicit);
   if (fallbackAllowed) {
-    for (const name of ["firefox", "chrome", "safari"]) {
+    for (const name of DEFAULT_BROWSER_ORDER) {
       if (name === requestedNorm) continue;
       if (available.has(name)) candidates.push(name);
     }
@@ -1794,8 +1806,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // Xvfb only when it could matter, then let computeEffectiveConcurrency
   // decide the effective limit.
   // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
-  // shouldn't pay for an `Xvfb -help` spawn. Contexts are already coerced
-  // above, so resolveRecordPlan reflects the engine that will actually run.
+  // shouldn't pay for an `Xvfb -help` spawn. Contexts already carry their
+  // default browser (prepareContextSlot), so resolveRecordPlan reflects the
+  // engine that will actually run.
   // Sizing view: the flat (non-routed) jobs PLUS every routed context. Routed
   // contexts execute in the sequencer, not the flat pool, but they still need
   // the Appium pool / recording concurrency / warm-up to account for them.
@@ -3788,16 +3801,17 @@ function prepareContextSlot({
       onAutoRecord();
     }
   }
-  // Auto-resolution: when a record step has no explicit engine and the user
-  // never chose a browser, prefer the concurrency-safe browser engine by
-  // coercing to headed Chrome (when available). Done here, before the
-  // concurrency calc, so each job's engine is settled. Non-record contexts keep
-  // runContext's normal browser defaulting.
-  const coercedBrowser = coerceRecordContextBrowser({
-    context,
-    availableApps: runnerDetails.availableApps,
-  });
-  if (coercedBrowser) context.browser = coercedBrowser;
+  // A context that names no browser gets the default one here, before the
+  // concurrency calc, so a record step's engine resolves to what will run:
+  // headless Chrome records its tab with no display (ADR 01176). runContext
+  // applies the same default.
+  if (
+    !context.browser &&
+    isBrowserRequired({ test: context }) &&
+    !isMobileTargetPlatform(context.platform)
+  ) {
+    context.browser = getDefaultBrowser({ runnerDetails });
+  }
   return { kind: "job", job: { spec, test, context, contexts, slot } };
 }
 
@@ -4087,7 +4101,7 @@ async function runContext({
   }
 
   // If "browser" isn't defined but is required by the test, set it to the
-  // first available browser in the sequence of Firefox, Chrome, Safari.
+  // first available browser in the sequence of Chrome, Firefox, Safari.
   // App-targeted steps don't count: they run on the app session, so an
   // app-only test never boots a browser it won't use. Mobile contexts don't
   // count either: their browser is the device's (chrome/safari), resolved by

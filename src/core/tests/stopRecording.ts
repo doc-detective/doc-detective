@@ -27,9 +27,8 @@ import {
   buildCheckpointOutputs,
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
-import { RECORDER_SETTLE_MS } from "./timing.js";
 
-export { stopRecording };
+export { stopRecording, saveBrowserRecording };
 
 // `deps` is a test seam for the pending-scale crop derivation (platform +
 // display probe); production callers omit it.
@@ -284,32 +283,30 @@ async function stopRecording({
         return result;
       }
 
-      // Stop recording
-      await driver.execute(() => {
-        (window as any).recorder.stop();
-      });
-      // Wait for the download to appear AND finish writing. Chrome streams the
-      // blob to disk (and may use a .crdownload temp first), so existence
-      // alone isn't enough — transcoding a still-growing file makes ffmpeg
-      // fail. Wait for the size to hold steady across two reads.
-      const downloaded = await waitForStableFile(recording.downloadPath, 60);
-      if (!downloaded) {
-        result.status = "FAIL";
-        result.description = "Recording download timed out.";
-        // We're still focused inside the recorder tab (from switchToWindow
-        // above), so close it and restore focus before returning — otherwise
-        // later steps run in the recorder tab.
+      // Stop the recorder and copy its video out of the page. Whatever
+      // happens, close the recorder tab and return focus to the content tab
+      // (we're still focused inside the recorder tab, from switchToWindow
+      // above) — otherwise later steps run in the recorder tab.
+      let failure: string | null;
+      try {
+        failure = await saveBrowserRecording({
+          driver,
+          filePath: recording.downloadPath,
+        });
+      } finally {
         await closeRecorderTabAndRestoreFocus();
+      }
+      if (failure) {
+        result.status = "FAIL";
+        result.description = failure;
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
         dropHandle();
         discardCheckpointStaging();
         return result;
       }
-      // Close recording tab and switch back to the original content tab.
-      await closeRecorderTabAndRestoreFocus();
 
-      // Convert the downloaded .webm into the target format/location.
+      // Convert the saved .webm into the target format/location.
       await transcode({
         config,
         sourcePath: recording.downloadPath,
@@ -864,38 +861,71 @@ async function transcode({
   });
 }
 
-// Wait for a file to exist and stop growing (size unchanged across three reads
-// ~500ms apart, i.e. ~1s of stability), up to `maxSeconds`. Returns true once
-// stable, false on timeout. Guards against transcoding a download that's still
-// being written — concurrent recordings make a mid-write size plateau (the OS
-// flushing in chunks) more likely, so a single agreeing read isn't enough.
-async function waitForStableFile(
-  filePath: string,
-  maxSeconds: number
-): Promise<boolean> {
-  let lastSize = -1;
-  let stableReads = 0;
-  const deadline = maxSeconds * 2; // two checks per second
-  for (let i = 0; i < deadline; i++) {
-    let size = -1;
+// How long the recorder tab gets to finish the recording after it's stopped.
+// Under WebDriver's default 30 s script timeout, since the wait runs in-page.
+const BROWSER_RECORDING_WAIT_MS = 20000;
+// Raw bytes per WebDriver round trip (~5.6 MB of base64).
+const BROWSER_RECORDING_CHUNK_BYTES = 4 * 1024 * 1024;
+
+// Stop the browser-engine recorder (the driver is focused on its tab), then
+// copy the finished WebM out of the page to `filePath` in base64 chunks.
+// Chrome's own download of the blob dropped files intermittently in headless
+// Chrome, so the bytes come back through WebDriver instead (ADR 01176).
+// Returns null once the file is saved, or why it isn't. A failure never
+// leaves a partial file behind.
+async function saveBrowserRecording({
+  driver,
+  filePath,
+  chunkSize = BROWSER_RECORDING_CHUNK_BYTES,
+}: {
+  driver: any;
+  filePath: string;
+  chunkSize?: number;
+}): Promise<string | null> {
+  const fail = (reason: string) => {
     try {
-      size = fs.statSync(filePath).size;
+      fs.rmSync(filePath, { force: true });
     } catch {
-      size = -1;
+      /* best-effort */
     }
-    // Require a non-empty, steady size: Chrome may pre-create the .webm
-    // before writing data, and transcoding an empty file fails.
-    if (size > 0 && size === lastSize) {
-      stableReads++;
-      if (stableReads >= 2) return true;
-    } else {
-      stableReads = 0;
+    return `Couldn't save the recording: ${reason}.`;
+  };
+  try {
+    const size = await driver.execute(async (waitMs: number) => {
+      const w = window as any;
+      if (w.recorder && w.recorder.state !== "inactive") w.recorder.stop();
+      const deadline = Date.now() + waitMs;
+      while (!w.__ddRecording && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return w.__ddRecording ? w.__ddRecording.size : -1;
+    }, BROWSER_RECORDING_WAIT_MS);
+    if (typeof size !== "number" || size < 0) {
+      return fail(
+        `the browser didn't finish it within ${BROWSER_RECORDING_WAIT_MS / 1000} seconds`
+      );
     }
-    lastSize = size;
-    await new Promise((r) => setTimeout(r, RECORDER_SETTLE_MS));
+    if (size === 0) return fail("the browser recorded no video");
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, Buffer.alloc(0));
+    for (let start = 0; start < size; start += chunkSize) {
+      const base64 = await driver.execute(
+        async (from: number, to: number) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL((window as any).__ddRecording.slice(from, to));
+          }),
+        start,
+        Math.min(start + chunkSize, size)
+      );
+      fs.appendFileSync(filePath, Buffer.from(String(base64), "base64"));
+    }
+    const written = fs.statSync(filePath).size;
+    if (written !== size) return fail(`the browser sent ${written} of ${size} bytes`);
+    return null;
+  } catch (error: any) {
+    return fail(String(error?.message ?? error).replace(/\.\s*$/, ""));
   }
-  // Timed out without the size ever holding steady — the file is missing or
-  // still being written. Report not-stable so the caller fails cleanly rather
-  // than transcoding a partial download.
-  return false;
 }
