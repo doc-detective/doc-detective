@@ -9,6 +9,7 @@
 // results file and the run folder. Exits 1 on any mismatch. The browser cases
 // browse the 8092 test server.
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -183,9 +184,9 @@ fs.writeFileSync(path.join(dir, "case.spec.json"), JSON.stringify(c.spec, null, 
 // Each run clears its temp folder as it starts (cleanTemp), and this nested
 // run shares a host with the fixture job's own recordings and the other
 // cases. A temp folder of its own keeps it from deleting their in-progress
-// recordings.
-const tmp = path.join(dir, "tmp");
-fs.mkdirSync(tmp, { recursive: true });
+// recordings. It's short and under the system temp folder: Chrome on Linux
+// puts a socket there, and socket paths can't pass about 108 characters.
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ddfac-"));
 const env = {
   ...process.env,
   TMPDIR: tmp,
@@ -200,6 +201,7 @@ const run = spawnSync(
   [path.join(root, "bin", "doc-detective.js"), "-i", "case.spec.json", "-o", "results.json", ...(c.args ?? [])],
   { cwd: dir, env, encoding: "utf8", timeout: 280_000 }
 );
+fs.rmSync(tmp, { recursive: true, force: true });
 const failures = [];
 const check = (ok, what) => {
   if (!ok) failures.push(what);
