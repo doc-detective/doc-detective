@@ -1212,6 +1212,8 @@ function schemasAt(parts: string[], root: string | object): any[] {
   let nodes = expand(typeof root === "string" ? allSchemas()[root] : root);
   for (const part of parts) {
     nodes = nodes.flatMap((node) =>
+      // An index reads `items` as one schema for every position. No bundled
+      // schema uses the tuple form (an `items` array, or `prefixItems`).
       /^\d+$/.test(part)
         ? expand(node.items)
         : [
@@ -1311,9 +1313,10 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
   // forbids the others), so only one of them may be set. The root's group,
   // "#", holds one path, so it always takes the "isn't allowed here" line.
   for (const [parent, paths] of forbidden) {
-    const keys = [...paths].map((forbiddenPath) => partsOf(forbiddenPath).at(-1));
-    if (keys.length > 1) lines.push(`${prefixOf(partsOf(parent))}set only one of ${keys.sort().join(", ")}.`);
-    else lines.push(`${prefixOf(partsOf([...paths][0]))}isn't allowed here.`);
+    if (paths.size > 1) {
+      const keys = [...paths].map((forbiddenPath) => partsOf(forbiddenPath).at(-1));
+      lines.push(`${prefixOf(partsOf(parent))}set only one of ${keys.sort().join(", ")}.`);
+    } else lines.push(`${prefixOf(partsOf([...paths][0]))}isn't allowed here.`);
   }
   for (const [instancePath, errors] of byPath) {
     const before = lines.length;
