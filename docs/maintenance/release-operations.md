@@ -53,12 +53,17 @@ realities around them.
   to merge, with no formal review needed. Agents carry their PRs through approval and merge. On `main`,
   merge a single PR with `gh pr merge <n> --merge --admin --delete-branch` once the comment is there.
   `--admin` bypasses every rule in the ruleset, not just the approval. So before each use, confirm with
-  `gh pr checks <n> --json name,state`:
+  `gh pr checks <n> --json name,state,workflow`:
   - each of the five required contexts above has reported and passed, since a green list can hide one
     that never reported;
-  - CodeQL (the `code_quality` rule) passed.
+  - CodeQL (the `code_quality` rule) passed. Two checks are named `Analyze (javascript-typescript)`, so tell
+    the CodeQL and Code Quality ones apart by `workflow`.
 
   Bot comments, such as CodeRabbit's or the Claude review's, never count as approval.
+- **An approval covers only the changes it saw.** A comment can't go stale the way a review does. If the PR's
+  own changes move after the approving comment, get a fresh one before merging, because unreviewed code
+  would otherwise reach the trunk. A rebase onto a moved base doesn't count, as long as it doesn't change the
+  PR's own diff. The same rule applies to each comment-approved stack layer.
 - Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
   layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
   `feat/v5-rc` has no ruleset to enforce approval. It merges once every layer being merged has green checks

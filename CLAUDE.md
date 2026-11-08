@@ -327,12 +327,18 @@ branches.
 - Start on the stack's trunk, which is `main` or a release branch such as `feat/v5-rc`:
   `gh stack init --base <trunk> <first-branch>`. Add each layer with `gh stack add <branch>`. Keep each layer
   one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
-- Open or update every PR in the stack with `gh stack submit --open`. Each PR targets the branch below it.
+- Open or update every PR in the stack with `gh stack submit --auto --open --remote origin`. Each PR targets
+  the branch below it.
+  - Agents always pass `--auto`. Without it, a terminal session opens an interactive editor and the command
+    blocks.
+  - `--remote origin` is needed because this checkout has several remotes.
 - When the trunk or a lower layer moves, run `gh stack sync` or `gh stack rebase`, not a manual rebase.
-  `gh stack rebase` only updates local branches, so follow it with `gh stack push` to publish them.
-- Merge bottom-up with `gh stack merge <pr> --merge`. It merges every PR up to and including `<pr>`, all or
-  nothing, so every one of those PRs needs its own approval first. Use `--merge`, never squash, so each
-  layer's `BREAKING CHANGE:` footer reaches semantic-release.
+  `gh stack rebase` only updates local branches, so follow it with `gh stack push --remote origin` to publish
+  them.
+- Merge bottom-up with `gh stack merge <pr> --merge --yes`. It merges every PR up to and including `<pr>`, all
+  or nothing, so every one of those PRs needs its own approval first.
+  - Agents pass `--yes`, so the command doesn't wait for a prompt.
+  - Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
 - A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See
   [release-operations.md](docs/maintenance/release-operations.md).
 - Put independent work in separate stacks.
