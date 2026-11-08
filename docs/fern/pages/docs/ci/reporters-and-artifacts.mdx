@@ -111,7 +111,7 @@ Doc Detective can add new fields at any time, so ignore the ones you don't recog
 
 ### Steps show what ran
 
-Each step in the results is the effective step, the one Doc Detective ran. Its action is in object form, with every default filled, even if you wrote a shorthand. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url`. Step-level fields you didn't set, such as `variables`, stay out.
+Each step in the results is the effective step, the one Doc Detective ran. Shorthand appears in its full form, with every default filled. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url` or `runShell.command`. A screenshot or recording reports its file's absolute `path`, so read `screenshot.path` or `record.path` to find the file. A `click` or `find` string stays a string, because a string already matches an element by any identifier. Step-level fields you didn't set, such as `variables`, stay out. The expanded form is only how results report a step, so your specs can keep the shorthand.
 
 ### Find slow specs with `durationMs`
 
@@ -159,7 +159,7 @@ A step that never ran reports `0`. That covers a step that was skipped, guarded 
 
 ### Tell environment changes from product changes
 
-When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run, and Doc Detective populates every field:
+When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run:
 
 ```json
 {
@@ -168,7 +168,7 @@ When a test that passed yesterday fails today, check whether the environment cha
   "environment": {
     "platform": "linux",
     "arch": "x64",
-    "docDetectiveVersion": "4.42.0",
+    "docDetectiveVersion": "5.0.0",
     "nodeVersion": "24.15.0",
     "osRelease": "6.8.0-1017-azure"
   },
@@ -182,7 +182,7 @@ When a test that passed yesterday fails today, check whether the environment cha
 }
 ```
 
-- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory.
+- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory. If Doc Detective can't read its own version, it leaves out `docDetectiveVersion`.
 - Each context that started a browser records the `browser.version` and the `driver` that drove it. A context without a browser has neither. Safari's driver reports no version.
 - `startedAt` is an ISO 8601 UTC timestamp with milliseconds. It's on the run, each context, and each step that ran. A node ends at `startedAt` plus `durationMs`. Specs and tests have no `startedAt`, because their durations are sums rather than spans.
 
