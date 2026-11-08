@@ -23,6 +23,7 @@ import {
 // Single source of truth for browser/driver-requiring step keys.
 import {
   BROWSER_STEP_KEYS as driverActions,
+  SURFACE_SENSITIVE_STEP_KEYS,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
   stepTargetsProcessSurface,
@@ -85,9 +86,15 @@ import {
   XVFB_SCREEN_SIZE,
   isRecordingActive,
   recordStepName,
+  selectRecordingToStop,
   detectRecordingNameConflict,
   getFfmpegPath,
   ffmpegPathEnv,
+  resolveRecordPlan,
+  planRecordingPreflight,
+  createRecordingProbes,
+  preflightKey,
+  type RecordingPreflightResult,
 } from "./tests/ffmpegRecorder.js";
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
@@ -105,12 +112,14 @@ import {
   createAppServerPool,
   APP_DRIVER_PLATFORMS,
   probeIosToolchain,
+  probeMacScreenRecording,
   type AppSessionState,
   type AppServerPool,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
 import {
   createActiveSurfaceTracker,
+  resolveTargetSurface,
   type ActiveSurfaceTracker,
 } from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
@@ -271,6 +280,11 @@ export {
   resolveAutoRecord,
   buildAutoRecordStep,
   prepareContextSlot,
+  forcedHeadedMessage,
+  autoScreenshotSurface,
+  autoScreenshotsOn,
+  installAutoScreenshotPackages,
+  isSyntheticAutoRecordStep,
   specIsRouted,
   killTree,
   appiumServerCache,
@@ -1667,6 +1681,36 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const markAutoRecord = () => {
     autoRecordFlag.injected = true;
   };
+  // Recording preflight (ADR 01177, DA3): once per run, before any test, for
+  // the engines the run will record with — none, and no probe runs.
+  const plannedRecordings = plannedRecordingEngines({
+    config,
+    specs,
+    runnerDetails,
+  });
+  const recordingPreflight = await planRecordingPreflight({
+    platform: process.platform,
+    plans: plannedRecordings.plans,
+    deps: createRecordingProbes({
+      cacheDir: config?.cacheDir,
+      macScreenRecording: probeMacScreenRecording,
+    }),
+  });
+  // An unset autoRecord whose check failed records nothing there, with one
+  // warning per distinct cause.
+  const warnedCauses = new Set<string>();
+  for (const engine of plannedRecordings.unset) {
+    const check = recordingPreflight[engine];
+    if (!check || check.ok || warnedCauses.has(check.reason)) continue;
+    warnedCauses.add(check.reason);
+    log(
+      config,
+      "warning",
+      `Not recording automatically: ${check.reason}. To record, ${check.fix}, or set \`autoRecord: false\` to stop checking.`
+    );
+  }
+  // Headless Firefox contexts autoRecord runs headed (DA1a), counted once.
+  const forcedHeaded = new Set<any>();
   for (const spec of specs) {
     log(config, "debug", `SPEC: ${spec.specId}`);
     // Create-if-missing: specIds (and testIds) aren't guaranteed unique
@@ -1739,6 +1783,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
             runnerDetails,
             contexts: new Array(test.contexts.length),
             onAutoRecord: markAutoRecord,
+            onForcedHeaded: () => forcedHeaded.add(context),
+            recordingPreflight,
           });
           if (result.kind === "job") routedSizingJobs.push(result.job);
         });
@@ -1786,6 +1832,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           runnerDetails,
           contexts: testReport.contexts,
           onAutoRecord: markAutoRecord,
+          onForcedHeaded: () => forcedHeaded.add(context),
+          recordingPreflight,
         });
         if (result.kind === "skipped") {
           testReport.contexts[slot] = result.contextReport;
@@ -1797,17 +1845,20 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       });
     }
   }
+  if (forcedHeaded.size > 0) {
+    log(config, "info", forcedHeadedMessage(forcedHeaded.size));
+  }
 
   // Recording concurrency. The browser (Chrome getDisplayMedia) engine is
   // concurrency-safe via per-context capture titles, but the ffmpeg engine
   // grabs the whole physical display and must own it — so concurrent ffmpeg
-  // recordings are only safe on Linux with per-runner Xvfb displays. Probe
-  // Xvfb only when it could matter, then let computeEffectiveConcurrency
+  // recordings are only safe on Linux with per-runner Xvfb displays. The
+  // recording preflight already probed Xvfb when an ffmpeg recording was
+  // planned; probe here only for one it couldn't foresee (a second browser
+  // recording that falls back to ffmpeg). Then let computeEffectiveConcurrency
   // decide the effective limit.
-  // Only ffmpeg-engine recordings need Xvfb; a browser-engine-only run
-  // shouldn't pay for an `Xvfb -help` spawn. Contexts already carry their
-  // default browser (prepareContextSlot), so resolveRecordPlan reflects the
-  // engine that will actually run.
+  // Contexts already carry their default browser (prepareContextSlot), so
+  // resolveRecordPlan reflects the engine that will actually run.
   // Sizing view: the flat (non-routed) jobs PLUS every routed context. Routed
   // contexts execute in the sequencer, not the flat pool, but they still need
   // the Appium pool / recording concurrency / warm-up to account for them.
@@ -1816,7 +1867,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const anyFfmpegRecording = sizingJobs.some(jobIsFfmpegRecording);
   let xvfbAvailable = false;
   if (anyFfmpegRecording && process.platform === "linux") {
-    xvfbAvailable = await checkSystemBinary("Xvfb");
+    const check = recordingPreflight.ffmpeg;
+    xvfbAvailable =
+      check?.ok === true && typeof check.xvfb === "boolean"
+        ? check.xvfb
+        : await checkSystemBinary("Xvfb");
   }
   // "Parallel anyway" is an autoRecord-only opt-in: only bypass the forced-serial
   // safeguard when every ffmpeg recording in the run is a synthetic autoRecord
@@ -2325,7 +2380,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // keeps a future gap from surfacing as a cryptic undefined read.
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
-            report.summary.steps[stepReport.result.toLowerCase()]++;
+            if (!isSyntheticAutoRecordStep(stepReport))
+              report.summary.steps[stepReport.result.toLowerCase()]++;
             // Default here rather than at each construction site: this pass is
             // the only place that sees EVERY node from both execution paths
             // (flat pool and routed sequencer), real and synthetic alike. A
@@ -3683,8 +3739,10 @@ type ContextSlotResult =
  *   2. Apply the three skip precedences (spec guard > test guard >
  *      recording-name conflict), returning a SKIPPED contextReport with the
  *      exact same wording as before.
- *   3. Otherwise inject the synthetic autoRecord step (idempotent) and coerce a
- *      record context's browser, then return a runnable job descriptor.
+ *   3. Otherwise give a context that names no browser the default browser,
+ *      run headless Firefox headed when autoRecord can record it, inject the
+ *      synthetic autoRecord step (idempotent), then return a runnable job
+ *      descriptor.
  *
  * Mutates `context` in place (contextId, steps, browser) exactly as the original
  * inline code did — idempotent, so the routed sequencer can call it per visit.
@@ -3705,6 +3763,8 @@ function prepareContextSlot({
   runnerDetails,
   contexts,
   onAutoRecord,
+  onForcedHeaded,
+  recordingPreflight,
 }: {
   config: any;
   spec: any;
@@ -3718,6 +3778,10 @@ function prepareContextSlot({
   runnerDetails: any;
   contexts: any[];
   onAutoRecord: () => void;
+  // Called when autoRecord runs a headless Firefox context headed (DA1a).
+  onForcedHeaded?: () => void;
+  // The run's recording preflight, by engine (ADR 01177).
+  recordingPreflight?: Record<string, RecordingPreflightResult>;
 }): ContextSlotResult {
   // Derive a stable contextId from platform/browser when unset (the resolver
   // normally assigns one) so the same context keeps the same ID across runs for
@@ -3783,23 +3847,13 @@ function prepareContextSlot({
       },
     };
   }
-  // autoRecord: prepend a synthetic full-context ffmpeg recording step (even
-  // when the author also has explicit record steps — overlapping is intended).
-  // Done before the concurrency calc so the synthetic ffmpeg recording is
-  // counted by jobIsFfmpegRecording.
-  if (resolveAutoRecord({ config, spec, test })) {
-    const autoStep = buildAutoRecordStep({ config, spec, test, context });
-    if (autoStep) {
-      // Idempotent: strip any prior synthetic step before prepending, so a
-      // resolved context that's reused (e.g. runSpecs invoked twice) can't
-      // accumulate duplicate autoRecord captures targeting the same file.
-      const authored = Array.isArray(context.steps)
-        ? context.steps.filter((s: any) => !s?.__autoRecord)
-        : [];
-      context.steps = [autoStep, ...authored];
-      onAutoRecord();
-    }
+  // The run's recording preflight travels with the context, so startRecording
+  // can SKIP a recording whose engine failed it (ADR 01177, DA4), and so the
+  // routed sequencer's re-preparation sees the same result.
+  if (recordingPreflight && Object.keys(recordingPreflight).length > 0) {
+    context.__recordingPreflight = recordingPreflight;
   }
+  recordingPreflight = context.__recordingPreflight;
   // A context that names no browser gets the default one here, before the
   // concurrency calc, so a record step's engine resolves to what will run:
   // headless Chrome records its tab with no display (ADR 01176). runContext
@@ -3811,12 +3865,52 @@ function prepareContextSlot({
   ) {
     context.browser = getDefaultBrowser({ runnerDetails });
   }
+  // autoRecord (on unless `false`): prepend a synthetic full-context recording
+  // step (even when the author also has explicit record steps — overlapping
+  // is intended). Done before the concurrency calc so a synthetic ffmpeg
+  // recording is counted by jobIsFfmpegRecording.
+  if (resolveAutoRecord({ config, spec, test }) !== false) {
+    // DA1a: headless Firefox draws nothing ffmpeg can capture, so run it
+    // headed — on Linux, on the context's Xvfb display — when the preflight
+    // says the host can capture. Before the browser launches; `browser` is in
+    // RUN_CONTEXT_MUTATED_KEYS, so a retry re-resolves it.
+    if (
+      context.browser?.name === "firefox" &&
+      context.browser.headless !== false &&
+      recordingPreflight?.ffmpeg?.ok === true &&
+      runsOnHost(context, runnerDetails) &&
+      isDriverRequired({ test: context })
+    ) {
+      context.browser = { ...context.browser, headless: false };
+      onForcedHeaded?.();
+    }
+    const autoStep = buildAutoRecordStep({
+      config,
+      spec,
+      test,
+      context,
+      preflight: recordingPreflight,
+    });
+    if (autoStep) {
+      // Idempotent: strip any prior synthetic step before prepending, so a
+      // resolved context that's reused (e.g. runSpecs invoked twice) can't
+      // accumulate duplicate autoRecord captures targeting the same file.
+      const authored = Array.isArray(context.steps)
+        ? context.steps.filter((s: any) => !s?.__autoRecord)
+        : [];
+      context.steps = [autoStep, ...authored];
+      // Only an explicit `autoRecord: true` opts the run into overlapping
+      // ffmpeg captures; a defaulted one keeps the safe serial display.
+      if (!autoStep.__autoRecordDefaulted) onAutoRecord();
+    }
+  }
   return { kind: "job", job: { spec, test, context, contexts, slot } };
 }
 
 // Effective autoScreenshot setting for a test: the test level wins over the
 // spec level, which wins over the global config. Levels left unset defer
-// down the chain.
+// down the chain. Unset everywhere returns undefined, which callers treat as
+// on (ADR 01177); only `false` turns it off.
 function resolveAutoScreenshot({
   config,
   spec,
@@ -3825,10 +3919,8 @@ function resolveAutoScreenshot({
   config: any;
   spec: any;
   test: any;
-}): boolean {
-  return Boolean(
-    test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot
-  );
+}): boolean | undefined {
+  return test?.autoScreenshot ?? spec?.autoScreenshot ?? config?.autoScreenshot;
 }
 
 /**
@@ -3860,7 +3952,8 @@ async function resolveStepSkipRouting(
 }
 
 // Effective autoRecord setting for a test: same precedence as autoScreenshot
-// (test > spec > config; unset levels defer down the chain).
+// (test > spec > config; unset levels defer down the chain). undefined means
+// unset, which records what the host can (ADR 01177); `true` is strict.
 function resolveAutoRecord({
   config,
   spec,
@@ -3869,30 +3962,59 @@ function resolveAutoRecord({
   config: any;
   spec: any;
   test: any;
-}): boolean {
-  return Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord);
+}): boolean | undefined {
+  return test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord;
+}
+
+// The engine autoRecord's synthetic step uses in a context (ADR 01177, DA2),
+// or null when the context gets none: "device" on Android and iOS, the
+// browser engine for headless Chrome (whose tab it captures), and ffmpeg for
+// everything else on a desktop. Headless Chrome with an authored `record`
+// gets none — the browser engine allows one recording per context, and the
+// author's wins. `context.browser` is already the default browser when the
+// context names none (prepareContextSlot).
+function autoRecordEngine(context: any): "device" | "browser" | "ffmpeg" | null {
+  if (isMobileTargetPlatform(context?.platform)) return "device";
+  const browser = context?.browser;
+  if (browser?.name === "chrome" && browser.headless !== false) {
+    const authored = (Array.isArray(context?.steps) ? context.steps : []).some(
+      (s: any) => !s?.__autoRecord && s?.record !== undefined && s.record !== false
+    );
+    return authored ? null : "browser";
+  }
+  return "ffmpeg";
 }
 
 // Build the synthetic full-context recording step for an autoRecord run, or
-// null when the context shouldn't be recorded (no driver-required authored
-// steps). Always uses the ffmpeg engine, and a deterministic path under the
-// run's artifact folder following the REST resource tree
+// null when the context shouldn't be recorded: no driver-required authored
+// steps, no engine (autoRecordEngine), or — when autoRecord is unset — a
+// failed preflight for that engine (ADR 01177). A deterministic path under the
+// run's artifact folder follows the REST resource tree
 // (specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4)
 // so the same context lands on the same relative path every run for comparison.
 // The `__autoRecord` marker tags the started handle as synthetic so an
 // untargeted user `stopRecord` won't end it (only end-of-context cleanup does).
+// `__autoRecordDefaulted` marks a step autoRecord added while unset, so
+// startRecording turns its start failure into SKIPPED.
 function buildAutoRecordStep({
   config,
   spec,
   test,
   context,
+  preflight,
 }: {
   config: any;
   spec: any;
   test: any;
   context: any;
+  preflight?: Record<string, RecordingPreflightResult>;
 }): any | null {
   if (!isDriverRequired({ test: context })) return null;
+  const engine = autoRecordEngine(context);
+  if (!engine) return null;
+  const defaulted = resolveAutoRecord({ config, spec, test }) === undefined;
+  const key = preflightKey(engine, context?.platform);
+  if (defaulted && key && preflight?.[key]?.ok === false) return null;
   // Compute the path only — runSpecs reserves the run folder up front when
   // runArchivesArtifacts is true (autoRecord counts), so creating it here would
   // be redundant. (startRecording also mkdirs the recording's target dir up
@@ -3920,16 +4042,84 @@ function buildAutoRecordStep({
     record: {
       path: recordPath,
       overwrite: "true",
-      ...(isMobileTargetPlatform(context?.platform)
-        ? {}
-        : { engine: "ffmpeg" }),
+      ...(engine === "device" ? {} : { engine }),
     },
     description: "Automatic full-context recording",
     stepId: `${sanitizeFilesystemName(String(test.testId ?? ""), "test")}~autorecord`,
     // Internal marker — the runStep record dispatch flags the started handle as
     // synthetic so it survives untargeted stopRecord and is swept by cleanup.
     __autoRecord: true,
+    ...(defaulted ? { __autoRecordDefaulted: true } : {}),
   };
+}
+
+// Whether a desktop context runs on this host: it names no platform, or the
+// host's. Mobile contexts run against a device from any host, and other
+// desktop platforms are SKIPPED by runContext.
+function runsOnHost(context: any, runnerDetails: any): boolean {
+  const host = runnerDetails?.environment?.platform;
+  return (
+    !context?.platform ||
+    !host ||
+    context.platform === host ||
+    Boolean(isMobileTargetPlatform(context.platform))
+  );
+}
+
+// The info line for headless Firefox contexts autoRecord runs headed (DA1a).
+function forcedHeadedMessage(count: number): string {
+  return count === 1
+    ? "Running 1 headless Firefox context headed so autoRecord can record it. Set `autoRecord: false` to keep it headless."
+    : `Running ${count} headless Firefox contexts headed so autoRecord can record them. Set \`autoRecord: false\` to keep them headless.`;
+}
+
+// The recording engines a run will use, found before any context is prepared
+// so the recording preflight can run once (ADR 01177, DA3): each authored
+// `record` step's engine, plus autoRecord's per context. `unset` holds the
+// engines contexts with autoRecord unset would use, for the one warning a
+// failed check prints. Mirrors prepareContextSlot's default browser, without
+// writing it.
+function plannedRecordingEngines({
+  config,
+  specs,
+  runnerDetails,
+}: {
+  config: any;
+  specs: any[];
+  runnerDetails: any;
+}): { plans: Set<string>; unset: Set<string> } {
+  const plans = new Set<string>();
+  const unset = new Set<string>();
+  for (const spec of specs ?? []) {
+    for (const test of spec?.tests ?? []) {
+      for (const raw of test?.contexts ?? []) {
+        if (!runsOnHost(raw, runnerDetails)) continue;
+        const context = {
+          ...raw,
+          browser:
+            raw?.browser ??
+            (isBrowserRequired({ test: raw }) &&
+            !isMobileTargetPlatform(raw?.platform)
+              ? getDefaultBrowser({ runnerDetails })
+              : undefined),
+        };
+        for (const step of Array.isArray(context.steps) ? context.steps : []) {
+          if (step?.__autoRecord || !step?.record) continue;
+          const key = preflightKey(resolveRecordPlan({ step, context }).name, context.platform);
+          if (key) plans.add(key);
+        }
+        const setting = resolveAutoRecord({ config, spec, test });
+        if (setting === false || !isDriverRequired({ test: context })) continue;
+        const engine = autoRecordEngine(context);
+        if (!engine) continue;
+        const key = preflightKey(engine, context.platform);
+        if (!key) continue;
+        plans.add(key);
+        if (setting === undefined) unset.add(key);
+      }
+    }
+  }
+  return { plans, unset };
 }
 
 // A context's `screenshots/` folder in the run folder, which creates the run
@@ -3944,6 +4134,115 @@ function contextScreenshotsDir({ config, spec, test, context }: { config: any; s
     "contexts",
     capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
     "screenshots"
+  );
+}
+
+// The surface a step drove, for its automatic screenshot (ADR 01177, DA1b):
+// the step's own `surface`, or the context's active surface — the same
+// resolution the handler used — when that's a browser or an app (desktop app,
+// device app, or device browser). null for a step that drives no UI (runShell,
+// httpRequest, wait), a background process, a surface that doesn't resolve,
+// an authored screenshot (it already produced an image), and the synthetic
+// autoRecord step.
+function autoScreenshotSurface({
+  step,
+  driver,
+  appSession,
+  processRegistry,
+  surfaceTracker,
+}: {
+  step: any;
+  driver?: any;
+  appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
+}): { kind: "browser" | "app"; surface?: any } | null {
+  if (!step || typeof step !== "object" || step.__autoRecord) return null;
+  if (typeof step.screenshot !== "undefined") return null;
+  const drivesUi =
+    driverActions.some((action) => typeof step[action] !== "undefined") ||
+    startSurfaceDescriptors(step).some(
+      (d: any) =>
+        d && typeof d === "object" && (typeof d.app === "string" || typeof d.browser === "string")
+    );
+  if (!drivesUi) return null;
+  const surface = Object.values(step).find(
+    (payload: any) =>
+      payload && typeof payload === "object" && !Array.isArray(payload) && payload.surface !== undefined
+  ) as any;
+  // Only steps whose handler resolves surfaces — the surface-sensitive
+  // actions, startSurface, or a step that names `surface` — follow the active
+  // surface. goTo, runBrowserScript, and the other browser-only actions always
+  // drive the browser, so that's what they capture.
+  const followsActiveSurface =
+    surface !== undefined ||
+    SURFACE_SENSITIVE_STEP_KEYS.some((key) => typeof step[key] !== "undefined") ||
+    typeof step.startSurface !== "undefined";
+  if (!followsActiveSurface) return driver ? { kind: "browser", surface: undefined } : null;
+  const target = resolveTargetSurface({
+    surface: surface?.surface,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "app") return { kind: "app", surface: surface?.surface };
+  if (target.kind === "browser" && driver) return { kind: "browser", surface: surface?.surface };
+  return null;
+}
+
+// Whether a test takes automatic screenshots: on unless `false` (test > spec >
+// config), and off for the whole run when their packages couldn't install
+// (ADR 01177).
+function autoScreenshotsOn({
+  config,
+  spec,
+  test,
+}: {
+  config: any;
+  spec: any;
+  test: any;
+}): boolean {
+  return (
+    resolveAutoScreenshot({ config, spec, test }) !== false &&
+    !config?._autoScreenshotsUnavailable
+  );
+}
+
+// Install the packages only automatic screenshots need (sharp, pngjs,
+// pixelmatch) on their own, so a failure turns automatic screenshots off for
+// the run, with one warning, instead of failing it (ADR 01177). `config` must
+// be the config runSpecs reads (resolvedTests.config), not the caller's copy.
+async function installAutoScreenshotPackages({
+  config,
+  packages,
+  install,
+}: {
+  config: any;
+  packages: string[];
+  install: (packages: string[]) => Promise<unknown>;
+}): Promise<void> {
+  if (packages.length === 0) return;
+  try {
+    await install(packages);
+  } catch (error: any) {
+    config._autoScreenshotsUnavailable = true;
+    log(
+      config,
+      "warning",
+      `Not taking automatic screenshots: couldn't install sharp (${error?.message ?? error}). Run \`doc-detective install runtime sharp pngjs pixelmatch\`, or set \`autoScreenshot: false\`.`
+    );
+  }
+}
+
+// The synthetic autoRecord start (`<testId>~autorecord`) and its end-of-context
+// stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so a
+// default run doesn't count two extra steps per context (ADR 01177).
+function isSyntheticAutoRecordStep(step: any): boolean {
+  const id = String(step?.stepId ?? "");
+  return (
+    (id.endsWith("~autorecord") && step?.record !== undefined) ||
+    (id.endsWith("~autorecord~stop") && step?.stopRecord !== undefined)
   );
 }
 
@@ -3964,6 +4263,10 @@ async function captureAutoScreenshot({
   step,
   stepIndex,
   stepCount,
+  surface,
+  appSession,
+  processRegistry,
+  surfaceTracker,
 }: {
   config: any;
   driver: any;
@@ -3973,6 +4276,12 @@ async function captureAutoScreenshot({
   step: any;
   stepIndex: number;
   stepCount: number;
+  // The surface the step drove (autoScreenshotSurface), so an app or device
+  // step's shot comes from its app driver, not the browser (ADR 01177).
+  surface?: any;
+  appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<string | null> {
   try {
     const runDir = getRunOutputDir(config);
@@ -3989,12 +4298,16 @@ async function captureAutoScreenshot({
       screenshot: {
         path: path.join(dir, fileName),
         overwrite: "true",
+        ...(surface !== undefined ? { surface } : {}),
       },
     };
     const captureResult = await saveScreenshot({
       config,
       step: screenshotStep,
       driver,
+      appSession,
+      processRegistry,
+      surfaceTracker,
     });
     if (captureResult.status !== "PASS") {
       log(
@@ -4872,8 +5185,10 @@ async function runContext({
       }
     }
 
-    // Effective autoScreenshot for this context (test > spec > config).
-    const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
+    // Effective autoScreenshot for this context (test > spec > config); on
+    // unless `false` (ADR 01177), and off for the run when its packages
+    // couldn't install.
+    const autoScreenshotEnabled = autoScreenshotsOn({ config, spec, test });
 
     // Effective annotation theme for this context, same precedence. Resolved
     // here because spec/test are only in scope at this level; steps get it
@@ -5221,19 +5536,28 @@ async function runContext({
       if (attempts > 1) stepReport.attempts = attempts;
 
       // Capture a post-step screenshot for autoScreenshot runs (final attempt
-      // only). Applies to browser steps (explicit `screenshot` steps already
-      // produce an image); failed steps are captured too — the failure frame is
-      // often the most useful. A capture failure logs a warning, never fails.
+      // only). Applies to every step that drove a browser, native app, or
+      // device, from the surface it drove (ADR 01177, DA1b; explicit
+      // `screenshot` steps already produce an image); failed steps are
+      // captured too — the failure frame is often the most useful. A capture
+      // failure logs a warning, never fails.
       // Note: the filename derives from `stepIndex`, so a backward `goToStep`
       // re-visit of the same step overwrites the prior visit's image
       // (latest-visit-wins) — acceptable; the report's `visit` marks re-runs.
+      // The synthetic autoRecord step isn't counted, so the first authored
+      // step is `01-…`.
       const autoScreenshotDriver = activeDriver(browserSessions) ?? driver;
-      if (
-        autoScreenshotEnabled &&
-        autoScreenshotDriver &&
-        typeof step.screenshot === "undefined" &&
-        isDriverRequired({ test: { steps: [step] } })
-      ) {
+      const shotSurface = autoScreenshotEnabled
+        ? autoScreenshotSurface({
+            step,
+            driver: autoScreenshotDriver,
+            appSession,
+            processRegistry,
+            surfaceTracker,
+          })
+        : null;
+      if (shotSurface) {
+        const synthetic = context.steps[0]?.__autoRecord ? 1 : 0;
         const capturedPath = await captureAutoScreenshot({
           config,
           driver: autoScreenshotDriver,
@@ -5241,8 +5565,12 @@ async function runContext({
           test,
           context,
           step,
-          stepIndex,
-          stepCount: context.steps.length,
+          stepIndex: stepIndex - synthetic,
+          stepCount: context.steps.length - synthetic,
+          surface: shotSurface.surface,
+          appSession,
+          processRegistry,
+          surfaceTracker,
         });
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
@@ -5642,11 +5970,16 @@ async function stopAllRecordings({
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
   while (driver.state.recordings.length > 0 && guard-- > 0) {
+    // The automatic recording's stop is `<testId>~autorecord~stop`, so the
+    // summary can leave it out (isSyntheticAutoRecordStep, ADR 01177).
+    const next = selectRecordingToStop(driver.state.recordings, true, {
+      includeSynthetic: true,
+    });
     const stopRecordStep: any = {
       stopRecord: true,
       __stopAny: true,
       description: "Stopping recording",
-      stepId: randomUUID(),
+      stepId: next?.syntheticStepId ? `${next.syntheticStepId}~stop` : randomUUID(),
     };
     // These sweep steps really execute, so they carry a measured duration
     // rather than the Phase-3 zero default. Timed in both the success and the
@@ -5859,6 +6192,7 @@ async function runStep({
       }
       if (step.__autoRecord) {
         handle.synthetic = true;
+        handle.syntheticStepId = step.stepId;
         // Desktop app-only context: no window exists yet to crop to. Mark the
         // handle so the first app surface to open late-binds its window rect
         // as the crop (startAppSurface), scoping the capture to the app under

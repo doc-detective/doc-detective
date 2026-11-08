@@ -3152,13 +3152,14 @@ function getRunOutputDir(
 // active the runner skips creating it (see runSpecs) instead of leaving an
 // empty folder behind.
 //
-// autoScreenshot can be set globally on the config or per spec/test. When the
-// resolved `specs` are available, decide exactly as resolveAutoScreenshot does
-// — `Boolean(test ?? spec ?? config)`, test > spec > config — for *each*
-// selected test, so a per-test `false` that overrides a global `true` is
-// respected (no eager folder for a run where every test disables screenshots)
-// and a truthy non-boolean from an API caller still counts. Without specs
-// (programmatic/early callers), fall back to the global flag, Boolean-coerced.
+// autoScreenshot and autoRecord can be set globally on the config or per
+// spec/test, and unset means on (ADR 01177). When the resolved `specs` are
+// available, resolve each exactly as resolveAutoScreenshot/resolveAutoRecord
+// do — `test ?? spec ?? config`, test > spec > config — for *each* selected
+// test; anything but `false` counts as on, so only a run where every test
+// turns both off skips the folder. Without specs (programmatic/early
+// callers), fall back to the global flags. While either is on, the
+// runFolder reporter runs even when `reporters` leaves it out (outputResults).
 //
 // The reporter gate mirrors outputResults *exactly* so the gate never reserves
 // a folder the reporter won't write to (which would leave it empty). Like
@@ -3180,16 +3181,14 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
     const writesArtifact = list.some((spec: any) =>
       (spec?.tests ?? []).some(
         (test: any) =>
-          Boolean(
-            test?.autoScreenshot ??
-              spec?.autoScreenshot ??
-              config?.autoScreenshot
-          ) ||
-          Boolean(test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord)
+          (test?.autoScreenshot ??
+            spec?.autoScreenshot ??
+            config?.autoScreenshot) !== false ||
+          (test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord) !== false
       )
     );
     if (writesArtifact) return true;
-  } else if (Boolean(config?.autoScreenshot) || Boolean(config?.autoRecord)) {
+  } else if (config?.autoScreenshot !== false || config?.autoRecord !== false) {
     return true;
   }
   const active =
