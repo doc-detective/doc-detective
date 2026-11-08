@@ -739,7 +739,7 @@ describe("utils.ts coverage", function () {
     });
 
     it("exits(2) when the fetched resolvedTests fail schema validation", async function () {
-      captureConsole(sandbox);
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
         url: "http://api.test",
@@ -753,6 +753,9 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
       assert.ok(axios.get.calledOnce);
       assert.ok(axios.get.firstCall.args[0].endsWith("/resolved-tests"));
+      // The same formatter as config and spec errors, not AJV's raw string.
+      assert.match(output.log, /Invalid resolved tests from DOC_DETECTIVE_API:\nmissing required key 'specs'\./);
+      assert.doesNotMatch(output.log, /must have required property/);
     });
 
     it("exits(2) when axios rejects (network error)", async function () {

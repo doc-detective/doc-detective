@@ -2,7 +2,15 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { configErrorMessage, deepMerge, getRunOutputDir, loadAxios, redactUrlForOutput, timestamp } from "./core/utils.js";
+import {
+  configErrorMessage,
+  deepMerge,
+  getRunOutputDir,
+  loadAxios,
+  redactUrlForOutput,
+  summarizeSchemaErrors,
+  timestamp,
+} from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
 import { splitList } from "./cliOptions.js";
 import path from "node:path";
@@ -103,11 +111,16 @@ async function getResolvedTestsFromEnv(config: any = {}) {
     const validation = validate({
       schemaKey: "resolvedTests_v3",
       object: resolvedTests,
+      structuredErrors: true,
     });
 
     if (!validation.valid) {
       log(
-        "Invalid resolvedTests from API response. " + validation.errors,
+        `Invalid resolved tests from DOC_DETECTIVE_API:\n${summarizeSchemaErrors(
+          validation.errorObjects,
+          resolvedTests,
+          "resolvedTests_v3"
+        )}`,
         "error",
         config
       );

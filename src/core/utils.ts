@@ -1267,6 +1267,10 @@ function shortJson(value: unknown): string {
   return `${cut(shown, 39)}…`;
 }
 
+// A required error from one branch of an anyOf or oneOf, or from an allOf in
+// such a branch. summarizeSchemaErrors groups these into one choice.
+const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
+
 // Turn AJV's structured errors (`validate({ structuredErrors: true })`) into
 // something a person can act on: one `<path>: <message>` line per problem, with
 // the noise of anyOf/oneOf branches the value didn't take dropped, and the
@@ -1287,7 +1291,9 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
   const byPath = new Map<string, any[]>();
   for (const error of errorObjects) {
     if (error.keyword === "false schema") {
-      const parent = error.instancePath.replace(/\/[^/]*$/, "");
+      // The root has no parent, so it groups alone under "#", which no
+      // instancePath can be, rather than as a choice beside its own keys.
+      const parent = error.instancePath ? error.instancePath.replace(/\/[^/]*$/, "") : "#";
       forbidden.set(parent, (forbidden.get(parent) ?? new Set()).add(error.instancePath));
       continue;
     }
@@ -1375,7 +1381,6 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     // the object requires directly gets a group of its own, and its own line,
     // even beside another one. The pattern stops at that one level: deeper
     // nesting reads as separate groups, which only means separate lines.
-    const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
     const choices = new Map<string, { keys: string[]; branch?: string }>();
     for (const error of required) {
       const branch = branchRequired.exec(error.schemaPath)?.[1];

@@ -70,13 +70,15 @@ export function checkEnvAliases(env: NodeJS.ProcessEnv = process.env) {
     // Both set and either on: which one meant it is unclear. Both off is harmless.
     // envFlag warns once about a value it can't read, so an invalid old name
     // gets that warning here, and the rename warning below stays quiet for it.
-    const on = [newName, oldName].filter((name) => envFlag(name, env));
+    const newOn = envFlag(newName, env);
+    const oldOn = envFlag(oldName, env);
+    const on = [newOn && newName, oldOn && oldName].filter(Boolean);
     if (env[oldName]?.trim() && env[newName]?.trim() && on.length) {
       throw new Error(
         `set \`${newName}\` or \`${oldName}\`, not both. ${on.length > 1 ? "Both are on." : `\`${on[0]}\` is on.`}`
       );
     }
-    if (envFlag(oldName, env)) warnOnce(oldName, `\`${oldName}\` is deprecated. Rename it to \`${newName}\`.`);
+    if (oldOn) warnOnce(oldName, `\`${oldName}\` is deprecated. Rename it to \`${newName}\`.`);
   }
 }
 
