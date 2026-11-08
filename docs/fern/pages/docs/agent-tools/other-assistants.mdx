@@ -60,15 +60,17 @@ Use these if `npx doc-detective install agents` isn't an option for your workflo
 
 ### Install with `npx skills`
 
+{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
+
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
 ```bash
-npx skills add doc-detective/agent-tools
+npx skills add doc-detective/agent-tools#feat/v5-rc
 ```
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
-`npx skills add doc-detective/agent-tools` installs from the agent-tools default branch, not the ref that `install agents` uses. For Codex, Qwen Code, or OpenCode, use `npx doc-detective install agents` instead. For other assistants, follow [Manual installation](#manual-installation), which installs from the ref that `install agents` uses.
+The `#feat/v5-rc` suffix pins the same agent-tools ref that `install agents` uses.
 
 ### Manual installation
 

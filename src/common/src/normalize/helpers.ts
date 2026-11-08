@@ -91,6 +91,7 @@ function plainDefaults(node: any, prefix = ""): [string, any][] {
   return Object.entries<any>(properties).flatMap(([key, property]): [string, any][] => {
     const path = prefix + key;
     if ("default" in property) return [[path, property.default]];
+    // No `!property.allOf` on purpose: the recursive call merges allOf parts' own properties.
     if (property.type === "object" && !property.required && !property.anyOf && !property.oneOf && !property.if) {
       return plainDefaults(property, `${path}.`);
     }

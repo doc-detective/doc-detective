@@ -66,15 +66,24 @@ release candidate users on their next `install agents`.
 At CLI 5 GA, agent-tools merges `feat/v5-rc` to `main` and releases 2.0.0, which creates the `v2` tag. Then:
 
 1. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200.
-2. Set `AGENT_TOOLS_REF = "v2"` in `src/agents/fetcher.ts`, in the change that promotes CLI 5 to `main`.
+2. Don't delete agent-tools' `feat/v5-rc` branch. Freeze it at the GA content.
+3. Set `AGENT_TOOLS_REF = "v2"` in `src/agents/fetcher.ts`, in the change that promotes CLI 5 to `main`.
    A `TODO(ADR 01164)` comment marks the line.
-3. Change the one value assertion in `test/agents-pinned-ref.test.js` to `"v2"`.
-4. Update this ADR and `docs/fern/pages/reference/cli/install.mdx`. A `TODO(ADR 01164)` comment marks the docs
+4. Change the one value assertion in `test/agents-pinned-ref.test.js` to `"v2"`.
+5. Update this ADR and `docs/fern/pages/reference/cli/install.mdx`. A `TODO(ADR 01164)` comment marks the docs
    paragraph.
-5. Confirm `grep -rn "feat/v5-rc" src test docs/fern` finds nothing.
+6. Extend the re-pin steps to cover Gemini CLI and Qwen Code installs made during the release candidate. They live
+   in install.mdx's "Pin a Gemini CLI or Qwen Code install made before Doc Detective 5" section. The matching entry
+   is in `docs/fern/pages/docs/ci/upgrade-to-v5.mdx`. The steps stay the same: uninstall the extension, then run
+   `doc-detective install agents --agent gemini|qwen --scope global --yes`.
+7. Confirm `grep -rn "feat/v5-rc" src test docs/fern` finds nothing.
 
 agent-tools' release workflow moves the `v2` tag to each 2.x release. CLI 4 pins `v1` the same way, on its own
 branch.
+
+A Gemini CLI or Qwen Code install made during the release candidate records `feat/v5-rc`. `extensions update`
+replays that ref, so `install agents` keeps it there. Deleting the branch at GA would break those installs.
+Freezing it keeps them working, but they get no updates until the user re-pins them to `v2`.
 
 ### Consequences
 
@@ -88,6 +97,8 @@ branch.
 - Bad: neither CLI documents whether re-adding a marketplace at a new ref changes the ref it tracks. If it doesn't,
   an install made before the pin keeps its old ref. Its up-to-date check can then report an update on every run.
 - Neutral: whether a host CLI's `extensions update` follows a moved tag is up to that CLI.
+- Neutral: Gemini CLI and Qwen Code installs made during the release candidate never break after GA. They stay on
+  the frozen `feat/v5-rc` content, with no updates, until the user re-pins them.
 
 ### Confirmation
 

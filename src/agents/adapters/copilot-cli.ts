@@ -176,7 +176,11 @@ export class CopilotCliAdapter implements AgentAdapter {
     type Step = { argv: Cmd; bestEffort?: boolean };
     // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
     const addMarketplace: Cmd = [
-      "copilot", "plugin", "marketplace", "add", `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
+      "copilot",
+      "plugin",
+      "marketplace",
+      "add",
+      `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
     ];
     const steps: Step[] = isInstalled
       ? [
