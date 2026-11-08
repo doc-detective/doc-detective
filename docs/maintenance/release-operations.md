@@ -51,7 +51,9 @@ realities around them.
   branch is checked out in another worktree; the remote branch still gets deleted.
 - **An approving comment from the maintainer counts as approval.** A PR comment that approves it is enough
   to merge, with no formal review needed. Agents carry their PRs through approval and merge. On `main`,
-  merge a single PR with `gh pr merge <n> --merge --admin --delete-branch` once the comment is there.
+  merge a single PR with `gh pr merge <n> --merge --admin --delete-branch --match-head-commit <sha>` once
+  the comment is there. `<sha>` is the head you checked, so a push that lands between your checks and the
+  merge makes it fail instead of merging unreviewed code.
   `--admin` bypasses every rule in the ruleset, not just the approval. So before each use, confirm with
   `gh pr checks <n> --json name,state,workflow`:
   - each of the five required contexts above has reported and passed, since a green list can hide one

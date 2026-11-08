@@ -332,7 +332,8 @@ branches.
   - Agents always pass `--auto`. Without it, a terminal session opens an interactive editor and the command
     blocks.
   - `--remote origin` is needed because this checkout has several remotes.
-- When the trunk or a lower layer moves, run `gh stack sync` or `gh stack rebase`, not a manual rebase.
+- When the trunk or a lower layer moves, run `gh stack sync --remote origin` or
+  `gh stack rebase --remote origin`, not a manual rebase. Both fetch, so they need the remote too.
   `gh stack rebase` only updates local branches, so follow it with `gh stack push --remote origin` to publish
   them.
 - Merge bottom-up with `gh stack merge <pr> --merge --yes`. It merges every PR up to and including `<pr>`, all
