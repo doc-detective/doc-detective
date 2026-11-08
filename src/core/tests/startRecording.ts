@@ -388,12 +388,11 @@ async function startRecording({
     const originalTab = await driver.getWindowHandle();
     // Tab capture defaults to 800x600, so ask for the viewport's size in device
     // pixels. Without an answer, getDisplayMedia picks its own size.
-    const viewportSize = await Promise.resolve(
-      driver.execute(() => ({
-        width: Math.round(window.innerWidth * window.devicePixelRatio),
-        height: Math.round(window.innerHeight * window.devicePixelRatio),
-      }))
-    ).catch(() => undefined);
+    const readViewport = () => ({
+      width: Math.round(window.innerWidth * window.devicePixelRatio),
+      height: Math.round(window.innerHeight * window.devicePixelRatio),
+    });
+    const viewportSize = await driver.execute(readViewport).catch(() => undefined);
     // Set document title to the per-context capture title so the launch flag
     // --auto-select-desktop-capture-source (headed) or
     // --auto-select-tab-capture-source-by-title (headless) picks this tab.
@@ -543,8 +542,13 @@ async function startRecording({
     name !== "webkit";
   if (!appRef && headless) {
     const browser = BROWSER_DISPLAY_NAMES[name] ?? "browser";
+    // Headless Chrome lands here only with an explicit `engine: "ffmpeg"`.
+    const alternative =
+      name === "chrome"
+        ? "use the `browser` engine, which records headless Chrome"
+        : "use Chrome, which records headless";
     return phantomRecordingResult(
-      `Skipped: a headless ${browser} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or use Chrome, which records headless.`
+      `Skipped: a headless ${browser} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or ${alternative}.`
     );
   }
 
