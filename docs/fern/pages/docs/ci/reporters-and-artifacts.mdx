@@ -67,21 +67,21 @@ On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc
 }
 ```
 
-Then append the Markdown summary to the job summary:
+If one config runs on both GitLab and GitHub Actions, use this `reporters` list instead:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "junit", "markdown"]
+}
+```
+
+Then append the Markdown summary to the GitHub Actions job summary:
 
 ```yaml title=".github/workflows/docs.yml"
 # Reporters come from the reporters list in .doc-detective.json
 - run: doc-detective --input ./docs --output ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
-```
-
-If one config runs on both GitLab and GitHub Actions, list both reporters:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html", "junit", "markdown"]
-}
 ```
 
 ## Step 2: Read the terminal summary
