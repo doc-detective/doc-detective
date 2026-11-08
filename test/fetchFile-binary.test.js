@@ -744,7 +744,7 @@ describe("local URL guard (ADR 01162)", function () {
     });
   });
 
-  it("fails an invalid remote JSON description with one message, naming its URL", async function () {
+  it("fails an invalid remote JSON description with one message, naming its redacted URL", async function () {
     const logged = sinon.stub(console, "log");
     let detail;
     try {
@@ -752,7 +752,7 @@ describe("local URL guard (ADR 01162)", function () {
     } catch (error) {
       detail = error.message;
     }
-    await assert.rejects(() => loadDescription(`http://127.0.0.1:${port}/broken.json`), {
+    await assert.rejects(() => loadDescription(`http://127.0.0.1:${port}/broken.json?token=s3cret`), {
       message: `Couldn't read http://127.0.0.1:${port}/broken.json: it isn't valid JSON (${detail}).`,
     });
     sinon.assert.notCalled(logged);
@@ -789,6 +789,18 @@ describe("local URL guard (ADR 01162)", function () {
       definition.paths["/items"].get.responses["200"].content["application/json"].schema;
     assert.equal(schema.properties.id.type, "integer");
   });
+
+  // The extension comes from the URL's path, so a query string, such as a
+  // presigned URL's token, doesn't hide it.
+  for (const allow of [undefined, "1"]) {
+    it(`loads a remote YAML description with a query string (${ALLOW}=${allow})`, async function () {
+      if (allow) process.env[ALLOW] = allow;
+      const definition = await loadDescription(`http://localhost:${port}/openapi.yaml?token=s3cret`);
+      const schema =
+        definition.paths["/items"].get.responses["200"].content["application/json"].schema;
+      assert.equal(schema.properties.id.type, "integer");
+    });
+  }
 
   it("DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses a private root description", async function () {
     process.env[BLOCK] = "1";

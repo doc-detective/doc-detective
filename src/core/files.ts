@@ -100,7 +100,11 @@ function parseFileContent(
 ) {
   // Already parsed, as axios does for a JSON response.
   if (typeof content !== "string") return content;
-  const ext = fileURLOrPath.split(".").pop()?.toLowerCase();
+  // A URL's extension comes from its path, so a query string can't hide it.
+  const name = /^https?:\/\//i.test(fileURLOrPath)
+    ? new URL(fileURLOrPath).pathname
+    : fileURLOrPath;
+  const ext = name.split(".").pop()?.toLowerCase();
   // A parse failure: a warning and the content, or with throwOnError, an
   // Error. A YAML error's first line is its cause; a code frame follows.
   const failed = (format: string, error: any) => {
