@@ -47,6 +47,14 @@ On Android and iOS contexts, `engine` doesn't apply. Doc Detective records the d
 
 The `ffmpeg` engine captures the whole shared display. Two `ffmpeg` recordings would therefore overwrite each other's output, as would an `ffmpeg` recording running alongside another browser-driven test. To prevent this, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
 
+Before any test, Doc Detective checks that the host can make the recordings the run plans, such as Screen Recording permission on macOS. When a check fails, a `record` step it covers is SKIPPED with the reason and the fix, not failed:
+
+```text
+Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, and rerun.
+```
+
+For every check, see [Before you record](/docs/test-docs/automatic-recording#before-you-record).
+
 Headless Firefox and Safari can't be recorded: their `record` steps are SKIPPED. To record them, set `headless: false`. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
 
 ## Recording app surfaces
@@ -108,30 +116,21 @@ The `browser` engine can own only one recorder per context. So when two recordin
 
 ## Automatic recordings
 
-Enable the `autoRecord` option to record every driver-based test context from start to finish, covering browser, native app, and mobile contexts alike. It captures each context end-to-end without explicit `record` steps, which is useful for:
+By default, Doc Detective records every context that drives a browser, a native app, or a device, from start to finish, with no `record` steps. That's useful for:
 
 - Building a video archive of every run
 - Replaying exactly what happened when a test fails
 - Comparing behavior from one run to the next
 
-Enable it at the config, spec, or test level (test overrides spec, which overrides config):
+To turn it off, set `autoRecord` to `false` at the config, spec, or test level (test overrides spec, which overrides config), or pass `--no-auto-record`:
 
 ```json
 {
-  "autoRecord": true,
-  "output": "./test-results"
+  "autoRecord": false
 }
 ```
 
-Or use the CLI flag:
-
-```bash
-doc-detective --auto-record
-```
-
-Use `--no-auto-record` to override a config file that enables it.
-
-Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
+Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Headless Chrome records its tab with the `browser` engine, unless the context has its own `record` step. Headless Firefox runs headed so the `ffmpeg` engine can record it, when the host can capture the screen. Other desktop contexts capture with the `ffmpeg` engine. For what each context gets, what the host needs, and how `true` differs from leaving it unset, see [Record video automatically](/docs/test-docs/automatic-recording). In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/
