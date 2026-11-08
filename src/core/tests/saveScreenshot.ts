@@ -815,14 +815,19 @@ async function captureScreenshot({
   // they differ, resize the window to the reference's viewport and capture
   // again rather than resampling. Not for crops (their size is the element's),
   // app windows, an unconditional local overwrite (nothing to compare), or
-  // recordings (the resize would show in the video).
+  // recordings (the resize would show in the video). The automatic recording a
+  // default run adds is an archive, so it doesn't cost that run the resize
+  // (ADR 01177).
+  const resizeShowsInVideo =
+    recordingActive &&
+    driver.state.recordings.some((recording: any) => !recording?.defaulted);
   if (
     !isAppCapture &&
     !step.screenshot.crop &&
     existFilePath &&
     !(step.screenshot.overwrite === "true" && !isUrlPath) &&
     !internal?.compareOnly &&
-    !recordingActive
+    !resizeShowsInVideo
   ) {
     const retake = await retakeAtReferenceSize({
       driver: captureDriver,
