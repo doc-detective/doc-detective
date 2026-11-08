@@ -4,6 +4,11 @@
   "type": "object",
   "description": "A Doc Detective test.",
   "properties": {
+    "$schema": {
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
+      "type": "string",
+      "minLength": 1
+    },
     "testId": {
       "type": "string",
       "description": "Unique identifier for the test."

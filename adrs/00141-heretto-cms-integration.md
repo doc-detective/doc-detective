@@ -43,9 +43,9 @@ The contract:
 2. **Source refs**: a test source may be written as `heretto:<name>`, resolved via the Heretto
    publishing API (a ZIP download of the published content). Modeled in the
    `sourceIntegration_v3` schema.
-3. **Screenshot round-trip**: a screenshot uploader pushes captured images back to the CMS;
-   `uploadOnChange` defaults to `true`, each upload carries a `changed` flag, and results surface
-   on `report.uploadResults`.
+3. **Screenshot round-trip**: a screenshot uploader pushes captured images back to the CMS.
+   `uploadOnChange` defaults to `false`, so each integration opts in, as the schema has always
+   said. Each upload carries a `changed` flag, and results surface on `report.uploadResults`.
 4. **Identity**: CMS-sourced specs get collision-safe `specId`s so repeated runs don't clash.
 
 Origin spans the common (schema), core (runner integration), and resolver (source fetching)
