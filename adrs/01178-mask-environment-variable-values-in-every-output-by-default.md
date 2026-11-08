@@ -13,8 +13,8 @@ name-based masking on 4.x. Prior art: PR #647, and its ADRs 01071 (inline `$secr
 ## Context and Problem Statement
 
 `replaceEnvs` writes each substituted value into the step, and the step report spreads the step. So a token
-written as `$API_TOKEN` appears in the report's command, its stdout, and its headers, then in every reporter, the
-`-o` file, `--json`, the run folder's JSON and HTML, the GitHub Action's issue body, and the debug log. Values also
+written as `$API_TOKEN` appears in the report's command, its stdout, and its headers. From there it reaches every
+reporter, the `-o` file, and `--json`. It also reaches the run folder, the Action's issue body, and the debug log. Values also
 arrive with no `$NAME` at all: a project `.env`, a `loadVariables` file, or a credential file loads them, and a
 child process prints them.
 
@@ -89,11 +89,12 @@ A value a child process hashes, splits, or otherwise transforms isn't masked.
 ### Where values are registered
 
 - `replaceEnvs`, for each value it substitutes. It also notes each `$NAME` it sees.
-- `loadProjectEnv` (`.env`) and `loadEnvs` (config and step `loadVariables`), for every name parsed: the value
-  the run uses, which is the shell's when the file doesn't override, and the file's value too when it differs.
+- `loadProjectEnv` (`.env`) and `loadEnvs` (config and step `loadVariables`), for every name parsed. Each
+  registers the value the run uses, which is the shell's when the file doesn't override. It also registers the
+  file's value when that differs.
 - `readCredentialFiles`.
-- A step's `variables` export, when the run references the name as `$NAME` or the name looks secret, so a log
-  line can't print it before a later step substitutes it.
+- A step's `variables` export, when the run references the name as `$NAME` or the name looks secret. That way a
+  log line can't print it before a later step substitutes it.
 - At run start, once specs are resolved: every secret-looking variable in `process.env`, and every `$NAME` the
   specs will substitute. That covers logs printed before a step runs.
 
@@ -116,22 +117,27 @@ their own enumerable properties. Buffers, typed arrays, dates, and regular expre
 |---|---|
 | Log lines | `diag()` masks every line. The core `log` masks object messages before `JSON.stringify` |
 | Step reports | Masked when created, in `pushStepReport` and `stopAllRecordings`' direct push. The runner keeps the real `outputs` for routing, `$$`, and `variables` |
-| Truncated text | Each site masks before it cuts: the schema-error value preview, ffmpeg's stderr tail on start and stop, and the Android emulator's boot log. Background `runShell` buffers keep real values, so their cut moves past any secret it would split instead |
+| Truncated text | Each site masks before it cuts. That's the schema-error value preview, ffmpeg's stderr tail on start and stop, and the Android emulator's boot log. Background `runShell` buffers keep real values. Their cut moves past any secret it would split instead |
 | Results | Masked once more at the end of core `runTests`. That covers every reporter, `-o`, `--json`, the run folder, `reportResults`, the JS API return, Online, and the Action |
 | The dry-run plan | Masked before `runTests` returns it |
 | CLI errors | The top-level error line and the crash report |
 | Core warnings that bypassed `log` | Detection's parse warning, OpenAPI example generation, and element finding printed with `console.*`. They print through `diag()` now. `readFile` already warns through `log` |
 
-Not masked: what `runViaApi` sends to run, telemetry (counts only), `doc-detective debug` (it keeps
-`src/debug/redact.ts`), `saveCookie` files, which `loadCookie` reads back, and `getRunner().runStep`, which
-returns a step's real result to the program driving it, like the outputs routing reads.
+Not masked:
+
+- what `runViaApi` sends to run;
+- telemetry, which sends counts only;
+- `doc-detective debug`, which keeps `src/debug/redact.ts`;
+- `saveCookie` files, which `loadCookie` reads back;
+- `getRunner().runStep`, which returns a step's real result to the program driving it, like the outputs routing
+  reads.
 
 ### Saved files
 
 runShell, runCode, httpRequest, and runBrowserScript mask what they save through `path`: `maskString` on text,
 `maskDeep` on an httpRequest's JSON body. A comparison with an existing file (`maxVariation`,
-`overwrite: "aboveVariation"`) masks the new output first, so it compares masked against masked, and a saved file
-keeps matching when the secret behind it rotates. `saveCookie` files stay raw, because `loadCookie` reads them
+`overwrite: "aboveVariation"`) masks the new output first, so it compares masked against masked. A saved file
+then keeps matching when the secret behind it rotates. `saveCookie` files stay raw, because `loadCookie` reads them
 back.
 
 ### Browser captures
@@ -142,15 +148,15 @@ Masking text can't reach pixels, so the page hides secrets itself:
   `-webkit-text-security: disc`, or `color: transparent` where the browser lacks that property. The style stays
   for the life of the page, so later screenshots and recording frames show dots.
 - Before each browser screenshot through `saveScreenshot` (authored, automatic, and recording checkpoints), it
-  blurs (`filter: blur(8px)`) every form field whose value holds a secret, and every element with text of its own
-  whose whole text holds one. It captures, then removes the blur.
+  blurs every form field whose value holds a secret. It also blurs every element with text of its own whose whole
+  text holds one. The blur is `filter: blur(8px)`. It captures, then removes the blur.
 - The page never receives a secret. Its own scripts could patch `String.prototype.includes` to read an argument,
   and with automatic screenshots on, any third-party page a test opens would get `GITHUB_TOKEN`. So a first
   script returns `[index, text]` candidates, Node picks the indices that hold a secret, and a second script blurs
   those. Hiding a typed field sends no argument at all; the typed keys reach the page by typing, which is
   unavoidable.
-- Not covered, and documented: page text that shows a secret during a recording; text in iframes, shadow DOM,
-  canvas, and CSS pseudo-elements; and native app and device captures.
+- Not covered, and documented: page text that shows a secret during a recording, and native app and device
+  captures. Text in iframes, shadow DOM, canvas, and CSS pseudo-elements isn't blurred either.
 
 ### Messages
 
@@ -179,8 +185,8 @@ See https://docs.doc-detective.com/reference/schemas/config
 - Good: credentials a spec already uses are masked with no edit, in every output, including ones added later.
 - Good: comparisons and routing keep working, because masking is output-only.
 - Bad: a non-secret value the run substitutes or loads is masked too, such as a `BASE_URL`. The hint names it,
-  and `publicVariables` shows it. A path built from a masked value is masked in reports, so a reporter can't
-  link a file under it until the variable is public.
+  and `publicVariables` shows it. A path built from a masked value is masked in reports. A reporter can't link
+  a file under it until the variable is public.
 - Bad: exact-value masking misses transformed values, and over-masks when a value collides with ordinary output.
   The 4-character floor bounds the worst of it.
 - Bad: a background process's 256 KiB buffer drops a secret that straddles its cut rather than keeping part of it.
@@ -194,24 +200,33 @@ See https://docs.doc-detective.com/reference/schemas/config
 
 ### Confirmation
 
-- `test/masking.test.js`: each form, the base64 floor, `Basic` decoding, the 4-character floor, `true`, `false`,
-  and `null`, exact and `*` names with Windows case handling, the run-wide union, a value under a public and a
-  secret name, the `***` fallback, idempotence, cycle safety, `keepTail`, keys never masked, `toJSON` and class
-  instances, and the strict and `URLSearchParams` URL encodings.
-- `test/masking-runner.test.js`: registration at each point, including a shell value that beats `.env` and a
-  config `loadVariables` file; the step report masked while routing, `stdio`, and a `variables` export see the
-  real value; a secret-named variable never referenced; the union across specs; no fragment of a 300-character
-  secret in runShell and httpRequest failures; report keys kept when values are `pass` and `test`; httpRequest
-  response headers; each run's own public list and hint names; the dry-run plan; and the debug line.
-- `test/cli-contract.test.js`: the value is absent from `-o`, `--json`, stderr at `-l debug`, and the dry run;
-  `publicVariables` shows it; a non-array is exit 2; a run with `DB_PASSWORD=pass` and `NODE_ENV=test` in `.env`
-  passes and exits 0.
+- `test/masking.test.js`:
+  - each form, the base64 floor, and `Basic` decoding;
+  - the 4-character floor, and `true`, `false`, and `null`;
+  - exact and `*` names with Windows case handling, and the run-wide union;
+  - a value under a public and a secret name, and the `***` fallback;
+  - idempotence, cycle safety, and `keepTail`;
+  - keys never masked, and `toJSON` and class instances;
+  - the strict and `URLSearchParams` URL encodings.
+- `test/masking-runner.test.js`:
+  - registration at each point, including a shell value that beats `.env` and a config `loadVariables` file;
+  - the step report masked while routing, `stdio`, and a `variables` export see the real value;
+  - a secret-named variable never referenced, and the union across specs;
+  - no fragment of a 300-character secret in runShell and httpRequest failures;
+  - report keys kept when values are `pass` and `test`, and httpRequest response headers;
+  - each run's own public list and hint names, the dry-run plan, and the debug line.
+- `test/cli-contract.test.js`:
+  - the value is absent from `-o`, `--json`, stderr at `-l debug`, and the dry run;
+  - `publicVariables` shows it, and a non-array is exit 2;
+  - a run with `DB_PASSWORD=pass` and `NODE_ENV=test` in `.env` passes and exits 0.
 - `src/common/test/validate.test.js`: `publicVariables` on `config_v3`, `spec_v3`, and `test_v3`.
 - `test/hints.test.js`: `listPublicVariables`.
-- Fixture `test/core-artifacts/cli/masking.spec.json`, through `cli/masking.cjs`: an `Authorization` header the
-  8092 server echoes into an httpRequest response header; referenced, `.env`, and
-  secret-named values; `publicVariables` exact, `DD_*`, and `*` on the config, a spec, and a test; a 3-character
-  value; URL-encoded and base64 forms; and a `Basic` header the 8092 server echoes.
+- Fixture `test/core-artifacts/cli/masking.spec.json`, through `cli/masking.cjs`:
+  - an `Authorization` header the 8092 server echoes into an httpRequest response header;
+  - referenced, `.env`, and secret-named values;
+  - `publicVariables` exact, `DD_*`, and `*` on the config, a spec, and a test;
+  - a 3-character value, and URL-encoded and base64 forms;
+  - a `Basic` header the 8092 server echoes.
 
 ## Pros and Cons of the Options
 
