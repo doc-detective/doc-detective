@@ -1179,7 +1179,7 @@ function shouldFailRun(results: any): boolean {
 }
 
 // Every bundled schema, by key. Loaded only here, on the way to an error: the
-// file is tens of megabytes.
+// file is about 40 MB, so the first error in a process waits for it.
 let loadedAllSchemas: any;
 function allSchemas() {
   return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
@@ -1308,7 +1308,8 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
   };
   const lines: string[] = [];
   // Two forbidden keys under one object are branches of a choice (each branch
-  // forbids the others), so only one of them may be set.
+  // forbids the others), so only one of them may be set. The root's group,
+  // "#", holds one path, so it always takes the "isn't allowed here" line.
   for (const [parent, paths] of forbidden) {
     const keys = [...paths].map((forbiddenPath) => partsOf(forbiddenPath).at(-1));
     if (keys.length > 1) lines.push(`${prefixOf(partsOf(parent))}set only one of ${keys.sort().join(", ")}.`);
