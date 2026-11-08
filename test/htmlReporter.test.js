@@ -311,18 +311,38 @@ describe("HTML Reporter automatic media", function () {
   it("shows the context's automatic recording once and leaves its synthetic steps out", async function () {
     const { autoRecording } = await pageFunctions({ runDir }, "");
     const video = `${runDir}/specs/s/tests/t/contexts/c/recordings/c.mp4`;
-    const start = { stepId: "t~autorecord", record: { path: video }, result: "PASS" };
+    const start = { stepId: "t~autorecord", record: { path: video }, result: "PASS", __autoRecord: true };
     const open = { stepId: "open", goTo: { url: "http://x" }, result: "PASS" };
-    const stop = { stepId: "uuid", stopRecord: true, outputs: { recordingPath: video }, result: "PASS" };
+    const stop = {
+      stepId: "t~autorecord~stop",
+      stopRecord: true,
+      outputs: { recordingPath: video },
+      result: "PASS",
+      __autoRecordStop: true,
+    };
     const auto = autoRecording({ steps: [start, open, stop] });
     expect(auto.video).to.equal("specs/s/tests/t/contexts/c/recordings/c.mp4");
     expect(auto.steps.map((item) => item.step)).to.deep.equal([open]);
     expect(auto.steps[0].origIdx).to.equal(1);
   });
 
+  // The runner's markers name the synthetic steps, as in the summary: a stop
+  // that reports another path still hides, and an authored step named like the
+  // start is an ordinary step.
+  it("finds the synthetic steps by their markers", async function () {
+    const { autoRecording } = await pageFunctions({ runDir }, "");
+    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "PASS", __autoRecord: true };
+    const stop = { stepId: "t~autorecord~stop", stopRecord: true, result: "PASS", __autoRecordStop: true };
+    const authored = { stepId: "login~autorecord", record: { path: `${runDir}/mine.mp4` }, result: "PASS" };
+    const auto = autoRecording({ steps: [start, authored, stop] });
+    expect(auto.video).to.equal("c.mp4");
+    expect(auto.steps.map((item) => item.step)).to.deep.equal([authored]);
+    expect(autoRecording({ steps: [authored] }).video).to.equal(null);
+  });
+
   it("keeps a recording that didn't save in the step list", async function () {
     const { autoRecording } = await pageFunctions({ runDir }, "");
-    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "SKIPPED" };
+    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "SKIPPED", __autoRecord: true };
     const auto = autoRecording({ steps: [start] });
     expect(auto.video).to.equal(null);
     expect(auto.steps.map((item) => item.step)).to.deep.equal([start]);
