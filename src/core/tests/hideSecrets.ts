@@ -23,7 +23,10 @@ export {
 // Runs in the page, so it's self-contained. Tags each form field that has a
 // value, and each element with text of its own, and returns `[index, text]`
 // for each: the field's value, or the element's whole text, so a secret split
-// across inline children still matches its parent.
+// across inline children still matches its parent. That trades width for
+// safety: an ancestor with text of its own blurs whole when a child shows a
+// secret. A secret split only across sibling elements, in a parent with no
+// text of its own, isn't matched; the docs list that limit.
 function collectCaptureCandidates(): [number, string][] {
   const mark = "data-dd-capture-candidate";
   const out: [number, string][] = [];
