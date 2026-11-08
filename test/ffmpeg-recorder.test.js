@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import os from "node:os";
 import path from "node:path";
+import * as ffmpegRecorder from "../dist/core/tests/ffmpegRecorder.js";
 import {
   resolveRecordPlan,
-  coerceRecordContextBrowser,
   parseCaptureFrameSize,
   parseMediaProbeStderr,
   deriveCropScale,
@@ -46,10 +46,25 @@ describe("ffmpegRecorder", function () {
       });
     });
 
-    it("auto-resolves non-chrome, headless, or no browser to ffmpeg", function () {
+    // Headless Chrome records its tab: the browser engine's getDisplayMedia
+    // auto-selects the tab by title (ADR 01176), so it needs no display.
+    it("auto-resolves headless chrome to the browser engine", function () {
+      for (const browser of [
+        { name: "chrome", headless: true },
+        { name: "chrome" },
+      ]) {
+        const plan = resolveRecordPlan({
+          step: { record: true },
+          context: { browser },
+        });
+        expect(plan.name, JSON.stringify(browser)).to.equal("browser");
+      }
+    });
+
+    it("auto-resolves non-chrome or no browser to ffmpeg", function () {
       for (const browser of [
         { name: "firefox", headless: false },
-        { name: "chrome", headless: true },
+        { name: "firefox", headless: true },
         undefined,
       ]) {
         const plan = resolveRecordPlan({
@@ -140,72 +155,10 @@ describe("ffmpegRecorder", function () {
     });
   });
 
-  describe("coerceRecordContextBrowser", function () {
-    const chromeApps = [{ name: "chrome" }, { name: "firefox" }];
-
-    it("coerces an unspecified browser to headed chrome when a record step lacks an engine and chrome is available", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ record: true }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.deep.equal({ name: "chrome", headless: false });
-    });
-
-    it("does not coerce when the browser was user-specified", function () {
-      const out = coerceRecordContextBrowser({
-        context: { browser: { name: "firefox" }, steps: [{ record: true }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce when the record step specifies an engine", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ record: { engine: "ffmpeg" } }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce when chrome is unavailable", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ record: true }] },
-        availableApps: [{ name: "firefox" }],
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce when there is no record step", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ goTo: "x" }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce for an explicit record: false", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ record: false }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce when the engineless record targets an app surface", function () {
-      const out = coerceRecordContextBrowser({
-        context: { steps: [{ record: { surface: { app: "notepad" } } }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
-
-    it("does not coerce mobile-platform contexts (device recording needs no browser)", function () {
-      const out = coerceRecordContextBrowser({
-        context: { platform: "android", steps: [{ record: true }] },
-        availableApps: chromeApps,
-      });
-      expect(out).to.equal(null);
-    });
+  // A record context with no browser runs the default browser, headless, like
+  // any other context (ADR 01176). Nothing forces it headed any more.
+  it("no longer exports coerceRecordContextBrowser", function () {
+    expect(ffmpegRecorder.coerceRecordContextBrowser).to.equal(undefined);
   });
 
   describe("browser engine paths", function () {
@@ -533,11 +486,22 @@ describe("ffmpegRecorder", function () {
       expect(jobIsFfmpegRecording(overlap)).to.equal(true);
     });
 
-    it("does not count browser recordings that startRecording would skip (headless/non-chrome)", function () {
-      // Explicit browser-engine records on a context that can't run one are
-      // SKIPPED at runtime, so two of them must NOT be classified as an ffmpeg
-      // fallback (which would wrongly force serial/Xvfb).
-      const headless = {
+    it("does not count a headless chrome browser-engine recording", function () {
+      // Tab capture needs no display, so headless chrome records in parallel
+      // with no Xvfb (ADR 01176), whether the engine is auto or explicit.
+      for (const record of [true, { engine: "browser" }]) {
+        const job = {
+          context: {
+            browser: { name: "chrome", headless: true },
+            steps: [{ record }, { stopRecord: true }],
+          },
+        };
+        expect(jobIsFfmpegRecording(job), JSON.stringify(record)).to.equal(false);
+      }
+    });
+
+    it("counts a second overlapping browser recording on headless chrome as an ffmpeg fallback", function () {
+      const job = {
         context: {
           browser: { name: "chrome", headless: true },
           steps: [
@@ -546,6 +510,13 @@ describe("ffmpegRecorder", function () {
           ],
         },
       };
+      expect(jobIsFfmpegRecording(job)).to.equal(true);
+    });
+
+    it("does not count browser recordings that startRecording would skip (non-chrome)", function () {
+      // Explicit browser-engine records on a context that can't run one are
+      // SKIPPED at runtime, so two of them must NOT be classified as an ffmpeg
+      // fallback (which would wrongly force serial/Xvfb).
       const firefox = {
         context: {
           browser: { name: "firefox", headless: false },
@@ -555,7 +526,6 @@ describe("ffmpegRecorder", function () {
           ],
         },
       };
-      expect(jobIsFfmpegRecording(headless)).to.equal(false);
       expect(jobIsFfmpegRecording(firefox)).to.equal(false);
     });
 
@@ -785,6 +755,21 @@ describe("ffmpegRecorder", function () {
       const job = {
         context: {
           browser: visibleChrome,
+          steps: [
+            { record: { name: "a", engine: "browser" } },
+            { stopRecord: "a", goToStep: "tail" },
+            { record: { name: "b", engine: "browser" } },
+            { stopRecord: "b" },
+          ],
+        },
+      };
+      expect(isFfmpegRecordingForScheduling(job)).to.equal(true);
+    });
+
+    it("over-approximates two routed browser records on headless chrome too", function () {
+      const job = {
+        context: {
+          browser: { name: "chrome", headless: true },
           steps: [
             { record: { name: "a", engine: "browser" } },
             { stopRecord: "a", goToStep: "tail" },

@@ -7,6 +7,7 @@ import {
   combinationKey,
   warmUpDecision,
   contextRequirementsSkipMessage,
+  prepareContextSlot,
 } from "../dist/core/tests.js";
 import {
   GECKODRIVER_EXECUTABLE_ARGS,
@@ -366,19 +367,86 @@ describe("contextRequirementsSkipMessage", function () {
 describe("getDefaultBrowser", function () {
   it("returns the first available browser by preference order", function () {
     const runnerDetails = {
-      availableApps: [{ name: "chrome" }, { name: "firefox" }],
+      availableApps: [{ name: "firefox" }, { name: "chrome" }],
     };
     // getDefaultBrowser walks its browserNames preference list
-    // (["firefox", "chrome", "safari"] in src/core/tests.ts) and returns the
-    // first available, so firefox wins over chrome here.
+    // (["chrome", "firefox", "safari"] in src/core/tests.ts, ADR 01176) and
+    // returns the first available, so chrome wins over firefox here.
     assert.deepEqual(getDefaultBrowser({ runnerDetails }), {
-      name: "firefox",
+      name: "chrome",
     });
+  });
+
+  it("falls back to firefox, then safari, when chrome isn't available", function () {
+    assert.deepEqual(
+      getDefaultBrowser({
+        runnerDetails: { availableApps: [{ name: "safari" }, { name: "firefox" }] },
+      }),
+      { name: "firefox" }
+    );
+    assert.deepEqual(
+      getDefaultBrowser({ runnerDetails: { availableApps: [{ name: "safari" }] } }),
+      { name: "safari" }
+    );
   });
 
   it("returns an empty object when no supported browser is available", function () {
     const runnerDetails = { availableApps: [{ name: "node" }] };
     assert.deepEqual(getDefaultBrowser({ runnerDetails }), {});
+  });
+});
+
+// prepareContextSlot settles the default browser before the concurrency calc,
+// so a record step's engine resolves to what will run (ADR 01176).
+describe("prepareContextSlot default browser", function () {
+  const runnerDetails = {
+    availableApps: [{ name: "firefox" }, { name: "chrome" }],
+  };
+  const prepare = (context, config = {}) =>
+    prepareContextSlot({
+      config,
+      spec: {},
+      test: {},
+      context,
+      slot: 0,
+      usedContextIds: new Set(),
+      specGuardSkip: false,
+      testGuardSkip: false,
+      recordingNameConflict: null,
+      runnerDetails,
+      contexts: [],
+      onAutoRecord: () => {},
+    });
+
+  it("gives a record context with no browser headless chrome, not headed chrome", function () {
+    const context = { steps: [driverStep, { record: true }, { stopRecord: true }] };
+    const result = prepare(context);
+    assert.equal(result.kind, "job");
+    assert.deepEqual(context.browser, { name: "chrome" });
+  });
+
+  it("gives any browser context with no browser the default browser", function () {
+    const context = { steps: [driverStep] };
+    prepare(context);
+    assert.deepEqual(context.browser, { name: "chrome" });
+  });
+
+  it("keeps an authored browser", function () {
+    const context = {
+      browser: { name: "firefox", headless: true },
+      steps: [driverStep, { record: true }],
+    };
+    prepare(context);
+    assert.deepEqual(context.browser, { name: "firefox", headless: true });
+  });
+
+  it("leaves non-browser and mobile contexts without a browser", function () {
+    const shell = { steps: [nonDriverStep] };
+    prepare(shell);
+    assert.equal(shell.browser, undefined);
+    const mobile = { platform: "android", steps: [driverStep, { record: true }] };
+    prepare(mobile);
+    assert.equal(mobile.browser, undefined);
   });
 });
 
@@ -423,6 +491,46 @@ describe("getDriverCapabilities", function () {
       options,
     });
     assert.equal(caps.browserName, "chrome");
+  });
+
+  // Headless Chrome has no window to pick, so the browser engine captures the
+  // tab whose title matches (ADR 01176).
+  it("auto-selects the tab capture source by title when headless", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: true, captureSourceTitle: "RECORD_ME_1_ctx" },
+    });
+    const args = caps["goog:chromeOptions"].args;
+    assert.ok(
+      args.includes("--auto-select-tab-capture-source-by-title=RECORD_ME_1_ctx"),
+      args.join(" ")
+    );
+    assert.ok(args.includes("--headless"));
+  });
+
+  it("falls back to the shared tab capture title when none is given", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: true },
+    });
+    assert.ok(
+      caps["goog:chromeOptions"].args.includes(
+        "--auto-select-tab-capture-source-by-title=RECORD_ME"
+      )
+    );
+  });
+
+  it("leaves the tab capture flag off headed chrome", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, headless: false, captureSourceTitle: "T" },
+    });
+    const args = caps["goog:chromeOptions"].args;
+    assert.ok(!args.some((a) => a.startsWith("--auto-select-tab-capture-source-by-title")));
+    assert.ok(args.includes("--auto-select-desktop-capture-source=T"));
   });
 
   it("keeps chrome on classic WebDriver with no BiDi socket", function () {

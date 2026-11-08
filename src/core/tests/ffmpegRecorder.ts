@@ -15,7 +15,6 @@ const XVFB_SCREEN_SIZE = "1920x1080";
 export {
   resolveRecordPlan,
   recordSurfaceApp,
-  coerceRecordContextBrowser,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -246,12 +245,12 @@ function recordSurfaceApp(record: any): string | undefined {
 // Normalize a record step into a concrete plan. An explicit engine always
 // wins; otherwise auto-resolve: mobile-target contexts (android/ios) record
 // the device screen through the app driver (the internal "device" plan — never
-// user-selectable), a visible Chrome context uses the concurrency-safe browser
-// engine, and everything else falls back to ffmpeg. A record that targets an
-// app surface is an ffmpeg capture cropped to that app's window by default
-// (target "window"); the browser engine can't capture a native window. The
-// context handed in here is already coerced (see coerceRecordContextBrowser),
-// so this stays a pure read.
+// user-selectable), a Chrome context, headed or headless, uses the
+// concurrency-safe browser engine (headless records its tab, ADR 01176), and
+// everything else falls back to ffmpeg. A record that targets an app surface is
+// an ffmpeg capture cropped to that app's window by default (target "window");
+// the browser engine can't capture a native window. The runner settles the
+// context's default browser before this runs, so this stays a pure read.
 function resolveRecordPlan({
   step,
   context,
@@ -266,11 +265,8 @@ function resolveRecordPlan({
     if (isMobileTargetPlatform(context?.platform)) {
       engineName = "device";
     } else {
-      const b = context?.browser;
       engineName =
-        b?.name === "chrome" && b?.headless === false && !appSurface
-          ? "browser"
-          : "ffmpeg";
+        context?.browser?.name === "chrome" && !appSurface ? "browser" : "ffmpeg";
     }
   }
   return {
@@ -278,42 +274,6 @@ function resolveRecordPlan({
     target: target || (appSurface ? "window" : "display"),
     fps: fps ?? 30,
   };
-}
-
-function hasRecordStepWithoutEngine(context: any): boolean {
-  const steps = Array.isArray(context?.steps) ? context.steps : [];
-  return steps.some((s: any) => {
-    // Falsy record (undefined, or an explicit `record: false`) is not an
-    // active recording step.
-    if (!s?.record) return false;
-    // App-surface records never use the browser engine, so they don't
-    // justify coercing a browser into the context.
-    if (recordSurfaceApp(s.record)) return false;
-    return engineFields(s.record).name === undefined;
-  });
-}
-
-// When a context has a record step with no explicit engine and the user
-// never chose a browser, prefer to make the browser engine viable by
-// coercing to headed Chrome (the browser engine can't record headless).
-// Returns the browser to assign, or null when no coercion applies.
-function coerceRecordContextBrowser({
-  context,
-  availableApps,
-}: {
-  context: any;
-  availableApps: any[];
-}): { name: string; headless: boolean } | null {
-  if (context?.browser) return null; // user specified a browser
-  // Mobile-target contexts record the device screen through the app driver;
-  // a desktop browser would be the wrong engine on the wrong machine.
-  if (isMobileTargetPlatform(context?.platform)) return null;
-  if (!hasRecordStepWithoutEngine(context)) return null;
-  const chromeAvailable =
-    Array.isArray(availableApps) &&
-    availableApps.some((a: any) => a?.name === "chrome");
-  if (!chromeAvailable) return null;
-  return { name: "chrome", headless: false };
 }
 
 // Build the ffmpeg argument list for a full-display capture on the given
@@ -799,8 +759,8 @@ async function detectDisplayPointSize(): Promise<{
 // active (only one browser-engine recording can run per context). Simulating
 // the record/stopRecord sequence here keeps the concurrency planner in sync
 // with startRecording's runtime fallback, so a fallback ffmpeg capture still
-// gets the serial/Xvfb safeguards. Pure read — context browsers are already
-// coerced before this runs.
+// gets the serial/Xvfb safeguards. Pure read — the runner settles each
+// context's default browser before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
   const context = job?.context;
   // Mobile-target contexts never capture the host display: auto-resolved
@@ -828,13 +788,11 @@ function jobIsFfmpegRecording(job: any): boolean {
     const plan = resolveRecordPlan({ step: s, context });
     if (plan.name === "ffmpeg") return true;
     // plan.name === "browser": an explicit browser-engine record on a context
-    // that can't run one (headless or non-Chrome) is SKIPPED by startRecording,
-    // so it neither occupies the single browser slot nor falls back to ffmpeg —
+    // that can't run one (non-Chrome) is SKIPPED by startRecording, so it
+    // neither occupies the single browser slot nor falls back to ffmpeg —
     // don't let it force serial/Xvfb. (Auto-engine on such contexts already
-    // resolves to ffmpeg above.)
-    const supportsBrowser =
-      context?.browser?.name === "chrome" && !context?.browser?.headless;
-    if (!supportsBrowser) continue;
+    // resolves to ffmpeg above.) Headless Chrome records its tab (ADR 01176).
+    if (context?.browser?.name !== "chrome") continue;
     // A second concurrent browser-engine recording falls back to ffmpeg.
     if (activeBrowser.length > 0) return true;
     activeBrowser.push(recordStepName(s.record));
@@ -934,9 +892,7 @@ function contextHasAnyFfmpegRecordStep(context: any): boolean {
     if (!s?.record || s.record === false) continue;
     const plan = resolveRecordPlan({ step: s, context });
     if (plan.name === "ffmpeg") return true;
-    const supportsBrowser =
-      context?.browser?.name === "chrome" && context?.browser?.headless === false;
-    if (supportsBrowser) browserRecords++;
+    if (context?.browser?.name === "chrome") browserRecords++;
   }
   return browserRecords >= 2;
 }

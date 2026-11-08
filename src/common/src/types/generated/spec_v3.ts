@@ -3773,7 +3773,7 @@ export type Condition77 = string | [string, ...string[]];
  */
 export type Record1 = RecordBoolean | RecordSimple | RecordDetailed;
 /**
- * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean = boolean;
 /**
@@ -3821,7 +3821,7 @@ export type ByIndex21 = number;
  */
 export type ByName21 = string;
 /**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.
  */
 export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
 /**
@@ -9709,7 +9709,7 @@ export type Condition203 = string | [string, ...string[]];
  */
 export type Record3 = RecordBoolean1 | RecordSimple1 | RecordDetailed1;
 /**
- * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * If `true`, records to `<stepId>.mp4` in `outputDir` — auto-selecting the `browser` engine for a Chrome context, headed or headless, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
  */
 export type RecordBoolean1 = boolean;
 /**
@@ -9757,7 +9757,7 @@ export type ByIndex57 = number;
  */
 export type ByName57 = string;
 /**
- * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine when a visible Chrome context is available and to `ffmpeg` otherwise.
+ * Recording engine to use. Either a string shorthand selecting the engine with defaults, or an object for full control. If unset, defaults to the `browser` engine for a Chrome context, headed or headless, and to `ffmpeg` otherwise.
  */
 export type RecordingEngine1 = RecordingEngineSimple1 | RecordingEngineDetailed1;
 /**
