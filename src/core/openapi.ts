@@ -85,13 +85,12 @@ async function loadDescription(descriptionPath: string = "") {
   } else {
     // A local path, or in allow mode a remote root through readFile's plain
     // axios. Allow mode turns the guard off, its 50 MB cap and 30 s timeout
-    // included.
-    definition = await readFile({ fileURLOrPath: descriptionPath });
+    // included. A read failure throws its own message, naming the cause.
+    definition = await readFile({ fileURLOrPath: descriptionPath, throwOnError: true });
   }
-  // Only an object, not an array, is a description. readFile returns null
-  // when it can't read the file, and has already warned why. Empty YAML
-  // parses to null; empty JSON and text that isn't JSON or YAML stay strings,
-  // which the ref parser would read as a path.
+  // Only an object, not an array, is a description. Empty YAML parses to
+  // null; empty JSON and text that isn't JSON or YAML stay strings, which the
+  // ref parser would read as a path.
   if (
     typeof definition !== "object" ||
     definition === null ||
@@ -100,9 +99,7 @@ async function loadDescription(descriptionPath: string = "") {
     const location = /^https?:\/\//i.test(descriptionPath)
       ? redactUrlForOutput(descriptionPath)
       : resolvePath(descriptionPath);
-    throw new Error(
-      `Couldn't read ${location}: it doesn't exist, can't be read, is empty, or isn't a JSON or YAML object.`
-    );
+    throw new Error(`Couldn't read ${location}: it's empty or isn't a JSON or YAML object.`);
   }
   // Every $ref refusal, before connecting or at connect time. It's a
   // UrlGuardError, the type getGuarded unwraps from axios's connect-error

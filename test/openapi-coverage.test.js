@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import sinon from "sinon";
 import { getOperation, loadDescription } from "../dist/core/openapi.js";
 
 // Helper: wrap an operation under a path + method and attach a server.
@@ -457,13 +458,20 @@ describe("core/openapi coverage", function () {
     });
 
     const unreadable = (location) =>
-      `Couldn't read ${location}: it doesn't exist, can't be read, is empty, or isn't a JSON or YAML object.`;
+      `Couldn't read ${location}: it's empty or isn't a JSON or YAML object.`;
 
-    it("names the absolute path when a local description is missing", async function () {
+    // One message, naming the cause: readFile throws it instead of warning.
+    it("fails a missing local description with one message that names the cause", async function () {
       const missing = "no-such-openapi-description.yaml";
-      await assert.rejects(() => loadDescription(missing), {
-        message: unreadable(path.resolve(missing)),
-      });
+      const logged = sinon.stub(console, "log");
+      try {
+        await assert.rejects(() => loadDescription(missing), {
+          message: `Couldn't read ${path.resolve(missing)}: the file doesn't exist.`,
+        });
+        sinon.assert.notCalled(logged);
+      } finally {
+        logged.restore();
+      }
     });
 
     // Empty YAML parses to null, empty JSON and plain text stay strings; the
@@ -475,7 +483,7 @@ describe("core/openapi coverage", function () {
       ["notes.txt", "plain text"],
       ["array.json", "[]"],
     ]) {
-      it(`says the same for a local description that isn't an object (${name})`, async function () {
+      it(`fails a local description that isn't an object (${name})`, async function () {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
         const file = path.join(tmpDir, name);
         fs.writeFileSync(file, body);

@@ -199,6 +199,7 @@ describe("local URL guard (ADR 01162)", function () {
       "/ref.png": () => ["image/png", png],
       "/schema.json": () => json({ type: "object", properties: { id: { type: "integer" } } }),
       "/plain.json": () => json({ type: "string" }),
+      "/empty.yaml": () => text(""),
       "/schema.yaml": () => text("type: object\nproperties:\n  id:\n    type: integer\n"),
       "/openapi.yaml": () => text(openApiYaml(secret())),
       "/openapi.json": () =>
@@ -734,6 +735,12 @@ describe("local URL guard (ADR 01162)", function () {
           `http://public.example.test:${port}/openapi-gone.yaml: couldn't resolve host gone.example.test (ENOTFOUND).`,
       }
     );
+  });
+
+  it("fails an empty remote description, naming its redacted URL", async function () {
+    await assert.rejects(() => loadDescription(`http://127.0.0.1:${port}/empty.yaml?token=s3cret`), {
+      message: `Couldn't read http://127.0.0.1:${port}/empty.yaml: it's empty or isn't a JSON or YAML object.`,
+    });
   });
 
   it("loads a remote .json description without a parse warning", async function () {

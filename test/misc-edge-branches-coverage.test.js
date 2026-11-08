@@ -129,6 +129,17 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
       "(WARNING) Couldn't read https://example.test/x.json: network down."
     );
   });
+
+  it("readFile throws that message instead, without warning, with throwOnError", async function () {
+    const logged = sinon.stub(console, "log");
+    sinon.stub(axios, "get").rejects(new Error("network down"));
+    await assert.rejects(
+      () => readFile({ fileURLOrPath: "https://example.test/x.json", throwOnError: true }),
+      { message: "Couldn't read https://example.test/x.json: network down." }
+    );
+    sinon.assert.notCalled(logged);
+  });
+
   it("readFile doesn't double a cause's own final punctuation", async function () {
     const logged = sinon.stub(console, "log");
     const get = sinon.stub(axios, "get");

@@ -16,10 +16,17 @@ const reason = (text?: string) => {
  *
  * @param {Object} options - Options object
  * @param {string} options.fileURLOrPath - The URL or local file path to read.
+ * @param {boolean} [options.throwOnError=false] - Throw the read failure's message instead of warning and returning null.
  * @returns {Promise<Object|string|null>} Parsed object for JSON or YAML files, raw string for other formats, or null if reading fails.
- * @throws {Error} If fileURLOrPath is missing, not a string, or is an empty string.
+ * @throws {Error} If fileURLOrPath is missing, not a string, or is an empty string, or, with throwOnError, if reading fails.
  */
-async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
+async function readFile({
+  fileURLOrPath,
+  throwOnError = false,
+}: {
+  fileURLOrPath: string;
+  throwOnError?: boolean;
+}) {
   if (!fileURLOrPath) {
     throw new Error("fileURLOrPath is required");
   }
@@ -41,26 +48,29 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
     // Not a valid URL, assume local file path
   }
 
+  // A read failure: a warning and null, or with throwOnError, an Error.
+  const fail = (message: string) => {
+    if (throwOnError) throw new Error(message);
+    log({}, "warning", message);
+    return null;
+  };
+
   if (isRemote) {
     try {
       const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
-      log({}, "warning", `Couldn't read ${redactUrlForOutput(fileURLOrPath)}${reason(error.message)}`);
-      return null;
+      return fail(`Couldn't read ${redactUrlForOutput(fileURLOrPath)}${reason(error.message)}`);
     }
   } else {
     try {
       content = await fs.promises.readFile(fileURLOrPath, "utf8");
     } catch (error: any) {
-      log(
-        {},
-        "warning",
+      return fail(
         `Couldn't read ${path.resolve(fileURLOrPath)}${
           error.code === "ENOENT" ? ": the file doesn't exist." : reason(error.message)
         }`
       );
-      return null;
     }
   }
 
