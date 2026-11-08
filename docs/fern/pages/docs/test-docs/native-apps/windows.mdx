@@ -122,7 +122,7 @@ On a host that isn't Windows, the test skips with a reason rather than failing. 
 
 **Doc Detective rejects an app's working directory**
 
-- **Cause:** The Windows app driver ignores a launch working directory, so the app always starts in the driver's own working directory. Doc Detective fails a step that sets `workingDirectory` on an app descriptor instead of silently ignoring it. Doc Detective does the same on macOS, Android, and iOS, where no app driver supports a launch working directory either.
+- **Cause:** The Windows app driver ignores a launch working directory, so the app always starts in the driver's own working directory. Doc Detective fails a step that sets `workingDirectory` on an app descriptor instead of silently ignoring it. The same applies to macOS, Android, and iOS, where no app driver supports a launch working directory either.
 - **Solution:** Remove `workingDirectory` from the app descriptor. If the app must start in a specific folder, start it with [`runShell`](/docs/actions/runshell) and set `workingDirectory` there. `runShell` runs it as a command, not as an app surface. See the [app descriptor](/reference/schemas/app-descriptor) reference.
 
 ## What's next
