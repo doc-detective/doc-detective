@@ -78,7 +78,9 @@ function registerEnvFile(parsed: Record<string, string> | null | undefined, env:
 }
 
 // At the start of each run: its own public list, and hint names from it alone.
-// The registry itself stays append-only.
+// The registry itself stays append-only. Known race: concurrent runTests calls
+// in one process share publicMatchers and hits, so a second run's
+// beginRunMasking clears the first run's public list mid-run (ADR 01178).
 function beginRunMasking(): void {
   publicMatchers = [];
   hits.clear();
@@ -140,12 +142,18 @@ function base64Needles(value: string): string[] {
 function formsOf(value: string): string[] {
   const urlEncoded = encodeURIComponent(value);
   // Strict RFC 3986 also encodes !'()*, as curl --data-urlencode and Python's
-  // quote do. URLSearchParams encodes !'() and ~ but not *.
+  // quote do. URLSearchParams encodes !'() and ~ but not *. PHP's urlencode and
+  // older curl encode all of !'()*~.
   const strict = urlEncoded.replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  const allEscaped = strict.replace(/~/g, "%7E");
   const form = new URLSearchParams({ v: value }).toString().slice(2);
   return [
     value,
-    ...[urlEncoded, strict, form].flatMap((encoded) => [encoded, encoded.replace(/%20/g, "+"), encoded.replace(/\+/g, "%20")]),
+    ...[urlEncoded, strict, allEscaped, form].flatMap((encoded) => [
+      encoded,
+      encoded.replace(/%20/g, "+"),
+      encoded.replace(/\+/g, "%20"),
+    ]),
     JSON.stringify(value).slice(1, -1),
     htmlEscape(value),
     ...base64Needles(value),
@@ -302,5 +310,7 @@ function resetMasking(): void {
   referenced.clear();
   publicMatchers = [];
   hits.clear();
+  needles = [];
+  secrets = [];
   stale = true;
 }

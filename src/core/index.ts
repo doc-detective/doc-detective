@@ -457,7 +457,9 @@ function prepareMasking(resolvedTests: any, config: any) {
   for (const [name, value] of Object.entries(process.env)) {
     if (looksSecret(name)) registerEnvValue(name, value);
   }
-  // replaceEnvs registers each value it substitutes; the copy is thrown away.
+  // replaceEnvs registers each value it substitutes. It rewrites in place, so
+  // it works on a deep clone: the specs must stay unsubstituted until each step
+  // runs. The clone is thrown away.
   replaceEnvs(JSON.parse(JSON.stringify(resolvedTests.specs ?? [])));
   const names = maskedVariableNames();
   if (names.length > 0) {

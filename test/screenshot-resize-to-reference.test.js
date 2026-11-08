@@ -14,6 +14,7 @@ import {
   referenceViewport,
 } from "../dist/core/tests/saveScreenshot.js";
 import { applyBrowserSize, DEFAULT_VIEWPORT } from "../dist/core/utils.js";
+import { registerEnvValue, resetMasking } from "../dist/core/masking.js";
 
 const require = createRequire(import.meta.url);
 const sharpMod = require("sharp");
@@ -341,6 +342,28 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     assert.equal(result.outputs.variation, 0);
     assert.equal(result.outputs.changed, false);
     assert.deepEqual(driver.calls.at(-1), [1224, 900], "window restored");
+  });
+
+  // ADR 01178: the retake at the reference's size blurs secrets too.
+  it("blurs secrets on the retake as well as the first capture", async function () {
+    registerEnvValue("DD_PASSWORD", "hunter-2222");
+    try {
+      const file = await reference(1000, 700);
+      const driver = browserDriver({ sizeTarget: defaultTarget });
+      const ran = [];
+      const execute = driver.execute;
+      driver.execute = async function (fn, ...args) {
+        ran.push(fn.name);
+        return execute.call(this, fn, ...args);
+      };
+      const result = await saveScreenshot({ config, step: { stepId: "resize-blur", screenshot: file }, driver });
+      assert.equal(result.status, "PASS");
+      assert.ok(result.outputs.resizedToReference, "retook at the reference's size");
+      assert.equal(ran.filter((name) => name === "collectCaptureCandidates").length, 2);
+      assert.equal(ran.filter((name) => name === "blurCandidates").length, 2);
+    } finally {
+      resetMasking();
+    }
   });
 
   it("grows past the current window for a larger reference", async function () {

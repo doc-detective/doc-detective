@@ -93,11 +93,18 @@ async function hideTypedSecret(driver: any, keys: string[]): Promise<void> {
 }
 
 // Blurs the page's secrets before a capture, and returns what removes the blur.
+// Fails closed: if the page won't run the blur, it throws, so the screenshot
+// fails rather than capture a secret unblurred. Unlike hiding a typed field,
+// there's no later chance to hide it.
 async function blurSecretsForCapture(driver: any): Promise<() => Promise<void>> {
   const secrets = secretValuesForCapture();
   if (secrets.length === 0 || typeof driver?.execute !== "function") return async () => {};
-  const candidates = await driver.execute(collectCaptureCandidates);
-  await driver.execute(blurCandidates, selectSecretCandidates(Array.isArray(candidates) ? candidates : [], secrets));
+  try {
+    const candidates = await driver.execute(collectCaptureCandidates);
+    await driver.execute(blurCandidates, selectSecretCandidates(Array.isArray(candidates) ? candidates : [], secrets));
+  } catch (error: any) {
+    throw new Error(`Couldn't hide secret values on the page before the screenshot: ${error?.message ?? error}`);
+  }
   return async () => {
     try {
       await driver.execute(unmarkSecretElements);
