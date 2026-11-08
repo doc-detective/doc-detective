@@ -4,7 +4,8 @@ import {
 } from "./findStrategies.js";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
-import { waitForOutputMatch } from "../utils.js";
+import { log, waitForOutputMatch } from "../utils.js";
+import { hideTypedSecret } from "./hideSecrets.js";
 import {
   parseSurfaceRef,
   switchToSurface,
@@ -711,6 +712,16 @@ async function typeKeys({
       }
       return key;
     });
+  }
+
+  // A field that receives a secret shows dots from here on (ADR 01178). The
+  // focused element is the one that receives the keys: the element criteria
+  // clicked it above, and without criteria `driver.keys` types into whatever
+  // is focused. A page that rejects the style doesn't fail the step.
+  try {
+    await hideTypedSecret(driver, step.type.keys);
+  } catch (error: any) {
+    log(config, "debug", `Couldn't hide the field that receives a secret: ${error?.message ?? error}`);
   }
 
   // Run action

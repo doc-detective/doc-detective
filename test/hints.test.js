@@ -26,6 +26,7 @@ import { SURFACE_SENSITIVE_STEP_KEYS } from "../dist/runtime/browserStepKeys.js"
 import { resolveAnnotationRects } from "../dist/core/annotations/geometry.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
+import { maskString, registerEnvValues, resetMasking } from "../dist/core/masking.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1824,6 +1825,7 @@ function fakeCtx(partial = {}) {
     hasDocDetectiveNpmScript: true,
     outputDirGitignored: true,
     nodeMajor: 24,
+    maskedNonSecretNames: new Set(),
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
@@ -1840,6 +1842,12 @@ function fakeCtx(partial = {}) {
     ranMobileContexts: false,
     ...partial,
   };
+}
+
+function markdownOf(hint) {
+  return typeof hint.markdown === "function"
+    ? hint.markdown(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }))
+    : hint.markdown;
 }
 
 function findHint(id) {
@@ -2126,7 +2134,8 @@ describe("hints/hints (registry)", function () {
         .and.match(/^[a-z][a-zA-Z0-9]*$/);
       expect(ids.has(h.id), `duplicate id: ${h.id}`).to.equal(false);
       ids.add(h.id);
-      expect(h.markdown).to.be.a("string").and.have.length.greaterThan(0);
+      // A function body renders from the run's context.
+      expect(markdownOf(h)).to.be.a("string").and.have.length.greaterThan(0);
       expect(h.when).to.be.a("function");
       if (h.priority !== undefined) expect(h.priority).to.be.a("number");
     }
@@ -2136,7 +2145,7 @@ describe("hints/hints (registry)", function () {
     // doc-detective.com redirects to the docs home and drops the path, so a
     // deep link there lands on the wrong page. Docs live on the docs. subdomain.
     for (const h of HINTS) {
-      for (const [, url] of h.markdown.matchAll(/\]\((https?:[^)]+)\)/g)) {
+      for (const [, url] of markdownOf(h).matchAll(/\]\((https?:[^)]+)\)/g)) {
         expect(new URL(url).host, `${h.id}: ${url}`).to.not.match(
           /^(www\.)?doc-detective\.com$/
         );
@@ -3064,5 +3073,44 @@ describe("omitSurfaceForActiveApp hint", function () {
   it("stays quiet without the repeated-reference signal", function () {
     const hint = findHint("omitSurfaceForActiveApp");
     expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: false }))).to.equal(false);
+  });
+});
+
+// ADR 01178: a masked variable whose name doesn't look secret may not be one.
+describe("listPublicVariables hint", function () {
+  afterEach(() => resetMasking());
+
+  it("is registered at priority 30", function () {
+    expect(findHint("listPublicVariables").priority).to.equal(30);
+  });
+
+  it("fires when a masked name doesn't look secret", function () {
+    const hint = findHint("listPublicVariables");
+    expect(hint.when(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }))).to.equal(true);
+    expect(hint.when(fakeCtx({ maskedNonSecretNames: new Set() }))).to.equal(false);
+  });
+
+  it("names each variable and the line to add", function () {
+    const md = findHint("listPublicVariables").markdown(
+      fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL", "APP_ENV"]) })
+    );
+    expect(md).to.include(
+      "`BASE_URL` and `APP_ENV` show as `***NAME***` in this run's output. If they aren't secret, list them in `publicVariables`:"
+    );
+    expect(md).to.include('"publicVariables": ["BASE_URL", "APP_ENV"]');
+    const one = findHint("listPublicVariables").markdown(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }));
+    expect(one).to.include("`BASE_URL` shows as `***NAME***` in this run's output. If it isn't secret, list it in `publicVariables`:");
+  });
+
+  it("collects masked names from the run, leaving out secret-looking ones", async function () {
+    registerEnvValues({ BASE_URL: "https://api.example.com", API_TOKEN: "tok-12345", UNUSED_VAR: "never-shown" });
+    maskString("https://api.example.com tok-12345");
+    const root = makeTmpDir();
+    try {
+      const ctx = await buildHintContext({ cwd: root, isTTY: true, adapters: [] });
+      expect([...ctx.maskedNonSecretNames]).to.deep.equal(["BASE_URL"]);
+    } finally {
+      rmTmpDir(root);
+    }
   });
 });

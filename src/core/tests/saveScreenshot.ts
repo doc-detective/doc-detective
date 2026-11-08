@@ -36,6 +36,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
+import { blurSecretsForCapture } from "./hideSecrets.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -175,6 +176,17 @@ function referenceViewport({
   return wanted;
 }
 
+// A browser capture with every element that shows a secret blurred, and the
+// blur removed after (ADR 01178).
+async function takeBrowserScreenshot(driver: any): Promise<Buffer> {
+  const unblur = await blurSecretsForCapture(driver);
+  try {
+    return Buffer.from(await driver.takeScreenshot(), "base64");
+  } finally {
+    await unblur();
+  }
+}
+
 // Resize the window so the viewport matches the reference and capture again.
 // Returns null when no resize applies or the retake didn't match; the window is
 // already back by then, so later work sees the page the first capture showed.
@@ -239,7 +251,7 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = Buffer.from(await driver.takeScreenshot(), "base64");
+    const buffer = await takeBrowserScreenshot(driver);
     const retaken = await sharp(buffer).metadata();
     if (
       retaken.width === reference.width &&
@@ -767,8 +779,7 @@ async function captureScreenshot({
       await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
       captureBuffer = fs.readFileSync(appScratchPath);
     } else {
-      const base64 = await captureDriver.takeScreenshot();
-      captureBuffer = Buffer.from(base64, "base64");
+      captureBuffer = await takeBrowserScreenshot(captureDriver);
     }
   } catch (error) {
     // Couldn't capture screenshot

@@ -72,6 +72,12 @@ Every hint is a `{ id, priority?, markdown, when }` object in
 unless you need a new context signal. See "Adding new context signals"
 below.
 
+`markdown` is usually a string. Make it a function `(ctx) => string`
+only when the hint names what the run did, as `listPublicVariables`
+names the masked variables. The registry tests render a function body
+through `markdownOf` in `test/hints.test.js`, so give it a context there
+that makes it non-empty.
+
 ---
 
 ## Id rules

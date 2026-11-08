@@ -15,6 +15,7 @@ specId | string | Optional. Unique identifier for the test specification. | —
 description | string | Optional. Description of the test specification. | —
 specPath | string | Optional. Path to the test specification. | —
 contentPath | string | Optional. Path to the content that the specification is associated with. | —
+publicVariables | array of string | Optional. Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `["*"]` turns masking off. | —
 if | one of:<br/>- string<br/>- array of string | Optional. A condition expression, or an array of expressions combined with logical AND. | —
 runOn | array of object([context](/reference/schemas/context)) | Optional. Contexts to run the test in. Overrides contexts defined at the config and spec levels. | —
 openApi | array of unknown | Optional. No description provided. | —

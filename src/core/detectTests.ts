@@ -12,7 +12,7 @@ import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
-import { displayPath } from "../cliOutput.js";
+import { diag, displayPath } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -593,7 +593,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             content = requireYaml().parse(rawContent);
           }
         } catch (err: any) {
-          console.warn(`Failed to read/parse ${file}: ${err.message}`);
+          diag(`Failed to read/parse ${file}: ${err.message}`);
           content = await readFile({ fileURLOrPath: file });
         }
       }

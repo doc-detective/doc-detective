@@ -22,6 +22,7 @@ import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 import { requireYaml } from "../core/lazyYaml.js";
 import { stepActions } from "../common/src/stepActions.js";
+import { looksSecret, maskedHitNames } from "../core/masking.js";
 
 const STABLE_FIND_KEYS = [
   "elementText",
@@ -138,6 +139,7 @@ export async function buildHintContext(
     // ffmpeg recordings on the shared display (other contexts still ran in
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
+    maskedNonSecretNames: new Set(maskedHitNames().filter((name) => !looksSecret(name))),
     hasStaleRecordings: walkData.hasStaleRecordings,
     repeatedAppSurfaceRefs: walkData.repeatedAppSurfaceRefs,
   };

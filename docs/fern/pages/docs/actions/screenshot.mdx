@@ -162,6 +162,8 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.
 
+A browser screenshot blurs every element whose text or form value holds a secret environment variable value. A field that received a typed secret shows dots. Native app and device screenshots aren't blurred. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
 ## Examples
 
 Here are a few ways you might use the `screenshot` action:

@@ -88,6 +88,15 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   the test plan. A fixture that checks a warning has to run its steps instead. The detection fixtures
   in [core-artifacts/detection/](core-artifacts/detection) use `runShell` steps, which need no browser.
 
+- **Results mask environment variable values** ([ADR 01178](../adrs/01178-mask-environment-variable-values-in-every-output-by-default.md)).
+  A run shows every value it substitutes or loads, and every secret-looking variable, as `***NAME***` in
+  its results and logs. A test that reads a substituted value back from the results sees
+  the mask. Read the real value from the runtime instead, such as a `variables` export or a file the
+  step wrote. Or list the variable in `publicVariables` on the spec. Steps compare real values, so
+  fixtures that assert through steps are unaffected. A spec that references `$HOME` masks every path
+  under it in the whole run's report. The registry is process-wide, so [hooks.js](hooks.js) resets it
+  before each test.
+
 ## Fixture concurrency & the resource-aware scheduler
 
 The combined core fixture suite ([core-core.test.js](core-core.test.js), driven by

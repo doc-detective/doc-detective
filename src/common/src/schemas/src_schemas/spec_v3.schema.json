@@ -28,6 +28,9 @@
       "type": "string",
       "description": "Path to the content that the specification is associated with."
     },
+    "publicVariables": {
+      "$ref": "test_v3.schema.json#/properties/publicVariables"
+    },
     "if": {
       "$ref": "routing_v3.schema.json#/components/schemas/condition"
     },

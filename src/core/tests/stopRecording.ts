@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log } from "../utils.js";
+import { maskString } from "../masking.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -855,7 +856,8 @@ async function transcode({
     const child = spawn(ffmpegPath, ffmpegArgs);
     let stderr = "";
     child.stderr?.on("data", (d) => {
-      stderr = (stderr + d.toString()).slice(-2000);
+      // Masked before each cut, so no fragment of a secret is left (ADR 01178).
+      stderr = maskString(stderr + d.toString()).slice(-2000);
     });
     child
       .on("close", (code) => {

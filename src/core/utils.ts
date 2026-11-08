@@ -1,4 +1,5 @@
 import { diag } from "../cliOutput.js";
+import { keepTail, maskDeep, maskString, noteVariableReference, registerEnvFile, registerEnvValue } from "./masking.js";
 import { nearestCommand } from "../cliHelp.js";
 import { envFlag } from "../envFlag.js";
 import type { ErrorObject } from "ajv";
@@ -424,10 +425,11 @@ function spawnBackgroundCommand(
   >();
 
   function append(stream: "stdout" | "stderr", text: string) {
+    // keepTail never cuts through a secret, so no fragment reaches a report (ADR 01178).
     if (stream === "stdout") {
-      stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+      stdout = keepTail(stdout + text, BACKGROUND_BUFFER_LIMIT);
     } else {
-      stderr = (stderr + text).slice(-BACKGROUND_BUFFER_LIMIT);
+      stderr = keepTail(stderr + text, BACKGROUND_BUFFER_LIMIT);
     }
     for (const cb of subscribers) cb(text, stream);
   }
@@ -636,7 +638,7 @@ async function spawnPtyBackgroundCommand(
     (chunk: string, stream: "stdout" | "stderr") => void
   >();
   function append(text: string) {
-    stdout = (stdout + text).slice(-BACKGROUND_BUFFER_LIMIT);
+    stdout = keepTail(stdout + text, BACKGROUND_BUFFER_LIMIT);
     for (const cb of subscribers) cb(text, "stdout");
   }
   ptyProcess.onData((d: string) => append(d));
@@ -1320,7 +1322,8 @@ function shortJson(value: unknown): string {
       if (typeof value === "object") shown = "an object that can't be shown";
     }
   }
-  shown ??= String(value);
+  // Masked before the cut, so no fragment of a secret is left (ADR 01178).
+  shown = maskString(shown ?? String(value));
   if (shown.length <= 40) return shown;
   const cut = (text: string, max: number) => {
     let kept = "";
@@ -2135,7 +2138,8 @@ async function loadEnvs(envsFile: string, { override = true }: { override?: bool
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     const { default: dotenv } = await import("dotenv");
-    dotenv.config({ path: envsFile, override, quiet: true });
+    const { parsed } = dotenv.config({ path: envsFile, override, quiet: true });
+    registerEnvFile(parsed);
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };
@@ -2476,7 +2480,8 @@ async function log(config: any, level: string, message?: any) {
       diag(`${label}${message}`);
     } else if (typeof message === "object") {
       if (label) diag(label.trimEnd());
-      diag(JSON.stringify(message, null, 2));
+      // Masked before stringifying, so keys and escaped forms mask too (ADR 01178).
+      diag(JSON.stringify(maskDeep(message), null, 2));
     }
   }
 }
@@ -2639,7 +2644,10 @@ function replaceEnvs(stringOrObject: any): any {
     matches.forEach((match) => {
       // Check if is declared variable
       let value: any = process.env[match.substring(1)];
+      noteVariableReference(match.substring(1));
       if (value) {
+        // A substituted value is masked in output (ADR 01178).
+        registerEnvValue(match.substring(1), value);
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
           if (

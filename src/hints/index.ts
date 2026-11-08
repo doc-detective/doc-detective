@@ -117,7 +117,9 @@ export async function maybeShowHint(
     // terminal lines including the leading blank. Multi-line hint
     // bodies still get the rest of their content emitted as a second
     // print call to preserve the renderer's line shape.
-    const rendered = renderMarkdown(chosen.markdown);
+    const rendered = renderMarkdown(
+      typeof chosen.markdown === "function" ? chosen.markdown(ctx) : chosen.markdown
+    );
     const newlineIdx = rendered.indexOf("\n");
     const firstLine =
       newlineIdx === -1 ? rendered : rendered.slice(0, newlineIdx);

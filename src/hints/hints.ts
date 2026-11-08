@@ -236,6 +236,31 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // listPublicVariables (output & reporting): ADR 01178
+  // ------------------------------------------------------------------
+  {
+    id: "listPublicVariables",
+    priority: 30,
+    markdown: (ctx) => {
+      const names = [...ctx.maskedNonSecretNames];
+      const quoted = names.map((name) => `\`${name}\``);
+      const list =
+        quoted.length <= 2 ? quoted.join(" and ") : `${quoted.slice(0, -1).join(", ")}, and ${quoted[quoted.length - 1]}`;
+      const [verb, pronoun] = names.length === 1 ? ["shows", "it isn't secret, list it"] : ["show", "they aren't secret, list them"];
+      return [
+        `${list} ${verb} as \`***NAME***\` in this run's output. If ${pronoun} in \`publicVariables\`:`,
+        "",
+        "```json",
+        `"publicVariables": [${names.map((name) => JSON.stringify(name)).join(", ")}]`,
+        "```",
+        "",
+        "More: [Keep secrets out of logs, reports, and captures](https://docs.doc-detective.com/docs/ci/secrets)",
+      ].join("\n");
+    },
+    when: (ctx) => ctx.maskedNonSecretNames.size > 0,
+  },
+
+  // ------------------------------------------------------------------
   // omitSurfaceForActiveApp (optimization & advanced)
   // ------------------------------------------------------------------
   {

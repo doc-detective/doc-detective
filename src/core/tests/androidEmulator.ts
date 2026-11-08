@@ -7,6 +7,7 @@
 
 import { execFile, spawn, spawnSync } from "node:child_process";
 import treeKill from "tree-kill";
+import { maskString } from "../masking.js";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -893,7 +894,8 @@ async function bootEmulatorOnce(
   });
   let diag = "";
   const capture = (d: Buffer) => {
-    diag = (diag + d.toString()).slice(-1500);
+    // Masked before each cut, so no fragment of a secret is left (ADR 01178).
+    diag = maskString(diag + d.toString()).slice(-1500);
   };
   child.stdout?.on("data", capture);
   child.stderr?.on("data", capture);

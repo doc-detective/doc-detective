@@ -2,6 +2,7 @@ import Mocha from "mocha";
 import { createTestServers } from "./server/instances.js";
 import { freezeAllowanceMs, installFreezeAllowance } from "./freeze-allowance.js";
 import { _setBaseBackoffMsForTests } from "../dist/core/tests/checkLink.js";
+import { resetMasking } from "../dist/core/masking.js";
 
 // Windows CI runners freeze the whole process on bad days; give every enforced
 // timeout a fixed cushion there so a freeze can't fail an innocent test.
@@ -81,6 +82,11 @@ function onUncaughtException(err) {
 }
 
 export const mochaHooks = {
+  // The masking registry is process-wide and append-only (ADR 01178), so one
+  // test's registered values would mask the next test's in-process results.
+  beforeEach() {
+    resetMasking();
+  },
   async beforeAll() {
     process.on("unhandledRejection", onUnhandledRejection);
     process.on("uncaughtException", onUncaughtException);
